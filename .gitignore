@@ -1,3 +1,6 @@
 .vscode/*
 data/*
 src/runtime/__pycache__/*
+src/monitor/__pycache__/*
+src/state/__pycache__/self_state.cpython-310.pyc
+src/state/__pycache__/self_state.cpython-314.pyc

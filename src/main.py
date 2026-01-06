@@ -13,6 +13,14 @@ import sys
 import json
 from pathlib import Path
 
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--clear-data", type=str, default="no", help="Очистить логи и снапшоты (yes/no)")
+parser.add_argument("--tick-interval", type=float, default=1.0, help="Интервал тика, сек")
+parser.add_argument("--snapshot-period", type=int, default=10, help="Периодичность snapshot, тиков")
+args = parser.parse_args()
+
 # Путь к файлу логов
 LOG_FILE = Path("data/tick_log.jsonl")
 LOG_FILE.parent.mkdir(exist_ok=True)
