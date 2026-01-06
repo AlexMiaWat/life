@@ -35,11 +35,12 @@
 ```
 life/
 └── src/
-    ├── main.py
+    ├── main_server_api.py
     ├── runtime/
     │   └── loop.py
     ├── state/
-    │   └── self_state.py
+    │   ├── self_state.py
+    │   └── self_snapshot.py
     └── monitor/
         └── console.py
 ```
@@ -48,18 +49,20 @@ life/
 
 ---
 
-## main.py
+## main_server_api.py
 
 Ответственность:
 
 * инициализация life
-* запуск Runtime Loop
+* запуск Runtime Loop в отдельном потоке
+* запуск API сервера в отдельном потоке
+* поддержка dev mode с auto-reload
 * корректное завершение
 
 Запреты:
 
 * никакой логики жизни
-* никакой визуализации
+* никакой визуализации (кроме консольного monitor)
 
 ---
 
@@ -133,19 +136,36 @@ life/
 
 ---
 
+## Параметры запуска
+
+Через argparse:
+
+* `--clear-data` (str, default="no") — очистка логов и snapshot перед стартом
+* `--tick-interval` (float, default=1.0) — интервал тика, сек
+* `--snapshot-period` (int, default=10) — периодичность snapshot, тиков
+* `--dev` — включить dev mode с auto-reload
+
 ## Запуск
 
 Команда:
 
 ```
-python src/main.py
+python src/main_server_api.py --tick-interval 1.0 --snapshot-period 10
+```
+
+Для dev mode:
+
+```
+python src/main_server_api.py --dev
 ```
 
 Ожидаемое поведение:
 
 * процесс запускается
+* API сервер на http://localhost:8000
 * каждую секунду происходит тик
 * параметры медленно деградируют
+* snapshot сохраняются каждые 10 тиков
 * при достижении порога life завершается
 
 ---
@@ -160,6 +180,16 @@ python src/main.py
 * завершение происходит корректно
 
 Если это достигнуто — система **уже живая** в архитектурном смысле.
+
+---
+
+## См. также
+
+* [01_ARCHITECTURE.md](01_ARCHITECTURE.md) — общая архитектура
+* [02_RUNTIME_LOOP.md](02_RUNTIME_LOOP.md) — цикл жизни
+* [03_SELF_STATE.md](03_SELF_STATE.md) — внутреннее состояние
+* [04_MONITOR.md](04_MONITOR.md) — система наблюдения
+* [06_API_SERVER.md](06_API_SERVER.md) — API интерфейс
 
 ---
 
