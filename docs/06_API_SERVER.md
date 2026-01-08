@@ -13,15 +13,13 @@
 Архитектура
 life/
 └── src/
-    ├── main_server_api.py        # Новый API сервер
-    ├── main_server.py            # Старый server без API
+    ├── [`main_server_api.py`](../src/main_server_api.py)        # Новый API сервер
     ├── runtime/
-    │   └── loop.py               # Основной loop жизни
+    │   └── [`loop.py`](../src/runtime/loop.py)               # Основной loop жизни
     ├── state/
-    │   ├── self_state.py         # Определение self_state
-    │   └── self_snapshot.py      # Snapshot и load_snapshot
+    │   └── [`self_state.py`](../src/state/self_state.py)         # Определение self_state
     └── monitor/
-        └── console.py            # Мониторинг и лог
+        └── [`console.py`](../src/monitor/console.py)            # Мониторинг и лог
 
 Потоки
 
@@ -40,7 +38,7 @@ API поток (daemon) — поднимает HTTP сервер, обслужи
 
 Пример запуска сервера:
 
-python src/main_server_api.py --clear-data yes --tick-interval 1.0 --snapshot-period 10
+python [`main_server_api.py`](../src/main_server_api.py) --clear-data yes --tick-interval 1.0 --snapshot-period 10
 
 HTTP API
 Endpoint	Метод	Действие
@@ -74,7 +72,7 @@ Dev mode включает автоматическую перезагрузку 
 Запуск с dev mode:
 
 ```
-python src/main_server_api.py --dev
+python [`main_server_api.py`](../src/main_server_api.py) --dev
 ```
 
 ## Интеграция с проектом

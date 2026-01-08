@@ -284,7 +284,7 @@ Logs — это append-only журнал событий:
 ### Базовый запуск
 
 ```
-python src/main_server_api.py
+python [`main_server_api.py`](../src/main_server_api.py)
 ```
 
 ### С параметрами
@@ -296,7 +296,7 @@ python src/main_server_api.py --tick-interval 0.5 --snapshot-period 20 --clear-d
 ### Dev mode
 
 ```
-python src/main_server_api.py --dev
+python [`main_server_api.py`](../src/main_server_api.py) --dev
 ```
 
 ### Очистка данных
@@ -310,7 +310,7 @@ curl http://localhost:8000/clear-data
 Или при запуске:
 
 ```
-python src/main_server_api.py --clear-data yes
+python [`main_server_api.py`](../src/main_server_api.py) --clear-data yes
 ```
 
 ### Остановка сервера

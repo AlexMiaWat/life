@@ -49,7 +49,7 @@ life/
 
 ---
 
-## main_server_api.py
+## [`main_server_api.py`](../src/main_server_api.py)
 
 Ответственность:
 
@@ -66,7 +66,7 @@ life/
 
 ---
 
-## Runtime Loop (loop.py)
+## Runtime Loop ([`loop.py`](../src/runtime/loop.py))
 
 Минимальная реализация:
 
@@ -82,7 +82,7 @@ life/
 
 ---
 
-## Self-State (self_state.py)
+## Self-State ([`self_state.py`](../src/state/self_state.py))
 
 Минимальный набор параметров:
 
@@ -119,7 +119,7 @@ life/
 
 ---
 
-## Monitor (console.py)
+## Monitor ([`console.py`](src/monitor/console.py))
 
 Минимальный вывод:
 

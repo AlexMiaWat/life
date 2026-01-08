@@ -185,7 +185,7 @@ curl http://localhost:8000/status
 Self-State не сбрасывается автоматически. Для новой жизни:
 
 ```
-python src/main_server_api.py --clear-data yes
+python [`main_server_api.py`](../src/main_server_api.py) --clear-data yes
 ```
 
 Это очистит логи и snapshot, но состояние начнется заново.

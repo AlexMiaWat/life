@@ -208,7 +208,7 @@ while alive:
 ### Настройка через командную строку
 
 ```
-python src/main_server_api.py --tick-interval 0.5 --snapshot-period 5
+python [`main_server_api.py`](../src/main_server_api.py) --tick-interval 0.5 --snapshot-period 5
 ```
 
 ### Мониторинг работы
