@@ -308,7 +308,16 @@ life/
 │   ├── state/
 │   │   └── self_state.py                       # Управление состоянием
 │   └── monitor/
-│       └── console.py                          # Консольный мониторинг
+│       └── console.py                           # Консольный мониторинг
+│   ├── environment/
+│   │   ├── __init__.py          # Экспорт Event, EventQueue, EventGenerator
+│   │   ├── event.py             # Структура Event (dataclass)
+│   │   ├── event_queue.py       # Очередь событий (thread-safe)
+│   │   └── generator.py         # Генератор событий
+│   └── meaning/
+│       ├── __init__.py          # Экспорт Meaning, MeaningEngine
+│       ├── meaning.py           # Структура Meaning (dataclass)
+│       └── engine.py            # Движок интерпретации событий
 ├── data/                                       # Данные и логи
 │   ├── tick_log.jsonl                          # Логи тиков
 │   └── snapshots/                              # Снапшоты состояния
@@ -344,6 +353,13 @@ life/
 - [`runtime/loop.py`](../src/runtime/loop.py) - Runtime Loop (ядро жизни)
 - [`state/self_state.py`](../src/state/self_state.py) - Управление состоянием
 - [`monitor/console.py`](../src/monitor/console.py) - Консольный мониторинг
+- [`environment/__init__.py`](../src/environment/__init__.py) - Инициализация модуля Environment
+- [`environment/event.py`](../src/environment/event.py) - Структура Event
+- [`environment/event_queue.py`](../src/environment/event_queue.py) - Очередь событий
+- [`environment/generator.py`](../src/environment/generator.py) - Генератор событий
+- [`meaning/__init__.py`](../src/meaning/__init__.py) - Инициализация модуля Meaning
+- [`meaning/meaning.py`](../src/meaning/meaning.py) - Структура Meaning
+- [`meaning/engine.py`](../src/meaning/engine.py) - Движок интерпретации событий
 
 **Планы:**
 - [`project_tree_update_plan.md`](../plans/project_tree_update_plan.md) - План обновления документации
@@ -365,8 +381,8 @@ life/
 | 04 | [`04_MONITOR.md`](04_MONITOR.md) | [`monitor/console.py`](../src/monitor/console.py) | ✓ Реализован |
 | 05 | [`05_MINIMAL_IMPLEMENTATION.md`](05_MINIMAL_IMPLEMENTATION.md) | Все модули `src/` | ✓ Реализован |
 | 06 | [`06_API_SERVER.md`](06_API_SERVER.md) | [`main_server_api.py`](../src/main_server_api.py) | ✓ Реализован |
-| 07 | [`07_ENVIRONMENT.md`](07_ENVIRONMENT.md) | Не реализовано | ⏳ Концепция |
-| 08 | [`08_EVENTS_AND_MEANING.md`](08_EVENTS_AND_MEANING.md) | Не реализовано | ⏳ Концепция |
+| 07 | [`07_ENVIRONMENT.md`](07_ENVIRONMENT.md) | [`src/environment/`](../src/environment/) | ✓ Реализован |
+| 08 | [`08_EVENTS_AND_MEANING.md`](08_EVENTS_AND_MEANING.md) | [`src/meaning/`](../src/meaning/) | ✓ Реализован |
 | 09 | [`09_MEMORY_AND_EXPERIENCE.md`](09_MEMORY_AND_EXPERIENCE.md) | Не реализовано | ⏳ Концепция |
 | 10 | [`10_Activation_and_Recall.md`](10_Activation_and_Recall.md) | Не реализовано | ⏳ Концепция |
 | 11 | [`11_Decision.md`](11_Decision.md) | Не реализовано | ⏳ Концепция |
@@ -389,32 +405,53 @@ life/
 ## Статус этапов 07-12
 
 ### Этап 07: Environment (Среда)
-**Статус:** Концепция разработана, реализация не начата
+**Статус:** ✓ Реализован и протестирован
 
-**Что описано:**
-- Environment как независимый источник событий
-- EventGenerator, EventQueue, EventStream
-- Асинхронность и независимость от Life
-- Интеграция с Runtime Loop
+**Что реализовано:**
+- **Event** (`src/environment/event.py`): Dataclass с полями `type`, `intensity`, `timestamp`, `metadata`
+- **EventQueue** (`src/environment/event_queue.py`): Thread-safe очередь на `queue.Queue` с методами:
+  - `push()` - добавление события
+  - `pop()` - извлечение одного события (FIFO)
+  - `pop_all()` - извлечение всех событий за тик
+  - `is_empty()`, `size()` - проверка состояния
+- **EventGenerator** (`src/environment/generator.py`): Генератор событий с правильными диапазонами интенсивности:
+  - `noise`: `[-0.3, 0.3]`
+  - `decay`: `[-0.5, 0.0]`
+  - `recovery`: `[0.0, 0.5]`
+  - `shock`: `[-1.0, 1.0]`
+  - `idle`: `0.0`
+- **API** (`src/main_server_api.py`):
+  - GET `/status`, `/clear-data`
+  - POST `/event` — добавление событий в очередь среды
+- **Внешний генератор** (`src/environment/generator_cli.py`):
+  - Отдельный процесс/терминал, отправляет события на API с указанным интервалом
+- **Интеграция в Runtime Loop** (`src/runtime/loop.py`):
+  - `_interpret_event()` для простой интерпретации событий
+  - Обработка всех событий за тик через `pop_all()`
+  - События влияют на `energy`, `stability`, `integrity`
+
+**Принципы реализации:**
+- Environment независим от Life (не знает о внутренностях)
+- События приходят извне: через API или внешний генератор (серверный поток не генерирует сам)
+- Life интерпретирует события через простую функцию (не MeaningEngine на этапе 07)
+- Все события обрабатываются за один тик
 
 **Следующие шаги:**
-- Реализация EventGenerator с синтетическими событиями
-- EventQueue с ограниченным размером
-- Интеграция с Runtime Loop (perceive() шаг)
+- Этап завершен, переход к 08_EVENTS_AND_MEANING
 
 ### Этап 08: Events & Meaning (События и значение)
-**Статус:** Концепция разработана, реализация не начата
+**Статус:** Реализован
 
-**Что описано:**
-- Meaning Layer между Event и Self-State Update
-- Appraisal, ImpactModel, ResponsePattern
-- Функция Meaning = f(Event, SelfState)
-- Отличие от эмоций
+**Что реализовано:**
+- Модуль [`src/meaning/`](../src/meaning/) с [`Meaning`](../src/meaning/meaning.py) dataclass и [`MeaningEngine`](../src/meaning/engine.py)
+- Meaning структура: event_id, significance [0.0-1.0], impact {energy, stability, integrity}
+- MeaningEngine с методами: appraisal(), impact_model(), response_pattern(), process()
+- Интеграция в [`Runtime Loop`](../src/runtime/loop.py): события интерпретируются через MeaningEngine
+- Паттерны реакции: ignore, absorb, dampen, amplify
+- Формула Meaning = f(Event, SelfState) — субъективная интерпретация событий
 
 **Следующие шаги:**
-- Реализация MeaningEngine
-- Интеграция с Environment и Self-State
-- Тестирование различных интерпретаций
+- Этап завершен, переход к 09_MEMORY_AND_EXPERIENCE
 
 ### Этап 09: Memory & Experience (Память и опыт)
 **Статус:** Концепция разработана, реализация не начата
@@ -543,7 +580,7 @@ graph TB
 ### Приоритет 1: Завершение когнитивного слоя (07-12)
 
 **Следующие шаги:**
-1. **Этап 07: Environment** - Реализация независимого источника событий
+1. **Этап 07: Environment** - ✓ Реализован
 2. **Этап 08: Events & Meaning** - Интерпретация событий
 3. **Этап 09: Memory & Experience** - Система памяти
 
@@ -587,5 +624,5 @@ graph TB
 
 ---
 
-*Последнее обновление: 2026-01-08 20:55 MSK*
+*Последнее обновление: 2026-01-08 (этап 07 Environment реализован и протестирован)*
 

@@ -3,25 +3,28 @@ import glob
 import importlib
 import json
 import os
-import sys
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
+import sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from monitor.console import monitor, log
 from runtime.loop import run_loop
 from monitor.console import monitor
 import runtime.loop
 import state.self_state
+from environment import Event, EventQueue
+from colorama import Fore, Style, init
+init()
 
 from typing import Any
 
-print(f"[DIAG] Тип monitor: {type(monitor).__name__}")
-print(f"[DIAG] monitor callable? {callable(monitor)}")
+print(f"[ДИАГ] Тип monitor: {type(monitor).__name__}")
+print(f"[ДИАГ] monitor вызываемая функция? {callable(monitor)}")
 if hasattr(monitor, '__file__'):
-    print(f"[DIAG] monitor.__file__: {monitor.__file__}")
-print(f"[DIAG] monitor.__name__: {getattr(monitor, '__name__', 'no __name__')}")
-print(f"[DIAG] dir(monitor)[:10]: {dir(monitor)[:10]}")
+    print(f"[ДИАГ] monitor.__file__: {monitor.__file__}")
+print(f"[ДИАГ] monitor.__name__: {getattr(monitor, '__name__', 'нет __name__')}")
+print(f"[ДИАГ] dir(monitor)[:10]: {dir(monitor)[:10]}")
 
 HOST = "localhost"
 PORT = 8000
@@ -30,7 +33,9 @@ class StoppableHTTPServer(HTTPServer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.self_state = None
+        self.event_queue: EventQueue | None = None
         self.stopped = False
+        self.dev_mode = False
 
     def serve_forever(self, poll_interval=0.5):
         self.timeout = poll_interval
@@ -67,10 +72,81 @@ class LifeHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(b"Unknown endpoint")
 
-def start_api_server(self_state):
+    def do_POST(self):
+        """
+        /event — добавить событие в очередь через JSON:
+        {
+            "type": "noise",
+            "intensity": 0.1,        # optional
+            "timestamp": 1700000.0,  # optional (time.time() по умолчанию)
+            "metadata": {...}        # optional
+        }
+        """
+        if self.path != "/event":
+            self.send_response(404)
+            self.end_headers()
+            self.wfile.write(b"Unknown endpoint")
+            return
+
+        if not self.server.event_queue:
+            self.send_response(500)
+            self.end_headers()
+            self.wfile.write(b"No event queue configured")
+            return
+
+        content_length = int(self.headers.get("Content-Length", 0))
+        raw = self.rfile.read(content_length) if content_length > 0 else b"{}"
+        try:
+            payload = json.loads(raw.decode("utf-8"))
+        except Exception:
+            self.send_response(400)
+            self.end_headers()
+            self.wfile.write(b"Invalid JSON")
+            return
+
+        event_type = payload.get("type")
+        if not isinstance(event_type, str):
+            self.send_response(400)
+            self.end_headers()
+            self.wfile.write(b"'type' is required")
+            return
+
+        intensity = float(payload.get("intensity", 0.0))
+        timestamp = float(payload.get("timestamp", time.time()))
+        metadata = payload.get("metadata") or {}
+
+        try:
+            print(f"[API] Получен POST /event: type='{event_type}', intensity={intensity}")
+            event = Event(type=event_type, intensity=intensity, timestamp=timestamp, metadata=metadata)
+            self.server.event_queue.push(event)
+            print(f"[API] Event PUSHED to queue. Size now: {self.server.event_queue.size()}")
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b"Event accepted")
+        except Exception as exc:
+            self.send_response(400)
+            self.end_headers()
+            self.wfile.write(f"Invalid event: {exc}".encode("utf-8"))
+
+    def log_request(self, code, size=-1):
+        if self.server.dev_mode:
+            print(Fore.CYAN + "═" * 80 + Style.RESET_ALL)
+            print(Fore.GREEN + "🟢 ВХОДЯЩИЙ HTTP-ЗАПРОС" + Style.RESET_ALL)
+            print(Fore.YELLOW + f"⏰ Время: {self.log_date_time_string()}" + Style.RESET_ALL)
+            print(Fore.YELLOW + f"🌐 Клиент IP: {self.client_address[0]}" + Style.RESET_ALL)
+            print(Fore.YELLOW + f"📥 Запрос: {self.requestline}" + Style.RESET_ALL)
+            print(Fore.MAGENTA + f"✅ Статус ответа: {code}" + Style.RESET_ALL)
+            if isinstance(size, (int, float)) and size > 0:
+                print(Fore.MAGENTA + f"📊 Размер ответа: {size} байт" + Style.RESET_ALL)
+            print(Fore.CYAN + "═" * 80 + Style.RESET_ALL)
+            sys.stdout.flush()
+
+def start_api_server(self_state, event_queue, dev_mode):
     global server
     server = StoppableHTTPServer((HOST, PORT), LifeHandler)
     server.self_state = self_state
+    server.event_queue = event_queue
+    server.dev_mode = dev_mode
     print(f"API server running on http://{HOST}:{PORT}")
     server.serve_forever()
 
@@ -79,14 +155,17 @@ def reloader_thread():
     Отслеживает изменения в исходных файлах проекта и перезагружает их "горячо".
     Перезапускает API сервер при изменении модулей.
     """
-    global self_state, server, api_thread, monitor, log, loop_thread, loop_stop, config
+    global self_state, server, api_thread, monitor, log, loop_thread, loop_stop, config, event_queue
 
     # Файлы для отслеживания
     files_to_watch = [
         'src/main_server_api.py',
         'src/monitor/console.py',
         'src/runtime/loop.py',
-        'src/state/self_state.py'
+        'src/state/self_state.py',
+        'src/environment/event.py',
+        'src/environment/event_queue.py',
+        'src/environment/generator.py',
     ]
     mtime_dict = {}
 
@@ -126,10 +205,16 @@ def reloader_thread():
             import monitor.console as console_module
             import runtime.loop as loop_module
             import state.self_state as state_module
+            import environment.event as event_module
+            import environment.event_queue as event_queue_module
+            import environment.generator as generator_module
         
             importlib.reload(console_module)
             importlib.reload(loop_module)
             importlib.reload(state_module)
+            importlib.reload(event_module)
+            importlib.reload(event_queue_module)
+            importlib.reload(generator_module)
         
             print(f"[RELOAD DIAG] Reloaded loop_module.run_loop: firstlineno={loop_module.run_loop.__code__.co_firstlineno}, argcount={loop_module.run_loop.__code__.co_argcount}")
             print(f"[RELOAD DIAG] New run_loop code file: {loop_module.run_loop.__code__.co_filename}")
@@ -141,7 +226,7 @@ def reloader_thread():
             self_state = state_module.self_state if hasattr(state_module, 'self_state') else self_state
 
             # Перезапуск API сервера
-            api_thread = threading.Thread(target=start_api_server, args=(self_state,), daemon=True)
+            api_thread = threading.Thread(target=start_api_server, args=(self_state, event_queue, True), daemon=True)
             api_thread.start()
 
             print("Modules reloaded and server restarted")
@@ -155,7 +240,7 @@ def reloader_thread():
             loop_stop = threading.Event()
             loop_thread = threading.Thread(
                 target=run_loop,
-                args=(self_state, monitor, config['tick_interval'], config['snapshot_period'], loop_stop),
+                args=(self_state, monitor, config['tick_interval'], config['snapshot_period'], loop_stop, event_queue),
                 daemon=True
             )
             loop_thread.start()
@@ -168,7 +253,8 @@ if __name__ == "__main__":
     parser.add_argument("--snapshot-period", type=int, default=10)
     parser.add_argument("--dev", action="store_true", help="Enable development mode with auto-reload")
     args = parser.parse_args()
-
+    dev_mode = args.dev
+    
     config = {
         'tick_interval': args.tick_interval,
         'snapshot_period': args.snapshot_period
@@ -195,20 +281,23 @@ if __name__ == "__main__":
 
     server = None
     api_thread = None
+    
+    # Инициализация Environment
+    event_queue = EventQueue()
 
     if args.dev:
         log("--dev mode enabled, starting reloader")
         threading.Thread(target=reloader_thread, daemon=True).start()
 
     # Start API thread
-    api_thread = threading.Thread(target=start_api_server, args=(self_state,), daemon=True)
+    api_thread = threading.Thread(target=start_api_server, args=(self_state, event_queue, dev_mode), daemon=True)
     api_thread.start()
 
     # Start loop thread
     loop_stop = threading.Event()
     loop_thread = threading.Thread(
         target=run_loop,
-        args=(self_state, monitor, config['tick_interval'], config['snapshot_period'], loop_stop),
+        args=(self_state, monitor, config['tick_interval'], config['snapshot_period'], loop_stop, event_queue),
         daemon=True
     )
     loop_thread.start()

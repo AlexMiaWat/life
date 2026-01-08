@@ -44,8 +44,25 @@ def monitor(state):
         f.write(json.dumps(tick_data) + "\n")
     
 from runtime.loop import run_loop
+from environment import EventQueue, EventGenerator
+import threading
+import time
 
 if __name__ == "__main__":
-    run_loop(self_state, monitor)
+    event_queue = EventQueue()
+    stop_event = threading.Event()
+    def background_event_generation(queue, generator, stop_event):
+        while not stop_event.is_set():
+            event = generator.generate()
+            queue.push(event)
+            time.sleep(1.0)
+
+    generator_thread = threading.Thread(
+        target=background_event_generation,
+        args=(event_queue, EventGenerator(), stop_event)
+    )
+    generator_thread.daemon = True
+    generator_thread.start()
+    run_loop(self_state, monitor, event_queue=event_queue)
     print("Жизнь завершена. Финальное состояние:")
     print(self_state)

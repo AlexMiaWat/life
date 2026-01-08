@@ -93,18 +93,34 @@ Life читает события при каждом тике
 
 Интеграция с Runtime Loop
 tick:
-  1. получить события из среды
-  2. интерпретировать
+  1. получить события из среды (pop_all())
+  2. интерпретировать (_interpret_event())
   3. обновить self_state
   4. зафиксировать последствия
 
-Виды событий (минимум)
-Тип	Описание
-noise	случайное воздействие
-decay	естественный износ
-recovery	восстановление
-shock	резкое воздействие
-idle	отсутствие событий
+Виды событий (реализовано)
+Тип	Описание	Диапазон интенсивности
+noise	случайное воздействие	[-0.3, 0.3]
+decay	естественный износ	[-0.5, 0.0]
+recovery	восстановление	[0.0, 0.5]
+shock	резкое воздействие	[-1.0, 1.0]
+idle	отсутствие событий	0.0
+
+Интерпретация событий (этап 07)
+- noise: влияет на stability (intensity * 0.01)
+- decay: снижает energy (intensity отрицательная)
+- recovery: повышает energy (intensity положительная)
+- shock: влияет на integrity (intensity * 0.1) и stability (intensity * 0.05)
+- idle: не изменяет состояние
+
+Источники событий (обновлено)
+- **API**: POST /event — добавить событие вручную (type, intensity?, timestamp?, metadata?)
+- **Внешний генератор**: `python -m environment.generator_cli --interval 5 --host localhost --port 8000` — периодически отправляет события на API
+  - Генератор работает в отдельном процессе/терминале
+  - Интервал настраивается параметром `--interval` (секунды)
+  - Для передачи используется API /event
+
+Важно: фоновая генерация внутри `main_server_api.py` убрана. Все события приходят либо через API, либо из внешнего генератора, чтобы серверный поток не генерировал сам.
 Что Environment не делает
 
 ❌ не хранит состояние life
@@ -152,3 +168,67 @@ Life перестаёт быть:
 И становится:
 
 «системой, существующей в мире»
+
+---
+
+## Реализация (статус: ✓ Завершено)
+
+### Структура модуля
+
+```
+src/environment/
+├── __init__.py          # Экспорт Event, EventQueue, EventGenerator
+├── event.py             # Класс Event (dataclass)
+├── event_queue.py       # Класс EventQueue (thread-safe)
+└── generator.py         # Класс EventGenerator
+```
+
+### Ключевые компоненты
+
+**Event** (`event.py`):
+- `type: str` - тип события
+- `intensity: float` - интенсивность в диапазоне для типа события
+- `timestamp: float` - время создания события
+- `metadata: Dict[str, Any]` - дополнительные данные
+
+**EventQueue** (`event_queue.py`):
+- Thread-safe очередь на основе `queue.Queue`
+- Методы: `push()`, `pop()`, `pop_all()`, `is_empty()`, `size()`
+- Максимальный размер: 100 событий
+
+**EventGenerator** (`generator.py`):
+- Генерация событий с правильными диапазонами интенсивности
+- Вероятности: noise (40%), decay (30%), recovery (20%), shock (5%), idle (5%)
+
+**Интеграция** (`runtime/loop.py`):
+- Функция `_interpret_event(event, self_state)` для простой интерпретации
+- Обработка всех событий за тик через `pop_all()`
+- Изменение состояния согласно типу события
+
+### Пример использования
+
+```python
+from environment import EventQueue, EventGenerator
+from runtime.loop import run_loop
+
+# Создание очереди и генератора
+event_queue = EventQueue()
+generator = EventGenerator()
+
+# Генерация событий в фоновом потоке
+# (см. src/main.py для примера)
+
+# Runtime Loop обрабатывает события автоматически
+run_loop(self_state, monitor, event_queue=event_queue)
+```
+
+### Тестирование
+
+Все компоненты протестированы:
+- ✓ Создание событий с правильными диапазонами интенсивности
+- ✓ Работа очереди (FIFO, thread-safety)
+- ✓ Интерпретация всех типов событий
+- ✓ Обработка всех событий за тик
+- ✓ Интеграция с Runtime Loop
+
+**Дата завершения:** 2026-01-08

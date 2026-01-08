@@ -31,3 +31,27 @@
 - Совместимость с Python 3.14 и поддержка виртуального окружения .venv.
 
 Проект Life полностью функционирует как непрерывная среда с мониторингом, snapshot, API и dev-инструментами для безопасной разработки.
+
+## Environment (этап 07) ✓ Реализован
+- **Модуль [`src/environment/`](../src/environment/)**:
+  - `Event` - структура события (type, intensity, timestamp, metadata)
+  - `EventQueue` - thread-safe очередь событий с методами `push()`, `pop()`, `pop_all()`
+  - `EventGenerator` - генератор событий с правильными диапазонами интенсивности
+- **API /event** - добавление событий через POST JSON
+- **Внешний генератор** - `python -m environment.generator_cli --interval 5 --host localhost --port 8000` (отдельный терминал)
+- **Типы событий**: `noise` [-0.3, 0.3], `decay` [-0.5, 0.0], `recovery` [0.0, 0.5], `shock` [-1.0, 1.0], `idle` [0.0]
+- **Интеграция в Runtime Loop**: 
+  - Функция `_interpret_event()` для простой интерпретации событий
+  - Обработка всех событий за тик через `pop_all()`
+  - События влияют на `energy`, `stability`, `integrity`
+- **Инициализация**: Фоновый поток для асинхронной генерации событий в [`src/main.py`](../src/main.py)
+
+## Events and Meaning (этап 08) ✓ Реализован
+- **Модуль [`src/meaning/`](../src/meaning/)**:
+  - `Meaning` - структура интерпретации (event_id, significance, impact)
+  - `MeaningEngine` - движок интерпретации с методами appraisal(), impact_model(), response_pattern()
+- **Паттерны реакции**: `ignore`, `absorb`, `dampen`, `amplify`
+- **Формула**: Meaning = f(Event, SelfState) — субъективная интерпретация событий
+- **Примечание**: На этапе 07 используется простая функция `_interpret_event()`, MeaningEngine используется на этапе 08
+
+**Следующий этап:** 09_MEMORY_AND_EXPERIENCE
