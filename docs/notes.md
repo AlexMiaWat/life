@@ -6,12 +6,16 @@
 |-------------|-------|----------|
 | /status     | GET   | Возвращает текущее Self-State в JSON |
 | /clear-data | GET   | Очищает лог data/tick_log.jsonl и все snapshot-файлы |
+| /event      | POST  | Инъекция события в EventQueue: {"type": "str" (req), "intensity": float (opt=0.0), "timestamp": float (opt=time.time()), "metadata": dict (opt={})} |
 
 Пример запроса:
 
 ```bash
 curl http://localhost:8000/status
 curl http://localhost:8000/clear-data
+curl -X POST http://localhost:8000/event \\
+  -H "Content-Type: application/json" \\
+  -d '{"type": "noise", "intensity": 0.5}'
 ```
 
 ## Запуск
@@ -51,3 +55,9 @@ python src/main_server_api.py --dev
 Логи: `data/tick_log.jsonl`
 
 Snapshot: `data/snapshots/snapshot_XXXXXX.json`
+
+
+## Генерация событий - запуск сервера:
+python -m src.environment.generator_cli --interval 1 --host localhost --port 8000
+
+Либо через curl Api

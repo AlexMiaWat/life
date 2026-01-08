@@ -382,7 +382,7 @@ life/
 | 05 | [`05_MINIMAL_IMPLEMENTATION.md`](05_MINIMAL_IMPLEMENTATION.md) | Все модули `src/` | ✓ Реализован |
 | 06 | [`06_API_SERVER.md`](06_API_SERVER.md) | [`main_server_api.py`](../src/main_server_api.py) | ✓ Реализован |
 | 07 | [`07_ENVIRONMENT.md`](07_ENVIRONMENT.md) | [`src/environment/`](../src/environment/) | ✓ Реализован |
-| 08 | [`08_EVENTS_AND_MEANING.md`](08_EVENTS_AND_MEANING.md) | [`src/meaning/`](../src/meaning/) | ✓ Реализован |
+| 08 | [`08_EVENTS_AND_MEANING.md`](08_EVENTS_AND_MEANING.md) | [`src/meaning/`](../src/meaning/) | 🔄 MeaningEngine реализован, интеграция в loop не выполнена |
 | 09 | [`09_MEMORY_AND_EXPERIENCE.md`](09_MEMORY_AND_EXPERIENCE.md) | Не реализовано | ⏳ Концепция |
 | 10 | [`10_Activation_and_Recall.md`](10_Activation_and_Recall.md) | Не реализовано | ⏳ Концепция |
 | 11 | [`11_Decision.md`](11_Decision.md) | Не реализовано | ⏳ Концепция |

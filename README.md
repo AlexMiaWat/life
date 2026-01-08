@@ -20,9 +20,10 @@ life/
 │   ├── monitor/
 │   │   └── console.py         # Мониторинг и логирование
 │   ├── environment/
-│   │   ├── event.py           # Структура события (Event)
-│   │   ├── event_queue.py     # Очередь событий (EventQueue)
-│   │   └── generator.py       # Генератор событий (EventGenerator)
+│   │   ├── event.py           # [`Event`](src/environment/event.py) - структура события
+│   │   ├── event_queue.py     # [`EventQueue`](src/environment/event_queue.py) - очередь событий (max 100)
+│   │   ├── generator.py       # [`EventGenerator`](src/environment/generator.py) - генератор событий
+│   │   └── generator_cli.py   # CLI для отправки событий на API
 │   └── meaning/
 │       ├── meaning.py         # Структура интерпретации (Meaning)
 │       └── engine.py           # Движок интерпретации (MeaningEngine)
@@ -34,12 +35,18 @@ life/
 
 ### Ключевые модули
 
-- **main_server_api.py**: Основной сервер с HTTP API, управлением потоками и dev-режимом с горячим перезагрузом.
-- **runtime/loop.py**: Бесконечный цикл обновления состояния с обработкой событий из Environment.
-- **state/self_state.py**: Сохранение и загрузка snapshots состояния.
-- **monitor/console.py**: Консольный вывод состояния и JSON-логирование в файл.
-- **environment/**: Модуль среды (этап 07) - генерация и очередь событий, влияющих на Life.
-- **meaning/**: Модуль интерпретации событий (этап 08) - преобразование событий в субъективное значение.
+- **`main_server_api.py`**: Основной сервер с HTTP API (`/status`, `/clear-data`, `/event`), потоками runtime и dev-режимом с авто-перезагрузкой.
+- **`runtime/loop.py`**: Бесконечный цикл с тиками, обработкой событий из [`EventQueue`](src/environment/event_queue.py) и простой интерпретацией `_interpret_event`.
+- **`state/self_state.py`**: Сохранение/загрузка snapshots в `data/snapshots/snapshot_XXXXXX.json`.
+- **`monitor/console.py`**: Цветной консольный мониторинг и логи в `data/tick_log.jsonl`.
+- **`environment/`** (этап 07, интегрирован):
+  - [`event.py`](src/environment/event.py): [`Event`](src/environment/event.py) - `type`, `intensity:[-1..1]`, `timestamp`, `metadata`.
+  - [`event_queue.py`](src/environment/event_queue.py): [`EventQueue`](src/environment/event_queue.py) - thread-safe очередь с `push/pop/pop_all`, maxsize=100.
+  - [`generator.py`](src/environment/generator.py): [`EventGenerator`](src/environment/generator.py) - `generate()` с типами `noise/decay/recovery/shock/idle` (weights [0.4,0.3,0.2,0.05,0.05]), intensity ranges.
+  - [`generator_cli.py`](src/environment/generator_cli.py): CLI `python -m environment.generator_cli --interval 5 --host localhost --port 8000`.
+- **`meaning/`** (этап 08, реализован но не интегрирован):
+  - [`meaning.py`](src/meaning/meaning.py): [`Meaning`](src/meaning/meaning.py) - `significance:[0..1]`, `impact:{energy/stability/integrity: delta}`.
+  - [`engine.py`](src/meaning/engine.py): [`MeaningEngine`](src/meaning/engine.py) - `process(event, self_state) -> Meaning` через `appraisal/significance`, `impact_model`, `response_pattern` (ignore/absorb/dampen/amplify).
 
 ## Установка
 
@@ -221,16 +228,29 @@ Life отслеживает следующие параметры состоян
 
 Эти параметры создают динамику, где прошлое влияет на будущее, делая систему "живой" в экспериментальном смысле.
 
-### Environment (Среда) - Этап 07
+### Environment (этап 07, интегрирован)
 
-Life существует в среде, которая генерирует события:
+Life взаимодействует с [`EventQueue`](src/environment/event_queue.py), заполняемой через API `/event` или [`generator_cli.py`](src/environment/generator_cli.py).
 
-- **Типы событий**: `noise` (случайные воздействия), `decay` (естественный износ), `recovery` (восстановление), `shock` (резкие воздействия), `idle` (отсутствие событий)
-- **Интенсивность**: Каждый тип события имеет свой диапазон интенсивности, влияющий на степень воздействия
-- **Обработка**: События обрабатываются на каждом тике, изменяя состояние Life через функцию интерпретации
-- **Асинхронность**: События генерируются в фоновом потоке независимо от основного цикла
+**Типы событий** ([`EventGenerator`](src/environment/generator.py)):
+- `noise` (40%): intensity `[-0.3, 0.3]` → stability
+- `decay` (30%): `[-0.5, 0.0]` → energy
+- `recovery` (20%): `[0.0, 0.5]` → energy
+- `shock` (5%): `[-1.0, 1.0]` → integrity/stability
+- `idle` (5%): `0.0` → ничего
 
-Среда не знает о внутренностях Life - она только порождает события, а Life сама интерпретирует их значение.
+**Обработка** в [`loop.py`](src/runtime/loop.py): `pop_all()` → `_interpret_event` (простая логика, без MeaningEngine).
+
+### MeaningEngine (этап 08, реализован но не интегрирован)
+
+[`MeaningEngine`](src/meaning/engine.py).`process(event, self_state) -> [`Meaning`](src/meaning/meaning.py)`:
+
+1. **appraisal()**: significance = |intensity| * type_weight * state_modifiers ∈ [0,1]
+2. **impact_model()**: base_deltas * |intensity| * significance для energy/stability/integrity
+3. **response_pattern()**: "ignore" (<0.1), "dampen" (>stab0.8), "amplify" (<stab0.3), "absorb"
+4. Применить паттерн к impact.
+
+Готов к интеграции в loop.py вместо _interpret_event.
 
 ### Генерация событий
 

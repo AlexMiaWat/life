@@ -46,12 +46,12 @@
   - События влияют на `energy`, `stability`, `integrity`
 - **Инициализация**: Фоновый поток для асинхронной генерации событий в [`src/main.py`](../src/main.py)
 
-## Events and Meaning (этап 08) ✓ Реализован
+## Events and Meaning (этап 08) ⚠️ MeaningEngine реализован, интеграция в runtime loop pending
 - **Модуль [`src/meaning/`](../src/meaning/)**:
   - `Meaning` - структура интерпретации (event_id, significance, impact)
   - `MeaningEngine` - движок интерпретации с методами appraisal(), impact_model(), response_pattern()
 - **Паттерны реакции**: `ignore`, `absorb`, `dampen`, `amplify`
 - **Формула**: Meaning = f(Event, SelfState) — субъективная интерпретация событий
-- **Примечание**: На этапе 07 используется простая функция `_interpret_event()`, MeaningEngine используется на этапе 08
+- **Примечание**: MeaningEngine реализован в [`src/meaning/`](../src/meaning/), но не интегрирован в runtime loop. В runtime loop на этапе 07 используется простая функция [`_interpret_event()`](../src/runtime/loop.py).
 
-**Следующий этап:** 09_MEMORY_AND_EXPERIENCE
+**Следующий этап:** Интеграция MeaningEngine в runtime loop (завершение этапа 08)
