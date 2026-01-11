@@ -16,20 +16,20 @@
 
 ## Слои 07–10: Perception, Meaning, Memory
 
-* 07_Environment: 🧱 Fixed
+* 07_Environment: ✓ Реализован
 * 08_Events & Meaning: 🧱 Fixed
 * 09_Memory & Experience: 🧱 Fixed
 * 10_Activation & Recall: 🧱 Fixed
 
 ## Слой 11: Decision
 
-* docs/11_Decision.md — описание: фиксирован
+* docs/11_Decision.md — ⏸ Blocked
 * 11.1_DECISION_LIMITS.md — предохранитель: создан
 * 11.2_DECISION_MINIMAL_FORM.md — минимальная форма: создана
 
 ## Слой 12: Action / Execution
 
-* docs/12_ACTION_AND_EXECUTION.md — описание: полностью согласована с
+* docs/12_ACTION_AND_EXECUTION.md — 🚫 Forbidden
 * 12_ACTION_LIMITS.md — предохранитель: создан
 * 12.1_ACTION_MINIMAL_FORM.md — минимальная форма: создана
 

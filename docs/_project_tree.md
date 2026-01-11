@@ -365,7 +365,7 @@ life/
 - [`project_tree_update_plan.md`](../plans/project_tree_update_plan.md) - План обновления документации
 
 **Изменения структуры:**
-- ❌ Удален [`state/self_snapshot.py`](../src/state/self_snapshot.py) - функционал интегрирован в self_state.py
+- ✅ Функционал интегрирован в [`state/self_state.py`](../src/state/self_state.py)
 - ❌ Удален `pyrightconfig.json` - не используется в проекте
 
 ---
@@ -382,12 +382,12 @@ life/
 | 05 | [`05_MINIMAL_IMPLEMENTATION.md`](05_MINIMAL_IMPLEMENTATION.md) | Все модули `src/` | ✓ Реализован |
 | 06 | [`06_API_SERVER.md`](06_API_SERVER.md) | [`main_server_api.py`](../src/main_server_api.py) | ✓ Реализован |
 | 07 | [`07_ENVIRONMENT.md`](07_ENVIRONMENT.md) | [`src/environment/`](../src/environment/) | ✓ Реализован |
-| 08 | [`08_EVENTS_AND_MEANING.md`](08_EVENTS_AND_MEANING.md) | [`src/meaning/`](../src/meaning/) | 🔄 MeaningEngine реализован, интеграция в loop не выполнена |
+| 08 | [`08_EVENTS_AND_MEANING.md`](08_EVENTS_AND_MEANING.md) | [`src/meaning/`](../src/meaning/) | 🔄 Частично реализован (MeaningEngine готов, но интеграция в loop.py отсутствует) |
 | 09 | [`09_MEMORY_AND_EXPERIENCE.md`](09_MEMORY_AND_EXPERIENCE.md) | Не реализовано | ⏳ Концепция |
 | 10 | [`10_Activation_and_Recall.md`](10_Activation_and_Recall.md) | Не реализовано | ⏳ Концепция |
-| 11 | [`11_Decision.md`](11_Decision.md) | Не реализовано | ⏳ Концепция |
-| 12 | [`12_ACTION_AND_EXECUTION.md`](12_ACTION_AND_EXECUTION.md) | Не реализовано | ⏳ Концепция |
-| 13 | 13_FEEDBACK_LEARNING.md | Не реализовано | 📋 Планируется |
+| 11 | [`11_Decision.md`](11_Decision.md) | Не реализовано | ⏸ Blocked |
+| 12 | [`12_ACTION_AND_EXECUTION.md`](12_ACTION_AND_EXECUTION.md) | Не реализовано | 🚫 Forbidden |
+| 13 | [`13_FEEDBACK_LIMITS.md`](13_FEEDBACK_LIMITS.md) | Не реализовано | 📋 Планируется |
 | 14 | 14_COMMUNICATION.md | Не реализовано | 📋 Планируется |
 | 15 | 15_PLANNING_STRATEGY.md | Не реализовано | 📋 Планируется |
 | 16 | 16_SELF_MONITORING.md | Частично ([`monitor/console.py`](../src/monitor/console.py)) | 🔄 В разработке |
