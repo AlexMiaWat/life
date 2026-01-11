@@ -333,19 +333,19 @@ life/
 ### Ключевые файлы проекта
 
 **Документация:**
-- [`00_VISION.md`](00_VISION.md) - Концепция проекта Life
-- [`01_ARCHITECTURE.md`](01_ARCHITECTURE.md) - Архитектура системы
-- [`02_RUNTIME_LOOP.md`](02_RUNTIME_LOOP.md) - Runtime Loop - ядро жизни
-- [`03_SELF_STATE.md`](03_SELF_STATE.md) - Внутреннее состояние Я
-- [`04_MONITOR.md`](04_MONITOR.md) - Система наблюдения
-- [`05_MINIMAL_IMPLEMENTATION.md`](05_MINIMAL_IMPLEMENTATION.md) - Минимальная реализация
-- [`06_API_SERVER.md`](06_API_SERVER.md) - HTTP API сервер
-- [`07_ENVIRONMENT.md`](07_ENVIRONMENT.md) - Среда и события (концепция)
-- [`08_EVENTS_AND_MEANING.md`](08_EVENTS_AND_MEANING.md) - События и их значение (концепция)
-- [`09_MEMORY_AND_EXPERIENCE.md`](09_MEMORY_AND_EXPERIENCE.md) - Память и опыт (концепция)
-- [`10_Activation_and_Recall.md`](10_Activation_and_Recall.md) - Активация памяти (концепция)
-- [`11_Decision.md`](11_Decision.md) - Принятие решений (концепция)
-- [`12_ACTION_AND_EXECUTION.md`](12_ACTION_AND_EXECUTION.md) - Действия и исполнение (концепция)
+- [`00_VISION.md`](../core/00_VISION.md) - Концепция проекта Life
+- [`01_ARCHITECTURE.md`](../core/01_ARCHITECTURE.md) - Архитектура системы
+- [`02_RUNTIME_LOOP.md`](../system/02_RUNTIME_LOOP.md) - Runtime Loop - ядро жизни
+- [`03_SELF_STATE.md`](../system/03_SELF_STATE.md) - Внутреннее состояние Я
+- [`04_MONITOR.md`](../system/04_MONITOR.md) - Система наблюдения
+- [`05_MINIMAL_IMPLEMENTATION.md`](../core/05_MINIMAL_IMPLEMENTATION.md) - Минимальная реализация
+- [`06_API_SERVER.md`](../system/06_API_SERVER.md) - HTTP API сервер
+- [`07_ENVIRONMENT.md`](../system/07_ENVIRONMENT.md) - Среда и события (концепция)
+- [`08_EVENTS_AND_MEANING.md`](../system/08_EVENTS_AND_MEANING.md) - События и их значение (концепция)
+- [`09_MEMORY_AND_EXPERIENCE.md`](../concepts/09_MEMORY.md) - Память и опыт (концепция)
+- [`10_Activation_and_Recall.md`](../concepts/10_ACTIVATION.md) - Активация памяти (концепция)
+- [`11_Decision.md`](../concepts/11_DECISION.md) - Принятие решений (концепция)
+- [`12_ACTION_AND_EXECUTION.md`](../concepts/12_ACTION.md) - Действия и исполнение (концепция)
 
 **Исходный код:**
 - [`main_server_api.py`](../src/main_server_api.py) - Точка входа с API и dev mode
@@ -374,19 +374,19 @@ life/
 
 | Этап | Документ | Реализация | Статус |
 |------|----------|------------|---------|
-| 00 | [`00_VISION.md`](00_VISION.md) | Концептуальный уровень | ✓ Завершен |
-| 01 | [`01_ARCHITECTURE.md`](01_ARCHITECTURE.md) | Вся структура `src/` | ✓ Реализован |
-| 02 | [`02_RUNTIME_LOOP.md`](02_RUNTIME_LOOP.md) | [`runtime/loop.py`](../src/runtime/loop.py) | ✓ Реализован |
-| 03 | [`03_SELF_STATE.md`](03_SELF_STATE.md) | [`state/self_state.py`](../src/state/self_state.py) | ✓ Реализован |
-| 04 | [`04_MONITOR.md`](04_MONITOR.md) | [`monitor/console.py`](../src/monitor/console.py) | ✓ Реализован |
-| 05 | [`05_MINIMAL_IMPLEMENTATION.md`](05_MINIMAL_IMPLEMENTATION.md) | Все модули `src/` | ✓ Реализован |
-| 06 | [`06_API_SERVER.md`](06_API_SERVER.md) | [`main_server_api.py`](../src/main_server_api.py) | ✓ Реализован |
-| 07 | [`07_ENVIRONMENT.md`](07_ENVIRONMENT.md) | [`src/environment/`](../src/environment/) | ✓ Реализован |
-| 08 | [`08_EVENTS_AND_MEANING.md`](08_EVENTS_AND_MEANING.md) | [`src/meaning/`](../src/meaning/) | 🔄 Частично реализован (MeaningEngine готов, но интеграция в loop.py отсутствует) |
-| 09 | [`09_MEMORY_AND_EXPERIENCE.md`](09_MEMORY_AND_EXPERIENCE.md) | Не реализовано | ⏳ Концепция |
-| 10 | [`10_Activation_and_Recall.md`](10_Activation_and_Recall.md) | Не реализовано | ⏳ Концепция |
-| 11 | [`11_Decision.md`](11_Decision.md) | Не реализовано | ⏸ Blocked |
-| 12 | [`12_ACTION_AND_EXECUTION.md`](12_ACTION_AND_EXECUTION.md) | Не реализовано | 🚫 Forbidden |
+| 00 | [`00_VISION.md`](../core/00_VISION.md) | Концептуальный уровень | ✓ Завершен |
+| 01 | [`01_ARCHITECTURE.md`](../core/01_ARCHITECTURE.md) | Вся структура `src/` | ✓ Реализован |
+| 02 | [`02_RUNTIME_LOOP.md`](../system/02_RUNTIME_LOOP.md) | [`runtime/loop.py`](../src/runtime/loop.py) | ✓ Реализован |
+| 03 | [`03_SELF_STATE.md`](../system/03_SELF_STATE.md) | [`state/self_state.py`](../src/state/self_state.py) | ✓ Реализован |
+| 04 | [`04_MONITOR.md`](../system/04_MONITOR.md) | [`monitor/console.py`](../src/monitor/console.py) | ✓ Реализован |
+| 05 | [`05_MINIMAL_IMPLEMENTATION.md`](../core/05_MINIMAL_IMPLEMENTATION.md) | Все модули `src/` | ✓ Реализован |
+| 06 | [`06_API_SERVER.md`](../system/06_API_SERVER.md) | [`main_server_api.py`](../src/main_server_api.py) | ✓ Реализован |
+| 07 | [`07_ENVIRONMENT.md`](../system/07_ENVIRONMENT.md) | [`src/environment/`](../src/environment/) | ✓ Реализован |
+| 08 | [`08_EVENTS_AND_MEANING.md`](../system/08_EVENTS_AND_MEANING.md) | [`src/meaning/`](../src/meaning/) | 🔄 Частично реализован (MeaningEngine готов, но интеграция в loop.py отсутствует) |
+| 09 | [`09_MEMORY_AND_EXPERIENCE.md`](../concepts/09_MEMORY.md) | Не реализовано | ⏳ Концепция |
+| 10 | [`10_Activation_and_Recall.md`](../concepts/10_ACTIVATION.md) | Не реализовано | ⏳ Концепция |
+| 11 | [`11_Decision.md`](../concepts/11_DECISION.md) | Не реализовано | ⏸ Blocked |
+| 12 | [`12_ACTION_AND_EXECUTION.md`](../concepts/12_ACTION.md) | Не реализовано | 🚫 Forbidden |
 | 13 | [`13_FEEDBACK_LIMITS.md`](13_FEEDBACK_LIMITS.md) | Не реализовано | 📋 Планируется |
 | 14 | 14_COMMUNICATION.md | Не реализовано | 📋 Планируется |
 | 15 | 15_PLANNING_STRATEGY.md | Не реализовано | 📋 Планируется |
