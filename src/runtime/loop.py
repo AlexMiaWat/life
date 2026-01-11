@@ -18,7 +18,7 @@ def run_loop(self_state, monitor, tick_interval=1.0, snapshot_period=10, stop_ev
         event_queue: Очередь событий из Environment
     """
     last_time = time.time()
-    while self_state['alive'] and (stop_event is None or not stop_event.is_set()):
+    while (stop_event is None or not stop_event.is_set()):
         try:
             current_time = time.time()
             dt = current_time - last_time
@@ -43,6 +43,17 @@ def run_loop(self_state, monitor, tick_interval=1.0, snapshot_period=10, stop_ev
 
                 record_potential_sequences(self_state)
                 process_information(self_state)
+
+            # Логика слабости: когда параметры низкие, добавляем штрафы за немощность
+            weakness_threshold = 0.05
+            if (self_state['energy'] <= weakness_threshold or
+                self_state['integrity'] <= weakness_threshold or
+                self_state['stability'] <= weakness_threshold):
+                penalty = 0.02 * dt
+                self_state['energy'] -= penalty
+                self_state['stability'] -= penalty * 2
+                self_state['integrity'] -= penalty * 2
+                print(f"[LOOP] Слабость: штрафы penalty={penalty:.4f}, energy={self_state['energy']:.2f}")
 
             # Вызов мониторинга
             try:
@@ -115,7 +126,7 @@ def _interpret_event(event: Event, self_state: dict) -> None:
         # Ничего не делаем при idle
         pass
     
-    # Ограничиваем значения в допустимых пределах
-    self_state['energy'] = max(0.0, min(100.0, self_state['energy']))
-    self_state['stability'] = max(0.0, min(1.0, self_state['stability']))
-    self_state['integrity'] = max(0.0, min(1.0, self_state['integrity']))
+    # Ограничиваем значения в допустимых пределах (верхние границы)
+    self_state['energy'] = min(100.0, self_state['energy'])
+    self_state['stability'] = min(1.0, self_state['stability'])
+    self_state['integrity'] = min(1.0, self_state['integrity'])

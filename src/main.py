@@ -66,6 +66,6 @@ if __name__ == "__main__":
     )
     generator_thread.daemon = True
     generator_thread.start()
-    run_loop(self_state, monitor, event_queue=event_queue)
+    run_loop(self_state, monitor, tick_interval=args.tick_interval, snapshot_period=args.snapshot_period, event_queue=event_queue, stop_event=stop_event)
     print("Жизнь завершена. Финальное состояние:")
     print(self_state)
