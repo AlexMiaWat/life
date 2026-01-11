@@ -16,7 +16,7 @@
 
 ## Слои 07–10: Perception, Meaning, Memory
 
-* 07_Environment: ✓ Реализован
+* 07_Environment: ✅ Реализован
 * 08_Events & Meaning: 🧱 Fixed
 * 09_Memory & Experience: 🧱 Fixed
 * 10_Activation & Recall: 🧱 Fixed
