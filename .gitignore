@@ -8,3 +8,4 @@ src/__pycache__/*
 src/environment/__pycache__/*
 *.pyc
 test_report_07.md
+docs/skeptic/*
