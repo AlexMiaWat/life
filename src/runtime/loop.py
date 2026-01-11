@@ -2,6 +2,8 @@ import time
 from state.self_state import save_snapshot
 import traceback
 from environment import Event
+from planning.planning import record_potential_sequences
+from intelligence.intelligence import process_information
 
 def run_loop(self_state, monitor, tick_interval=1.0, snapshot_period=10, stop_event=None, event_queue=None):
     """
@@ -37,6 +39,10 @@ def run_loop(self_state, monitor, tick_interval=1.0, snapshot_period=10, stop_ev
                     print(f"[LOOP] Interpreting event: type={event.type}, intensity={event.intensity}")
                     _interpret_event(event, self_state)
                     print(f"[LOOP] After interpret: energy={self_state['energy']:.2f}, stability={self_state['stability']:.4f}")
+                    self_state['recent_events'].append(event.type)
+
+                record_potential_sequences(self_state)
+                process_information(self_state)
 
             # Вызов мониторинга
             try:

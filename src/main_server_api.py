@@ -276,7 +276,10 @@ if __name__ == "__main__":
         'age': 0.0,
         'energy': 100.0,
         'stability': 1.0,
-        'integrity': 1.0
+        'integrity': 1.0,
+        'recent_events': [],
+        'planning': {},
+        'intelligence': {}
     }
 
     server = None

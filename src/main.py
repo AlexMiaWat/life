@@ -6,7 +6,10 @@ self_state = {
     'age': 0.0,
     'energy': 100.0,
     'stability': 1.0,
-    'integrity': 1.0
+    'integrity': 1.0,
+    'recent_events': [],
+    'planning': {},
+    'intelligence': {}
 }
 
 import sys
