@@ -1,628 +1,136 @@
-Давай выстроим полную структуру Life от 00 до 18 с текущими слоями и этапами, добавим визуализацию процессов (дерево), чтобы это стало основой для дальнейшей доработки и реализации.
+# Project Life — Project Tree (Authoritative)
 
-Я предлагаю оформить в Markdown с иерархией этапов и слоев, плюс схематическое дерево с потоками данных и зависимостями.
-
-Вот пример содержимого _project_tree.md:
-
-# Life: Project Tree (_project_tree.md)
-
-## Общая структура
-Life строится на принципах постепенного усложнения, автономности слоев и этапов, минимализма реализации и непрерывности существования.  
-Каждый этап автономен, реализуется только после полной фиксации документации.
+> **Status:** Canonical project structure
+> **Role:** Single source of truth for layers, states, and evolution order
+> **Rule:** If something is not reflected here — it does not exist for the project
 
 ---
 
-## Этапы и слои
+## Legend (Layer Status)
 
-### 00. Initialization
-- Цель: подготовка среды Life
-- Слои:
-  - System Boot
-  - Configuration Loader
-  - Basic Logging
-
-### 01. Input / Perception
-- Цель: получение информации о внешнем мире
-- Слои:
-  - Sensor Interface
-  - Data Normalization
-  - Event Queue
-
-### 02. Environment Modeling
-- Цель: формирование модели внешней среды
-- Слои:
-  - World State
-  - Entities & Relationships
-  - Dynamic Simulation
-
-### 03. Core State
-- Цель: поддержание внутреннего состояния Life
-- Слои:
-  - Variables & Parameters
-  - State Versioning
-  - Continuity Checks
-
-### 04. Basic Memory
-- Цель: хранение недолговременного опыта
-- Слои:
-  - Short-Term Storage
-  - Event Recording
-  - Contextual Snapshot
-
-### 05. Experience Accumulation
-- Цель: накопление долгосрочного опыта
-- Слои:
-  - Long-Term Memory
-  - Pattern Recognition
-  - Historical Indexing
-
-### 06. Goal Definition
-- Цель: формирование намерений и целей
-- Слои:
-  - Intent Generator
-  - Priority Assignment
-  - Goal Hierarchy
-
-### 07. State / Continuity
-- Цель: проверка согласованности внутреннего состояния
-- Слои:
-  - State Validation
-  - Continuity Assurance
-  - Error Detection
-
-### 08. Environment Interaction
-- Цель: взаимодействие с внешней средой
-- Слои:
-  - Action Interfaces
-  - Observation Feedback
-  - External Constraints
-
-### 09. Memory / Experience
-- Цель: фиксирование опыта и границ памяти
-- Слои:
-  - Experience Logger
-  - Memory Boundaries
-  - Recall Mechanisms
-
-### 10. Intentions / Goals
-- Цель: определение целей на основе памяти и состояния
-- Слои:
-  - Goal Selector
-  - Conflict Resolver
-  - Task Scheduler
-
-### 11. Decision
-- Цель: принятие решений на основе состояния, целей и опыта
-- Слои:
-  - Decision Engine
-  - Option Evaluation
-  - Risk Assessment
-
-### 12. Action / Execution
-- Цель: выполнение действий в среде
-- Слои:
-  - Action Planner
-  - Execution Engine
-  - Outcome Logging
-
-### 13. Feedback / Learning
-- Цель: анализ результатов действий и самокоррекция
-- Слои:
-  - Outcome Analyzer
-  - Learning Module
-  - Adaptive Adjustment
-
-### 14. Communication / Interaction
-- Цель: взаимодействие с внешними агентами
-- Слои:
-  - Communication Protocols
-  - Message Prioritization
-  - Interface Adapters
-
-### 15. Planning / Strategy
-- Цель: формирование долгосрочных планов
-- Слои:
-  - Scenario Builder
-  - Resource Forecast
-  - Strategy Selector
-
-### 16. Self-Monitoring / Health
-- Цель: контроль целостности и ресурсов Life
-- Слои:
-  - Module Health Checks
-  - Resource Management
-  - Logging & Alerts
-
-### 17. Evolution / Adaptation
-- Цель: самостоятельная модификация и развитие
-- Слои:
-  - Module Generation
-  - Structure Adaptation
-  - Experimental Algorithms
-
-### 18. Integration / Emergence
-- Цель: объединение всех слоев в согласованное целое
-- Слои:
-  - Goal-State Alignment
-  - Resource Distribution
-  - Continuity Maintenance
+* **conceptual** — idea described, not constrained
+* **minimal_form_defined** — minimal form documented and locked
+* **implemented** — has runtime/code embodiment
+* **locked** — closed for semantic changes (only extensions allowed)
 
 ---
 
-## Визуализация процессов
+## 00–06 — Foundations (Locked)
 
-### Этапы Life (Концептуальная иерархия)
+### 00 — Vision
 
-```mermaid
-graph TD
-    A[00 Initialization] --> B[01 Input / Perception]
-    A --> C[03 Core State]
-    B --> D[02 Environment Modeling]
-    C --> E[04 Basic Memory]
-    E --> F[05 Experience Accumulation]
-    F --> G[06 Goal Definition]
-    G --> H[10 Intentions / Goals]
-    C --> I[07 State / Continuity]
-    D --> J[08 Environment Interaction]
-    E --> K[09 Memory / Experience]
-    K --> H
-    H --> L[11 Decision]
-    L --> M[12 Action / Execution]
-    M --> N[13 Feedback / Learning]
-    N --> F
-    J --> O[14 Communication / Interaction]
-    H --> P[15 Planning / Strategy]
-    I --> Q[16 Self-Monitoring / Health]
-    N --> R[17 Evolution / Adaptation]
-    P --> S[18 Integration / Emergence]
-    R --> S
-    Q --> S
-```
+* status: **locked**
+* notes: defines non-goals, rejects chatbot/agent framing
 
-### Потоки данных
+### 01 — Core Principles
 
-```mermaid
-flowchart LR
-    Perception[Perception] --> Memory[Memory]
-    Memory --> Goals[Goals]
-    Goals --> Decision[Decision]
-    Decision --> Action[Action]
-    Action --> Feedback[Feedback]
-    Feedback --> Memory
-    
-    Memory <--> Experience[Experience]
-    Experience <--> Learning[Learning]
-    
-    State[State] <--> Continuity[Continuity]
-    Continuity <--> Monitoring[Self-Monitoring]
-    
-    Evolution[Evolution] <--> Strategy[Strategy]
-    Strategy <--> Integration[Integration]
-```
+* status: **locked**
+* notes: causality, observability, continuity
+
+### 02 — Architecture
+
+* status: **locked**
+* notes: layer separation, direction of dependencies
+
+### 03 — Minimal Implementation Doctrine
+
+* status: **locked**
+* notes: no premature intelligence, no optimisation
+
+### 04 — Tooling Separation
+
+* status: **locked**
+* notes: tooling ≠ life
+
+### 05 — Runtime Continuity
+
+* status: **locked**
+* notes: life exists across ticks, not sessions
+
+### 06 — Time & Existence
+
+* status: **locked**
+* notes: age, ticks, irreversible progression
 
 ---
 
-*Примечание:*  
-Это **текущая основа**, к которой будем **привязывать реализацию модулей**, добавлять подслои, уточнять интерфейсы и зависимости.  
-Дерево служит как **контрольная структура**, чтобы ни один слой не нарушал целостность Life.
+## 07–12 — Existing Life Core
 
+### 07 — Environment
 
-## Типология действий Life
+* status: **implemented**
+* notes: events, queues, external stimuli
 
-### Классификация действий
+### 08 — State
 
-```mermaid
-graph TB
-    Actions[Life Actions]
-    
-    Actions --> Internal[Internal<br/>Внутренние]
-    Actions --> External[External<br/>Внешние]
-    Actions --> Reactive[Reactive<br/>Реактивные]
-    Actions --> Goal[Goal-Oriented<br/>Целевые]
-    
-    Internal --> I1[act_mem_clean<br/>Очистка памяти]
-    Internal --> I2[act_mem_archive<br/>Архивация событий]
-    Internal --> I3[act_state_check<br/>Проверка состояния]
-    
-    External --> E1[act_notify_user<br/>Уведомление пользователя]
-    External --> E2[act_external_query<br/>Запрос внешних данных]
-    External --> E3[act_send_message<br/>Отправка сообщения]
-    
-    Reactive --> R1[act_react_event<br/>Реакция на событие]
-    Reactive --> R2[act_adjust_priority<br/>Изменение приоритетов]
-    Reactive --> R3[act_emergency_response<br/>Аварийная реакция]
-    
-    Goal --> G1[act_goal_execute<br/>Выполнение цели]
-    Goal --> G2[act_learning_update<br/>Обновление опыта]
-    Goal --> G3[act_plan_step<br/>Шаг плана]
-```
+* status: **implemented**
+* notes: factual internal state, no interpretation
 
-### Взаимосвязи типов действий
+### 09 — Memory & Experience
 
-```mermaid
-graph LR
-    Internal[Internal<br/>Внутренние] <--> Goal[Goal-Oriented<br/>Целевые]
-    External[External<br/>Внешние] <--> Goal
-    Reactive[Reactive<br/>Реактивные] <--> Internal
-    Reactive <--> External
-    Goal <-- Learning --> All[Все типы]
-    
-    style Internal fill:#e1f5ff
-    style External fill:#fff5e1
-    style Reactive fill:#ffe1f5
-    style Goal fill:#e1ffe1
-```
+* status: **minimal_form_defined**
+* notes: storage without meaning
 
-### Описание типов
+### 10 — Perception
 
-**Internal (Внутренние)** — поддерживают состояние Life, обеспечивают чистоту и порядок, минимизируют нагрузку.
+* status: **minimal_form_defined**
+* notes: registering signals, no understanding
 
-**External (Внешние)** — обеспечивают связь Life с внешним миром, позволяют Life влиять и получать данные извне.
+### 11 — Decision
 
-**Reactive (Реактивные)** — обеспечивают адаптивность, позволяют Life реагировать на изменения среды и событий.
+* status: **minimal_form_defined**
+* notes: selection without optimisation
 
-**Goal-Oriented (Целевые)** — движущая сила Life, направленная на достижение целей и обучение на опыте.
+### 12 — Action / Execution
 
-### Принципы взаимодействия:
-- Internal ↔ Goal-Oriented: внутренние действия подготавливают среду для достижения целей
-- External ↔ Goal-Oriented: внешние действия реализуют цели в мире
-- Reactive ↔ Internal / External: реакции корректируют внутреннее состояние или внешние действия в реальном времени
-- Learning (целевые) ↔ все остальные: обновление опыта используется для оптимизации всех типов действий
+* status: **implemented**
+* notes: acts without knowing outcome
 
 ---
 
-## Реальная структура проекта
+## 13 — Feedback / Consequences
 
-### Файловая структура
+### 13 — Feedback
 
-```
-life/
-├── docs/                                        # Документация проекта
-│   ├── 00_VISION.md                            # Концепция проекта Life
-│   ├── 01_ARCHITECTURE.md                      # Архитектура системы
-│   ├── 01.1 runtime-скелет.md                  # Исторический скелет
-│   ├── 02_RUNTIME_LOOP.md                      # Runtime Loop - ядро жизни
-│   ├── 02.1 интерпретации.md                   # Интерпретация поведения Life
-│   ├── 03_SELF_STATE.md                        # Внутреннее состояние Я
-│   ├── 04_MONITOR.md                           # Система наблюдения
-│   ├── 04.0 Pre_MONITOR.md                     # Предварительные идеи мониторинга
-│   ├── 05_MINIMAL_IMPLEMENTATION.md            # Минимальная реализация
-│   ├── 06_API_SERVER.md                        # HTTP API сервер
-│   ├── 07_ENVIRONMENT.md                       # Среда и события
-│   ├── 08_EVENTS_AND_MEANING.md                # События и их значение
-│   ├── 09_MEMORY_AND_EXPERIENCE.md             # Память и опыт
-│   ├── 10_Activation_and_Recall.md             # Активация памяти
-│   ├── 11_Decision.md                          # Принятие решений
-│   ├── 12_ACTION_AND_EXECUTION.md              # Действия и исполнение
-│   ├── _project_tree.md                        # Структура проекта (этот файл)
-│   ├── auto-reload-plan.md                     # План авто-перезагрузки
-│   ├── life Диаграмма действий жизни.png       # Визуализация действий
-│   ├── notes.md                                # Заметки
-│   ├── now.md                                  # Текущие задачи
-│   └── todo_00-06.md                           # TODO этапы 00-06
-├── src/                                        # Исходный код
-│   ├── main_server_api.py                      # Основной API сервер с dev mode
-│   ├── main.py                                 # Тестовый запуск (устаревший)
-│   ├── runtime/
-│   │   └── loop.py                             # Runtime Loop реализация
-│   ├── state/
-│   │   └── self_state.py                       # Управление состоянием
-│   └── monitor/
-│       └── console.py                           # Консольный мониторинг
-│   ├── environment/
-│   │   ├── __init__.py          # Экспорт Event, EventQueue, EventGenerator
-│   │   ├── event.py             # Структура Event (dataclass)
-│   │   ├── event_queue.py       # Очередь событий (thread-safe)
-│   │   └── generator.py         # Генератор событий
-│   └── meaning/
-│       ├── __init__.py          # Экспорт Meaning, MeaningEngine
-│       ├── meaning.py           # Структура Meaning (dataclass)
-│       └── engine.py            # Движок интерпретации событий
-├── data/                                       # Данные и логи
-│   ├── tick_log.jsonl                          # Логи тиков
-│   └── snapshots/                              # Снапшоты состояния
-│       └── snapshot_XXXXXX.json                # Файлы снапшотов
-├── plans/                                      # Планы и стратегии
-│   └── project_tree_update_plan.md             # План обновления документации
-├── .gitignore                                  # Исключаемые файлы
-├── .venv/                                      # Виртуальное окружение Python
-├── .vscode/                                    # Настройки VS Code
-└── README.md                                   # Основная документация проекта
-```
+* status: **minimal_form_defined**
+* next_activation: **true**
+* notes:
 
-### Ключевые файлы проекта
-
-**Документация:**
-- [`00_VISION.md`](../core/00_VISION.md) - Концепция проекта Life
-- [`01_ARCHITECTURE.md`](../core/01_ARCHITECTURE.md) - Архитектура системы
-- [`02_RUNTIME_LOOP.md`](../system/02_RUNTIME_LOOP.md) - Runtime Loop - ядро жизни
-- [`03_SELF_STATE.md`](../system/03_SELF_STATE.md) - Внутреннее состояние Я
-- [`04_MONITOR.md`](../system/04_MONITOR.md) - Система наблюдения
-- [`05_MINIMAL_IMPLEMENTATION.md`](../core/05_MINIMAL_IMPLEMENTATION.md) - Минимальная реализация
-- [`06_API_SERVER.md`](../system/06_API_SERVER.md) - HTTP API сервер
-- [`07_ENVIRONMENT.md`](../system/07_ENVIRONMENT.md) - Среда и события (концепция)
-- [`08_EVENTS_AND_MEANING.md`](../system/08_EVENTS_AND_MEANING.md) - События и их значение (концепция)
-- [`09_MEMORY_AND_EXPERIENCE.md`](../concepts/09_MEMORY.md) - Память и опыт (концепция)
-- [`10_Activation_and_Recall.md`](../concepts/10_ACTIVATION.md) - Активация памяти (концепция)
-- [`11_Decision.md`](../concepts/11_DECISION.md) - Принятие решений (концепция)
-- [`12_ACTION_AND_EXECUTION.md`](../concepts/12_ACTION.md) - Действия и исполнение (концепция)
-
-**Исходный код:**
-- [`main_server_api.py`](../src/main_server_api.py) - Точка входа с API и dev mode
-- [`main.py`](../src/main.py) - Тестовый запуск (устаревший)
-- [`runtime/loop.py`](../src/runtime/loop.py) - Runtime Loop (ядро жизни)
-- [`state/self_state.py`](../src/state/self_state.py) - Управление состоянием
-- [`monitor/console.py`](../src/monitor/console.py) - Консольный мониторинг
-- [`environment/__init__.py`](../src/environment/__init__.py) - Инициализация модуля Environment
-- [`environment/event.py`](../src/environment/event.py) - Структура Event
-- [`environment/event_queue.py`](../src/environment/event_queue.py) - Очередь событий
-- [`environment/generator.py`](../src/environment/generator.py) - Генератор событий
-- [`meaning/__init__.py`](../src/meaning/__init__.py) - Инициализация модуля Meaning
-- [`meaning/meaning.py`](../src/meaning/meaning.py) - Структура Meaning
-- [`meaning/engine.py`](../src/meaning/engine.py) - Движок интерпретации событий
-
-**Планы:**
-- [`project_tree_update_plan.md`](../plans/project_tree_update_plan.md) - План обновления документации
-
-**Изменения структуры:**
-- ✅ Функционал интегрирован в [`state/self_state.py`](../src/state/self_state.py)
-- ❌ Удален `pyrightconfig.json` - не используется в проекте
+  * records consequences of actions
+  * no evaluation
+  * no learning
+  * no behavioural change
 
 ---
 
-## Mapping этапов и файлов кода
+## 14–18 — Future Layers (Not Active)
 
-| Этап | Документ | Реализация | Статус |
-|------|----------|------------|---------|
-| 00 | [`00_VISION.md`](../core/00_VISION.md) | Концептуальный уровень | ✓ Завершен |
-| 01 | [`01_ARCHITECTURE.md`](../core/01_ARCHITECTURE.md) | Вся структура `src/` | ✓ Реализован |
-| 02 | [`02_RUNTIME_LOOP.md`](../system/02_RUNTIME_LOOP.md) | [`runtime/loop.py`](../src/runtime/loop.py) | ✓ Реализован |
-| 03 | [`03_SELF_STATE.md`](../system/03_SELF_STATE.md) | [`state/self_state.py`](../src/state/self_state.py) | ✓ Реализован |
-| 04 | [`04_MONITOR.md`](../system/04_MONITOR.md) | [`monitor/console.py`](../src/monitor/console.py) | ✓ Реализован |
-| 05 | [`05_MINIMAL_IMPLEMENTATION.md`](../core/05_MINIMAL_IMPLEMENTATION.md) | Все модули `src/` | ✓ Реализован |
-| 06 | [`06_API_SERVER.md`](../system/06_API_SERVER.md) | [`main_server_api.py`](../src/main_server_api.py) | ✓ Реализован |
-| 07 | [`07_ENVIRONMENT.md`](../system/07_ENVIRONMENT.md) | [`src/environment/`](../src/environment/) | ✓ Реализован |
-| 08 | [`08_EVENTS_AND_MEANING.md`](../system/08_EVENTS_AND_MEANING.md) | [`src/meaning/`](../src/meaning/) | 🔄 Частично реализован (MeaningEngine готов, но интеграция в loop.py отсутствует) |
-| 09 | [`09_MEMORY_AND_EXPERIENCE.md`](../concepts/09_MEMORY.md) | Не реализовано | ⏳ Концепция |
-| 10 | [`10_Activation_and_Recall.md`](../concepts/10_ACTIVATION.md) | Не реализовано | ⏳ Концепция |
-| 11 | [`11_Decision.md`](../concepts/11_DECISION.md) | Не реализовано | ⏸ Blocked |
-| 12 | [`12_ACTION_AND_EXECUTION.md`](../concepts/12_ACTION.md) | Не реализовано | 🚫 Forbidden |
-| 13 | [`13_FEEDBACK_LIMITS.md`](13_FEEDBACK_LIMITS.md) | Не реализовано | 📋 Планируется |
-| 14 | 14_COMMUNICATION.md | Не реализовано | 📋 Планируется |
-| 15 | 15_PLANNING_STRATEGY.md | Не реализовано | 📋 Планируется |
-| 16 | 16_SELF_MONITORING.md | Частично ([`monitor/console.py`](../src/monitor/console.py)) | 🔄 В разработке |
-| 17 | 17_EVOLUTION.md | Не реализовано | 📋 Планируется |
-| 18 | 18_INTEGRATION.md | Не реализовано | 📋 Планируется |
+### 14 — Adaptation
 
-### Легенда статусов:
-- ✓ **Реализован** - Этап полностью реализован в коде
-- ⏳ **Концепция** - Документация создана, код не реализован
-- 🔄 **В разработке** - Этап частично реализован
-- 📋 **Планируется** - Документация ещё не создана, этап в планах
+* status: **conceptual**
+
+### 15 — Goals
+
+* status: **conceptual**
+
+### 16 — Planning
+
+* status: **conceptual**
+
+### 17 — Reflection
+
+* status: **conceptual**
+
+### 18 — Intelligence Interface
+
+* status: **implemented (proxy only)**
+* notes: source registration only, no reasoning
 
 ---
 
-## Статус этапов 07-12
+## Global Rules
 
-### Этап 07: Environment (Среда)
-**Статус:** ✓ Реализован и протестирован
-
-**Что реализовано:**
-- **Event** (`src/environment/event.py`): Dataclass с полями `type`, `intensity`, `timestamp`, `metadata`
-- **EventQueue** (`src/environment/event_queue.py`): Thread-safe очередь на `queue.Queue` с методами:
-  - `push()` - добавление события
-  - `pop()` - извлечение одного события (FIFO)
-  - `pop_all()` - извлечение всех событий за тик
-  - `is_empty()`, `size()` - проверка состояния
-- **EventGenerator** (`src/environment/generator.py`): Генератор событий с правильными диапазонами интенсивности:
-  - `noise`: `[-0.3, 0.3]`
-  - `decay`: `[-0.5, 0.0]`
-  - `recovery`: `[0.0, 0.5]`
-  - `shock`: `[-1.0, 1.0]`
-  - `idle`: `0.0`
-- **API** (`src/main_server_api.py`):
-  - GET `/status`, `/clear-data`
-  - POST `/event` — добавление событий в очередь среды
-- **Внешний генератор** (`src/environment/generator_cli.py`):
-  - Отдельный процесс/терминал, отправляет события на API с указанным интервалом
-- **Интеграция в Runtime Loop** (`src/runtime/loop.py`):
-  - `_interpret_event()` для простой интерпретации событий
-  - Обработка всех событий за тик через `pop_all()`
-  - События влияют на `energy`, `stability`, `integrity`
-
-**Принципы реализации:**
-- Environment независим от Life (не знает о внутренностях)
-- События приходят извне: через API или внешний генератор (серверный поток не генерирует сам)
-- Life интерпретирует события через простую функцию (не MeaningEngine на этапе 07)
-- Все события обрабатываются за один тик
-
-**Следующие шаги:**
-- Этап завершен, переход к 08_EVENTS_AND_MEANING
-
-### Этап 08: Events & Meaning (События и значение)
-**Статус:** Реализован
-
-**Что реализовано:**
-- Модуль [`src/meaning/`](../src/meaning/) с [`Meaning`](../src/meaning/meaning.py) dataclass и [`MeaningEngine`](../src/meaning/engine.py)
-- Meaning структура: event_id, significance [0.0-1.0], impact {energy, stability, integrity}
-- MeaningEngine с методами: appraisal(), impact_model(), response_pattern(), process()
-- Интеграция в [`Runtime Loop`](../src/runtime/loop.py): события интерпретируются через MeaningEngine
-- Паттерны реакции: ignore, absorb, dampen, amplify
-- Формула Meaning = f(Event, SelfState) — субъективная интерпретация событий
-
-**Следующие шаги:**
-- Этап завершен, переход к 09_MEMORY_AND_EXPERIENCE
-
-### Этап 09: Memory & Experience (Память и опыт)
-**Статус:** Концепция разработана, реализация не начата
-
-**Что описано:**
-- Типы памяти: эпизодическая, поведенческая, контекстная
-- Experience как связка событий
-- Забывание и деградация
-- Графовая модель памяти
-
-**Следующие шаги:**
-- Реализация Memory Store
-- Формирование опыта из событий
-- Механизмы забывания
-
-### Этап 10: Activation & Recall (Активация и воспроизведение)
-**Статус:** Концепция разработана, реализация не начата
-
-**Что описано:**
-- Active Memory vs Memory Store
-- Триггеры активации
-- Recall как восстановление паттерна
-- Ограничения и затухание
-
-**Следующие шаги:**
-- Реализация механизма активации
-- Active Memory с TTL
-- Интеграция с Memory Store
-
-### Этап 11: Decision (Решения)
-**Статус:** Концепция разработана, реализация не начата
-
-**Что описано:**
-- Decision как выбор следующего шага
-- Входы: State, Environment, Active Memory
-- Пространство решений
-- Ошибочные решения как норма
-
-**Следующие шаги:**
-- Реализация Decision Engine
-- Интеграция с Active Memory
-- Тестирование различных сценариев
-
-### Этап 12: Action & Execution (Действия и исполнение)
-**Статус:** Концепция разработана, реализация не начата
-
-**Что описано:**
-- Реестр действий Life
-- Типы действий: внутренние, внешние, реактивные, целевые
-- Принципы исполнения
-- Атомарность и проверяемость
-
-**Следующие шаги:**
-- Создание Action Registry
-- Реализация базовых действий
-- Интеграция с Decision
-
----
-
-## Архитектурные связи
-
-### Текущая реализация (этапы 00-06)
-
-```mermaid
-graph LR
-    RL[Runtime Loop<br/>loop.py] --> SS[Self-State<br/>self_state.py]
-    SS --> M[Monitor<br/>console.py]
-    M --> API[API Server<br/>main_server_api.py]
-    API --> RL
-```
-
-### Будущая архитектура (этапы 07-12)
-
-```mermaid
-graph LR
-    ENV[Environment<br/>EventGenerator] --> EM[Events & Meaning<br/>MeaningEngine]
-    EM --> MEM[Memory<br/>MemoryStore]
-    MEM --> ACT[Activation<br/>ActiveMemory]
-    ACT --> DEC[Decision<br/>DecisionEngine]
-    DEC --> ACN[Action<br/>ActionRegistry]
-    ACN --> ENV
-```
-
-### Перспективная архитектура (этапы 13-18)
-
-```mermaid
-graph TB
-    subgraph Core [Ядро 00-06]
-        RT[Runtime Loop]
-        ST[Self-State]
-        MON[Monitor]
-    end
-    
-    subgraph Cognition [Когнитивный слой 07-12]
-        ENV[Environment]
-        MEM[Memory]
-        DEC[Decision]
-        ACT[Action]
-    end
-    
-    subgraph Advanced [Продвинутый слой 13-18]
-        FB[Feedback/Learning]
-        COM[Communication]
-        PLAN[Planning]
-        EVO[Evolution]
-        INT[Integration]
-    end
-    
-    Core --> Cognition
-    Cognition --> Advanced
-    Advanced --> Core
-```
-
-### Ключевые зависимости
-- **Environment** должен быть независим от Life
-- **Memory** не должна нарушать непрерывность State
-- **Decision** работает только с локальным контекстом
-- **Action** атомарны и обратимы
-- **Learning** использует Feedback для адаптации
-- **Integration** обеспечивает согласованность всех слоев
-
----
-
-## Roadmap развития
-
-### Приоритет 1: Завершение когнитивного слоя (07-12)
-
-**Следующие шаги:**
-1. **Этап 07: Environment** - ✓ Реализован
-2. **Этап 08: Events & Meaning** - Интерпретация событий
-3. **Этап 09: Memory & Experience** - Система памяти
-
-**Зависимости:**
-- 07 → 08 → 09 (последовательная реализация)
-- После 09 возможна параллельная работа над 10-12
-
-### Приоритет 2: Механизмы активации и решений (10-12)
-
-**Следующие шаги:**
-1. **Этап 10: Activation & Recall** - Активная память
-2. **Этап 11: Decision** - Принятие решений
-3. **Этап 12: Action & Execution** - Выполнение действий
-
-**Зависимости:**
-- 09 → 10 → 11 → 12 (последовательная реализация)
-
-### Приоритет 3: Самообучение и адаптация (13-15)
-
-**Планируемые этапы:**
-- **Этап 13: Feedback / Learning** - Обучение на результатах
-- **Этап 14: Communication** - Взаимодействие с агентами
-- **Этап 15: Planning / Strategy** - Долгосрочное планирование
-
-**Условие начала:** Завершение этапов 07-12
-
-### Приоритет 4: Целостность и эволюция (16-18)
-
-**Планируемые этапы:**
-- **Этап 16: Self-Monitoring / Health** - Расширение мониторинга
-- **Этап 17: Evolution / Adaptation** - Саморазвитие
-- **Этап 18: Integration / Emergence** - Интегральное целое
-
-**Условие начала:** Завершение этапов 13-15
-
-### Критерии готовности каждого этапа:
-- ✓ Документация завершена и проверена
-- ✓ Код реализован и протестирован
-- ✓ Интеграция с предыдущими этапами проверена
-- ✓ Не нарушены принципы Life (непрерывность, необратимость, минимализм)
-
----
-
-*Последнее обновление: 2026-01-08 (этап 07 Environment реализован и протестирован)*
-
+1. Layers activate strictly in order
+2. Locked layers cannot be redefined
+3. Implementation may lag documentation, never lead it
+4. Intelligence is the last, not the first, concern
