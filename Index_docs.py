@@ -40,7 +40,7 @@ with open(output_file, 'w', encoding='utf-8') as master:
     for rel_path, full_path in md_files:
         anchor = str(rel_path).replace('/', '-').replace('\\', '-').replace('.md', '')
         master.write(f'## {rel_path} <a id="{anchor}"></a>\n')  # Заголовок с путём и якорем
-        master.write(f'**Полный путь:** docs/{rel_path}\n\n')
+        master.write(f'**Полный путь:** docs\{rel_path}\n\n')
         master.write('```markdown\n')
         with open(full_path, 'r', encoding='utf-8') as md:
             master.write(md.read())

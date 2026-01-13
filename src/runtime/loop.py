@@ -10,6 +10,7 @@ from memory.memory import MemoryEntry
 from datetime import datetime
 from activation.activation import activate_memory
 from decision.decision import decide_response
+from action import execute_action
 
 def run_loop(self_state: SelfState, monitor, tick_interval=1.0, snapshot_period=10, stop_event=None, event_queue=None):
     """
@@ -61,6 +62,7 @@ def run_loop(self_state: SelfState, monitor, tick_interval=1.0, snapshot_period=
                         # else "absorb" — no change
 
                         self_state.apply_delta(meaning.impact)
+                        execute_action(pattern, self_state)
                         self_state.recent_events.append(event.type)
                         self_state.last_significance = meaning.significance
                         self_state.memory.append(MemoryEntry(event_type=event.type, meaning_significance=meaning.significance, timestamp=time.time()))
