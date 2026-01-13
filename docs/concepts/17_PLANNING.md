@@ -121,4 +121,35 @@ Planning **не может**:
 
 → развитие слоя Planning **немедленно останавливается**.
 
+## Текущая реализация (v1.0)
+
+На 13 января 2026 года реализован минимальный слой Planning, соответствующий всем архитектурным ограничениям.
+
+### Описание реализации
+Planning как функция `record_potential_sequences(self_state)` в [`src/planning/planning.py`](../../src/planning/planning.py), вызывается после MeaningEngine в Runtime Loop.
+
+#### Принципы реализации
+- Нейтральная фиксация: простая запись последних событий как последовательности без оценки.
+- Без влияния: записывает данные в `self_state.planning` без изменений других полей.
+- Минимализм: использует proxy-данные из self_state (recent_events, energy_history, stability_history).
+
+#### Структура данных
+```python
+self_state.planning = {
+    'potential_sequences': [['event1', 'event2']],  # если >=2 события
+    'sources_used': {
+        'memory_proxy': len(recent_events),
+        'learning_proxy': len(stability_history),
+        'adaptation_proxy': len(energy_history)
+    }
+}
+```
+
+### Соответствие ограничениям
+- ✅ Не инициирует действия или Decision
+- ✅ Не имеет целей или мотивации
+- ✅ Не оценивает или ранжирует последовательности
+- ✅ Не влияет на другие слои
+- ✅ Не строит сценарии или предсказания
+
 Planning — фиксация потенциального, без цели, оценки и исполнения.

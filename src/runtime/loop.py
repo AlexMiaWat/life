@@ -1,14 +1,18 @@
 import time
-from state.self_state import save_snapshot
+from state.self_state import save_snapshot, SelfState
 import traceback
 from environment import Event
 from planning.planning import record_potential_sequences
 from intelligence.intelligence import process_information
+from meaning.engine import MeaningEngine
+from dataclasses import asdict
+from memory.memory import MemoryEntry
+from datetime import datetime
 
-def run_loop(self_state, monitor, tick_interval=1.0, snapshot_period=10, stop_event=None, event_queue=None):
+def run_loop(self_state: SelfState, monitor, tick_interval=1.0, snapshot_period=10, stop_event=None, event_queue=None):
     """
     Runtime Loop с интеграцией Environment (этап 07)
-    
+
     Args:
         self_state: Состояние Life
         monitor: Функция мониторинга
@@ -17,6 +21,7 @@ def run_loop(self_state, monitor, tick_interval=1.0, snapshot_period=10, stop_ev
         stop_event: threading.Event для остановки
         event_queue: Очередь событий из Environment
     """
+    engine = MeaningEngine()
     last_time = time.time()
     while (stop_event is None or not stop_event.is_set()):
         try:
@@ -25,8 +30,8 @@ def run_loop(self_state, monitor, tick_interval=1.0, snapshot_period=10, stop_ev
             last_time = current_time
 
             # Обновление состояния
-            self_state['ticks'] += 1
-            self_state['age'] += dt
+            self_state.apply_delta({'ticks': 1})
+            self_state.apply_delta({'age': dt})
 
             # === ШАГ 1: Получить события из среды ===
             if event_queue and not event_queue.is_empty():
@@ -37,23 +42,29 @@ def run_loop(self_state, monitor, tick_interval=1.0, snapshot_period=10, stop_ev
                 # === ШАГ 2: Интерпретировать события ===
                 for event in events:
                     print(f"[LOOP] Interpreting event: type={event.type}, intensity={event.intensity}")
-                    _interpret_event(event, self_state)
-                    print(f"[LOOP] After interpret: energy={self_state['energy']:.2f}, stability={self_state['stability']:.4f}")
-                    self_state['recent_events'].append(event.type)
+                    meaning = engine.process(event, asdict(self_state))
+                    if meaning.significance > 0:
+                        self_state.apply_delta(meaning.impact)
+                        self_state.recent_events.append(event.type)
+                        self_state.last_significance = meaning.significance
+                        self_state.memory.append(MemoryEntry(event_type=event.type, meaning_significance=meaning.significance, timestamp=time.time()))
+                    print(f"[LOOP] After interpret: energy={self_state.energy:.2f}, stability={self_state.stability:.4f}")
 
                 record_potential_sequences(self_state)
                 process_information(self_state)
 
             # Логика слабости: когда параметры низкие, добавляем штрафы за немощность
             weakness_threshold = 0.05
-            if (self_state['energy'] <= weakness_threshold or
-                self_state['integrity'] <= weakness_threshold or
-                self_state['stability'] <= weakness_threshold):
+            if (self_state.energy <= weakness_threshold or
+                self_state.integrity <= weakness_threshold or
+                self_state.stability <= weakness_threshold):
                 penalty = 0.02 * dt
-                self_state['energy'] -= penalty
-                self_state['stability'] -= penalty * 2
-                self_state['integrity'] -= penalty * 2
-                print(f"[LOOP] Слабость: штрафы penalty={penalty:.4f}, energy={self_state['energy']:.2f}")
+                self_state.apply_delta({
+                    'energy': -penalty,
+                    'stability': -penalty * 2,
+                    'integrity': -penalty * 2
+                })
+                print(f"[LOOP] Слабость: штрафы penalty={penalty:.4f}, energy={self_state.energy:.2f}")
 
             # Вызов мониторинга
             try:
@@ -63,7 +74,7 @@ def run_loop(self_state, monitor, tick_interval=1.0, snapshot_period=10, stop_ev
                 traceback.print_exc()
 
             # Snapshot каждые snapshot_period тиков
-            if self_state['ticks'] % snapshot_period == 0:
+            if self_state.ticks % snapshot_period == 0:
                 try:
                     save_snapshot(self_state)
                 except Exception as e:
@@ -77,56 +88,13 @@ def run_loop(self_state, monitor, tick_interval=1.0, snapshot_period=10, stop_ev
             time.sleep(sleep_duration)
 
         except Exception as e:
-            self_state['integrity'] -= 0.05
+            self_state.apply_delta({'integrity': -0.05})
             print(f"Ошибка в цикле: {e}")
             traceback.print_exc()
 
         finally:
-            if (self_state['energy'] <= 0 or 
-                self_state['integrity'] <= 0 or 
-                self_state['stability'] <= 0):
-                self_state['active'] = False
+            if (self_state.energy <= 0 or
+                self_state.integrity <= 0 or
+                self_state.stability <= 0):
+                self_state.active = False
 
-def _interpret_event(event: Event, self_state: dict) -> None:
-    """
-    Интерпретирует событие и изменяет self_state.
-    
-    Логика интерпретации — минимальная для старта (этап 07):
-    - noise: слегка влияет на stability
-    - decay: снижает energy
-    - recovery: восстанавливает energy
-    - shock: влияет на integrity и stability
-    - idle: ничего не делает
-    
-    Args:
-        event: Event из Environment
-        self_state: Состояние Life
-    """
-    event_type = event.type
-    intensity = event.intensity
-    
-    if event_type == 'noise':
-        # Шум влияет на стабильность
-        self_state['stability'] += intensity * 0.01
-    
-    elif event_type == 'decay':
-        # Износ снижает энергию (intensity отрицательная)
-        self_state['energy'] += intensity
-    
-    elif event_type == 'recovery':
-        # Восстановление повышает энергию
-        self_state['energy'] += intensity
-    
-    elif event_type == 'shock':
-        # Шок влияет на integrity и stability
-        self_state['integrity'] += intensity * 0.1
-        self_state['stability'] += intensity * 0.05
-    
-    elif event_type == 'idle':
-        # Ничего не делаем при idle
-        pass
-    
-    # Ограничиваем значения в допустимых пределах (верхние границы)
-    self_state['energy'] = min(100.0, self_state['energy'])
-    self_state['stability'] = min(1.0, self_state['stability'])
-    self_state['integrity'] = min(1.0, self_state['integrity'])

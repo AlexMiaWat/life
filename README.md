@@ -27,10 +27,12 @@ life/
 │   ├── meaning/
 │   │   ├── meaning.py         # Структура интерпретации (Meaning)
 │   │   └── engine.py          # Движок интерпретации (MeaningEngine)
-│   ├── intelligence/          # Модуль интеллекта (этап 18, не реализован)
+│   ├── intelligence/          # Модуль интеллекта (этап 18, v1.0)
 │   │   └── intelligence.py
-│   ├── planning/              # Модуль планирования (этап 17, не реализован)
+│   ├── planning/              # Модуль планирования (этап 17, v1.0)
 │   │   └── planning.py
+│   ├── memory/                # Модуль памяти (этап 09, v1.0)
+│   │   └── memory.py
 │   └── test/                  # Тесты
 │       └── test_api.py
 ├── docs/                      # Документация проекта
@@ -53,16 +55,18 @@ life/
 - **`meaning/`** (этап 08, реализован но не интегрирован):
   - [`meaning.py`](src/meaning/meaning.py): [`Meaning`](src/meaning/meaning.py) - `significance:[0..1]`, `impact:{energy/stability/integrity: delta}`.
   - [`engine.py`](src/meaning/engine.py): [`MeaningEngine`](src/meaning/engine.py) - `process(event, self_state) -> Meaning` через `appraisal/significance`, `impact_model`, `response_pattern` (ignore/absorb/dampen/amplify).
-- **`intelligence/`** (этап 18, не реализован): Модуль для высокоуровневого интеллекта.
-- **`planning/`** (этап 17, не реализован): Модуль для планирования действий.
+- **`intelligence/`** (этап 18, v1.0): Минимальная обработка информации из нейтральных источников.
+- **`planning/`** (этап 17, v1.0): Минимальная фиксация потенциальных последовательностей.
+- **`memory/`** (этап 09, v1.0): Эпизодическая память значимых событий.
 
 ## Текущий статус проекта
 
 - **Этапы 00–02**: Документация стабилизирована (VISION, ARCHITECTURE, RUNTIME_LOOP с модульностью).
-- **Этап 03**: SelfState описан в документации, но не реализован в коде — следующий приоритет (реализация как dataclass планируется).
-- **Этапы 07–08**: Environment и MeaningEngine готовы, интеграция в runtime loop планируется.
-- **Этапы 09+**: Не начаты, ожидают завершения 03–08.
-- **Следующий шаг**: Реализовать SelfState как dataclass в `src/state/self_state.py` и интегрировать в `runtime/loop.py`.
+- **Этап 03**: SelfState реализован как dataclass с полями memory, intelligence, planning.
+- **Этапы 07–08**: Environment и MeaningEngine интегрированы в runtime loop.
+- **Этап 09**: Memory v1.0 реализован и интегрирован.
+- **Этапы 17–18**: Planning и Intelligence v1.0 реализованы и интегрированы.
+- **Следующий шаг**: Реализовать Decision и Action слои.
 
 ## Установка
 

@@ -1,6 +1,7 @@
 from typing import List, Any
+from state.self_state import SelfState
 
-def record_potential_sequences(self_state: dict) -> None:
+def record_potential_sequences(self_state: SelfState) -> None:
     """
     Минимальная нейтральная фиксация потенциальных последовательностей.
 
@@ -9,9 +10,9 @@ def record_potential_sequences(self_state: dict) -> None:
     Не оценивает, не выбирает, не влияет на другие слои.
     """
     # Получаем нейтральные источники
-    recent_events = self_state.get('recent_events', [])
-    energy_history = self_state.get('energy_history', [])
-    stability_history = self_state.get('stability_history', [])
+    recent_events = self_state.recent_events
+    energy_history = self_state.energy_history
+    stability_history = self_state.stability_history
 
     # Фиксируем простую potential sequence на основе последних событий
     potential_sequences: List[List[str]] = []
@@ -20,7 +21,7 @@ def record_potential_sequences(self_state: dict) -> None:
         potential_sequences.append(recent_events[-2:])
 
     # Записываем в self_state без изменений других полей
-    self_state['planning'] = {
+    self_state.planning = {
         'potential_sequences': potential_sequences,
         'sources_used': {
             'memory_proxy': len(recent_events),

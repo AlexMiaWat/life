@@ -114,4 +114,35 @@ Intelligence **не может**:
 
 → развитие слоя Intelligence **немедленно останавливается**.
 
+## Текущая реализация (v1.0)
+
+На 13 января 2026 года реализован минимальный слой Intelligence, соответствующий всем архитектурным ограничениям.
+
+### Описание реализации
+Intelligence как функция `process_information(self_state)` в [`src/intelligence/intelligence.py`](../../src/intelligence/intelligence.py), вызывается после MeaningEngine в Runtime Loop.
+
+#### Принципы реализации
+- Нейтральная обработка: фиксация размеров/значений источников без интерпретации.
+- Без влияния: записывает данные в `self_state.intelligence` без изменений других полей.
+- Минимализм: использует proxy-данные из self_state (recent_events, energy, planning).
+
+#### Структура данных
+```python
+self_state.intelligence = {
+    'processed_sources': {
+        'memory_proxy_size': len(recent_events),
+        'adaptation_proxy': energy,
+        'learning_proxy': stability,
+        'planning_proxy_size': len(planning.get('potential_sequences', []))
+    }
+}
+```
+
+### Соответствие ограничениям
+- ✅ Не инициирует Decision или Action
+- ✅ Не имеет целей или мотивации
+- ✅ Не рассуждает или предсказывает
+- ✅ Не воздействует на другие слои
+- ✅ Не генерирует "интеллект" или оценки
+
 Intelligence — потенциал информации, без сознания, воля и агентности.

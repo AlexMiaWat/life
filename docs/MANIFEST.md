@@ -35,7 +35,7 @@
 
 ## Текущий статус реализации
 
-На январь 2026 года реализовано ядро системы, обеспечивающее автономное существование.
+На 13 января 2026 года реализовано ядро системы, обеспечивающее автономное существование.
 
 ### Реализованные компоненты
 
@@ -47,6 +47,7 @@
 | **API Server** | ✅ Готов | FastAPI сервер для управления и наблюдения | [`src/main_server_api.py`](../src/main_server_api.py) |
 | **Environment** | ✅ Готов | Генератор событий и очередь событий | [`src/environment/`](../src/environment/) |
 | **Meaning** | ⚠️ Частично | Движок реализован, но используется упрощенная версия | [`src/meaning/`](../src/meaning/) |
+| **Memory** | ✅ Готов | Память и опыт | [`src/memory/memory.py`](../src/memory/memory.py) |
 
 ### Что работает сейчас
 - Система "живет", потребляет энергию, стареет
@@ -110,9 +111,9 @@ graph TD
 - [**06_API_SERVER.md**](system/06_API_SERVER.md) — API для управления
 - [**07_ENVIRONMENT.md**](system/07_ENVIRONMENT.md) — Внешняя среда
 - [**08_EVENTS_AND_MEANING.md**](system/08_EVENTS_AND_MEANING.md) — Интерпретация событий
+- [**09_MEMORY.md**](system/09_MEMORY.md) — Память и опыт
 
 ### Concepts (Будущие модули)
-- [**09_MEMORY.md**](concepts/09_MEMORY.md) — Память и опыт
 - [**11_DECISION.md**](concepts/11_DECISION.md) — Принятие решений
 - [**12_ACTION.md**](concepts/12_ACTION.md) — Выполнение действий
 

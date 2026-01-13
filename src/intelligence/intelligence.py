@@ -1,6 +1,7 @@
 from typing import Dict, Any
+from state.self_state import SelfState
 
-def process_information(self_state: dict) -> None:
+def process_information(self_state: SelfState) -> None:
     """
     Минимальная нейтральная обработка информации.
 
@@ -8,10 +9,10 @@ def process_information(self_state: dict) -> None:
     оценки, предсказаний или влияния на другие слои.
     """
     # Получаем нейтральные источники (proxy)
-    recent_events = self_state.get('recent_events', [])
-    energy = self_state.get('energy', 0.0)
-    stability = self_state.get('stability', 0.0)
-    planning = self_state.get('planning', {})
+    recent_events = self_state.recent_events
+    energy = self_state.energy
+    stability = self_state.stability
+    planning = self_state.planning
 
     # Нейтральная обработка: фиксация размеров/значений источников
     processed = {
@@ -22,6 +23,6 @@ def process_information(self_state: dict) -> None:
     }
 
     # Записываем в self_state без изменений других полей
-    self_state['intelligence'] = {
+    self_state.intelligence = {
         'processed_sources': processed
     }

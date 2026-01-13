@@ -13,6 +13,7 @@ from runtime.loop import run_loop
 from monitor.console import monitor
 import runtime.loop
 import state.self_state
+from state.self_state import create_initial_state, SelfState, asdict
 from environment import Event, EventQueue
 from colorama import Fore, Style, init
 init()
@@ -54,7 +55,7 @@ class LifeHandler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-type", "application/json")
             self.end_headers()
-            self.wfile.write(json.dumps(self.server.self_state).encode())
+            self.wfile.write(json.dumps(asdict(self.server.self_state)).encode())
         elif self.path == "/clear-data":
             os.makedirs("data/snapshots", exist_ok=True)
             log_file = "data/tick_log.jsonl"
@@ -131,18 +132,18 @@ class LifeHandler(BaseHTTPRequestHandler):
     def log_request(self, code, size=-1):
         if self.server.dev_mode:
             try:
-                print(Fore.CYAN + "═" * 80 + Style.RESET_ALL)
-                print(Fore.GREEN + "🟢 ВХОДЯЩИЙ HTTP-ЗАПРОС" + Style.RESET_ALL)
-                print(Fore.YELLOW + f"⏰ Время: {self.log_date_time_string()}" + Style.RESET_ALL)
-                print(Fore.YELLOW + f"🌐 Клиент IP: {self.client_address[0]}" + Style.RESET_ALL)
-                print(Fore.YELLOW + f"📥 Запрос: {self.requestline}" + Style.RESET_ALL)
-                print(Fore.MAGENTA + f"✅ Статус ответа: {code}" + Style.RESET_ALL)
+                print(Fore.CYAN + "=" * 80 + Style.RESET_ALL)
+                print(Fore.GREEN + "ВХОДЯЩИЙ HTTP-ЗАПРОС" + Style.RESET_ALL)
+                print(Fore.YELLOW + f"Время: {self.log_date_time_string()}" + Style.RESET_ALL)
+                print(Fore.YELLOW + f"Клиент IP: {self.client_address[0]}" + Style.RESET_ALL)
+                print(Fore.YELLOW + f"Запрос: {self.requestline}" + Style.RESET_ALL)
+                print(Fore.MAGENTA + f"Статус ответа: {code}" + Style.RESET_ALL)
                 if isinstance(size, (int, float)) and size > 0:
-                    print(Fore.MAGENTA + f"📊 Размер ответа: {size} байт" + Style.RESET_ALL)
-                print(Fore.CYAN + "═" * 80 + Style.RESET_ALL)
+                    print(Fore.MAGENTA + f"Размер ответа: {size} байт" + Style.RESET_ALL)
+                print(Fore.CYAN + "=" * 80 + Style.RESET_ALL)
             except UnicodeEncodeError:
                 # Fallback to plain text if color output fails
-                print("═" * 80)
+                print("=" * 80)
                 print("ВХОДЯЩИЙ HTTP-ЗАПРОС")
                 print(f"Время: {self.log_date_time_string()}")
                 print(f"Клиент IP: {self.client_address[0]}")
@@ -150,7 +151,7 @@ class LifeHandler(BaseHTTPRequestHandler):
                 print(f"Статус ответа: {code}")
                 if isinstance(size, (int, float)) and size > 0:
                     print(f"Размер ответа: {size} байт")
-                print("═" * 80)
+                print("=" * 80)
             sys.stdout.flush()
 
 def start_api_server(self_state, event_queue, dev_mode):
@@ -235,7 +236,10 @@ def reloader_thread():
             monitor = console_module.monitor
             log = console_module.log
             run_loop = loop_module.run_loop
-            self_state = state_module.self_state if hasattr(state_module, 'self_state') else self_state
+            try:
+                self_state = state_module.SelfState().load_latest_snapshot()
+            except FileNotFoundError:
+                self_state = state_module.SelfState()
 
             # Перезапуск API сервера
             api_thread = threading.Thread(target=start_api_server, args=(self_state, event_queue, True), daemon=True)
@@ -244,7 +248,7 @@ def reloader_thread():
             print("Modules reloaded and server restarted")
 
             # Restart runtime loop
-            if loop_thread and loop_thread.is_active():
+            if loop_thread and loop_thread.is_alive():
                 loop_stop.set()
                 loop_thread.join(timeout=5.0)
                 log("[RELOAD] Old loop stopped")
@@ -282,17 +286,10 @@ if __name__ == "__main__":
             if os.path.exists(f):
                 os.remove(f)
 
-    self_state = {
-        'active': True,
-        'ticks': 0,
-        'age': 0.0,
-        'energy': 100.0,
-        'stability': 1.0,
-        'integrity': 1.0,
-        'recent_events': [],
-        'planning': {},
-        'intelligence': {}
-    }
+    try:
+        self_state = SelfState().load_latest_snapshot()
+    except FileNotFoundError:
+        self_state = SelfState()
 
     server = None
     api_thread = None

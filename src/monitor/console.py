@@ -4,6 +4,7 @@ from pathlib import Path
 import colorama
 from colorama import Fore, Style
 colorama.init(autoreset=True)
+from state.self_state import SelfState
 
 LOG_FILE = Path("data/tick_log.jsonl")
 LOG_FILE.parent.mkdir(exist_ok=True)
@@ -12,20 +13,22 @@ def log(message):
     print(f"[RELOAD] {message}")
     print('TEST CHANGE')
 
-def monitor(state):
-    ticks = state.get('ticks', 0)
-    age = state.get('age', 0.0)
-    energy = state.get('energy', 0.0)
-    integrity = state.get('integrity', 1.0)
-    stability = state.get('stability', 1.0)
-    
+def monitor(state: SelfState):
+    ticks = state.ticks
+    age = state.age
+    energy = state.energy
+    integrity = state.integrity
+    stability = state.stability
+    last_significance = state.last_significance
+
     # Цветной структурированный вывод состояния в консоль
     heartbeat = f"{Fore.RED}*{Style.RESET_ALL}"
     возраст_txt = f"{Fore.BLUE}возраст: {age:.1f} сек. {Style.RESET_ALL}"
     энергия_txt = f"{Fore.GREEN}энергия: {energy:.1f} %{Style.RESET_ALL}"
     интеллект_txt = f"{Fore.YELLOW}интеллект: {integrity:.4f}{Style.RESET_ALL}"
     стабильность_txt = f"{Fore.CYAN}стабильность: {stability:.4f}{Style.RESET_ALL}"
-    msg = f"{heartbeat} [{ticks}] {возраст_txt} | {энергия_txt} | {интеллект_txt} | {стабильность_txt} | "
+    значимость_txt = f"{Fore.MAGENTA}значимость: {last_significance:.4f}{Style.RESET_ALL}"
+    msg = f"{heartbeat} [{ticks}] {возраст_txt} | {энергия_txt} | {интеллект_txt} | {стабильность_txt} | {значимость_txt} | "
     sys.stdout.write(f'\r{msg}')
     sys.stdout.flush()
     
@@ -35,7 +38,8 @@ def monitor(state):
         "age": age,
         "energy": energy,
         "integrity": integrity,
-        "stability": stability
+        "stability": stability,
+        "last_significance": last_significance
     }
     
     with LOG_FILE.open("a") as f:
