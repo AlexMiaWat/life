@@ -22,6 +22,7 @@ def monitor(state: SelfState):
     last_significance = state.last_significance
     activated_count = len(getattr(state, 'activated_memory', []))
     top_significance = max([e.meaning_significance for e in getattr(state, 'activated_memory', [])], default=0.0)
+    last_pattern = getattr(state, 'last_pattern', '')
 
     # Цветной структурированный вывод состояния в консоль
     heartbeat = f"{Fore.RED}*{Style.RESET_ALL}"
@@ -31,7 +32,8 @@ def monitor(state: SelfState):
     стабильность_txt = f"{Fore.CYAN}стабильность: {stability:.4f}{Style.RESET_ALL}"
     значимость_txt = f"{Fore.MAGENTA}значимость: {last_significance:.4f}{Style.RESET_ALL}"
     активация_txt = f"активация: {activated_count} ({top_significance:.2f})"
-    msg = f"{heartbeat} [{ticks}] {возраст_txt} | {энергия_txt} | {интеллект_txt} | {стабильность_txt} | {значимость_txt} | {активация_txt} | "
+    decision_txt = f"{Fore.YELLOW}decision: {last_pattern}{Style.RESET_ALL}"
+    msg = f"{heartbeat} [{ticks}] {возраст_txt} | {энергия_txt} | {интеллект_txt} | {стабильность_txt} | {значимость_txt} | {активация_txt} | {decision_txt} | "
     sys.stdout.write(f'\r{msg}')
     sys.stdout.flush()
     

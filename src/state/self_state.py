@@ -30,6 +30,7 @@ class SelfState:
     intelligence: dict = field(default_factory=dict)
     memory: list[MemoryEntry] = field(default_factory=list)
     activated_memory: list = field(default_factory=list)  # Transient, не сохраняется в snapshot
+    last_pattern: str = ""  # Transient, последний выбранный паттерн decision
 
     def apply_delta(self, deltas: dict[str, float]) -> None:
         for key, delta in deltas.items():
@@ -77,6 +78,7 @@ def save_snapshot(state: SelfState):
     snapshot = asdict(state)
     # Исключаем transient поля
     snapshot.pop('activated_memory', None)
+    snapshot.pop('last_pattern', None)
     tick = snapshot['ticks']
     filename = SNAPSHOT_DIR / f"snapshot_{tick:06d}.json"
     with filename.open("w") as f:
