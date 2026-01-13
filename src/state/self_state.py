@@ -29,6 +29,7 @@ class SelfState:
     planning: dict = field(default_factory=dict)
     intelligence: dict = field(default_factory=dict)
     memory: list[MemoryEntry] = field(default_factory=list)
+    activated_memory: list = field(default_factory=list)  # Transient, не сохраняется в snapshot
 
     def apply_delta(self, deltas: dict[str, float]) -> None:
         for key, delta in deltas.items():
@@ -60,6 +61,9 @@ class SelfState:
             mapped_key = field_mapping.get(k, k)
             if mapped_key in SelfState.__dataclass_fields__:
                 mapped_data[mapped_key] = v
+        # Конвертировать memory из list of dict в list of MemoryEntry
+        if 'memory' in mapped_data:
+            mapped_data['memory'] = [MemoryEntry(**entry) for entry in mapped_data['memory']]
         # Создать экземпляр из dict
         return SelfState(**mapped_data)
 
@@ -71,6 +75,8 @@ def save_snapshot(state: SelfState):
     Сохраняет текущее состояние жизни как отдельный JSON файл
     """
     snapshot = asdict(state)
+    # Исключаем transient поля
+    snapshot.pop('activated_memory', None)
     tick = snapshot['ticks']
     filename = SNAPSHOT_DIR / f"snapshot_{tick:06d}.json"
     with filename.open("w") as f:
@@ -84,6 +90,9 @@ def load_snapshot(tick: int) -> SelfState:
     if filename.exists():
         with filename.open("r") as f:
             data = json.load(f)
+        # Конвертировать memory из list of dict в list of MemoryEntry
+        if 'memory' in data:
+            data['memory'] = [MemoryEntry(**entry) for entry in data['memory']]
         return SelfState(**data)
     else:
         raise FileNotFoundError(f"Snapshot {tick} не найден")

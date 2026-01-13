@@ -1,5 +1,11 @@
 # Этап 10 — Activation and Recall
 
+## Текущий статус
+✅ **Реализован** (v1.0)
+*   Файл: [`../src/activation/activation.py`](../src/activation/activation.py)
+*   Интегрирован в runtime loop и мониторинг
+*   Минимальная активация по совпадению event_type
+
 ## Назначение этапа
 
 Определить **механизм активации памяти**, который:

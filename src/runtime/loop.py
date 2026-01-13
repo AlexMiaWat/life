@@ -8,6 +8,7 @@ from meaning.engine import MeaningEngine
 from dataclasses import asdict
 from memory.memory import MemoryEntry
 from datetime import datetime
+from activation.activation import activate_memory
 
 def run_loop(self_state: SelfState, monitor, tick_interval=1.0, snapshot_period=10, stop_event=None, event_queue=None):
     """
@@ -52,6 +53,14 @@ def run_loop(self_state: SelfState, monitor, tick_interval=1.0, snapshot_period=
 
                 record_potential_sequences(self_state)
                 process_information(self_state)
+
+                # Активация памяти после обработки событий
+                if events:
+                    # Используем тип последнего события для активации
+                    last_event_type = events[-1].type
+                    activated = activate_memory(last_event_type, self_state.memory)
+                    self_state.activated_memory = activated
+                    print(f"[LOOP] Activated {len(activated)} memories for type '{last_event_type}'")
 
             # Логика слабости: когда параметры низкие, добавляем штрафы за немощность
             weakness_threshold = 0.05
