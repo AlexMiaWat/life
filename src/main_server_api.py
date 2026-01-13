@@ -130,15 +130,27 @@ class LifeHandler(BaseHTTPRequestHandler):
 
     def log_request(self, code, size=-1):
         if self.server.dev_mode:
-            print(Fore.CYAN + "═" * 80 + Style.RESET_ALL)
-            print(Fore.GREEN + "🟢 ВХОДЯЩИЙ HTTP-ЗАПРОС" + Style.RESET_ALL)
-            print(Fore.YELLOW + f"⏰ Время: {self.log_date_time_string()}" + Style.RESET_ALL)
-            print(Fore.YELLOW + f"🌐 Клиент IP: {self.client_address[0]}" + Style.RESET_ALL)
-            print(Fore.YELLOW + f"📥 Запрос: {self.requestline}" + Style.RESET_ALL)
-            print(Fore.MAGENTA + f"✅ Статус ответа: {code}" + Style.RESET_ALL)
-            if isinstance(size, (int, float)) and size > 0:
-                print(Fore.MAGENTA + f"📊 Размер ответа: {size} байт" + Style.RESET_ALL)
-            print(Fore.CYAN + "═" * 80 + Style.RESET_ALL)
+            try:
+                print(Fore.CYAN + "═" * 80 + Style.RESET_ALL)
+                print(Fore.GREEN + "🟢 ВХОДЯЩИЙ HTTP-ЗАПРОС" + Style.RESET_ALL)
+                print(Fore.YELLOW + f"⏰ Время: {self.log_date_time_string()}" + Style.RESET_ALL)
+                print(Fore.YELLOW + f"🌐 Клиент IP: {self.client_address[0]}" + Style.RESET_ALL)
+                print(Fore.YELLOW + f"📥 Запрос: {self.requestline}" + Style.RESET_ALL)
+                print(Fore.MAGENTA + f"✅ Статус ответа: {code}" + Style.RESET_ALL)
+                if isinstance(size, (int, float)) and size > 0:
+                    print(Fore.MAGENTA + f"📊 Размер ответа: {size} байт" + Style.RESET_ALL)
+                print(Fore.CYAN + "═" * 80 + Style.RESET_ALL)
+            except UnicodeEncodeError:
+                # Fallback to plain text if color output fails
+                print("═" * 80)
+                print("ВХОДЯЩИЙ HTTP-ЗАПРОС")
+                print(f"Время: {self.log_date_time_string()}")
+                print(f"Клиент IP: {self.client_address[0]}")
+                print(f"Запрос: {self.requestline}")
+                print(f"Статус ответа: {code}")
+                if isinstance(size, (int, float)) and size > 0:
+                    print(f"Размер ответа: {size} байт")
+                print("═" * 80)
             sys.stdout.flush()
 
 def start_api_server(self_state, event_queue, dev_mode):
