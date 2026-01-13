@@ -15,3 +15,9 @@
 - Transient activated_memory, не сохраняется.
 - Интеграция: После событий в loop.py.
 - Риски: Очистка transient при load; перенести логи в monitor.
+  
+2026-01-13: Завершён слой 12.1_ACTION_Work v1.0. 
+- Минимальное выполнение паттерна (internal эффекты на state).
+- Интеграция: После apply_delta в loop.py.
+- Поведение: Логи подтверждают корректность (e.g., dampen → fatigue update).
+- Риски: Использовать apply_delta для clamp; добавить в monitor.

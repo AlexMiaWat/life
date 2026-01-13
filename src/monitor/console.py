@@ -33,7 +33,8 @@ def monitor(state: SelfState):
     значимость_txt = f"{Fore.MAGENTA}значимость: {last_significance:.4f}{Style.RESET_ALL}"
     активация_txt = f"активация: {activated_count} ({top_significance:.2f})"
     decision_txt = f"{Fore.YELLOW}decision: {last_pattern}{Style.RESET_ALL}"
-    msg = f"{heartbeat} [{ticks}] {возраст_txt} | {энергия_txt} | {интеллект_txt} | {стабильность_txt} | {значимость_txt} | {активация_txt} | {decision_txt} | "
+    action_txt = f"{Fore.GREEN}action: executed {last_pattern}{Style.RESET_ALL}"
+    msg = f"{heartbeat} [{ticks}] {возраст_txt} | {энергия_txt} | {интеллект_txt} | {стабильность_txt} | {значимость_txt} | {активация_txt} | {decision_txt} | {action_txt} | "
     sys.stdout.write(f'\r{msg}')
     sys.stdout.flush()
     
