@@ -253,7 +253,7 @@ run_loop(self_state, monitor, event_queue=event_queue)
 
 ```python
 def run_loop(..., event_queue=None):
-    while self_state['alive']:
+    while self_state['active']:
         # ...
         
         # ШАГ 1: Получить все события из среды

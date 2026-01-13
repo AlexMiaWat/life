@@ -244,7 +244,7 @@ def reloader_thread():
             print("Modules reloaded and server restarted")
 
             # Restart runtime loop
-            if loop_thread and loop_thread.is_alive():
+            if loop_thread and loop_thread.is_active():
                 loop_stop.set()
                 loop_thread.join(timeout=5.0)
                 log("[RELOAD] Old loop stopped")
@@ -283,7 +283,7 @@ if __name__ == "__main__":
                 os.remove(f)
 
     self_state = {
-        'alive': True,
+        'active': True,
         'ticks': 0,
         'age': 0.0,
         'energy': 100.0,

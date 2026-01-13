@@ -1,7 +1,7 @@
 import sys
 
 self_state = {
-    'alive': True,
+    'active': True,
     'ticks': 0,
     'age': 0.0,
     'energy': 100.0,

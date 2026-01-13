@@ -52,7 +52,7 @@
 
 1. Создать класс SelfState с полями как свойствами (energy, age и т.д.), где изменение возможно только через специальные методы.
 2. В методах добавлять проверки: например, update_energy(new_value) проверяет, чтобы значение было в пределах 0-100, и обновляет только если ок.
-3. Добавить метод is_alive(), который проверяет условия жизни (энергия > 0, целостность > 0).
+3. Добавить метод is_active(), который проверяет условия жизни (энергия > 0, целостность > 0).
 4. Все части программы взаимодействуют только через эти методы, не напрямую с данными.
 5. При сохранении/загрузке использовать этот объект для полной валидации.
 
@@ -223,7 +223,7 @@ API как канал среды
 ## Отчёт о проверке кода на соответствие документации
 
 ### **FAILURES** (Что описано в docs vs реальность):
-- **docs/system/03_SELF_STATE.md**: Требует уровни 0-4 Self-State (Identity: life_id, birth_timestamp, version; Vital: energy, integrity, stability; Temporal: age, ticks, error_count, downtime; Internal: tension, fatigue, noise, drift; Memory). В коде (main_server_api.py:191-193, runtime/loop.py:15-18) только базовые поля (alive, ticks, age, energy, stability, integrity). **Отсутствуют 90% требуемых полей**. Нет деградации памяти, error_count не инкрементится.
+- **docs/system/03_SELF_STATE.md**: Требует уровни 0-4 Self-State (Identity: life_id, birth_timestamp, version; Vital: energy, integrity, stability; Temporal: age, ticks, error_count, downtime; Internal: tension, fatigue, noise, drift; Memory). В коде (main_server_api.py:191-193, runtime/loop.py:15-18) только базовые поля (active, ticks, age, energy, stability, integrity). **Отсутствуют 90% требуемых полей**. Нет деградации памяти, error_count не инкрементится.
 - **docs/system/02_RUNTIME_LOOP.md**: Требует 7 шагов тика (perceive, update_self_state, decide, act, decay, snapshot, sleep). В src/runtime/loop.py:1-50 только примитивные обновления (ticks++, age+=dt, energy-=0.1), monitor, snapshot, sleep. **Отсутствуют perceive(), decide(), act(), decay() как отдельные шаги**. Нет обработки ошибок с error_count.
 - **docs/system/03_SELF_STATE.md**: Непрерывность (не сбрасывается между запусками). Нет автоматической загрузки последнего snapshot в main_server_api.py. Состояние всегда стартует заново.
 - **docs/03_SELF_STATE.md**: Append-only лог изменений Self-State. Есть tick_log.jsonl в monitor/console.py:26-35, но только vital params, не все изменения.

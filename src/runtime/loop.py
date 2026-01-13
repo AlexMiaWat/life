@@ -85,7 +85,7 @@ def run_loop(self_state, monitor, tick_interval=1.0, snapshot_period=10, stop_ev
             if (self_state['energy'] <= 0 or 
                 self_state['integrity'] <= 0 or 
                 self_state['stability'] <= 0):
-                self_state['alive'] = False
+                self_state['active'] = False
 
 def _interpret_event(event: Event, self_state: dict) -> None:
     """

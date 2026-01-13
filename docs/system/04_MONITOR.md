@@ -37,7 +37,7 @@ Monitor — это инструмент для наблюдения за жиз�
   "energy": 98.0,
   "integrity": 1.0,
   "stability": 0.99,
-  "alive": true
+  "active": true
 }
 ```
 

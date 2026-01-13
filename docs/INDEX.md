@@ -9,6 +9,7 @@
 
 ### 1. Core (Фундамент)
 Базовые принципы, видение и архитектура.
+- [**BASELINE_STATE.md**](BASELINE_STATE.md) — Базовое состояние проекта. Фиксация отправной точки эволюции.
 - [**00_VISION.md**](core/00_VISION.md) — Философия и видение проекта. Что такое Life и чем она не является.
 - [**01_ARCHITECTURE.md**](core/01_ARCHITECTURE.md) — Высокоуровневая архитектура системы. Слои и потоки данных.
 - [**05_MINIMAL_IMPLEMENTATION.md**](core/05_MINIMAL_IMPLEMENTATION.md) — Описание текущей минимальной реализации (MVP).
@@ -40,6 +41,32 @@
 - [**AGENTS_OVERVIEW.md**](meta/AGENTS_OVERVIEW.md) — Роли агентов (Architect, Implementer, Skeptic).
 - [**PROJECT_PLAN.md**](meta/PROJECT_PLAN.md) — Общий план развития.
 - [**PROJECT_TREE.md**](meta/PROJECT_TREE.md) — Структура файлов проекта.
+
+### 5. Archive (Архив)
+Архивные документы и предыдущие версии концепций.
+- [**01.1_runtime_skeleton.md**](archive/01.1_runtime_skeleton.md) — Скелет рантайма.
+- [**02.1_interpretations.md**](archive/02.1_interpretations.md) — Интерпретации.
+- [**04.0_pre_monitor.md**](archive/04.0_pre_monitor.md) — Предварительный монитор.
+- [**07_environment_architecture.md**](archive/07_environment_architecture.md) — Архитектура среды.
+- [**11.1_decision_limits.md**](archive/11.1_decision_limits.md) — Лимиты решений.
+- [**11.2_decision_minimal_form.md**](archive/11.2_decision_minimal_form.md) — Минимальная форма решений.
+- [**12_action_limits.md**](archive/12_action_limits.md) — Лимиты действий.
+- [**12.1_action_minimal_form.md**](archive/12.1_action_minimal_form.md) — Минимальная форма действий.
+- [**12.3_ACTION_FEEDBACK_INTERFACE.md**](archive/12.3_ACTION_FEEDBACK_INTERFACE.md) — Интерфейс обратной связи действий.
+- [**13.1_feedback_minimal_form.md**](archive/13.1_feedback_minimal_form.md) — Минимальная форма обратной связи.
+- [**13.2_Feedback_Activation.md**](archive/13.2_Feedback_Activation.md) — Активация обратной связи.
+- [**14_ADAPTATION.md**](archive/14_ADAPTATION.md) — Адаптация.
+- [**14.1_ADAPTATION_MINIMAL_FORM.md**](archive/14.1_ADAPTATION_MINIMAL_FORM.md) — Минимальная форма адаптации.
+- [**14.1_learning_minimal_form.md**](archive/14.1_learning_minimal_form.md) — Минимальная форма обучения.
+- [**15.1_adaptation_minimal_form.md**](archive/15.1_adaptation_minimal_form.md) — Минимальная форма адаптации.
+- [**16.1_goals_minimal_form.md**](archive/16.1_goals_minimal_form.md) — Минимальная форма целей.
+- [**17.1_planning_minimal_form.md**](archive/17.1_planning_minimal_form.md) — Минимальная форма планирования.
+- [**18.1_intelligence_minimal_form.md**](archive/18.1_intelligence_minimal_form.md) — Минимальная форма интеллекта.
+- [**life_action_diagram.png**](archive/life_action_diagram.png) — Диаграмма действий жизни.
+
+### 6. Skeptic (Скептик)
+Документы критического анализа и скептического подхода.
+- Директория пока пуста.
 
 ---
 

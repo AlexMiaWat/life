@@ -39,7 +39,7 @@ python src/main_server_api.py --dev
 
 ```json
 {
-  "alive": true,
+  "active": true,
   "ticks": 100,
   "age": 100.5,
   "energy": 95.0,
