@@ -71,11 +71,11 @@ class MeaningEngine:
         """
         # Базовые паттерны воздействия по типам событий
         base_impacts = {
-            'shock': {'energy': -0.15, 'stability': -0.10, 'integrity': -0.05},
-            'noise': {'energy': -0.03, 'stability': -0.02, 'integrity': 0.0},
-            'recovery': {'energy': +0.10, 'stability': +0.05, 'integrity': +0.02},
-            'decay': {'energy': -0.05, 'stability': -0.01, 'integrity': -0.01},
-            'idle': {'energy': -0.01, 'stability': 0.0, 'integrity': 0.0}
+            'shock': {'energy': -1.5, 'stability': -0.10, 'integrity': -0.05},
+            'noise': {'energy': -0.3, 'stability': -0.02, 'integrity': 0.0},
+            'recovery': {'energy': +1.0, 'stability': +0.05, 'integrity': +0.02},
+            'decay': {'energy': -0.5, 'stability': -0.01, 'integrity': -0.01},
+            'idle': {'energy': -0.1, 'stability': 0.0, 'integrity': 0.0}
         }
         
         base_impact = base_impacts.get(event.type, {'energy': 0.0, 'stability': 0.0, 'integrity': 0.0})
