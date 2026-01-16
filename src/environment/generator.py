@@ -1,5 +1,6 @@
 import random
 import time
+from typing import Any
 
 from .event import Event
 
@@ -33,7 +34,7 @@ class EventGenerator:
             intensity = 0.0
 
         timestamp = time.time()
-        metadata = {}
+        metadata: dict[str, Any] = {}
         return Event(
             type=event_type, intensity=intensity, timestamp=timestamp, metadata=metadata
         )
