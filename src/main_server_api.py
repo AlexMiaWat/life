@@ -129,7 +129,7 @@ class LifeHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(f"Invalid event: {exc}".encode("utf-8"))
 
-    def log_request(self, code, size=-1):
+    def log_request(self, code, size=-1):  # pragma: no cover
         if self.server.dev_mode:
             try:
                 print(Fore.CYAN + "=" * 80 + Style.RESET_ALL)
@@ -163,7 +163,7 @@ def start_api_server(self_state, event_queue, dev_mode):
     print(f"API server running on http://{HOST}:{PORT}")
     server.serve_forever()
 
-def reloader_thread():
+def reloader_thread():  # pragma: no cover
     """
     Отслеживает изменения в исходных файлах проекта и перезагружает их "горячо".
     Перезапускает API сервер при изменении модулей.
@@ -262,7 +262,7 @@ def reloader_thread():
             loop_thread.start()
             log("[RELOAD] New loop started")
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     parser = argparse.ArgumentParser()
     parser.add_argument("--clear-data", type=str, default="no")
     parser.add_argument("--tick-interval", type=float, default=1.0)

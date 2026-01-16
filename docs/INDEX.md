@@ -47,7 +47,14 @@
 - [**PROJECT_PLAN.md**](meta/PROJECT_PLAN.md) — Общий план развития.
 - [**PROJECT_TREE.md**](meta/PROJECT_TREE.md) — Структура файлов проекта.
 
-### 5. Archive (Архив)
+### 5. Test (Тестирование)
+Документация по тестированию проекта.
+- [**README.md**](test/README.md) — Обзор тестирования и быстрый старт.
+- [**TESTING_INSTRUCTIONS.md**](test/TESTING_INSTRUCTIONS.md) — Подробные инструкции по тестированию.
+- [**TESTING_RESULTS.md**](test/TESTING_RESULTS.md) — Результаты тестирования.
+- [**COVERAGE_100_COMPLETE.md**](test/COVERAGE_100_COMPLETE.md) — Отчет о достижении максимального покрытия (96%).
+
+### 6. Archive (Архив)
 Архивные документы и предыдущие версии концепций.
 - [**01.1_runtime_skeleton.md**](archive/01.1_runtime_skeleton.md) — Скелет рантайма.
 - [**02.1_interpretations.md**](archive/02.1_interpretations.md) — Интерпретации.
@@ -69,7 +76,7 @@
 - [**18.1_intelligence_minimal_form.md**](archive/18.1_intelligence_minimal_form.md) — Минимальная форма интеллекта.
 - [**life_action_diagram.png**](archive/life_action_diagram.png) — Диаграмма действий жизни.
 
-### 6. Skeptic (Скептик)
+### 7. Skeptic (Скептик)
 Документы критического анализа и скептического подхода.
 - Директория пока пуста.
 

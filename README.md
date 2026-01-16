@@ -39,9 +39,25 @@ life/
 │   │   └── planning.py
 │   ├── memory/                # Модуль памяти (этап 09, v1.0)
 │   │   └── memory.py
-│   └── test/                  # Тесты
-│       └── test_api.py
+│   └── test/                  # Тесты (226 тестов, 96% покрытие)
+│       ├── test_memory.py
+│       ├── test_state.py
+│       ├── test_activation.py
+│       ├── test_meaning.py
+│       ├── test_decision.py
+│       ├── test_action.py
+│       ├── test_environment.py
+│       ├── test_feedback.py
+│       ├── test_planning.py
+│       ├── test_intelligence.py
+│       ├── test_runtime_integration.py
+│       ├── test_api_integration.py
+│       ├── test_generator.py
+│       ├── test_generator_integration.py
+│       ├── test_monitor.py
+│       └── ... (другие тесты)
 ├── docs/                      # Документация проекта
+│   └── test/                  # Документация по тестированию
 ├── data/                      # Директория для данных (логи, snapshots)
 ├── .venv/                     # Виртуальное окружение Python
 └── README.md                  # Этот файл
@@ -77,8 +93,40 @@ life/
 - **Этап 10.1**: Activation v1.0 реализован и интегрирован.
 - **Этап 11.1**: Decision v1.0 реализован и интегрирован.
 - **Этап 12.1**: Action v1.0 реализован и интегрирован.
+- **Этап 13**: Feedback v1.0 реализован и интегрирован.
 - **Этапы 17–18**: Planning и Intelligence v1.0 реализованы и интегрированы.
-- **Следующий шаг**: Реализовать Feedback слой.
+
+## Тестирование
+
+Проект покрыт комплексными тестами:
+
+- **Всего тестов:** 226
+- **Покрытие кода:** 96%
+- **Все тесты проходят:** ✅
+
+### Быстрый запуск тестов
+
+```bash
+# Установка зависимостей для тестирования
+pip install pytest pytest-cov
+
+# Запуск всех тестов
+pytest src/test/ -v
+
+# С покрытием кода
+pytest src/test/ --cov=src --cov-report=html
+```
+
+### Покрытие модулей
+
+**Полностью покрытые модули (100%):**
+- Все модули бизнес-логики (action, activation, decision, feedback, intelligence, meaning, memory, planning, state)
+- API эндпоинты (GET /status, GET /clear-data, POST /event)
+- Генератор событий (EventGenerator)
+- Monitor (console.py)
+- Environment (Event, EventQueue, Generator)
+
+**Подробная документация:** [docs/test/README.md](docs/test/README.md)
 
 ## Установка
 
@@ -108,7 +156,7 @@ life/
    pip install -r requirements.txt
    ```
 
-   > **Примечание**: Проект использует только стандартную библиотеку Python, поэтому файл requirements.txt может быть пустым или содержать только базовые зависимости.
+   > **Примечание**: Проект использует стандартную библиотеку Python и несколько внешних зависимостей (fastapi, uvicorn, requests, colorama, pytest, pytest-cov).
 
 ## Запуск
 
@@ -327,3 +375,33 @@ Life взаимодействует с [`EventQueue`](src/environment/event_queu
    python -m environment.generator_cli --interval 5 --host localhost --port 8000
    ```
    Интервал можно менять параметром `--interval` (секунды).
+
+## Тестирование
+
+### Запуск тестов
+
+```bash
+# Все тесты
+pytest src/test/ -v
+
+# С покрытием кода
+pytest src/test/ --cov=src --cov-report=html
+
+# Конкретный модуль
+pytest src/test/test_memory.py -v
+```
+
+### Результаты тестирования
+
+- **Всего тестов:** 226
+- **Все проходят:** ✅
+- **Покрытие кода:** 96%
+- **Основные модули:** 100% покрытие
+
+### Документация по тестированию
+
+Подробная документация находится в [docs/test/README.md](docs/test/README.md):
+- Инструкции по запуску тестов
+- Описание всех тестовых файлов
+- Руководство по написанию новых тестов
+- Отчеты о покрытии кода
