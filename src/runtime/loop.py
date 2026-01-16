@@ -11,6 +11,7 @@ from datetime import datetime
 from activation.activation import activate_memory
 from decision.decision import decide_response
 from action import execute_action
+from feedback import register_action, observe_consequences, FeedbackRecord
 
 def run_loop(self_state: SelfState, monitor, tick_interval=1.0, snapshot_period=10, stop_event=None, event_queue=None):
     """
@@ -26,6 +27,7 @@ def run_loop(self_state: SelfState, monitor, tick_interval=1.0, snapshot_period=
     """
     engine = MeaningEngine()
     last_time = time.time()
+    pending_actions = []  # Список ожидающих Feedback действий
     while (stop_event is None or not stop_event.is_set()):
         try:
             current_time = time.time()
@@ -35,6 +37,29 @@ def run_loop(self_state: SelfState, monitor, tick_interval=1.0, snapshot_period=
             # Обновление состояния
             self_state.apply_delta({'ticks': 1})
             self_state.apply_delta({'age': dt})
+
+            # Наблюдаем последствия прошлых действий (Feedback)
+            feedback_records = observe_consequences(
+                self_state, 
+                pending_actions, 
+                event_queue
+            )
+            
+            # Сохраняем Feedback в Memory
+            for feedback in feedback_records:
+                feedback_entry = MemoryEntry(
+                    event_type="feedback",
+                    meaning_significance=0.0,  # Feedback не имеет значимости
+                    timestamp=feedback.timestamp,
+                    feedback_data={
+                        "action_id": feedback.action_id,
+                        "action_pattern": feedback.action_pattern,
+                        "state_delta": feedback.state_delta,
+                        "delay_ticks": feedback.delay_ticks,
+                        "associated_events": feedback.associated_events
+                    }
+                )
+                self_state.memory.append(feedback_entry)
 
             # === ШАГ 1: Получить события из среды ===
             if event_queue and not event_queue.is_empty():
@@ -61,8 +86,21 @@ def run_loop(self_state: SelfState, monitor, tick_interval=1.0, snapshot_period=
                             meaning.impact = {k: v * 0.5 for k, v in meaning.impact.items()}
                         # else "absorb" — no change
 
+                        # КРИТИЧНО: Сохраняем снимок состояния ДО действия
+                        state_before = {
+                            'energy': self_state.energy,
+                            'stability': self_state.stability,
+                            'integrity': self_state.integrity
+                        }
+
                         self_state.apply_delta(meaning.impact)
                         execute_action(pattern, self_state)
+                        
+                        # Регистрируем для Feedback (после выполнения)
+                        # Action не знает о Feedback - регистрация происходит в Loop
+                        action_id = f"action_{self_state.ticks}_{pattern}_{int(time.time()*1000)}"
+                        action_timestamp = time.time()
+                        register_action(action_id, pattern, state_before, action_timestamp, pending_actions)
                         self_state.recent_events.append(event.type)
                         self_state.last_significance = meaning.significance
                         self_state.memory.append(MemoryEntry(event_type=event.type, meaning_significance=meaning.significance, timestamp=time.time()))

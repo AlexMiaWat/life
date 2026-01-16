@@ -1,4 +1,5 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Optional, Dict
 import time
 
 
@@ -7,6 +8,7 @@ class MemoryEntry:
     event_type: str
     meaning_significance: float
     timestamp: float
+    feedback_data: Optional[Dict] = None  # Для Feedback записей (сериализованный FeedbackRecord)
 
 
 class Memory(list):

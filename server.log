@@ -1,0 +1,643 @@
+[ДИАГ] Тип monitor: function
+[ДИАГ] monitor вызываемая функция? True
+[ДИАГ] monitor.__name__: monitor
+[ДИАГ] dir(monitor)[:10]: ['__annotations__', '__builtins__', '__call__', '__class__', '__closure__', '__code__', '__defaults__', '__delattr__', '__dict__', '__dir__']
+[RELOAD] --dev mode enabled, starting reloader
+TEST CHANGE
+[RELOAD] Watching src/main_server_api.py
+TEST CHANGE
+[RELOAD] Watching src/monitor/console.py
+TEST CHANGE
+[RELOAD] Watching src/runtime/loop.py
+[LOOP] Слабость: штрафы penalty=0.0000, energy=99.33monitor:
+TEST CHANGE *<function monitor at 0x000001B14A4B3250>
+ [151]  возраст: 113.1 сек. [RELOAD] Watching src/state/self_state.py<class 'function'>
+
+ | TEST CHANGEэнергия: 99.3 %
+ | интеллект: 0.0000[RELOAD] Watching src/environment/event.py | 
+TEST CHANGEстабильность: 0.0000
+ | значимость: 0.0000 | активация: 0 (0.00) | decision: [RELOAD] Watching src/environment/event_queue.py
+ | action: executed TEST CHANGE | 
+[RELOAD] Watching src/environment/generator.py
+TEST CHANGE
+Reloader initialized, starting poll loop
+API server running on http://localhost:8000
+[LOOP] Слабость: штрафы penalty=0.0200, energy=99.31
+* [152] возраст: 114.1 сек.  | энергия: 99.3 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0202, energy=99.29
+* [153] возраст: 115.1 сек.  | энергия: 99.3 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0202, energy=99.27
+* [154] возраст: 116.1 сек.  | энергия: 99.3 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0202, energy=99.25
+* [155] возраст: 117.1 сек.  | энергия: 99.3 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0201, energy=99.23
+* [156] возраст: 118.1 сек.  | энергия: 99.2 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0201, energy=99.21
+* [157] возраст: 119.1 сек.  | энергия: 99.2 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0202, energy=99.19
+* [158] возраст: 120.1 сек.  | энергия: 99.2 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0201, energy=99.17
+* [159] возраст: 121.1 сек.  | энергия: 99.2 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0202, energy=99.15
+* [160] возраст: 122.1 сек.  | энергия: 99.2 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0202, energy=99.13
+* [161] возраст: 123.2 сек.  | энергия: 99.1 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0202, energy=99.11
+* [162] возраст: 124.2 сек.  | энергия: 99.1 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0202, energy=99.09
+* [163] возраст: 125.2 сек.  | энергия: 99.1 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0203, energy=99.07
+* [164] возраст: 126.2 сек.  | энергия: 99.1 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [API] Получен POST /event: type='recovery', intensity=0.1542770504356516
+[API] Event PUSHED to queue. Size now: 1
+================================================================================
+ВХОДЯЩИЙ HTTP-ЗАПРОС
+Время: 16/Jan/2026 15:05:12
+Клиент IP: 127.0.0.1
+Запрос: POST /event HTTP/1.1
+Статус ответа: 200
+================================================================================
+[LOOP] Queue not empty, size=1
+[LOOP] POPPED 1 events
+[LOOP] Interpreting event: type=recovery, intensity=0.1542770504356516
+Ошибка в цикле: local variable 'asdict' referenced before assignment
+Traceback (most recent call last):
+  File "D:\Space\life\src\runtime\loop.py", line 74, in run_loop
+    meaning = engine.process(event, asdict(self_state))
+UnboundLocalError: local variable 'asdict' referenced before assignment
+[LOOP] Слабость: штрафы penalty=0.0000, energy=99.07
+* [166] возраст: 127.2 сек.  | энергия: 99.1 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0202, energy=99.05
+* [167] возраст: 128.2 сек.  | энергия: 99.1 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0200, energy=99.03
+* [168] возраст: 129.2 сек.  | энергия: 99.0 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [API] Получен POST /event: type='recovery', intensity=0.11659501939935818
+[API] Event PUSHED to queue. Size now: 1
+================================================================================
+ВХОДЯЩИЙ HTTP-ЗАПРОС
+Время: 16/Jan/2026 15:05:15
+Клиент IP: 127.0.0.1
+Запрос: POST /event HTTP/1.1
+Статус ответа: 200
+================================================================================
+[LOOP] Queue not empty, size=1
+[LOOP] POPPED 1 events
+[LOOP] Interpreting event: type=recovery, intensity=0.11659501939935818
+Ошибка в цикле: local variable 'asdict' referenced before assignment
+Traceback (most recent call last):
+  File "D:\Space\life\src\runtime\loop.py", line 74, in run_loop
+    meaning = engine.process(event, asdict(self_state))
+UnboundLocalError: local variable 'asdict' referenced before assignment
+[LOOP] Слабость: штрафы penalty=0.0000, energy=99.03
+* [170] возраст: 130.2 сек.  | энергия: 99.0 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0202, energy=99.01
+* [171] возраст: 131.2 сек.  | энергия: 99.0 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0202, energy=98.99
+* [172] возраст: 132.2 сек.  | энергия: 99.0 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [API] Получен POST /event: type='decay', intensity=-0.41504712664379484
+[API] Event PUSHED to queue. Size now: 1
+================================================================================
+ВХОДЯЩИЙ HTTP-ЗАПРОС
+Время: 16/Jan/2026 15:05:18
+Клиент IP: 127.0.0.1
+Запрос: POST /event HTTP/1.1
+Статус ответа: 200
+================================================================================
+[LOOP] Queue not empty, size=1
+[LOOP] POPPED 1 events
+[LOOP] Interpreting event: type=decay, intensity=-0.41504712664379484
+Ошибка в цикле: local variable 'asdict' referenced before assignment
+Traceback (most recent call last):
+  File "D:\Space\life\src\runtime\loop.py", line 74, in run_loop
+    meaning = engine.process(event, asdict(self_state))
+UnboundLocalError: local variable 'asdict' referenced before assignment
+[LOOP] Слабость: штрафы penalty=0.0000, energy=98.99
+* [174] возраст: 133.2 сек.  | энергия: 99.0 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0202, energy=98.97
+* [175] возраст: 134.3 сек.  | энергия: 99.0 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0202, energy=98.95
+* [176] возраст: 135.3 сек.  | энергия: 99.0 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [API] Получен POST /event: type='noise', intensity=0.0139618445629911
+[API] Event PUSHED to queue. Size now: 1
+================================================================================
+ВХОДЯЩИЙ HTTP-ЗАПРОС
+Время: 16/Jan/2026 15:05:21
+Клиент IP: 127.0.0.1
+Запрос: POST /event HTTP/1.1
+Статус ответа: 200
+================================================================================
+[LOOP] Queue not empty, size=1
+[LOOP] POPPED 1 events
+[LOOP] Interpreting event: type=noise, intensity=0.0139618445629911
+Ошибка в цикле: local variable 'asdict' referenced before assignment
+Traceback (most recent call last):
+  File "D:\Space\life\src\runtime\loop.py", line 74, in run_loop
+    meaning = engine.process(event, asdict(self_state))
+UnboundLocalError: local variable 'asdict' referenced before assignment
+[LOOP] Слабость: штрафы penalty=0.0000, energy=98.95
+* [178] возраст: 136.3 сек.  | энергия: 99.0 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0201, energy=98.93
+* [179] возраст: 137.3 сек.  | энергия: 98.9 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0202, energy=98.91
+* [180] возраст: 138.3 сек.  | энергия: 98.9 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [API] Получен POST /event: type='noise', intensity=-0.02893498078470924
+[API] Event PUSHED to queue. Size now: 1
+================================================================================
+ВХОДЯЩИЙ HTTP-ЗАПРОС
+Время: 16/Jan/2026 15:05:24
+Клиент IP: 127.0.0.1
+Запрос: POST /event HTTP/1.1
+Статус ответа: 200
+================================================================================
+[LOOP] Queue not empty, size=1
+[LOOP] POPPED 1 events
+[LOOP] Interpreting event: type=noise, intensity=-0.02893498078470924
+Ошибка в цикле: local variable 'asdict' referenced before assignment
+Traceback (most recent call last):
+  File "D:\Space\life\src\runtime\loop.py", line 74, in run_loop
+    meaning = engine.process(event, asdict(self_state))
+UnboundLocalError: local variable 'asdict' referenced before assignment
+[LOOP] Слабость: штрафы penalty=0.0000, energy=98.91
+* [182] возраст: 139.3 сек.  | энергия: 98.9 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0202, energy=98.89
+* [183] возраст: 140.3 сек.  | энергия: 98.9 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0201, energy=98.87
+* [184] возраст: 141.3 сек.  | энергия: 98.9 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [API] Получен POST /event: type='noise', intensity=-0.1876463630893363
+[API] Event PUSHED to queue. Size now: 1
+================================================================================
+ВХОДЯЩИЙ HTTP-ЗАПРОС
+Время: 16/Jan/2026 15:05:27
+Клиент IP: 127.0.0.1
+Запрос: POST /event HTTP/1.1
+Статус ответа: 200
+================================================================================
+[LOOP] Queue not empty, size=1
+[LOOP] POPPED 1 events
+[LOOP] Interpreting event: type=noise, intensity=-0.1876463630893363
+Ошибка в цикле: local variable 'asdict' referenced before assignment
+Traceback (most recent call last):
+  File "D:\Space\life\src\runtime\loop.py", line 74, in run_loop
+    meaning = engine.process(event, asdict(self_state))
+UnboundLocalError: local variable 'asdict' referenced before assignment
+[LOOP] Слабость: штрафы penalty=0.0000, energy=98.87
+* [186] возраст: 142.3 сек.  | энергия: 98.9 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0202, energy=98.85
+* [187] возраст: 143.3 сек.  | энергия: 98.8 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0201, energy=98.83
+* [188] возраст: 144.3 сек.  | энергия: 98.8 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [API] Получен POST /event: type='noise', intensity=0.2583277662232905
+[API] Event PUSHED to queue. Size now: 1
+================================================================================
+ВХОДЯЩИЙ HTTP-ЗАПРОС
+Время: 16/Jan/2026 15:05:30
+Клиент IP: 127.0.0.1
+Запрос: POST /event HTTP/1.1
+Статус ответа: 200
+================================================================================
+[LOOP] Queue not empty, size=1
+[LOOP] POPPED 1 events
+[LOOP] Interpreting event: type=noise, intensity=0.2583277662232905
+Ошибка в цикле: local variable 'asdict' referenced before assignment
+Traceback (most recent call last):
+  File "D:\Space\life\src\runtime\loop.py", line 74, in run_loop
+    meaning = engine.process(event, asdict(self_state))
+UnboundLocalError: local variable 'asdict' referenced before assignment
+[LOOP] Слабость: штрафы penalty=0.0000, energy=98.83
+* [190] возраст: 145.3 сек.  | энергия: 98.8 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0203, energy=98.81
+* [191] возраст: 146.4 сек.  | энергия: 98.8 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0201, energy=98.79
+* [192] возраст: 147.4 сек.  | энергия: 98.8 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [API] Получен POST /event: type='noise', intensity=0.08679097899444027
+[API] Event PUSHED to queue. Size now: 1
+================================================================================
+ВХОДЯЩИЙ HTTP-ЗАПРОС
+Время: 16/Jan/2026 15:05:33
+Клиент IP: 127.0.0.1
+Запрос: POST /event HTTP/1.1
+Статус ответа: 200
+================================================================================
+[LOOP] Queue not empty, size=1
+[LOOP] POPPED 1 events
+[LOOP] Interpreting event: type=noise, intensity=0.08679097899444027
+Ошибка в цикле: local variable 'asdict' referenced before assignment
+Traceback (most recent call last):
+  File "D:\Space\life\src\runtime\loop.py", line 74, in run_loop
+    meaning = engine.process(event, asdict(self_state))
+UnboundLocalError: local variable 'asdict' referenced before assignment
+[LOOP] Слабость: штрафы penalty=0.0000, energy=98.79
+* [194] возраст: 148.4 сек.  | энергия: 98.8 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0200, energy=98.77
+* [195] возраст: 149.4 сек.  | энергия: 98.8 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0202, energy=98.75
+* [196] возраст: 150.4 сек.  | энергия: 98.7 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [API] Получен POST /event: type='shock', intensity=0.47269445919305664
+[API] Event PUSHED to queue. Size now: 1
+================================================================================
+ВХОДЯЩИЙ HTTP-ЗАПРОС
+Время: 16/Jan/2026 15:05:36
+Клиент IP: 127.0.0.1
+Запрос: POST /event HTTP/1.1
+Статус ответа: 200
+================================================================================
+[LOOP] Queue not empty, size=1
+[LOOP] POPPED 1 events
+[LOOP] Interpreting event: type=shock, intensity=0.47269445919305664
+Ошибка в цикле: local variable 'asdict' referenced before assignment
+Traceback (most recent call last):
+  File "D:\Space\life\src\runtime\loop.py", line 74, in run_loop
+    meaning = engine.process(event, asdict(self_state))
+UnboundLocalError: local variable 'asdict' referenced before assignment
+[LOOP] Слабость: штрафы penalty=0.0000, energy=98.75
+* [198] возраст: 151.4 сек.  | энергия: 98.7 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0202, energy=98.73
+* [199] возраст: 152.4 сек.  | энергия: 98.7 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0202, energy=98.71
+* [200] возраст: 153.4 сек.  | энергия: 98.7 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [API] Получен POST /event: type='decay', intensity=-0.20224013562600152
+[API] Event PUSHED to queue. Size now: 1
+================================================================================
+ВХОДЯЩИЙ HTTP-ЗАПРОС
+Время: 16/Jan/2026 15:05:39
+Клиент IP: 127.0.0.1
+Запрос: POST /event HTTP/1.1
+Статус ответа: 200
+================================================================================
+[LOOP] Queue not empty, size=1
+[LOOP] POPPED 1 events
+[LOOP] Interpreting event: type=decay, intensity=-0.20224013562600152
+Ошибка в цикле: local variable 'asdict' referenced before assignment
+Traceback (most recent call last):
+  File "D:\Space\life\src\runtime\loop.py", line 74, in run_loop
+    meaning = engine.process(event, asdict(self_state))
+UnboundLocalError: local variable 'asdict' referenced before assignment
+[LOOP] Слабость: штрафы penalty=0.0000, energy=98.71
+* [202] возраст: 154.4 сек.  | энергия: 98.7 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0202, energy=98.69
+* [203] возраст: 155.4 сек.  | энергия: 98.7 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0201, energy=98.67
+* [204] возраст: 156.4 сек.  | энергия: 98.7 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [API] Получен POST /event: type='recovery', intensity=0.30433266941071374
+[API] Event PUSHED to queue. Size now: 1
+================================================================================
+ВХОДЯЩИЙ HTTP-ЗАПРОС
+Время: 16/Jan/2026 15:05:42
+Клиент IP: 127.0.0.1
+Запрос: POST /event HTTP/1.1
+Статус ответа: 200
+================================================================================
+[LOOP] Queue not empty, size=1
+[LOOP] POPPED 1 events
+[LOOP] Interpreting event: type=recovery, intensity=0.30433266941071374
+Ошибка в цикле: local variable 'asdict' referenced before assignment
+Traceback (most recent call last):
+  File "D:\Space\life\src\runtime\loop.py", line 74, in run_loop
+    meaning = engine.process(event, asdict(self_state))
+UnboundLocalError: local variable 'asdict' referenced before assignment
+[LOOP] Слабость: штрафы penalty=0.0000, energy=98.67
+* [206] возраст: 157.5 сек.  | энергия: 98.7 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0203, energy=98.65
+* [207] возраст: 158.5 сек.  | энергия: 98.6 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0201, energy=98.63
+* [208] возраст: 159.5 сек.  | энергия: 98.6 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [API] Получен POST /event: type='noise', intensity=-0.06237957623841203
+[API] Event PUSHED to queue. Size now: 1
+================================================================================
+ВХОДЯЩИЙ HTTP-ЗАПРОС
+Время: 16/Jan/2026 15:05:45
+Клиент IP: 127.0.0.1
+Запрос: POST /event HTTP/1.1
+Статус ответа: 200
+================================================================================
+[LOOP] Queue not empty, size=1
+[LOOP] POPPED 1 events
+[LOOP] Interpreting event: type=noise, intensity=-0.06237957623841203
+Ошибка в цикле: local variable 'asdict' referenced before assignment
+Traceback (most recent call last):
+  File "D:\Space\life\src\runtime\loop.py", line 74, in run_loop
+    meaning = engine.process(event, asdict(self_state))
+UnboundLocalError: local variable 'asdict' referenced before assignment
+[LOOP] Слабость: штрафы penalty=0.0000, energy=98.63
+* [210] возраст: 160.5 сек.  | энергия: 98.6 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0202, energy=98.61
+* [211] возраст: 161.5 сек.  | энергия: 98.6 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0201, energy=98.59
+* [212] возраст: 162.5 сек.  | энергия: 98.6 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [API] Получен POST /event: type='decay', intensity=-0.4793347560543213
+[API] Event PUSHED to queue. Size now: 1
+================================================================================
+ВХОДЯЩИЙ HTTP-ЗАПРОС
+Время: 16/Jan/2026 15:05:48
+Клиент IP: 127.0.0.1
+Запрос: POST /event HTTP/1.1
+Статус ответа: 200
+================================================================================
+[LOOP] Queue not empty, size=1
+[LOOP] POPPED 1 events
+[LOOP] Interpreting event: type=decay, intensity=-0.4793347560543213
+Ошибка в цикле: local variable 'asdict' referenced before assignment
+Traceback (most recent call last):
+  File "D:\Space\life\src\runtime\loop.py", line 74, in run_loop
+    meaning = engine.process(event, asdict(self_state))
+UnboundLocalError: local variable 'asdict' referenced before assignment
+[LOOP] Слабость: штрафы penalty=0.0000, energy=98.59
+* [214] возраст: 163.5 сек.  | энергия: 98.6 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | ================================================================================
+ВХОДЯЩИЙ HTTP-ЗАПРОС
+Время: 16/Jan/2026 15:05:50
+Клиент IP: 127.0.0.1
+Запрос: GET /status HTTP/1.1
+Статус ответа: 200
+================================================================================
+[LOOP] Слабость: штрафы penalty=0.0203, energy=98.57
+* [215] возраст: 164.5 сек.  | энергия: 98.6 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0202, energy=98.55
+* [216] возраст: 165.5 сек.  | энергия: 98.5 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [API] Получен POST /event: type='noise', intensity=0.16368577874362017
+[API] Event PUSHED to queue. Size now: 1
+================================================================================
+ВХОДЯЩИЙ HTTP-ЗАПРОС
+Время: 16/Jan/2026 15:05:52
+Клиент IP: 127.0.0.1
+Запрос: POST /event HTTP/1.1
+Статус ответа: 200
+================================================================================
+[LOOP] Queue not empty, size=1
+[LOOP] POPPED 1 events
+[LOOP] Interpreting event: type=noise, intensity=0.16368577874362017
+Ошибка в цикле: local variable 'asdict' referenced before assignment
+Traceback (most recent call last):
+  File "D:\Space\life\src\runtime\loop.py", line 74, in run_loop
+    meaning = engine.process(event, asdict(self_state))
+UnboundLocalError: local variable 'asdict' referenced before assignment
+[LOOP] Слабость: штрафы penalty=0.0000, energy=98.55
+* [218] возраст: 166.5 сек.  | энергия: 98.5 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0203, energy=98.53
+* [219] возраст: 167.5 сек.  | энергия: 98.5 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0203, energy=98.51
+* [220] возраст: 168.6 сек.  | энергия: 98.5 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [API] Получен POST /event: type='noise', intensity=-0.02992805781176966
+[API] Event PUSHED to queue. Size now: 1
+================================================================================
+ВХОДЯЩИЙ HTTP-ЗАПРОС
+Время: 16/Jan/2026 15:05:55
+Клиент IP: 127.0.0.1
+Запрос: POST /event HTTP/1.1
+Статус ответа: 200
+================================================================================
+[LOOP] Queue not empty, size=1
+[LOOP] POPPED 1 events
+[LOOP] Interpreting event: type=noise, intensity=-0.02992805781176966
+Ошибка в цикле: local variable 'asdict' referenced before assignment
+Traceback (most recent call last):
+  File "D:\Space\life\src\runtime\loop.py", line 74, in run_loop
+    meaning = engine.process(event, asdict(self_state))
+UnboundLocalError: local variable 'asdict' referenced before assignment
+[LOOP] Слабость: штрафы penalty=0.0000, energy=98.51
+* [222] возраст: 169.6 сек.  | энергия: 98.5 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0201, energy=98.49
+* [223] возраст: 170.6 сек.  | энергия: 98.5 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0203, energy=98.47
+* [224] возраст: 171.6 сек.  | энергия: 98.5 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [API] Получен POST /event: type='recovery', intensity=0.1929554618759018
+[API] Event PUSHED to queue. Size now: 1
+================================================================================
+ВХОДЯЩИЙ HTTP-ЗАПРОС
+Время: 16/Jan/2026 15:05:58
+Клиент IP: 127.0.0.1
+Запрос: POST /event HTTP/1.1
+Статус ответа: 200
+================================================================================
+[LOOP] Queue not empty, size=1
+[LOOP] POPPED 1 events
+[LOOP] Interpreting event: type=recovery, intensity=0.1929554618759018
+Ошибка в цикле: local variable 'asdict' referenced before assignment
+Traceback (most recent call last):
+  File "D:\Space\life\src\runtime\loop.py", line 74, in run_loop
+    meaning = engine.process(event, asdict(self_state))
+UnboundLocalError: local variable 'asdict' referenced before assignment
+[LOOP] Слабость: штрафы penalty=0.0000, energy=98.47
+* [226] возраст: 172.6 сек.  | энергия: 98.5 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0202, energy=98.45
+* [227] возраст: 173.6 сек.  | энергия: 98.4 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0202, energy=98.43
+* [228] возраст: 174.6 сек.  | энергия: 98.4 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0202, energy=98.41
+* [229] возраст: 175.6 сек.  | энергия: 98.4 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [API] Получен POST /event: type='noise', intensity=0.2611369264507997
+[API] Event PUSHED to queue. Size now: 1
+================================================================================
+ВХОДЯЩИЙ HTTP-ЗАПРОС
+Время: 16/Jan/2026 15:06:01
+Клиент IP: 127.0.0.1
+Запрос: POST /event HTTP/1.1
+Статус ответа: 200
+================================================================================
+[LOOP] Queue not empty, size=1
+[LOOP] POPPED 1 events
+[LOOP] Interpreting event: type=noise, intensity=0.2611369264507997
+Ошибка в цикле: local variable 'asdict' referenced before assignment
+Traceback (most recent call last):
+  File "D:\Space\life\src\runtime\loop.py", line 74, in run_loop
+    meaning = engine.process(event, asdict(self_state))
+UnboundLocalError: local variable 'asdict' referenced before assignment
+[LOOP] Слабость: штрафы penalty=0.0000, energy=98.41
+* [231] возраст: 176.6 сек.  | энергия: 98.4 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0202, energy=98.39
+* [232] возраст: 177.7 сек.  | энергия: 98.4 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0201, energy=98.37
+* [233] возраст: 178.7 сек.  | энергия: 98.4 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [API] Получен POST /event: type='decay', intensity=-0.4105546949134137
+[API] Event PUSHED to queue. Size now: 1
+================================================================================
+ВХОДЯЩИЙ HTTP-ЗАПРОС
+Время: 16/Jan/2026 15:06:04
+Клиент IP: 127.0.0.1
+Запрос: POST /event HTTP/1.1
+Статус ответа: 200
+================================================================================
+[LOOP] Queue not empty, size=1
+[LOOP] POPPED 1 events
+[LOOP] Interpreting event: type=decay, intensity=-0.4105546949134137
+Ошибка в цикле: local variable 'asdict' referenced before assignment
+Traceback (most recent call last):
+  File "D:\Space\life\src\runtime\loop.py", line 74, in run_loop
+    meaning = engine.process(event, asdict(self_state))
+UnboundLocalError: local variable 'asdict' referenced before assignment
+[LOOP] Слабость: штрафы penalty=0.0000, energy=98.37
+* [235] возраст: 179.7 сек.  | энергия: 98.4 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0202, energy=98.35
+* [236] возраст: 180.7 сек.  | энергия: 98.3 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0201, energy=98.33
+* [237] возраст: 181.7 сек.  | энергия: 98.3 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [API] Получен POST /event: type='decay', intensity=-0.29378913853525607
+[API] Event PUSHED to queue. Size now: 1
+================================================================================
+ВХОДЯЩИЙ HTTP-ЗАПРОС
+Время: 16/Jan/2026 15:06:07
+Клиент IP: 127.0.0.1
+Запрос: POST /event HTTP/1.1
+Статус ответа: 200
+================================================================================
+[LOOP] Queue not empty, size=1
+[LOOP] POPPED 1 events
+[LOOP] Interpreting event: type=decay, intensity=-0.29378913853525607
+Ошибка в цикле: local variable 'asdict' referenced before assignment
+Traceback (most recent call last):
+  File "D:\Space\life\src\runtime\loop.py", line 74, in run_loop
+    meaning = engine.process(event, asdict(self_state))
+UnboundLocalError: local variable 'asdict' referenced before assignment
+[LOOP] Слабость: штрафы penalty=0.0000, energy=98.33
+* [239] возраст: 182.7 сек.  | энергия: 98.3 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0202, energy=98.30
+* [240] возраст: 183.7 сек.  | энергия: 98.3 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0202, energy=98.28
+* [241] возраст: 184.7 сек.  | энергия: 98.3 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [API] Получен POST /event: type='noise', intensity=-0.13604275797718696
+[API] Event PUSHED to queue. Size now: 1
+================================================================================
+ВХОДЯЩИЙ HTTP-ЗАПРОС
+Время: 16/Jan/2026 15:06:10
+Клиент IP: 127.0.0.1
+Запрос: POST /event HTTP/1.1
+Статус ответа: 200
+================================================================================
+[LOOP] Queue not empty, size=1
+[LOOP] POPPED 1 events
+[LOOP] Interpreting event: type=noise, intensity=-0.13604275797718696
+Ошибка в цикле: local variable 'asdict' referenced before assignment
+Traceback (most recent call last):
+  File "D:\Space\life\src\runtime\loop.py", line 74, in run_loop
+    meaning = engine.process(event, asdict(self_state))
+UnboundLocalError: local variable 'asdict' referenced before assignment
+[LOOP] Слабость: штрафы penalty=0.0000, energy=98.28
+* [243] возраст: 185.7 сек.  | энергия: 98.3 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0201, energy=98.26
+* [244] возраст: 186.7 сек.  | энергия: 98.3 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0202, energy=98.24
+* [245] возраст: 187.7 сек.  | энергия: 98.2 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [API] Получен POST /event: type='recovery', intensity=0.2762972365592681
+[API] Event PUSHED to queue. Size now: 1
+================================================================================
+ВХОДЯЩИЙ HTTP-ЗАПРОС
+Время: 16/Jan/2026 15:06:13
+Клиент IP: 127.0.0.1
+Запрос: POST /event HTTP/1.1
+Статус ответа: 200
+================================================================================
+[LOOP] Queue not empty, size=1
+[LOOP] POPPED 1 events
+[LOOP] Interpreting event: type=recovery, intensity=0.2762972365592681
+Ошибка в цикле: local variable 'asdict' referenced before assignment
+Traceback (most recent call last):
+  File "D:\Space\life\src\runtime\loop.py", line 74, in run_loop
+    meaning = engine.process(event, asdict(self_state))
+UnboundLocalError: local variable 'asdict' referenced before assignment
+[LOOP] Слабость: штрафы penalty=0.0000, energy=98.24
+* [247] возраст: 188.7 сек.  | энергия: 98.2 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0201, energy=98.22
+* [248] возраст: 189.8 сек.  | энергия: 98.2 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0203, energy=98.20
+* [249] возраст: 190.8 сек.  | энергия: 98.2 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [API] Получен POST /event: type='noise', intensity=0.07391341408870966
+[API] Event PUSHED to queue. Size now: 1
+================================================================================
+ВХОДЯЩИЙ HTTP-ЗАПРОС
+Время: 16/Jan/2026 15:06:16
+Клиент IP: 127.0.0.1
+Запрос: POST /event HTTP/1.1
+Статус ответа: 200
+================================================================================
+================================================================================
+ВХОДЯЩИЙ HTTP-ЗАПРОС
+Время: 16/Jan/2026 15:06:17
+Клиент IP: 127.0.0.1
+Запрос: GET /status HTTP/1.1
+Статус ответа: 200
+================================================================================
+[LOOP] Queue not empty, size=1
+[LOOP] POPPED 1 events
+[LOOP] Interpreting event: type=noise, intensity=0.07391341408870966
+Ошибка в цикле: local variable 'asdict' referenced before assignment
+Traceback (most recent call last):
+  File "D:\Space\life\src\runtime\loop.py", line 74, in run_loop
+    meaning = engine.process(event, asdict(self_state))
+UnboundLocalError: local variable 'asdict' referenced before assignment
+[LOOP] Слабость: штрафы penalty=0.0000, energy=98.20
+* [251] возраст: 191.8 сек.  | энергия: 98.2 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0202, energy=98.18
+* [252] возраст: 192.8 сек.  | энергия: 98.2 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0201, energy=98.16
+* [253] возраст: 193.8 сек.  | энергия: 98.2 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [API] Получен POST /event: type='noise', intensity=0.1601651744405188
+[API] Event PUSHED to queue. Size now: 1
+================================================================================
+ВХОДЯЩИЙ HTTP-ЗАПРОС
+Время: 16/Jan/2026 15:06:19
+Клиент IP: 127.0.0.1
+Запрос: POST /event HTTP/1.1
+Статус ответа: 200
+================================================================================
+[LOOP] Queue not empty, size=1
+[LOOP] POPPED 1 events
+[LOOP] Interpreting event: type=noise, intensity=0.1601651744405188
+Ошибка в цикле: local variable 'asdict' referenced before assignment
+Traceback (most recent call last):
+  File "D:\Space\life\src\runtime\loop.py", line 74, in run_loop
+    meaning = engine.process(event, asdict(self_state))
+UnboundLocalError: local variable 'asdict' referenced before assignment
+[LOOP] Слабость: штрафы penalty=0.0000, energy=98.16
+* [255] возраст: 194.8 сек.  | энергия: 98.2 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0202, energy=98.14
+* [256] возраст: 195.8 сек.  | энергия: 98.1 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0202, energy=98.12
+* [257] возраст: 196.8 сек.  | энергия: 98.1 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [API] Получен POST /event: type='noise', intensity=-0.16766518461550517
+[API] Event PUSHED to queue. Size now: 1
+================================================================================
+ВХОДЯЩИЙ HTTP-ЗАПРОС
+Время: 16/Jan/2026 15:06:22
+Клиент IP: 127.0.0.1
+Запрос: POST /event HTTP/1.1
+Статус ответа: 200
+================================================================================
+[LOOP] Queue not empty, size=1
+[LOOP] POPPED 1 events
+[LOOP] Interpreting event: type=noise, intensity=-0.16766518461550517
+Ошибка в цикле: local variable 'asdict' referenced before assignment
+Traceback (most recent call last):
+  File "D:\Space\life\src\runtime\loop.py", line 74, in run_loop
+    meaning = engine.process(event, asdict(self_state))
+UnboundLocalError: local variable 'asdict' referenced before assignment
+[LOOP] Слабость: штрафы penalty=0.0000, energy=98.12
+* [259] возраст: 197.8 сек.  | энергия: 98.1 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0202, energy=98.10
+* [260] возраст: 198.8 сек.  | энергия: 98.1 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0202, energy=98.08
+* [261] возраст: 199.9 сек.  | энергия: 98.1 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [API] Получен POST /event: type='recovery', intensity=0.4477239065726816
+[API] Event PUSHED to queue. Size now: 1
+================================================================================
+ВХОДЯЩИЙ HTTP-ЗАПРОС
+Время: 16/Jan/2026 15:06:25
+Клиент IP: 127.0.0.1
+Запрос: POST /event HTTP/1.1
+Статус ответа: 200
+================================================================================
+[LOOP] Queue not empty, size=1
+[LOOP] POPPED 1 events
+[LOOP] Interpreting event: type=recovery, intensity=0.4477239065726816
+Ошибка в цикле: local variable 'asdict' referenced before assignment
+Traceback (most recent call last):
+  File "D:\Space\life\src\runtime\loop.py", line 74, in run_loop
+    meaning = engine.process(event, asdict(self_state))
+UnboundLocalError: local variable 'asdict' referenced before assignment
+[LOOP] Слабость: штрафы penalty=0.0000, energy=98.08
+* [263] возраст: 200.9 сек.  | энергия: 98.1 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0202, energy=98.06
+* [264] возраст: 201.9 сек.  | энергия: 98.1 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0200, energy=98.04
+* [265] возраст: 202.9 сек.  | энергия: 98.0 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [API] Получен POST /event: type='decay', intensity=-0.11080447903930601
+[API] Event PUSHED to queue. Size now: 1
+================================================================================
+ВХОДЯЩИЙ HTTP-ЗАПРОС
+Время: 16/Jan/2026 15:06:28
+Клиент IP: 127.0.0.1
+Запрос: POST /event HTTP/1.1
+Статус ответа: 200
+================================================================================
+[LOOP] Queue not empty, size=1
+[LOOP] POPPED 1 events
+[LOOP] Interpreting event: type=decay, intensity=-0.11080447903930601
+Ошибка в цикле: local variable 'asdict' referenced before assignment
+Traceback (most recent call last):
+  File "D:\Space\life\src\runtime\loop.py", line 74, in run_loop
+    meaning = engine.process(event, asdict(self_state))
+UnboundLocalError: local variable 'asdict' referenced before assignment
+[LOOP] Слабость: штрафы penalty=0.0000, energy=98.04
+* [267] возраст: 203.9 сек.  | энергия: 98.0 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0203, energy=98.02
+* [268] возраст: 204.9 сек.  | энергия: 98.0 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0202, energy=98.00
+* [269] возраст: 205.9 сек.  | энергия: 98.0 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [API] Получен POST /event: type='noise', intensity=0.2532903739075741
+[API] Event PUSHED to queue. Size now: 1
+================================================================================
+ВХОДЯЩИЙ HTTP-ЗАПРОС
+Время: 16/Jan/2026 15:06:31
+Клиент IP: 127.0.0.1
+Запрос: POST /event HTTP/1.1
+Статус ответа: 200
+================================================================================
+[LOOP] Queue not empty, size=1
+[LOOP] POPPED 1 events
+[LOOP] Interpreting event: type=noise, intensity=0.2532903739075741
+Ошибка в цикле: local variable 'asdict' referenced before assignment
+Traceback (most recent call last):
+  File "D:\Space\life\src\runtime\loop.py", line 74, in run_loop
+    meaning = engine.process(event, asdict(self_state))
+UnboundLocalError: local variable 'asdict' referenced before assignment
+[LOOP] Слабость: штрафы penalty=0.0000, energy=98.00
+* [271] возраст: 206.9 сек.  | энергия: 98.0 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0202, energy=97.98
+* [272] возраст: 207.9 сек.  | энергия: 98.0 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0202, energy=97.96
+* [273] возраст: 208.9 сек.  | энергия: 98.0 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [API] Получен POST /event: type='decay', intensity=-0.05401304922897532
+[API] Event PUSHED to queue. Size now: 1
+================================================================================
+ВХОДЯЩИЙ HTTP-ЗАПРОС
+Время: 16/Jan/2026 15:06:34
+Клиент IP: 127.0.0.1
+Запрос: POST /event HTTP/1.1
+Статус ответа: 200
+================================================================================
+[LOOP] Queue not empty, size=1
+[LOOP] POPPED 1 events
+[LOOP] Interpreting event: type=decay, intensity=-0.05401304922897532
+Ошибка в цикле: local variable 'asdict' referenced before assignment
+Traceback (most recent call last):
+  File "D:\Space\life\src\runtime\loop.py", line 74, in run_loop
+    meaning = engine.process(event, asdict(self_state))
+UnboundLocalError: local variable 'asdict' referenced before assignment
+[LOOP] Слабость: штрафы penalty=0.0000, energy=97.96
+* [275] возраст: 210.0 сек.  | энергия: 98.0 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0202, energy=97.94
+* [276] возраст: 211.0 сек.  | энергия: 97.9 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | [LOOP] Слабость: штрафы penalty=0.0202, energy=97.92
+* [277] возраст: 212.0 сек.  | энергия: 97.9 % | интеллект: 0.0000 | стабильность: 0.0000 | значимость: 0.0000 | активация: 0 (0.00) | decision:  | action: executed  | Detected change, reloading modules...
+[RELOAD DIAG] Reloaded loop_module.run_loop: firstlineno=16, argcount=6
+[RELOAD DIAG] New run_loop code file: D:\Space\life\src\runtime\loop.py
+Modules reloaded and server restarted
+API server running on http://localhost:8000
+[API] Получен POST /event: type='noise', intensity=-0.1287293135408485
+[API] Event PUSHED to queue. Size now: 1
+================================================================================
+ВХОДЯЩИЙ HTTP-ЗАПРОС
+Время: 16/Jan/2026 15:06:37
+Клиент IP: 127.0.0.1
+Запрос: POST /event HTTP/1.1
+Статус ответа: 200
+================================================================================
+Loop ended. Server still running. Press Enter to stop.[RELOAD] [RELOAD] Old loop stopped
+
+TEST CHANGETraceback (most recent call last):
+
+  File "D:\Space\life\src\main_server_api.py", line 321, in <module>
+[LOOP] Queue not empty, size=1
+[LOOP] POPPED 1 events
+[LOOP] Interpreting event: type=noise, intensity=-0.1287293135408485
+[RELOAD] [RELOAD] New loop started    input()
+EOFError
+: EOF when reading a line[LOOP] Activated 0 memories for type 'noise'
+
+[LOOP] After interpret: energy=98.16, stability=0.0000Fatal Python error: _enter_buffered_busy: could not acquire lock for <_io.BufferedWriter name='<stdout>'> at interpreter shutdown, possibly due to daemon threads
+Python runtime state: finalizing (tstate=0x000001b147a33410)
+
+Current thread 0x00005dec (most recent call first):
+  <no Python frame>
