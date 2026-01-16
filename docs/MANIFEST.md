@@ -115,6 +115,7 @@ graph TD
 - [**10.1_ACTIVATION_Memory.md**](system/10.1_ACTIVATION_Memory.md) — Активация памяти (реализовано)
 - [**11.1_DECISION_Work.md**](system/11.1_DECISION_Work.md) — Принятие решений (реализовано)
 - [**12.1_ACTION_Work.md**](system/12.1_ACTION_Work.md) — Выполнение действий (реализовано)
+- [**13.1_FEEDBACK_Work.md**](system/13.1_FEEDBACK_Work.md) — Обратная связь (архитектурная спецификация, готово к реализации)
 
 ### Concepts (Будущие модули)
 - [**11_DECISION.md**](concepts/11_DECISION.md) — Принятие решений
