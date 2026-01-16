@@ -1,6 +1,6 @@
-from typing import Dict
-from state.self_state import SelfState
 from meaning.meaning import Meaning
+from state.self_state import SelfState
+
 
 def decide_response(self_state: SelfState, meaning: Meaning) -> str:
     """

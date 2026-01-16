@@ -1,7 +1,7 @@
 # Итоговый отчет: Тестирование доработок Feedback
 
-**Дата:** 2025-01-26  
-**Версия:** v1.1 (с полными данными Feedback)  
+**Дата:** 2025-01-26
+**Версия:** v1.1 (с полными данными Feedback)
 **Статус:** ✅ **Успешно протестировано и работает корректно**
 
 ## Выполненные изменения
@@ -133,7 +133,7 @@ python -m src.environment.generator_cli --interval 1 --host localhost --port 800
 curl -s http://localhost:8000/status | python -c "
 import sys, json
 data = json.load(sys.stdin)
-feedback = [m for m in data.get('memory', []) 
+feedback = [m for m in data.get('memory', [])
             if m.get('event_type')=='feedback' and m.get('feedback_data')]
 print(f'Feedback records with data: {len(feedback)}')
 if len(feedback) > 0:
@@ -153,7 +153,7 @@ python -c "
 import json
 with open('data/snapshots/snapshot_000720.json') as f:
     data = json.load(f)
-    feedback = [m for m in data.get('memory', []) 
+    feedback = [m for m in data.get('memory', [])
                 if m.get('event_type')=='feedback' and m.get('feedback_data')]
     print(f'Feedback records with data: {len(feedback)}')
     if len(feedback) > 0:

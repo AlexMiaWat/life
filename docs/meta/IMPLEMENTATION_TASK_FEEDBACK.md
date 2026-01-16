@@ -1,7 +1,7 @@
 # Задача реализации: Feedback (Этап 13)
 
-**Статус:** Готово к реализации  
-**Приоритет:** Высокий  
+**Статус:** Готово к реализации
+**Приоритет:** Высокий
 **Дата создания:** 13.01.2026
 
 ## Описание задачи
@@ -71,8 +71,8 @@ register_action(action_id, pattern, state_before, time.time(), pending_actions)
 ```python
 # Наблюдаем последствия прошлых действий
 feedback_records = observe_consequences(
-    self_state, 
-    pending_actions, 
+    self_state,
+    pending_actions,
     event_queue
 )
 

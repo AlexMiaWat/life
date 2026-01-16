@@ -72,12 +72,12 @@ graph TD
     State -->|Context| Decision[Decision Maker]
     Decision -->|Command| Action[Action Executor]
     Action -->|Effect| Env
-    
+
     subgraph "Core System"
         Loop
         State
     end
-    
+
     subgraph "Cognitive Layers"
         Meaning
         Decision

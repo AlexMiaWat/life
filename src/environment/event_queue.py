@@ -1,5 +1,7 @@
 import queue
+
 from .event import Event
+
 
 class EventQueue:
     def __init__(self):
@@ -22,11 +24,11 @@ class EventQueue:
 
     def size(self) -> int:
         return self._queue.qsize()
-    
+
     def pop_all(self) -> list[Event]:
         """
         Извлечь все события из очереди.
-        
+
         Returns:
             list[Event]: список всех событий из очереди (FIFO порядок)
         """

@@ -18,18 +18,18 @@ graph TD
     User[Пользователь] --> Orch[Orchestrator]
     Orch --> Arch[Architect]
     Orch --> Impl[Implementer]
-    
+
     Arch -- "1. Концепции & Дизайн" --> DocsCore[docs/core/, docs/concepts/]
     DocsCore --> Impl
-    
+
     Impl -- "2. Спецификации систем" --> DocsSys[docs/system/]
     DocsSys --> Impl
     Impl -- "3. Код" --> Src[src/]
-    
+
     Src --> Skeptic
     DocsCore --> Skeptic
     DocsSys --> Skeptic
-    
+
     Skeptic -- "4. Отчеты о проблемах" --> Orch
 ```
 

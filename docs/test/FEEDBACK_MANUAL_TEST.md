@@ -44,8 +44,8 @@ response = requests.get("http://localhost:8000/status")
 data = response.json()
 
 # Фильтруем Feedback записи с данными
-feedback = [m for m in data.get("memory", []) 
-            if m.get("event_type") == "feedback" 
+feedback = [m for m in data.get("memory", [])
+            if m.get("event_type") == "feedback"
             and m.get("feedback_data")]
 
 print(f"Found {len(feedback)} feedback records with data")
@@ -101,7 +101,7 @@ python -c "
 import json
 with open('data/snapshots/snapshot_000720.json') as f:
     data = json.load(f)
-    feedback = [m for m in data.get('memory', []) 
+    feedback = [m for m in data.get('memory', [])
                 if m.get('event_type')=='feedback' and m.get('feedback_data')]
     print(f'Feedback records with data in snapshot: {len(feedback)}')
     if len(feedback) > 0:
@@ -143,7 +143,7 @@ with open('data/snapshots/snapshot_000720.json') as f:
 
 **Причина:** Сервер не запущен или порт занят.
 
-**Решение:** 
+**Решение:**
 1. Проверьте, что сервер запущен
 2. Проверьте, что порт 8000 свободен
 3. Попробуйте перезапустить сервер

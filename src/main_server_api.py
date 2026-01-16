@@ -3,32 +3,33 @@ import glob
 import importlib
 import json
 import os
+import sys
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
-import sys
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from monitor.console import monitor, log
-from runtime.loop import run_loop
-from monitor.console import monitor
-import runtime.loop
-import state.self_state
-from state.self_state import create_initial_state, SelfState, asdict
-from environment import Event, EventQueue
 from colorama import Fore, Style, init
+
+from environment import Event, EventQueue
+from monitor.console import log, monitor
+from runtime.loop import run_loop
+from state.self_state import SelfState, asdict
+
 init()
 
 from typing import Any
 
 print(f"[ДИАГ] Тип monitor: {type(monitor).__name__}")
 print(f"[ДИАГ] monitor вызываемая функция? {callable(monitor)}")
-if hasattr(monitor, '__file__'):
+if hasattr(monitor, "__file__"):
     print(f"[ДИАГ] monitor.__file__: {monitor.__file__}")
 print(f"[ДИАГ] monitor.__name__: {getattr(monitor, '__name__', 'нет __name__')}")
 print(f"[ДИАГ] dir(monitor)[:10]: {dir(monitor)[:10]}")
 
 HOST = "localhost"
 PORT = 8000
+
 
 class StoppableHTTPServer(HTTPServer):
     def __init__(self, *args, **kwargs):
@@ -47,8 +48,11 @@ class StoppableHTTPServer(HTTPServer):
         self.stopped = True
         self.server_close()
 
+
 class LifeHandler(BaseHTTPRequestHandler):
-    server: Any  # Добавляем, чтобы IDE знала, что у server могут быть кастомные атрибуты
+    server: (
+        Any  # Добавляем, чтобы IDE знала, что у server могут быть кастомные атрибуты
+    )
 
     def do_GET(self):
         if self.path == "/status":
@@ -117,10 +121,19 @@ class LifeHandler(BaseHTTPRequestHandler):
         metadata = payload.get("metadata") or {}
 
         try:
-            print(f"[API] Получен POST /event: type='{event_type}', intensity={intensity}")
-            event = Event(type=event_type, intensity=intensity, timestamp=timestamp, metadata=metadata)
+            print(
+                f"[API] Получен POST /event: type='{event_type}', intensity={intensity}"
+            )
+            event = Event(
+                type=event_type,
+                intensity=intensity,
+                timestamp=timestamp,
+                metadata=metadata,
+            )
             self.server.event_queue.push(event)
-            print(f"[API] Event PUSHED to queue. Size now: {self.server.event_queue.size()}")
+            print(
+                f"[API] Event PUSHED to queue. Size now: {self.server.event_queue.size()}"
+            )
             self.send_response(200)
             self.end_headers()
             self.wfile.write(b"Event accepted")
@@ -134,12 +147,22 @@ class LifeHandler(BaseHTTPRequestHandler):
             try:
                 print(Fore.CYAN + "=" * 80 + Style.RESET_ALL)
                 print(Fore.GREEN + "ВХОДЯЩИЙ HTTP-ЗАПРОС" + Style.RESET_ALL)
-                print(Fore.YELLOW + f"Время: {self.log_date_time_string()}" + Style.RESET_ALL)
-                print(Fore.YELLOW + f"Клиент IP: {self.client_address[0]}" + Style.RESET_ALL)
+                print(
+                    Fore.YELLOW
+                    + f"Время: {self.log_date_time_string()}"
+                    + Style.RESET_ALL
+                )
+                print(
+                    Fore.YELLOW
+                    + f"Клиент IP: {self.client_address[0]}"
+                    + Style.RESET_ALL
+                )
                 print(Fore.YELLOW + f"Запрос: {self.requestline}" + Style.RESET_ALL)
                 print(Fore.MAGENTA + f"Статус ответа: {code}" + Style.RESET_ALL)
                 if isinstance(size, (int, float)) and size > 0:
-                    print(Fore.MAGENTA + f"Размер ответа: {size} байт" + Style.RESET_ALL)
+                    print(
+                        Fore.MAGENTA + f"Размер ответа: {size} байт" + Style.RESET_ALL
+                    )
                 print(Fore.CYAN + "=" * 80 + Style.RESET_ALL)
             except UnicodeEncodeError:
                 # Fallback to plain text if color output fails
@@ -154,6 +177,7 @@ class LifeHandler(BaseHTTPRequestHandler):
                 print("=" * 80)
             sys.stdout.flush()
 
+
 def start_api_server(self_state, event_queue, dev_mode):
     global server
     server = StoppableHTTPServer((HOST, PORT), LifeHandler)
@@ -162,6 +186,7 @@ def start_api_server(self_state, event_queue, dev_mode):
     server.dev_mode = dev_mode
     print(f"API server running on http://{HOST}:{PORT}")
     server.serve_forever()
+
 
 def reloader_thread():  # pragma: no cover
     """
@@ -172,13 +197,13 @@ def reloader_thread():  # pragma: no cover
 
     # Файлы для отслеживания
     files_to_watch = [
-        'src/main_server_api.py',
-        'src/monitor/console.py',
-        'src/runtime/loop.py',
-        'src/state/self_state.py',
-        'src/environment/event.py',
-        'src/environment/event_queue.py',
-        'src/environment/generator.py',
+        "src/main_server_api.py",
+        "src/monitor/console.py",
+        "src/runtime/loop.py",
+        "src/state/self_state.py",
+        "src/environment/event.py",
+        "src/environment/event_queue.py",
+        "src/environment/generator.py",
     ]
     mtime_dict = {}
 
@@ -215,23 +240,27 @@ def reloader_thread():  # pragma: no cover
                     api_thread.join()
 
             # Перезагрузка модулей
-            import monitor.console as console_module
-            import runtime.loop as loop_module
-            import state.self_state as state_module
             import environment.event as event_module
             import environment.event_queue as event_queue_module
             import environment.generator as generator_module
-        
+            import monitor.console as console_module
+            import runtime.loop as loop_module
+            import state.self_state as state_module
+
             importlib.reload(console_module)
             importlib.reload(loop_module)
             importlib.reload(state_module)
             importlib.reload(event_module)
             importlib.reload(event_queue_module)
             importlib.reload(generator_module)
-        
-            print(f"[RELOAD DIAG] Reloaded loop_module.run_loop: firstlineno={loop_module.run_loop.__code__.co_firstlineno}, argcount={loop_module.run_loop.__code__.co_argcount}")
-            print(f"[RELOAD DIAG] New run_loop code file: {loop_module.run_loop.__code__.co_filename}")
-        
+
+            print(
+                f"[RELOAD DIAG] Reloaded loop_module.run_loop: firstlineno={loop_module.run_loop.__code__.co_firstlineno}, argcount={loop_module.run_loop.__code__.co_argcount}"
+            )
+            print(
+                f"[RELOAD DIAG] New run_loop code file: {loop_module.run_loop.__code__.co_filename}"
+            )
+
             # Обновляем ссылки на функции
             monitor = console_module.monitor
             log = console_module.log
@@ -242,7 +271,11 @@ def reloader_thread():  # pragma: no cover
                 self_state = state_module.SelfState()
 
             # Перезапуск API сервера
-            api_thread = threading.Thread(target=start_api_server, args=(self_state, event_queue, True), daemon=True)
+            api_thread = threading.Thread(
+                target=start_api_server,
+                args=(self_state, event_queue, True),
+                daemon=True,
+            )
             api_thread.start()
 
             print("Modules reloaded and server restarted")
@@ -256,24 +289,34 @@ def reloader_thread():  # pragma: no cover
             loop_stop = threading.Event()
             loop_thread = threading.Thread(
                 target=run_loop,
-                args=(self_state, monitor, config['tick_interval'], config['snapshot_period'], loop_stop, event_queue),
-                daemon=True
+                args=(
+                    self_state,
+                    monitor,
+                    config["tick_interval"],
+                    config["snapshot_period"],
+                    loop_stop,
+                    event_queue,
+                ),
+                daemon=True,
             )
             loop_thread.start()
             log("[RELOAD] New loop started")
+
 
 if __name__ == "__main__":  # pragma: no cover
     parser = argparse.ArgumentParser()
     parser.add_argument("--clear-data", type=str, default="no")
     parser.add_argument("--tick-interval", type=float, default=1.0)
     parser.add_argument("--snapshot-period", type=int, default=10)
-    parser.add_argument("--dev", action="store_true", help="Enable development mode with auto-reload")
+    parser.add_argument(
+        "--dev", action="store_true", help="Enable development mode with auto-reload"
+    )
     args = parser.parse_args()
     dev_mode = args.dev
-    
+
     config = {
-        'tick_interval': args.tick_interval,
-        'snapshot_period': args.snapshot_period
+        "tick_interval": args.tick_interval,
+        "snapshot_period": args.snapshot_period,
     }
 
     if args.clear_data.lower() == "yes":
@@ -293,7 +336,7 @@ if __name__ == "__main__":  # pragma: no cover
 
     server = None
     api_thread = None
-    
+
     # Инициализация Environment
     event_queue = EventQueue()
 
@@ -302,19 +345,30 @@ if __name__ == "__main__":  # pragma: no cover
         threading.Thread(target=reloader_thread, daemon=True).start()
 
     # Start API thread
-    api_thread = threading.Thread(target=start_api_server, args=(self_state, event_queue, dev_mode), daemon=True)
+    api_thread = threading.Thread(
+        target=start_api_server, args=(self_state, event_queue, dev_mode), daemon=True
+    )
     api_thread.start()
 
     # Start loop thread
     loop_stop = threading.Event()
     loop_thread = threading.Thread(
         target=run_loop,
-        args=(self_state, monitor, config['tick_interval'], config['snapshot_period'], loop_stop, event_queue),
-        daemon=True
+        args=(
+            self_state,
+            monitor,
+            config["tick_interval"],
+            config["snapshot_period"],
+            loop_stop,
+            event_queue,
+        ),
+        daemon=True,
     )
     loop_thread.start()
 
-    print("monitor:", monitor, type(monitor) if 'monitor' in locals() else "NOT DEFINED")
+    print(
+        "monitor:", monitor, type(monitor) if "monitor" in locals() else "NOT DEFINED"
+    )
 
     loop_thread.join()
     print("Loop ended. Server still running. Press Enter to stop.")

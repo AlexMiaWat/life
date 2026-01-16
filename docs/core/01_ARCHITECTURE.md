@@ -21,24 +21,24 @@ graph TD
     Feedback -->|Record| Memory
     Loop -->|Metrics| Planning[Planning]
     Loop -->|Metrics| Intelligence[Intelligence]
-    
+
     subgraph "Core System"
         Loop
         State
     end
-    
+
     subgraph "Perception & Memory"
         Meaning
         Activation
         Memory
     end
-    
+
     subgraph "Cognitive Layers"
         Decision
         Action
         Feedback
     end
-    
+
     subgraph "Higher Layers"
         Planning
         Intelligence

@@ -1,7 +1,7 @@
 # Результаты тестирования доработок Feedback
 
-**Дата:** 2025-01-26  
-**Версия:** v1.1 (с полными данными)  
+**Дата:** 2025-01-26
+**Версия:** v1.1 (с полными данными)
 **Статус:** ✅ **Успешно протестировано и работает корректно**
 
 ## Внесенные изменения
@@ -179,8 +179,8 @@ import json
 response = requests.get("http://localhost:8000/status")
 data = response.json()
 
-feedback = [m for m in data.get("memory", []) 
-            if m.get("event_type") == "feedback" 
+feedback = [m for m in data.get("memory", [])
+            if m.get("event_type") == "feedback"
             and m.get("feedback_data")]
 
 print(f"Found {len(feedback)} feedback records with data")

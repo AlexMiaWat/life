@@ -1,3 +1,3 @@
 import subprocess
 
-subprocess.call(['taskkill', '/im', 'python.exe', '/f'])
+subprocess.call(["taskkill", "/im", "python.exe", "/f"])

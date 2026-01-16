@@ -1,12 +1,67 @@
-.vscode/*
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
+*.egg-info/
+dist/
+build/
+
+# Testing
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.hypothesis/
+*.cover
+.hypothesis/
+.pytest_cache/
+test-results/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-project
+*.sublime-workspace
+
+# Project specific
 data/*
 logs/*
-src/runtime/__pycache__/*
-src/monitor/__pycache__/*
-src/state/__pycache__/*
 plans/*
-src/__pycache__/*
-src/environment/__pycache__/*
-*.pyc
 docs/skeptic/*
-.coverage
+
+# MCP конфигурация (может содержать локальные пути)
+.cursor/mcp-servers.json
+todo/mcp_config_*.json
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Pre-commit
+.pre-commit-config.yaml.bak
+
+# Coverage reports
+coverage.xml
+htmlcov/
+
+# Temporary files
+*.tmp
+*.bak
+*.log
+*.swp

@@ -7,7 +7,8 @@
       ],
       "env": {
         "PYTHONPATH": "D:/Space/life"
-      }
+      },
+      "description": "MCP сервер для работы с документацией, кодом, тестами и snapshots проекта Life"
     }
   }
 }

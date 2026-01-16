@@ -1,5 +1,7 @@
-from typing import List, Any
+from typing import List
+
 from state.self_state import SelfState
+
 
 def record_potential_sequences(self_state: SelfState) -> None:
     """
@@ -22,10 +24,10 @@ def record_potential_sequences(self_state: SelfState) -> None:
 
     # Записываем в self_state без изменений других полей
     self_state.planning = {
-        'potential_sequences': potential_sequences,
-        'sources_used': {
-            'memory_proxy': len(recent_events),
-            'learning_proxy': len(stability_history),
-            'adaptation_proxy': len(energy_history)
-        }
+        "potential_sequences": potential_sequences,
+        "sources_used": {
+            "memory_proxy": len(recent_events),
+            "learning_proxy": len(stability_history),
+            "adaptation_proxy": len(energy_history),
+        },
     }

@@ -1,0 +1,42 @@
+{
+  "defaultModel": "claude-3.5-sonnet",
+  "models": {
+    "architect": "claude-3.5-sonnet",
+    "implementer": "claude-3.5-sonnet",
+    "skeptic": "claude-3-opus",
+    "orchestrator": "claude-3.5-sonnet",
+    "default": "claude-3.5-sonnet"
+  },
+  "temperature": {
+    "architect": 0.7,
+    "implementer": 0.3,
+    "skeptic": 0.5,
+    "orchestrator": 0.4,
+    "default": 0.4
+  },
+  "maxTokens": 16000,
+  "enableCodebaseIndexing": true,
+  "contextWindow": "large",
+  "autoMode": {
+    "enabled": true,
+    "description": "Auto режим позволяет агенту самостоятельно выбирать инструменты и выполнять задачи без запроса разрешения на каждый шаг. Это быстрее, но требует больше доверия."
+  },
+  "roles": {
+    "architect": {
+      "focus": ["docs/core/", "docs/concepts/", "docs/meta/"],
+      "restrictions": ["Не должен изменять код в src/", "Должен создавать только документацию"]
+    },
+    "implementer": {
+      "focus": ["docs/system/", "src/"],
+      "restrictions": ["Не должен изменять фундаментальные принципы без согласования"]
+    },
+    "skeptic": {
+      "focus": ["Весь проект (read-only)"],
+      "restrictions": ["Только чтение, отчеты в docs/skeptic/"]
+    },
+    "orchestrator": {
+      "focus": ["todo/", "plans/"],
+      "restrictions": ["Управление задачами, координация"]
+    }
+  }
+}

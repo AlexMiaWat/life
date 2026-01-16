@@ -2,18 +2,22 @@
 Общие фикстуры для всех тестов
 Поддержка реального сервера и тестового сервера
 """
+
 import sys
 from pathlib import Path
+
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root / "src"))
 
-import time
 import threading
-import requests
+import time
+
 import pytest
-from main_server_api import StoppableHTTPServer, LifeHandler
-from state.self_state import SelfState
+import requests
+
 from environment.event_queue import EventQueue
+from main_server_api import LifeHandler, StoppableHTTPServer
+from state.self_state import SelfState
 
 
 def pytest_addoption(parser):
@@ -22,13 +26,13 @@ def pytest_addoption(parser):
         "--real-server",
         action="store_true",
         default=False,
-        help="Use real server instead of test server (requires server running)"
+        help="Use real server instead of test server (requires server running)",
     )
     parser.addoption(
         "--server-port",
         type=int,
         default=8000,
-        help="Port of real server (default: 8000)"
+        help="Port of real server (default: 8000)",
     )
 
 
@@ -61,20 +65,20 @@ def server_setup(server_config):
         # Режим реального сервера
         port = server_config["port"]
         base_url = f"http://localhost:{port}"
-        
+
         # Проверяем доступность сервера
         if not check_real_server_available(base_url):
             pytest.skip(f"Real server not available at {base_url}. Start server first.")
-        
+
         # Для реального сервера возвращаем минимальную конфигурацию
         # self_state и event_queue недоступны напрямую
         yield {
-            'server': None,  # Реальный сервер не управляется тестами
-            'self_state': None,  # Недоступно для реального сервера
-            'event_queue': None,  # Недоступно для реального сервера
-            'base_url': base_url,
-            'port': port,
-            'is_real_server': True
+            "server": None,  # Реальный сервер не управляется тестами
+            "self_state": None,  # Недоступно для реального сервера
+            "event_queue": None,  # Недоступно для реального сервера
+            "base_url": base_url,
+            "port": port,
+            "is_real_server": True,
         }
     else:
         # Режим тестового сервера (текущее поведение)
@@ -84,26 +88,26 @@ def server_setup(server_config):
         server.self_state = self_state
         server.event_queue = event_queue
         server.dev_mode = False
-        
+
         # Запускаем сервер в отдельном потоке
         server_thread = threading.Thread(target=server.serve_forever, daemon=True)
         server_thread.start()
-        
+
         # Ждем запуска
         time.sleep(0.1)
-        
+
         port = server.server_address[1]
         base_url = f"http://localhost:{port}"
-        
+
         yield {
-            'server': server,
-            'self_state': self_state,
-            'event_queue': event_queue,
-            'base_url': base_url,
-            'port': port,
-            'is_real_server': False
+            "server": server,
+            "self_state": self_state,
+            "event_queue": event_queue,
+            "base_url": base_url,
+            "port": port,
+            "is_real_server": False,
         }
-        
+
         # Останавливаем тестовый сервер
         server.shutdown()
         server_thread.join(timeout=2.0)

@@ -255,15 +255,15 @@ run_loop(self_state, monitor, event_queue=event_queue)
 def run_loop(..., event_queue=None):
     while self_state['active']:
         # ...
-        
+
         # ШАГ 1: Получить все события из среды
         if event_queue and not event_queue.is_empty():
             events = event_queue.pop_all()  # Извлекаем все события
-            
+
             # ШАГ 2: Интерпретировать каждое событие
             for event in events:
                 _interpret_event(event, self_state)
-        
+
         # ...
 ```
 
@@ -273,7 +273,7 @@ def run_loop(..., event_queue=None):
 def _interpret_event(event: Event, self_state: dict) -> None:
     event_type = event.type
     intensity = event.intensity
-    
+
     if event_type == 'noise':
         self_state['stability'] += intensity * 0.01
     elif event_type == 'decay':
@@ -284,7 +284,7 @@ def _interpret_event(event: Event, self_state: dict) -> None:
         self_state['integrity'] += intensity * 0.1
         self_state['stability'] += intensity * 0.05
     # idle - ничего не делает
-    
+
     # Ограничение значений
     self_state['energy'] = max(0.0, min(100.0, self_state['energy']))
     self_state['stability'] = max(0.0, min(1.0, self_state['stability']))

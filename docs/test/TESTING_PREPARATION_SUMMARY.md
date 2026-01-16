@@ -1,6 +1,6 @@
 # Итоги подготовки к тестированию Feedback
 
-**Дата:** 2025-01-26  
+**Дата:** 2025-01-26
 **Статус:** ✅ **Успешно протестировано и работает корректно**
 
 ## Созданные файлы
@@ -72,8 +72,8 @@ import json
 response = requests.get("http://localhost:8000/status")
 data = response.json()
 
-feedback = [m for m in data.get("memory", []) 
-            if m.get("event_type") == "feedback" 
+feedback = [m for m in data.get("memory", [])
+            if m.get("event_type") == "feedback"
             and m.get("feedback_data")]
 
 print(f"Found {len(feedback)} feedback records with data")
@@ -174,7 +174,7 @@ if feedback:
 
 ## Результаты тестирования
 
-**Дата:** 2025-01-26  
+**Дата:** 2025-01-26
 **Статус:** ✅ **Успешно протестировано**
 
 ### Процесс тестирования

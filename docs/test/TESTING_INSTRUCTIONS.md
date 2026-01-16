@@ -376,12 +376,12 @@ from module import function
 
 class TestFunction:
     """Тесты для функции function"""
-    
+
     def test_basic_case(self):
         """Тест базового случая"""
         result = function(param1, param2)
         assert result == expected_value
-    
+
     def test_edge_case(self):
         """Тест граничного случая"""
         result = function(edge_param)
