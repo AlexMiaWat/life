@@ -22,19 +22,23 @@
 - [**06_API_SERVER.md**](system/06_API_SERVER.md) — API для управления и наблюдения.
 - [**07_ENVIRONMENT.md**](system/07_ENVIRONMENT.md) — Внешняя среда и генерация событий.
 - [**08_EVENTS_AND_MEANING.md**](system/08_EVENTS_AND_MEANING.md) — Система интерпретации событий (Meaning Engine).
+- [**09.1_Memory_Entry.md**](system/09.1_Memory_Entry.md) — Память и опыт (реализовано v1.0).
+- [**10.1_ACTIVATION_Memory.md**](system/10.1_ACTIVATION_Memory.md) — Активация памяти (реализовано v1.0).
+- [**11.1_DECISION_Work.md**](system/11.1_DECISION_Work.md) — Принятие решений (реализовано v1.0).
+- [**12.1_ACTION_Work.md**](system/12.1_ACTION_Work.md) — Выполнение действий (реализовано v1.0).
 
-### 3. Concepts (Будущие модули и концепции)
+### 3. Concepts (Концепции и будущие модули)
 Проектирование модулей, которые находятся в разработке или планах.
-- [**09_MEMORY.md**](concepts/09_MEMORY.md) — Память и опыт.
-- [**10_ACTIVATION.md**](concepts/10_ACTIVATION.md) — Механизм активации памяти (Recall).
-- [**11_DECISION.md**](concepts/11_DECISION.md) — Принятие решений.
-- [**12_ACTION.md**](concepts/12_ACTION.md) — Выполнение действий.
+- [**09_MEMORY.md**](concepts/09_MEMORY.md) — Память и опыт (концепция).
+- [**10_ACTIVATION.md**](concepts/10_ACTIVATION.md) — Механизм активации памяти (концепция).
+- [**11_DECISION.md**](concepts/11_DECISION.md) — Принятие решений (концепция).
+- [**12_ACTION.md**](concepts/12_ACTION.md) — Выполнение действий (концепция).
 - [**13_FEEDBACK.md**](concepts/13_FEEDBACK.md) — Обратная связь от среды.
 - [**14_LEARNING.md**](concepts/14_LEARNING.md) — Механизмы обучения (без RL).
 - [**15_ADAPTATION.md**](concepts/15_ADAPTATION.md) — Адаптация поведения.
 - [**16_GOALS.md**](concepts/16_GOALS.md) — Целеполагание (без воли).
-- [**17_PLANNING.md**](concepts/17_PLANNING.md) — Планирование действий.
-- [**18_INTELLIGENCE.md**](concepts/18_INTELLIGENCE.md) — Роль LLM и интеллекта.
+- [**17_PLANNING.md**](concepts/17_PLANNING.md) — Планирование действий (реализовано v1.0).
+- [**18_INTELLIGENCE.md**](concepts/18_INTELLIGENCE.md) — Роль LLM и интеллекта (реализовано v1.0).
 
 ### 4. Meta (Управление проектом)
 Инструкции для разработчиков и агентов.

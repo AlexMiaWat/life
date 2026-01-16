@@ -5,9 +5,10 @@ Meaning Engine — это модуль, который превращает об
 Одно и то же событие может быть воспринято по-разному в зависимости от текущего состояния Life.
 
 ## Текущий статус
-⚠️ **Частично реализован**
+✅ **Реализован и интегрирован** (v1.0)
 *   Код движка готов: [`src/meaning/`](../../src/meaning/)
-*   **Не интегрирован** полностью в Runtime Loop (используется упрощенная заглушка `_interpret_event`).
+*   **Полностью интегрирован** в Runtime Loop (`src/runtime/loop.py`).
+*   Используется для обработки всех событий из Environment.
 
 ## Архитектура Meaning Engine
 
@@ -41,15 +42,20 @@ class Meaning:
     impact: Dict[str, float]  # {"energy": -0.5, ...}
 ```
 
-## Планы по интеграции
+## Интеграция в Runtime Loop
 
-Необходимо заменить функцию `_interpret_event` в `src/runtime/loop.py` на вызов `MeaningEngine`.
+Meaning Engine интегрирован в Runtime Loop следующим образом:
 
 ```python
-# Было:
-_interpret_event(event, self_state)
-
-# Станет:
-meaning = meaning_engine.process(event, self_state)
-apply_impact(self_state, meaning.impact)
+# В src/runtime/loop.py:
+engine = MeaningEngine()
+meaning = engine.process(event, asdict(self_state))
+if meaning.significance > 0:
+    # Активация памяти, принятие решения, применение impact
+    ...
 ```
+
+Движок обрабатывает все события из EventQueue и создает объекты Meaning, которые используются для:
+- Активации релевантной памяти
+- Принятия решений о паттерне реакции
+- Применения изменений к Self-State

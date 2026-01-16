@@ -111,7 +111,10 @@ graph TD
 - [**06_API_SERVER.md**](system/06_API_SERVER.md) — API для управления
 - [**07_ENVIRONMENT.md**](system/07_ENVIRONMENT.md) — Внешняя среда
 - [**08_EVENTS_AND_MEANING.md**](system/08_EVENTS_AND_MEANING.md) — Интерпретация событий
-- [**09_MEMORY.md**](system/09_MEMORY.md) — Память и опыт
+- [**09.1_Memory_Entry.md**](system/09.1_Memory_Entry.md) — Память и опыт (реализовано)
+- [**10.1_ACTIVATION_Memory.md**](system/10.1_ACTIVATION_Memory.md) — Активация памяти (реализовано)
+- [**11.1_DECISION_Work.md**](system/11.1_DECISION_Work.md) — Принятие решений (реализовано)
+- [**12.1_ACTION_Work.md**](system/12.1_ACTION_Work.md) — Выполнение действий (реализовано)
 
 ### Concepts (Будущие модули)
 - [**11_DECISION.md**](concepts/11_DECISION.md) — Принятие решений
