@@ -14,6 +14,8 @@ from environment.event_queue import EventQueue
 from environment.event import Event
 
 
+@pytest.mark.unit
+@pytest.mark.order(1)
 class TestEventQueueRaceCondition:
     """Тесты для race condition в pop_all"""
     

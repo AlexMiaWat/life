@@ -14,6 +14,8 @@ from environment.event_queue import EventQueue
 from memory.memory import MemoryEntry
 
 
+@pytest.mark.unit
+@pytest.mark.order(1)
 class TestRegisterAction:
     """Тесты для функции register_action"""
     
@@ -88,6 +90,8 @@ class TestRegisterAction:
             assert pending.action_id == f"action_{i}"
 
 
+@pytest.mark.unit
+@pytest.mark.order(1)
 class TestObserveConsequences:
     """Тесты для функции observe_consequences"""
     
@@ -226,6 +230,8 @@ class TestObserveConsequences:
         assert feedback_records[0].state_delta['energy'] > 0
 
 
+@pytest.mark.integration
+@pytest.mark.order(2)
 class TestFeedbackIntegration:
     """Интеграционные тесты для Feedback"""
     

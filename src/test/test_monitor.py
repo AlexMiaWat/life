@@ -16,6 +16,8 @@ from memory.memory import MemoryEntry
 import time
 
 
+@pytest.mark.unit
+@pytest.mark.order(1)
 class TestMonitor:
     """Тесты для функций monitor и log"""
     

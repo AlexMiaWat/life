@@ -21,6 +21,8 @@ def dummy_monitor(state):
     pass
 
 
+@pytest.mark.integration
+@pytest.mark.order(2)
 class TestRuntimeLoopFeedbackCoverage:
     """Тесты для покрытия обработки Feedback в runtime loop (строки 50-62)"""
     

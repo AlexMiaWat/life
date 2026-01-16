@@ -7,10 +7,13 @@ project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root / "src"))
 
 import time
+import pytest
 from feedback import register_action, observe_consequences, PendingAction, FeedbackRecord
 from state.self_state import SelfState
 from memory.memory import MemoryEntry
 
+@pytest.mark.unit
+@pytest.mark.order(1)
 def test_feedback_data_storage():
     """Тест: Feedback записи содержат полные данные"""
     print("Тест: Сохранение полных данных Feedback")
@@ -77,8 +80,6 @@ def test_feedback_data_storage():
     print(f"  - action_pattern: {stored.feedback_data['action_pattern']}")
     print(f"  - state_delta: {stored.feedback_data['state_delta']}")
     print(f"  - delay_ticks: {stored.feedback_data['delay_ticks']}")
-    
-    return True
 
 if __name__ == "__main__":
     try:

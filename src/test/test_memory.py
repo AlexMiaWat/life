@@ -11,6 +11,8 @@ import pytest
 from memory.memory import MemoryEntry, Memory
 
 
+@pytest.mark.unit
+@pytest.mark.order(1)
 class TestMemoryEntry:
     """Тесты для класса MemoryEntry"""
     
@@ -64,6 +66,8 @@ class TestMemoryEntry:
             assert entry.meaning_significance == sig
 
 
+@pytest.mark.unit
+@pytest.mark.order(1)
 class TestMemory:
     """Тесты для класса Memory"""
     

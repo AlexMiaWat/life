@@ -13,6 +13,8 @@ from environment.generator_cli import send_event, main
 from environment.generator import EventGenerator
 
 
+@pytest.mark.unit
+@pytest.mark.order(1)
 class TestGeneratorCLI:
     """Тесты для generator_cli"""
     

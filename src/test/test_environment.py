@@ -12,6 +12,8 @@ from environment.event import Event
 from environment.event_queue import EventQueue
 
 
+@pytest.mark.unit
+@pytest.mark.order(1)
 class TestEvent:
     """Тесты для класса Event"""
     
@@ -73,6 +75,8 @@ class TestEvent:
         assert event.timestamp == custom_timestamp
 
 
+@pytest.mark.unit
+@pytest.mark.order(1)
 class TestEventQueue:
     """Тесты для класса EventQueue"""
     

@@ -12,6 +12,8 @@ from activation.activation import activate_memory
 from memory.memory import MemoryEntry
 
 
+@pytest.mark.unit
+@pytest.mark.order(1)
 class TestActivateMemory:
     """Тесты для функции activate_memory"""
     

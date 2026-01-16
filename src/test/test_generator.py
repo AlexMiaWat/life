@@ -11,6 +11,8 @@ from environment.generator import EventGenerator
 from environment.event import Event
 
 
+@pytest.mark.unit
+@pytest.mark.order(1)
 class TestEventGenerator:
     """Тесты для класса EventGenerator"""
     
@@ -136,6 +138,8 @@ class TestEventGenerator:
         assert unique_signatures > 10  # Хотя бы 10% уникальных комбинаций
 
 
+@pytest.mark.unit
+@pytest.mark.order(1)
 class TestGeneratorCLI:
     """Тесты для CLI генератора (мокирование)"""
     

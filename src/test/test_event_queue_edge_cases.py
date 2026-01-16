@@ -13,6 +13,8 @@ from environment.event import Event
 import time
 
 
+@pytest.mark.unit
+@pytest.mark.order(1)
 class TestEventQueueEdgeCases:
     """Тесты для edge cases EventQueue"""
     

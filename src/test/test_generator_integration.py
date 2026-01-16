@@ -1,5 +1,6 @@
 """
 Интеграционные тесты для генератора событий с API сервером
+Поддерживают работу с реальным сервером (--real-server) или тестовым сервером
 """
 import sys
 from pathlib import Path
@@ -17,37 +18,11 @@ from environment.generator import EventGenerator
 from environment.generator_cli import send_event
 
 
+@pytest.mark.integration
+@pytest.mark.real_server
+@pytest.mark.order(2)
 class TestGeneratorServerIntegration:
     """Интеграционные тесты генератора с сервером"""
-    
-    @pytest.fixture
-    def server_setup(self):
-        """Настройка тестового сервера"""
-        self_state = SelfState()
-        event_queue = EventQueue()
-        server = StoppableHTTPServer(("localhost", 0), LifeHandler)
-        server.self_state = self_state
-        server.event_queue = event_queue
-        server.dev_mode = False
-        
-        server_thread = threading.Thread(target=server.serve_forever, daemon=True)
-        server_thread.start()
-        
-        time.sleep(0.1)
-        
-        port = server.server_address[1]
-        base_url = f"http://localhost:{port}"
-        
-        yield {
-            'server': server,
-            'self_state': self_state,
-            'event_queue': event_queue,
-            'base_url': base_url,
-            'port': port
-        }
-        
-        server.shutdown()
-        server_thread.join(timeout=2.0)
     
     def test_generator_send_to_server(self, server_setup):
         """Тест отправки сгенерированного события на сервер"""
@@ -70,12 +45,13 @@ class TestGeneratorServerIntegration:
         assert success is True
         assert code == 200
         
-        # Проверяем, что событие в очереди
-        assert server_setup['event_queue'].size() == 1
-        
-        queued_event = server_setup['event_queue'].pop()
-        assert queued_event.type == event.type
-        assert abs(queued_event.intensity - event.intensity) < 0.001
+        # Проверяем очередь только для тестового сервера
+        if not server_setup.get('is_real_server') and server_setup.get('event_queue'):
+            assert server_setup['event_queue'].size() == 1
+            
+            queued_event = server_setup['event_queue'].pop()
+            assert queued_event.type == event.type
+            assert abs(queued_event.intensity - event.intensity) < 0.001
     
     def test_generator_multiple_events_to_server(self, server_setup):
         """Тест отправки нескольких сгенерированных событий"""
@@ -98,7 +74,9 @@ class TestGeneratorServerIntegration:
             assert success is True
             assert code == 200
         
-        assert server_setup['event_queue'].size() == 5
+        # Проверяем очередь только для тестового сервера
+        if not server_setup.get('is_real_server') and server_setup.get('event_queue'):
+            assert server_setup['event_queue'].size() == 5
     
     def test_generator_all_event_types_to_server(self, server_setup):
         """Тест отправки всех типов событий на сервер"""
@@ -128,7 +106,10 @@ class TestGeneratorServerIntegration:
                 break
         
         assert len(event_types) == 5
-        assert server_setup['event_queue'].size() > 0
+        
+        # Проверяем очередь только для тестового сервера
+        if not server_setup.get('is_real_server') and server_setup.get('event_queue'):
+            assert server_setup['event_queue'].size() > 0
     
     def test_generator_event_intensity_ranges(self, server_setup):
         """Тест, что интенсивности событий соответствуют спецификации"""
@@ -173,15 +154,17 @@ class TestGeneratorServerIntegration:
         
         assert success is True
         
-        # Получаем событие из очереди
-        assert server_setup['event_queue'].size() == 1
-        queued_event = server_setup['event_queue'].pop()
-        
-        # Проверяем целостность данных
-        assert queued_event.type == event.type
-        assert abs(queued_event.intensity - event.intensity) < 0.001
-        assert abs(queued_event.timestamp - event.timestamp) < 0.001
-        assert queued_event.metadata == event.metadata
+        # Проверяем очередь только для тестового сервера
+        if not server_setup.get('is_real_server') and server_setup.get('event_queue'):
+            # Получаем событие из очереди
+            assert server_setup['event_queue'].size() == 1
+            queued_event = server_setup['event_queue'].pop()
+            
+            # Проверяем целостность данных
+            assert queued_event.type == event.type
+            assert abs(queued_event.intensity - event.intensity) < 0.001
+            assert abs(queued_event.timestamp - event.timestamp) < 0.001
+            assert queued_event.metadata == event.metadata
 
 
 if __name__ == "__main__":

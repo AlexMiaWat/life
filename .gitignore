@@ -1,5 +1,6 @@
 .vscode/*
 data/*
+logs/*
 src/runtime/__pycache__/*
 src/monitor/__pycache__/*
 src/state/__pycache__/*
@@ -7,5 +8,5 @@ plans/*
 src/__pycache__/*
 src/environment/__pycache__/*
 *.pyc
-test_report_07.md
 docs/skeptic/*
+.coverage

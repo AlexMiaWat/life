@@ -13,6 +13,8 @@ from environment.event import Event
 import time
 
 
+@pytest.mark.unit
+@pytest.mark.order(1)
 class TestMeaning:
     """Тесты для класса Meaning"""
     
@@ -69,6 +71,8 @@ class TestMeaning:
         assert meaning.impact["integrity"] == -0.1
 
 
+@pytest.mark.unit
+@pytest.mark.order(1)
 class TestMeaningEngine:
     """Тесты для класса MeaningEngine"""
     

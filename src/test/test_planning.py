@@ -11,6 +11,8 @@ from planning.planning import record_potential_sequences
 from state.self_state import SelfState
 
 
+@pytest.mark.unit
+@pytest.mark.order(1)
 class TestRecordPotentialSequences:
     """Тесты для функции record_potential_sequences"""
     

@@ -1,6 +1,6 @@
 """
 Интеграционные тесты для HTTP API сервера
-Требуют запуска сервера в отдельном потоке
+Поддерживают работу с реальным сервером (--real-server) или тестовым сервером
 """
 import sys
 from pathlib import Path
@@ -19,40 +19,11 @@ from environment.event_queue import EventQueue
 from environment.event import Event
 
 
+@pytest.mark.integration
+@pytest.mark.real_server
+@pytest.mark.order(2)
 class TestAPIServer:
     """Интеграционные тесты для API сервера"""
-    
-    @pytest.fixture
-    def server_setup(self):
-        """Настройка тестового сервера"""
-        self_state = SelfState()
-        event_queue = EventQueue()
-        server = StoppableHTTPServer(("localhost", 0), LifeHandler)  # Порт 0 = автоматический
-        server.self_state = self_state
-        server.event_queue = event_queue
-        server.dev_mode = False
-        
-        # Запускаем сервер в отдельном потоке
-        server_thread = threading.Thread(target=server.serve_forever, daemon=True)
-        server_thread.start()
-        
-        # Ждем запуска
-        time.sleep(0.1)
-        
-        port = server.server_address[1]
-        base_url = f"http://localhost:{port}"
-        
-        yield {
-            'server': server,
-            'self_state': self_state,
-            'event_queue': event_queue,
-            'base_url': base_url,
-            'port': port
-        }
-        
-        # Останавливаем сервер
-        server.shutdown()
-        server_thread.join(timeout=2.0)
     
     def test_get_status(self, server_setup):
         """Тест GET /status"""
@@ -69,16 +40,25 @@ class TestAPIServer:
     
     def test_get_status_returns_current_state(self, server_setup):
         """Тест, что GET /status возвращает текущее состояние"""
-        # Изменяем состояние
-        server_setup['self_state'].energy = 75.0
-        server_setup['self_state'].ticks = 100
-        
-        response = requests.get(f"{server_setup['base_url']}/status", timeout=5)
-        assert response.status_code == 200
-        
-        data = response.json()
-        assert data['energy'] == 75.0
-        assert data['ticks'] == 100
+        # Для реального сервера нельзя изменить состояние напрямую
+        if server_setup.get('is_real_server'):
+            # Просто проверяем, что статус доступен
+            response = requests.get(f"{server_setup['base_url']}/status", timeout=5)
+            assert response.status_code == 200
+            data = response.json()
+            assert 'energy' in data
+            assert 'ticks' in data
+        else:
+            # Для тестового сервера можем изменить состояние
+            server_setup['self_state'].energy = 75.0
+            server_setup['self_state'].ticks = 100
+            
+            response = requests.get(f"{server_setup['base_url']}/status", timeout=5)
+            assert response.status_code == 200
+            
+            data = response.json()
+            assert data['energy'] == 75.0
+            assert data['ticks'] == 100
     
     def test_get_clear_data(self, server_setup):
         """Тест GET /clear-data"""
@@ -109,14 +89,15 @@ class TestAPIServer:
         assert response.status_code == 200
         assert response.text == "Event accepted"
         
-        # Проверяем, что событие добавлено в очередь
-        assert server_setup['event_queue'].size() == 1
-        
-        # Проверяем содержимое события
-        event = server_setup['event_queue'].pop()
-        assert event.type == "shock"
-        assert event.intensity == 0.5
-        assert event.metadata == {"test": "value"}
+        # Проверяем очередь только для тестового сервера
+        if not server_setup.get('is_real_server') and server_setup.get('event_queue'):
+            assert server_setup['event_queue'].size() == 1
+            
+            # Проверяем содержимое события
+            event = server_setup['event_queue'].pop()
+            assert event.type == "shock"
+            assert event.intensity == 0.5
+            assert event.metadata == {"test": "value"}
     
     def test_post_event_minimal(self, server_setup):
         """Тест POST /event с минимальными данными (только type)"""
@@ -129,11 +110,14 @@ class TestAPIServer:
         )
         
         assert response.status_code == 200
-        assert server_setup['event_queue'].size() == 1
         
-        event = server_setup['event_queue'].pop()
-        assert event.type == "noise"
-        assert event.intensity == 0.0  # По умолчанию
+        # Проверяем очередь только для тестового сервера
+        if not server_setup.get('is_real_server') and server_setup.get('event_queue'):
+            assert server_setup['event_queue'].size() == 1
+            
+            event = server_setup['event_queue'].pop()
+            assert event.type == "noise"
+            assert event.intensity == 0.0  # По умолчанию
     
     def test_post_event_with_timestamp(self, server_setup):
         """Тест POST /event с кастомным timestamp"""
@@ -152,8 +136,10 @@ class TestAPIServer:
         
         assert response.status_code == 200
         
-        event = server_setup['event_queue'].pop()
-        assert event.timestamp == custom_timestamp
+        # Проверяем timestamp только для тестового сервера
+        if not server_setup.get('is_real_server') and server_setup.get('event_queue'):
+            event = server_setup['event_queue'].pop()
+            assert event.timestamp == custom_timestamp
     
     def test_post_event_invalid_json(self, server_setup):
         """Тест POST /event с невалидным JSON"""
@@ -209,7 +195,9 @@ class TestAPIServer:
             )
             assert response.status_code == 200
         
-        assert server_setup['event_queue'].size() == 3
+        # Проверяем очередь только для тестового сервера
+        if not server_setup.get('is_real_server') and server_setup.get('event_queue'):
+            assert server_setup['event_queue'].size() == 3
     
     def test_post_event_different_types(self, server_setup):
         """Тест отправки разных типов событий"""
@@ -224,7 +212,9 @@ class TestAPIServer:
             )
             assert response.status_code == 200
         
-        assert server_setup['event_queue'].size() == len(event_types)
+        # Проверяем очередь только для тестового сервера
+        if not server_setup.get('is_real_server') and server_setup.get('event_queue'):
+            assert server_setup['event_queue'].size() == len(event_types)
     
     def test_post_unknown_endpoint(self, server_setup):
         """Тест POST неизвестного эндпоинта"""
@@ -239,6 +229,10 @@ class TestAPIServer:
     
     def test_post_event_queue_overflow(self, server_setup):
         """Тест переполнения очереди событий"""
+        # Для реального сервера этот тест не имеет смысла (не можем проверить очередь)
+        if server_setup.get('is_real_server'):
+            pytest.skip("Queue overflow test requires access to event_queue (test server only)")
+        
         # Заполняем очередь до максимума (100)
         for i in range(100):
             payload = {"type": "noise", "intensity": 0.1}

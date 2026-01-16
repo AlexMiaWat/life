@@ -14,6 +14,8 @@ from meaning.meaning import Meaning
 from memory.memory import MemoryEntry
 
 
+@pytest.mark.unit
+@pytest.mark.order(1)
 class TestDecideResponse:
     """Тесты для функции decide_response"""
     

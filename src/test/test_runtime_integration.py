@@ -21,6 +21,8 @@ def dummy_monitor(state):
     pass
 
 
+@pytest.mark.integration
+@pytest.mark.order(2)
 class TestRuntimeLoop:
     """Интеграционные тесты для runtime loop"""
     

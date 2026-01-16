@@ -16,6 +16,8 @@ from state.self_state import SelfState, save_snapshot, load_snapshot, create_ini
 from memory.memory import MemoryEntry
 
 
+@pytest.mark.unit
+@pytest.mark.order(1)
 class TestSelfState:
     """Тесты для класса SelfState"""
     
@@ -183,6 +185,8 @@ class TestSelfState:
         assert state.recent_events[0] == "event1"
 
 
+@pytest.mark.unit
+@pytest.mark.order(1)
 class TestSnapshots:
     """Тесты для функций сохранения и загрузки снимков"""
     
@@ -320,6 +324,8 @@ class TestSnapshots:
             assert abs(entry.meaning_significance - 0.1 * i) < 0.001
 
 
+@pytest.mark.unit
+@pytest.mark.order(1)
 class TestCreateInitialState:
     """Тесты для функции create_initial_state"""
     

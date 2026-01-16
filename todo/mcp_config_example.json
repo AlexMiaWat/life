@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "life-docs": {
+      "command": "python",
+      "args": [
+        "D:/Space/life/mcp_index.py"
+      ],
+      "env": {
+        "PYTHONPATH": "D:/Space/life"
+      }
+    }
+  }
+}

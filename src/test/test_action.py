@@ -13,6 +13,8 @@ from state.self_state import SelfState
 from memory.memory import MemoryEntry
 
 
+@pytest.mark.unit
+@pytest.mark.order(1)
 class TestExecuteAction:
     """Тесты для функции execute_action"""
     

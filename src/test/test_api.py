@@ -1,62 +1,79 @@
+"""
+Базовые тесты API сервера
+Требуют запущенный сервер (можно использовать --real-server)
+"""
+import sys
+from pathlib import Path
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root / "src"))
+
 import requests
 import json
+import pytest
 
-BASE_URL = "http://localhost:8000"
 
-def test_get_status():
+@pytest.fixture
+def api_base_url(server_config):
+    """Возвращает базовый URL API сервера"""
+    if server_config["use_real"]:
+        return f"http://localhost:{server_config['port']}"
+    else:
+        # Для тестового сервера используем фикстуру server_setup
+        pytest.skip("test_api.py requires real server. Use --real-server or test_api_integration.py")
+
+
+@pytest.mark.integration
+@pytest.mark.real_server
+@pytest.mark.order(2)
+def test_get_status(api_base_url):
     """Тест GET /status"""
-    try:
-        response = requests.get(f"{BASE_URL}/status")
-        print(f"GET /status: Status Code {response.status_code}")
-        if response.status_code == 200:
-            print(f"Response: {response.json()}")
-        else:
-            print(f"Error: {response.text}")
-    except Exception as e:
-        print(f"GET /status: Exception {e}")
+    response = requests.get(f"{api_base_url}/status", timeout=5)
+    assert response.status_code == 200
+    assert response.headers.get('Content-type') == 'application/json'
+    data = response.json()
+    assert 'energy' in data
+    assert 'integrity' in data
+    assert 'stability' in data
 
-def test_get_clear_data():
+
+@pytest.mark.integration
+@pytest.mark.real_server
+@pytest.mark.order(2)
+def test_get_clear_data(api_base_url):
     """Тест GET /clear-data"""
-    try:
-        response = requests.get(f"{BASE_URL}/clear-data")
-        print(f"GET /clear-data: Status Code {response.status_code}")
-        if response.status_code == 200:
-            print(f"Response: {response.text}")
-        else:
-            print(f"Error: {response.text}")
-    except Exception as e:
-        print(f"GET /clear-data: Exception {e}")
+    response = requests.get(f"{api_base_url}/clear-data", timeout=5)
+    assert response.status_code == 200
+    assert response.text == "Data cleared"
 
-def test_post_event_success():
+
+@pytest.mark.integration
+@pytest.mark.real_server
+@pytest.mark.order(2)
+def test_post_event_success(api_base_url):
     """Тест POST /event с правильным JSON"""
     data = {
         "type": "test_event",
         "intensity": 0.1,
         "metadata": {"key": "value"}
     }
-    try:
-        response = requests.post(f"{BASE_URL}/event", json=data)
-        print(f"POST /event (success): Status Code {response.status_code}")
-        if response.status_code == 200:
-            print(f"Response: {response.text}")
-        else:
-            print(f"Error: {response.text}")
-    except Exception as e:
-        print(f"POST /event (success): Exception {e}")
+    response = requests.post(f"{api_base_url}/event", json=data, timeout=5)
+    assert response.status_code == 200
+    assert response.text == "Event accepted"
 
-def test_post_event_invalid_json():
+
+@pytest.mark.integration
+@pytest.mark.real_server
+@pytest.mark.order(2)
+def test_post_event_invalid_json(api_base_url):
     """Тест POST /event с неправильным JSON"""
-    try:
-        response = requests.post(f"{BASE_URL}/event", data="invalid json")
-        print(f"POST /event (invalid JSON): Status Code {response.status_code}")
-        print(f"Response: {response.text}")
-    except Exception as e:
-        print(f"POST /event (invalid JSON): Exception {e}")
+    response = requests.post(
+        f"{api_base_url}/event",
+        data="invalid json",
+        headers={"Content-Type": "application/json"},
+        timeout=5
+    )
+    assert response.status_code == 400
+    assert "Invalid JSON" in response.text
 
 if __name__ == "__main__":
-    print("Starting API tests...")
-    test_get_status()
-    test_get_clear_data()
-    test_post_event_success()
-    test_post_event_invalid_json()
-    print("Tests completed.")
+    pytest.main([__file__, "-v"])

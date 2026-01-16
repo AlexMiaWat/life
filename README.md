@@ -381,15 +381,67 @@ Life взаимодействует с [`EventQueue`](src/environment/event_queu
 ### Запуск тестов
 
 ```bash
-# Все тесты
+# Все тесты (unit, затем integration)
 pytest src/test/ -v
 
 # С покрытием кода
 pytest src/test/ --cov=src --cov-report=html
 
+# Только unit тесты (статические, не требуют сервер)
+pytest src/test/ -m unit --cov=src --cov-report=html
+
+# Только integration тесты
+pytest src/test/ -m integration --cov=src --cov-report=html
+
 # Конкретный модуль
 pytest src/test/test_memory.py -v
 ```
+
+### Тестирование с реальным сервером
+
+Для тестирования на реальном запущенном сервере используйте опции `--real-server` и `--server-port`:
+
+```bash
+# 1. Запустите сервер в отдельном терминале
+python src/main_server_api.py --dev --tick-interval 1.0 --snapshot-period 15
+
+# 2. В другом терминале запустите тесты с опцией --real-server
+pytest src/test/ --real-server --server-port 8000 --cov=src --cov-report=html
+
+# Только тесты, которые могут работать с реальным сервером
+pytest src/test/ -m "real_server" --real-server --server-port 8000
+```
+
+**Примечание:** Тесты с маркером `real_server` автоматически подключаются к реальному серверу при использовании `--real-server`. Без этой опции они используют тестовые серверы в отдельных потоках (текущее поведение по умолчанию).
+
+### Отладка тестов (просмотр warnings и skipped)
+
+Для просмотра причин пропущенных тестов и предупреждений:
+
+```bash
+# Показать причины skipped тестов (без warnings)
+pytest src/test/ --real-server --server-port 8000 --cov=src --cov-report=html -rs
+
+# Показать все warnings и причины skipped
+# ВАЖНО: -W default обязателен для просмотра warnings (переопределяет --disable-warnings)
+pytest src/test/ --real-server --server-port 8000 --cov=src --cov-report=html -W default -rs
+
+# Максимальная детализация (все warnings + причины skipped)
+pytest src/test/ --real-server --server-port 8000 --cov=src --cov-report=html -W default -rs -v
+
+# Только warnings определенных типов
+pytest src/test/ --real-server --server-port 8000 --cov=src --cov-report=html -W default::DeprecationWarning -W default::UserWarning -rs
+
+# Показать только warnings (без skipped)
+pytest src/test/ --real-server --server-port 8000 --cov=src --cov-report=html -W default
+```
+
+**Опции:**
+- `-rs` - показать причины пропущенных (skipped) тестов (выводится в конце)
+- `-W default` - **обязательно** для просмотра warnings (переопределяет `--disable-warnings` из `pytest.ini`)
+- `-v` - подробный вывод
+
+**Примечание:** Warnings выводятся **во время выполнения тестов**, а не в конце. Skipped тесты выводятся в конце с опцией `-rs`.
 
 ### Результаты тестирования
 

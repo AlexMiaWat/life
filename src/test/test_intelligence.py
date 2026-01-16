@@ -11,6 +11,8 @@ from intelligence.intelligence import process_information
 from state.self_state import SelfState
 
 
+@pytest.mark.unit
+@pytest.mark.order(1)
 class TestProcessInformation:
     """Тесты для функции process_information"""
     
