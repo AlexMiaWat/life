@@ -50,7 +50,7 @@ with open(output_file, "w", encoding="utf-8") as master:
         master.write(
             f'## {rel_path} <a id="{anchor}"></a>\n'
         )  # Заголовок с путём и якорем
-        master.write(f"**Полный путь:** src\{rel_path}\n\n")
+        master.write(f"**Полный путь:** src/{rel_path}\n\n")
         master.write("```python\n")
         with open(full_path, "r", encoding="utf-8") as md:
             master.write(md.read())
