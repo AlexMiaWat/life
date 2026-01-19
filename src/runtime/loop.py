@@ -7,6 +7,7 @@ from activation.activation import activate_memory
 from decision.decision import decide_response
 from feedback import observe_consequences, register_action
 from intelligence.intelligence import process_information
+from learning.learning import LearningEngine
 from meaning.engine import MeaningEngine
 from memory.memory import MemoryEntry
 from planning.planning import record_potential_sequences
@@ -33,6 +34,8 @@ def run_loop(
         event_queue: Очередь событий из Environment
     """
     engine = MeaningEngine()
+    learning_engine = LearningEngine()  # Learning Engine (Этап 14)
+    learning_interval = 75  # Вызов Learning раз в 75 тиков (между 50-100)
     last_time = time.time()
     pending_actions = []  # Список ожидающих Feedback действий
     while stop_event is None or not stop_event.is_set():
@@ -133,6 +136,30 @@ def run_loop(
 
                 record_potential_sequences(self_state)
                 process_information(self_state)
+
+            # Learning (Этап 14) - медленное изменение внутренних параметров
+            # Вызывается раз в learning_interval тиков, после Feedback, перед Planning/Intelligence
+            if self_state.ticks > 0 and self_state.ticks % learning_interval == 0:
+                try:
+                    # Обрабатываем статистику из Memory
+                    statistics = learning_engine.process_statistics(self_state.memory)
+
+                    # Получаем текущие параметры
+                    current_params = self_state.learning_params
+
+                    # Медленно изменяем параметры (без оптимизации, без целей)
+                    new_params = learning_engine.adjust_parameters(
+                        statistics, current_params
+                    )
+
+                    # Фиксируем изменения в SelfState
+                    if new_params:
+                        learning_engine.record_changes(
+                            current_params, new_params, self_state
+                        )
+                except Exception as e:
+                    print(f"Ошибка в Learning: {e}")
+                    traceback.print_exc()
 
             # Логика слабости: когда параметры низкие, добавляем штрафы за немощность
             weakness_threshold = 0.05

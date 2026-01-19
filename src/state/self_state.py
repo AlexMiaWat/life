@@ -34,6 +34,29 @@ class SelfState:
         default_factory=list
     )  # Transient, не сохраняется в snapshot
     last_pattern: str = ""  # Transient, последний выбранный паттерн decision
+    learning_params: dict = field(
+        default_factory=lambda: {
+            "event_type_sensitivity": {
+                "noise": 0.2,
+                "decay": 0.2,
+                "recovery": 0.2,
+                "shock": 0.2,
+                "idle": 0.2,
+            },
+            "significance_thresholds": {
+                "noise": 0.1,
+                "decay": 0.1,
+                "recovery": 0.1,
+                "shock": 0.1,
+                "idle": 0.1,
+            },
+            "response_coefficients": {
+                "dampen": 0.5,
+                "absorb": 1.0,
+                "ignore": 0.0,
+            },
+        }
+    )  # Параметры для Learning (Этап 14)
 
     def apply_delta(self, deltas: dict[str, float]) -> None:
         for key, delta in deltas.items():
