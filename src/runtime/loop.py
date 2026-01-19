@@ -288,9 +288,18 @@ def run_loop(
             traceback.print_exc()
 
         finally:
+            # Сбрасываем буфер логов при завершении работы для предотвращения потери данных
+            try:
+                self_state._flush_log_buffer()
+            except Exception:
+                # Игнорируем ошибки при сбросе буфера, чтобы не нарушить завершение работы
+                pass
+            
             if (
                 self_state.energy <= 0
                 or self_state.integrity <= 0
                 or self_state.stability <= 0
             ):
-                self_state.active = False
+                # Используем метод set_active для консистентности
+                # (хотя прямое присваивание тоже работает, так как active не vital параметр)
+                self_state.set_active(False)

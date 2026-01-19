@@ -229,12 +229,6 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-@app.get("/users/me", response_model=User)
-async def read_users_me(current_user: User = Depends(get_current_active_user)):
-    """Получение информации о текущем пользователе."""
-    return current_user
-
-
 @app.get("/protected")
 async def protected_route(current_user: User = Depends(get_current_active_user)):
     """Пример защищенного endpoint."""

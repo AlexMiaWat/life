@@ -74,18 +74,18 @@ class TestNewFunctionalityStatic:
 
         # process_statistics
         sig = inspect.signature(engine.process_statistics)
-        assert len(sig.parameters) == 2  # self + memory
+        assert len(sig.parameters) == 1  # memory (self не учитывается)
         assert "memory" in sig.parameters
 
         # adjust_parameters
         sig = inspect.signature(engine.adjust_parameters)
-        assert len(sig.parameters) == 3  # self + statistics + current_params
+        assert len(sig.parameters) == 2  # statistics + current_params (self не учитывается)
         assert "statistics" in sig.parameters
         assert "current_params" in sig.parameters
 
         # record_changes
         sig = inspect.signature(engine.record_changes)
-        assert len(sig.parameters) == 4  # self + old_params + new_params + self_state
+        assert len(sig.parameters) == 3  # old_params + new_params + self_state (self не учитывается)
         assert "old_params" in sig.parameters
         assert "new_params" in sig.parameters
         assert "self_state" in sig.parameters
@@ -148,20 +148,20 @@ class TestNewFunctionalityStatic:
 
         # analyze_changes
         sig = inspect.signature(manager.analyze_changes)
-        assert len(sig.parameters) == 3  # self + learning_params + adaptation_history
+        assert len(sig.parameters) == 2  # learning_params + adaptation_history (self не учитывается)
         assert "learning_params" in sig.parameters
         assert "adaptation_history" in sig.parameters
 
         # apply_adaptation
         sig = inspect.signature(manager.apply_adaptation)
-        assert len(sig.parameters) == 4  # self + analysis + current_behavior_params + self_state
+        assert len(sig.parameters) == 3  # analysis + current_behavior_params + self_state (self не учитывается)
         assert "analysis" in sig.parameters
         assert "current_behavior_params" in sig.parameters
         assert "self_state" in sig.parameters
 
         # store_history
         sig = inspect.signature(manager.store_history)
-        assert len(sig.parameters) == 4  # self + old_params + new_params + self_state
+        assert len(sig.parameters) == 3  # old_params + new_params + self_state (self не учитывается)
         assert "old_params" in sig.parameters
         assert "new_params" in sig.parameters
         assert "self_state" in sig.parameters
@@ -210,7 +210,9 @@ class TestNewFunctionalityStatic:
         assert hasattr(MeaningEngine, "impact_model")
         assert hasattr(MeaningEngine, "response_pattern")
         assert hasattr(MeaningEngine, "process")
-        assert hasattr(MeaningEngine, "base_significance_threshold")
+        # base_significance_threshold - это атрибут экземпляра, проверяем через экземпляр
+        engine = MeaningEngine()
+        assert hasattr(engine, "base_significance_threshold")
 
     def test_meaning_engine_constants(self):
         """Проверка констант MeaningEngine"""
@@ -223,27 +225,27 @@ class TestNewFunctionalityStatic:
 
         # appraisal
         sig = inspect.signature(engine.appraisal)
-        assert len(sig.parameters) == 3  # self + event + self_state
+        assert len(sig.parameters) == 2  # event + self_state (self не учитывается)
         assert "event" in sig.parameters
         assert "self_state" in sig.parameters
 
         # impact_model
         sig = inspect.signature(engine.impact_model)
-        assert len(sig.parameters) == 4  # self + event + self_state + significance
+        assert len(sig.parameters) == 3  # event + self_state + significance (self не учитывается)
         assert "event" in sig.parameters
         assert "self_state" in sig.parameters
         assert "significance" in sig.parameters
 
         # response_pattern
         sig = inspect.signature(engine.response_pattern)
-        assert len(sig.parameters) == 4  # self + event + self_state + significance
+        assert len(sig.parameters) == 3  # event + self_state + significance (self не учитывается)
         assert "event" in sig.parameters
         assert "self_state" in sig.parameters
         assert "significance" in sig.parameters
 
         # process
         sig = inspect.signature(engine.process)
-        assert len(sig.parameters) == 3  # self + event + self_state
+        assert len(sig.parameters) == 2  # event + self_state (self не учитывается)
         assert "event" in sig.parameters
         assert "self_state" in sig.parameters
 

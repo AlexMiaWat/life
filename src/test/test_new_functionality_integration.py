@@ -107,7 +107,8 @@ class TestNewFunctionalityIntegration:
         thread.join(timeout=1.0)
 
         # Проверяем, что Meaning обработал события и Learning их использовал
-        assert "learning_params" in self_state.learning_params
+        assert isinstance(self_state.learning_params, dict)
+        assert "event_type_sensitivity" in self_state.learning_params
 
     def test_full_event_processing_chain(self):
         """Интеграционный тест полной цепочки обработки событий"""
@@ -144,7 +145,8 @@ class TestNewFunctionalityIntegration:
 
         # Если события обработаны, проверяем Learning
         if processed_events:
-            assert "learning_params" in self_state.learning_params
+            assert isinstance(self_state.learning_params, dict)
+            assert "event_type_sensitivity" in self_state.learning_params
 
     def test_learning_frequency_in_runtime(self):
         """Тест частоты вызова Learning в runtime loop"""
@@ -312,7 +314,8 @@ class TestNewFunctionalityIntegration:
         # Проверяем результаты
         assert statistics["total_entries"] == 13
         assert statistics["feedback_entries"] == 3
-        assert "learning_params" in self_state.learning_params
+        assert isinstance(self_state.learning_params, dict)
+        assert "event_type_sensitivity" in self_state.learning_params
         assert hasattr(self_state, "adaptation_history")
 
     def test_long_term_memory_integration(self):

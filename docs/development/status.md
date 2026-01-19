@@ -38,10 +38,10 @@
 * **Примечания:** Главный цикл жизни интегрирован со всеми слоями
 
 ### 03. Self-State
-* **Status:** ✅ Implemented (locked)
+* **Status:** ✅ Implemented (v2.1, locked)
 * **Документация:** [self-state.md](../components/self-state.md)
 * **Код:** `src/state/self_state.py`
-* **Примечания:** SelfState как dataclass с полями memory, intelligence, planning
+* **Примечания:** SelfState как dataclass с полями memory, intelligence, planning. v2.1: добавлена валидация полей, защита неизменяемых полей, безопасные методы обновления, логирование изменений, методы is_active() и is_viable()
 
 ### 04. Monitoring
 * **Status:** ✅ Implemented (locked)

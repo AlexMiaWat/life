@@ -3,12 +3,21 @@ import time
 import uuid
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
+from typing import Optional
 
 from memory.memory import ArchiveMemory, Memory, MemoryEntry
 
 # Папка для снимков
 SNAPSHOT_DIR = Path("data/snapshots")
 SNAPSHOT_DIR.mkdir(exist_ok=True)
+
+# Папка для логов изменений состояния
+STATE_CHANGES_LOG_DIR = Path("data/logs")
+STATE_CHANGES_LOG_DIR.mkdir(parents=True, exist_ok=True)
+STATE_CHANGES_LOG_FILE = STATE_CHANGES_LOG_DIR / "state_changes.jsonl"
+
+# Максимальный размер лог-файла перед ротацией (10MB)
+MAX_LOG_FILE_SIZE = 10 * 1024 * 1024  # 10MB в байтах
 
 
 @dataclass
@@ -34,10 +43,207 @@ class SelfState:
         default_factory=ArchiveMemory, init=False
     )  # Архивная память (не сериализуется в snapshot напрямую)
     
+    # Внутренние флаги для контроля инициализации и логирования
+    _initialized: bool = field(default=False, init=False, repr=False)
+    _logging_enabled: bool = field(default=True, init=False, repr=False)
+    _log_only_critical: bool = field(default=False, init=False, repr=False)
+    _log_buffer: list = field(default_factory=list, init=False, repr=False)
+    _log_buffer_size: int = field(default=100, init=False, repr=False)
+    
     def __post_init__(self):
         """Инициализация memory с архивом после создания объекта"""
         if self.memory is None:
             self.memory = Memory(archive=self.archive_memory)
+        # Помечаем объект как инициализированный после __post_init__
+        object.__setattr__(self, '_initialized', True)
+    
+    def _validate_field(self, field_name: str, value: float) -> float:
+        """Валидация значения поля с учетом его границ"""
+        if field_name == "energy":
+            if not (0.0 <= value <= 100.0):
+                raise ValueError(
+                    f"energy must be between 0.0 and 100.0, got {value}"
+                )
+            return value
+        elif field_name in ["integrity", "stability"]:
+            if not (0.0 <= value <= 1.0):
+                raise ValueError(
+                    f"{field_name} must be between 0.0 and 1.0, got {value}"
+                )
+            return value
+        elif field_name in ["fatigue", "tension", "age"]:
+            if value < 0.0:
+                raise ValueError(
+                    f"{field_name} must be >= 0.0, got {value}"
+                )
+            return value
+        elif field_name == "ticks":
+            if value < 0:
+                raise ValueError(
+                    f"ticks must be >= 0, got {value}"
+                )
+            return int(value)
+        return value
+    
+    def _rotate_log_if_needed(self) -> None:
+        """Ротация лог-файла при достижении максимального размера"""
+        if not STATE_CHANGES_LOG_FILE.exists():
+            return
+        
+        try:
+            file_size = STATE_CHANGES_LOG_FILE.stat().st_size
+            if file_size >= MAX_LOG_FILE_SIZE:
+                # Создаем резервную копию с timestamp
+                timestamp = int(time.time())
+                backup_file = STATE_CHANGES_LOG_DIR / f"state_changes_{timestamp}.jsonl.backup"
+                STATE_CHANGES_LOG_FILE.rename(backup_file)
+                # Создаем новый пустой файл
+                STATE_CHANGES_LOG_FILE.touch()
+                
+                # Очищаем старые резервные копии
+                self._cleanup_old_backups()
+        except Exception:
+            # Игнорируем ошибки ротации, чтобы не нарушать работу системы
+            pass
+    
+    def _cleanup_old_backups(self, max_age_days: int = 30, max_backups: int = 10) -> None:
+        """
+        Очистка старых резервных копий логов
+        
+        Args:
+            max_age_days: Максимальный возраст резервной копии в днях (по умолчанию 30)
+            max_backups: Максимальное количество резервных копий для хранения (по умолчанию 10)
+        """
+        try:
+            # Находим все резервные копии
+            backup_files = list(STATE_CHANGES_LOG_DIR.glob("state_changes_*.jsonl.backup"))
+            
+            if not backup_files:
+                return
+            
+            # Сортируем по времени модификации (новые первыми)
+            backup_files.sort(key=lambda f: f.stat().st_mtime, reverse=True)
+            
+            current_time = time.time()
+            max_age_seconds = max_age_days * 24 * 60 * 60
+            
+            # Удаляем старые копии
+            for backup_file in backup_files:
+                file_age = current_time - backup_file.stat().st_mtime
+                if file_age > max_age_seconds:
+                    try:
+                        backup_file.unlink()
+                    except Exception:
+                        # Игнорируем ошибки удаления отдельных файлов
+                        pass
+            
+            # Ограничиваем количество копий (оставляем только последние max_backups)
+            if len(backup_files) > max_backups:
+                for backup_file in backup_files[max_backups:]:
+                    try:
+                        backup_file.unlink()
+                    except Exception:
+                        # Игнорируем ошибки удаления отдельных файлов
+                        pass
+        except Exception:
+            # Игнорируем ошибки очистки, чтобы не нарушать работу системы
+            pass
+    
+    def _is_critical_field(self, field_name: str) -> bool:
+        """Проверка, является ли поле критичным (vital параметры)"""
+        return field_name in ["energy", "integrity", "stability"]
+    
+    def _log_change(self, field_name: str, old_value, new_value) -> None:
+        """
+        Логирование изменения поля в append-only лог.
+        Поддерживает батчинг и фильтрацию по критичности.
+        """
+        if not self._logging_enabled:
+            return
+        
+        # Если включен режим "только критичные", пропускаем некритичные поля
+        if self._log_only_critical and not self._is_critical_field(field_name):
+            return
+        
+        try:
+            log_entry = {
+                "timestamp": time.time(),
+                "life_id": self.life_id,
+                "tick": self.ticks,
+                "field": field_name,
+                "old_value": old_value,
+                "new_value": new_value,
+            }
+            
+            # Добавляем в буфер для батчинга
+            self._log_buffer.append(log_entry)
+            
+            # Если буфер заполнен, записываем на диск
+            if len(self._log_buffer) >= self._log_buffer_size:
+                self._flush_log_buffer()
+        except Exception:
+            # Игнорируем ошибки логирования, чтобы не нарушать работу системы
+            pass
+    
+    def _flush_log_buffer(self) -> None:
+        """Запись буфера логов на диск"""
+        if not self._log_buffer:
+            return
+        
+        try:
+            # Проверяем размер файла и ротируем при необходимости
+            self._rotate_log_if_needed()
+            
+            with STATE_CHANGES_LOG_FILE.open("a") as f:
+                for log_entry in self._log_buffer:
+                    f.write(json.dumps(log_entry, default=str) + "\n")
+            
+            # Очищаем буфер
+            self._log_buffer.clear()
+        except Exception:
+            # Игнорируем ошибки логирования, чтобы не нарушать работу системы
+            pass
+    
+    def __setattr__(self, name: str, value) -> None:
+        """Переопределение setattr для валидации и защиты полей"""
+        # Разрешаем установку внутренних полей без валидации
+        if name.startswith("_"):
+            object.__setattr__(self, name, value)
+            return
+        
+        # Проверяем, инициализирован ли объект (безопасно через hasattr)
+        is_initialized = hasattr(self, '_initialized') and self._initialized
+        
+        # Защита неизменяемых полей (только после инициализации)
+        if is_initialized and name in ["life_id", "birth_timestamp"]:
+            raise AttributeError(
+                f"Cannot modify immutable field '{name}' after initialization"
+            )
+        
+        # Получаем старое значение для логирования (безопасно)
+        old_value = None
+        if is_initialized:
+            try:
+                old_value = object.__getattribute__(self, name)
+            except AttributeError:
+                old_value = None
+        
+        # Валидация числовых полей
+        if isinstance(value, (int, float)) and name in [
+            "energy", "integrity", "stability", "fatigue", "tension", "age", "ticks"
+        ]:
+            value = self._validate_field(name, value)
+        
+        # Устанавливаем значение
+        object.__setattr__(self, name, value)
+        
+        # Логируем изменение (только после инициализации и если значение изменилось)
+        if is_initialized and old_value is not None and old_value != value:
+            self._log_change(name, old_value, value)
+        
+        # Автоматически обновляем active при изменении vital параметров (только после инициализации)
+        if is_initialized and name in ["energy", "integrity", "stability"]:
+            object.__setattr__(self, "active", self.is_active())
     activated_memory: list = field(
         default_factory=list
     )  # Transient, не сохраняется в snapshot
@@ -92,16 +298,223 @@ class SelfState:
         default_factory=list
     )  # История адаптаций для обратимости (Этап 15)
 
+    def is_active(self) -> bool:
+        """
+        Проверка жизнеспособности состояния.
+        Возвращает True если все vital параметры > 0.
+        """
+        return self.energy > 0.0 and self.integrity > 0.0 and self.stability > 0.0
+    
+    def is_viable(self) -> bool:
+        """
+        Проверка жизнеспособности с более строгими критериями.
+        Возвращает True если все vital параметры выше пороговых значений.
+        """
+        return (
+            self.energy > 10.0
+            and self.integrity > 0.1
+            and self.stability > 0.1
+        )
+    
+    def update_energy(self, value: float) -> None:
+        """Безопасное обновление energy с валидацией"""
+        self.energy = value
+    
+    def update_integrity(self, value: float) -> None:
+        """Безопасное обновление integrity с валидацией"""
+        self.integrity = value
+    
+    def update_stability(self, value: float) -> None:
+        """Безопасное обновление stability с валидацией"""
+        self.stability = value
+    
+    def update_vital_params(
+        self, energy: Optional[float] = None,
+        integrity: Optional[float] = None,
+        stability: Optional[float] = None
+    ) -> None:
+        """Безопасное одновременное обновление vital параметров"""
+        if energy is not None:
+            self.energy = energy
+        if integrity is not None:
+            self.integrity = integrity
+        if stability is not None:
+            self.stability = stability
+    
+    def set_active(self, value: bool) -> None:
+        """
+        Безопасная установка флага active.
+        Обычно active обновляется автоматически при изменении vital параметров,
+        но этот метод позволяет явно установить значение.
+        
+        Args:
+            value: Новое значение флага active
+        """
+        self.active = value
+    
+    def reset_to_defaults(self) -> None:
+        """Сброс состояния к начальным значениям (кроме life_id и birth_timestamp)"""
+        self.energy = 100.0
+        self.integrity = 1.0
+        self.stability = 1.0
+        self.fatigue = 0.0
+        self.tension = 0.0
+        self.age = 0.0
+        self.ticks = 0
+        self.active = True
+        self.recent_events = []
+        self.last_significance = 0.0
+        self.energy_history = []
+        self.stability_history = []
+        self.planning = {}
+        self.intelligence = {}
+        # Память не сбрасываем, так как это история жизни
+    
     def apply_delta(self, deltas: dict[str, float]) -> None:
+        """Применение дельт к полям с валидацией"""
         for key, delta in deltas.items():
             if hasattr(self, key):
                 current = getattr(self, key)
-                if key == "energy":
-                    setattr(self, key, max(0.0, min(100.0, current + delta)))
-                elif key in ["integrity", "stability"]:
-                    setattr(self, key, max(0.0, min(1.0, current + delta)))
+                if isinstance(current, (int, float)):
+                    new_value = current + delta
+                    # Валидация происходит автоматически через __setattr__
+                    setattr(self, key, new_value)
                 else:
-                    setattr(self, key, current + delta)
+                    # Для нечисловых полей операция сложения не поддерживается
+                    raise TypeError(
+                        f"Cannot apply delta to field '{key}': "
+                        f"field type '{type(current).__name__}' does not support addition. "
+                        f"Only numeric fields (int, float) support delta operations."
+                    )
+    
+    def enable_logging(self) -> None:
+        """Включить логирование изменений"""
+        self._logging_enabled = True
+        # Сбрасываем буфер при включении логирования
+        self._flush_log_buffer()
+    
+    def disable_logging(self) -> None:
+        """Отключить логирование изменений (для тестов)"""
+        # Сбрасываем буфер перед отключением
+        self._flush_log_buffer()
+        self._logging_enabled = False
+    
+    def set_log_only_critical(self, enabled: bool = True) -> None:
+        """
+        Установить режим логирования только критичных изменений (vital параметры).
+        Это может улучшить производительность при частых изменениях некритичных полей.
+        
+        Args:
+            enabled: Если True, логировать только изменения energy, integrity, stability
+        """
+        self._log_only_critical = enabled
+    
+    def set_log_buffer_size(self, size: int) -> None:
+        """
+        Установить размер буфера для батчинга логов.
+        Больший размер улучшает производительность, но увеличивает риск потери данных при сбое.
+        
+        Args:
+            size: Размер буфера (по умолчанию 100)
+        """
+        if size < 1:
+            raise ValueError("Buffer size must be >= 1")
+        self._log_buffer_size = size
+        # Если новый размер меньше текущего буфера, сбрасываем его
+        if len(self._log_buffer) >= size:
+            self._flush_log_buffer()
+    
+    def get_change_history(
+        self, 
+        limit: Optional[int] = None,
+        filter_by_life_id: bool = True
+    ) -> list:
+        """
+        Получить историю изменений состояния из лога
+        
+        Оптимизирован для больших файлов: читает с конца файла без загрузки всего файла в память.
+        
+        Args:
+            limit: Максимальное количество записей для возврата (None = все записи)
+            filter_by_life_id: Если True, возвращать только записи для текущего life_id
+        
+        Returns:
+            Список записей истории изменений (от старых к новым)
+        """
+        if not STATE_CHANGES_LOG_FILE.exists():
+            return []
+        
+        history = []
+        try:
+            # Если limit не указан, читаем весь файл (старый способ)
+            if limit is None:
+                with STATE_CHANGES_LOG_FILE.open("r") as f:
+                    for line in f:
+                        if line.strip():
+                            try:
+                                entry = json.loads(line)
+                                if filter_by_life_id and entry.get("life_id") != self.life_id:
+                                    continue
+                                history.append(entry)
+                            except (json.JSONDecodeError, KeyError):
+                                # Пропускаем некорректные строки
+                                continue
+            else:
+                # Оптимизированное чтение с конца файла
+                # Читаем файл блоками с конца, чтобы не загружать весь файл в память
+                with STATE_CHANGES_LOG_FILE.open("rb") as f:
+                    # Перемещаемся в конец файла
+                    f.seek(0, 2)  # 2 = SEEK_END
+                    file_size = f.tell()
+                    
+                    # Размер блока для чтения (64KB)
+                    block_size = 64 * 1024
+                    buffer = b""
+                    lines_found = []
+                    position = file_size
+                    
+                    # Читаем блоки с конца, пока не соберем достаточно строк
+                    while position > 0 and len(lines_found) < limit * 2:  # Берем больше для фильтрации
+                        # Определяем размер блока для чтения
+                        read_size = min(block_size, position)
+                        position -= read_size
+                        f.seek(position)
+                        
+                        # Читаем блок
+                        block = f.read(read_size)
+                        buffer = block + buffer
+                        
+                        # Разбиваем на строки
+                        while b"\n" in buffer:
+                            line, buffer = buffer.rsplit(b"\n", 1)
+                            if line.strip():
+                                lines_found.append(line.decode("utf-8", errors="ignore"))
+                    
+                    # Обрабатываем оставшийся буфер
+                    if buffer.strip():
+                        lines_found.append(buffer.decode("utf-8", errors="ignore"))
+                    
+                    # Берем последние limit строк (они в обратном порядке)
+                    lines_found = lines_found[-limit:] if len(lines_found) > limit else lines_found
+                    
+                    # Парсим строки и фильтруем
+                    for line in reversed(lines_found):  # Разворачиваем, чтобы получить правильный порядок
+                        if line.strip():
+                            try:
+                                entry = json.loads(line)
+                                if filter_by_life_id and entry.get("life_id") != self.life_id:
+                                    continue
+                                history.append(entry)
+                                # Останавливаемся, когда собрали достаточно записей
+                                if len(history) >= limit:
+                                    break
+                            except (json.JSONDecodeError, KeyError):
+                                # Пропускаем некорректные строки
+                                continue
+        except Exception:
+            pass
+        
+        return history
 
     def load_latest_snapshot(self) -> "SelfState":
         # Найти последний snapshot_*.json
@@ -151,21 +564,62 @@ def create_initial_state() -> SelfState:
     return state
 
 
-def save_snapshot(state: SelfState):
+def save_snapshot(state: SelfState, compress: bool = False):
     """
-    Сохраняет текущее состояние жизни как отдельный JSON файл
+    Сохраняет текущее состояние жизни как отдельный JSON файл.
+    Оптимизированная сериализация с исключением transient полей.
+    
+    ПРИМЕЧАНИЕ: Логирование временно отключается во время сериализации для производительности.
+    Изменения состояния, которые могут произойти во время вызова asdict() (например, 
+    конвертация dataclass), не будут залогированы. Это намеренное решение для оптимизации.
+    
+    Args:
+        state: Состояние для сохранения
+        compress: Если True, использовать сжатие gzip (не реализовано пока)
     """
-    snapshot = asdict(state)
-    # Исключаем transient поля
-    snapshot.pop("activated_memory", None)
-    snapshot.pop("last_pattern", None)
-    # Конвертируем Memory в list для сериализации
-    if isinstance(state.memory, Memory):
-        snapshot["memory"] = [asdict(entry) for entry in state.memory]
-    tick = snapshot["ticks"]
-    filename = SNAPSHOT_DIR / f"snapshot_{tick:06d}.json"
-    with filename.open("w") as f:
-        json.dump(snapshot, f, indent=2, default=str)
+    # Сбрасываем буфер логов перед сериализацией
+    state._flush_log_buffer()
+    
+    # Временно отключаем логирование для сериализации
+    # Это предотвращает логирование изменений, которые могут произойти при конвертации dataclass
+    logging_was_enabled = state._logging_enabled
+    state.disable_logging()
+    
+    try:
+        snapshot = asdict(state)
+        # Исключаем transient поля
+        snapshot.pop("activated_memory", None)
+        snapshot.pop("last_pattern", None)
+        snapshot.pop("_initialized", None)
+        snapshot.pop("_logging_enabled", None)
+        snapshot.pop("_log_only_critical", None)
+        snapshot.pop("_log_buffer", None)
+        snapshot.pop("_log_buffer_size", None)
+        
+        # Оптимизированная конвертация Memory в list
+        if isinstance(state.memory, Memory):
+            # Используем более эффективную сериализацию
+            snapshot["memory"] = [
+                {
+                    "event_type": entry.event_type,
+                    "meaning_significance": entry.meaning_significance,
+                    "timestamp": entry.timestamp,
+                    "state_snapshot": entry.state_snapshot,
+                    "action_taken": entry.action_taken,
+                }
+                for entry in state.memory
+            ]
+        
+        tick = snapshot["ticks"]
+        filename = SNAPSHOT_DIR / f"snapshot_{tick:06d}.json"
+        
+        # Оптимизированная запись без лишних отступов (меньше размер файла)
+        with filename.open("w") as f:
+            json.dump(snapshot, f, separators=(',', ':'), default=str)
+    finally:
+        # Восстанавливаем логирование
+        if logging_was_enabled:
+            state.enable_logging()
 
 
 def load_snapshot(tick: int) -> SelfState:
@@ -181,6 +635,10 @@ def load_snapshot(tick: int) -> SelfState:
         if "memory" in data:
             memory_entries = [MemoryEntry(**entry) for entry in data["memory"]]
             data.pop("memory")  # Удаляем из data, инициализируем отдельно
+        
+        # Удаляем archive_memory из data, так как он не является параметром __init__
+        if "archive_memory" in data:
+            data.pop("archive_memory")
         
         state = SelfState(**data)
         # Загружаем архив при загрузке snapshot

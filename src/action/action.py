@@ -33,13 +33,15 @@ def execute_action(pattern: str, self_state):
         # Minor fatigue effect (assuming energy represents vitality)
         # Модифицируем эффект на основе коэффициента
         fatigue_effect = 0.01 * (1.0 - coefficient)  # Чем выше коэффициент, тем меньше усталость
-        self_state.energy = max(0.0, self_state.energy - fatigue_effect)
+        new_energy = max(0.0, self_state.energy - fatigue_effect)
+        self_state.update_energy(new_energy)
     
     # Для absorb: если коэффициент низкий, может быть небольшой эффект усталости
     elif pattern == "absorb":
         # Небольшой эффект усталости, если коэффициент низкий
         if coefficient < 0.8:
             fatigue_effect = 0.005 * (1.0 - coefficient)
-            self_state.energy = max(0.0, self_state.energy - fatigue_effect)
+            new_energy = max(0.0, self_state.energy - fatigue_effect)
+            self_state.update_energy(new_energy)
 
     # For ignore, no additional state changes

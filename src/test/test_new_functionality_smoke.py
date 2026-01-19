@@ -94,7 +94,8 @@ class TestNewFunctionalitySmoke:
             engine.record_changes(self_state.learning_params, new_params, self_state)
 
         # Проверяем, что все прошло без ошибок
-        assert "learning_params" in self_state.learning_params
+        assert isinstance(self_state.learning_params, dict)
+        assert "event_type_sensitivity" in self_state.learning_params
 
     def test_learning_minimal_memory(self):
         """Дымовой тест с минимальной памятью"""
@@ -466,7 +467,8 @@ class TestNewFunctionalitySmoke:
         )
 
         # Проверяем, что все прошло без ошибок
-        assert "learning_params" in self_state.learning_params
+        assert isinstance(self_state.learning_params, dict)
+        assert "event_type_sensitivity" in self_state.learning_params
         assert hasattr(self_state, "adaptation_history")
 
     def test_meaning_learning_integration_smoke(self):
@@ -543,7 +545,8 @@ class TestNewFunctionalitySmoke:
 
         # Проверяем, что вся цепочка работает
         assert len(self_state.memory) >= 1
-        assert "learning_params" in self_state.learning_params
+        assert isinstance(self_state.learning_params, dict)
+        assert "event_type_sensitivity" in self_state.learning_params
         assert hasattr(self_state, "adaptation_history")
 
     def test_all_modules_with_empty_state(self):
