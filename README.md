@@ -100,22 +100,46 @@ life/
 
 Проект покрыт комплексными тестами:
 
-- **Всего тестов:** 226
+- **Всего тестов:** 226+
 - **Покрытие кода:** 96%
 - **Все тесты проходят:** ✅
+
+### Типы тестов
+
+1. **Unit тесты** - изолированное тестирование отдельных функций и классов
+2. **Integration тесты** - тестирование взаимодействия между модулями
+3. **Property-based тесты** - автоматическая проверка инвариантов с помощью `hypothesis`
+4. **Тесты производительности** - проверка производительности критических операций
+5. **Нагрузочные тесты** - тестирование при больших объемах данных
 
 ### Быстрый запуск тестов
 
 ```bash
 # Установка зависимостей для тестирования
-pip install pytest pytest-cov
+pip install -r requirements.txt
 
 # Запуск всех тестов
 pytest src/test/ -v
 
 # С покрытием кода
 pytest src/test/ --cov=src --cov-report=html
+
+# Только быстрые тесты (без slow и performance)
+pytest src/test/ -v -m "not slow and not performance"
+
+# Только тесты производительности
+pytest src/test/ -v -m performance
+
+# Property-based тесты
+pytest src/test/test_property_based.py -v
 ```
+
+### Новые тесты
+
+- **`test_degradation.py`** - Тесты на деградацию системы, включая длительную работу (1000+ тиков)
+- **`test_property_based.py`** - Property-based тесты для проверки инвариантов системы
+- **`test_performance.py`** - Тесты производительности (benchmarks) критических операций
+- **`test_memory.py`** - Расширен нагрузочными тестами для больших объемов данных
 
 ### Покрытие модулей
 
@@ -126,7 +150,7 @@ pytest src/test/ --cov=src --cov-report=html
 - Monitor (console.py)
 - Environment (Event, EventQueue, Generator)
 
-**Подробная документация:** [docs/test/README.md](docs/test/README.md)
+**Подробная документация:** [docs/testing/README.md](docs/testing/README.md)
 
 ## Установка
 
@@ -156,7 +180,7 @@ pytest src/test/ --cov=src --cov-report=html
    pip install -r requirements.txt
    ```
 
-   > **Примечание**: Проект использует стандартную библиотеку Python и несколько внешних зависимостей (fastapi, uvicorn, requests, colorama, pytest, pytest-cov).
+   > **Примечание**: Проект использует стандартную библиотеку Python и несколько внешних зависимостей (fastapi, uvicorn, requests, colorama, pytest, pytest-cov, hypothesis для property-based тестов).
 
 ## Запуск
 

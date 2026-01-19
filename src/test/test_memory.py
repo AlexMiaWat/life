@@ -204,5 +204,128 @@ class TestMemory:
         assert entry2 in memory
 
 
+@pytest.mark.integration
+@pytest.mark.order(2)
+@pytest.mark.slow
+class TestMemoryLoad:
+    """Нагрузочные тесты для Memory с большим объемом данных - ROADMAP T.4"""
+
+    def test_memory_performance_with_1000_entries(self):
+        """Тест производительности Memory при добавлении 1000 записей"""
+        memory = Memory()
+        start_time = time.time()
+
+        # Добавляем 1000 записей
+        for i in range(1000):
+            entry = MemoryEntry(
+                event_type=f"event_{i % 10}",  # 10 разных типов
+                meaning_significance=0.5,
+                timestamp=time.time() + i
+            )
+            memory.append(entry)
+
+        elapsed = time.time() - start_time
+
+        # Проверяем, что операция выполнилась быстро (< 1 секунда)
+        assert elapsed < 1.0, f"Memory append took too long: {elapsed:.3f}s"
+
+        # Проверяем, что осталось только 50 последних записей
+        assert len(memory) == 50
+        assert memory[0].event_type == "event_0"  # Первая из последних 50
+        assert memory[-1].event_type == "event_9"  # Последняя
+
+    def test_memory_performance_with_10000_entries(self):
+        """Тест производительности Memory при добавлении 10000 записей"""
+        memory = Memory()
+        start_time = time.time()
+
+        # Добавляем 10000 записей
+        for i in range(10000):
+            entry = MemoryEntry(
+                event_type=f"event_{i % 20}",
+                meaning_significance=0.3 + (i % 10) * 0.07,
+                timestamp=time.time() + i
+            )
+            memory.append(entry)
+
+        elapsed = time.time() - start_time
+
+        # Проверяем производительность (< 5 секунд для 10000 записей)
+        assert elapsed < 5.0, f"Memory append took too long: {elapsed:.3f}s"
+
+        # Проверяем корректность ограничения размера
+        assert len(memory) == 50
+        # Первая запись должна быть из последних 50
+        assert memory[0].event_type.startswith("event_")
+
+    def test_memory_iteration_performance(self):
+        """Тест производительности итерации по Memory"""
+        memory = Memory()
+
+        # Заполняем память до лимита
+        for i in range(50):
+            entry = MemoryEntry(
+                event_type=f"event_{i}",
+                meaning_significance=0.5,
+                timestamp=time.time() + i
+            )
+            memory.append(entry)
+
+        # Тестируем итерацию
+        start_time = time.time()
+        count = 0
+        for entry in memory:
+            count += 1
+            assert entry is not None
+        elapsed = time.time() - start_time
+
+        assert count == 50
+        assert elapsed < 0.01, f"Iteration took too long: {elapsed:.3f}s"
+
+    def test_memory_search_performance(self):
+        """Тест производительности поиска в Memory"""
+        memory = Memory()
+
+        # Заполняем память
+        for i in range(50):
+            entry = MemoryEntry(
+                event_type=f"event_{i % 5}",  # 5 разных типов
+                meaning_significance=0.5,
+                timestamp=time.time() + i
+            )
+            memory.append(entry)
+
+        # Тестируем поиск всех записей определенного типа
+        start_time = time.time()
+        shock_entries = [e for e in memory if e.event_type == "event_0"]
+        elapsed = time.time() - start_time
+
+        # Должно быть около 10 записей типа "event_0" (50 / 5)
+        assert len(shock_entries) == 10
+        assert elapsed < 0.01, f"Search took too long: {elapsed:.3f}s"
+
+    def test_memory_memory_usage(self):
+        """Тест использования памяти (проверка, что размер ограничен)"""
+        memory = Memory()
+
+        # Добавляем много записей
+        for i in range(200):
+            entry = MemoryEntry(
+                event_type=f"event_{i}",
+                meaning_significance=0.5,
+                timestamp=time.time() + i,
+                feedback_data={"data": "x" * 100} if i % 2 == 0 else None
+            )
+            memory.append(entry)
+
+        # Размер должен быть ограничен 50 записями
+        assert len(memory) == 50
+
+        # Проверяем, что старые записи удалены
+        # Последние 50 записей должны быть с event_type от "event_150" до "event_199"
+        assert memory[0].event_type == "event_150"
+        assert memory[-1].event_type == "event_199"
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

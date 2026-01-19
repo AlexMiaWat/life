@@ -29,6 +29,9 @@
 - `test_runtime_loop_feedback_coverage.py` - Тесты обработки Feedback в Loop
 - `test_event_queue_edge_cases.py` - Edge cases EventQueue
 - `test_event_queue_race_condition.py` - Race conditions в EventQueue
+- `test_degradation.py` - Тесты на деградацию системы + длительная работа
+- `test_property_based.py` - Property-based тесты (hypothesis) - **НОВЫЙ**
+- `test_performance.py` - Тесты производительности (benchmarks) - **НОВЫЙ**
 
 ## Установка зависимостей
 
@@ -36,8 +39,9 @@
 
 ```bash
 pip install -r requirements.txt
-pip install pytest pytest-cov
 ```
+
+**Примечание:** Все зависимости, включая `pytest`, `pytest-cov`, и `hypothesis`, уже включены в `requirements.txt`.
 
 ## Запуск тестов
 

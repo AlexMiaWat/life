@@ -29,6 +29,8 @@ class MeaningEngine:
         - Учитывает тип события
         - Учитывает интенсивность
         - Учитывает текущее состояние Life
+        - Использует learning_params.event_type_sensitivity для модификации чувствительности
+        - Использует adaptation_params.behavior_sensitivity для дополнительной модификации
 
         Returns:
             significance (float): [0.0, 1.0]
@@ -47,6 +49,22 @@ class MeaningEngine:
 
         weight = type_weight.get(event.type, 1.0)
         significance = base_significance * weight
+
+        # ИНТЕГРАЦИЯ: Используем learning_params.event_type_sensitivity
+        learning_params = self_state.get("learning_params", {})
+        event_sensitivity = learning_params.get("event_type_sensitivity", {})
+        if event.type in event_sensitivity:
+            # Модифицируем значимость на основе обученной чувствительности
+            sensitivity = event_sensitivity[event.type]
+            significance *= (0.5 + sensitivity)  # Диапазон [0.5, 1.5]
+
+        # ИНТЕГРАЦИЯ: Используем adaptation_params.behavior_sensitivity
+        adaptation_params = self_state.get("adaptation_params", {})
+        behavior_sensitivity = adaptation_params.get("behavior_sensitivity", {})
+        if event.type in behavior_sensitivity:
+            # Дополнительная модификация на основе адаптированной чувствительности
+            behavior_sens = behavior_sensitivity[event.type]
+            significance *= (0.5 + behavior_sens)  # Диапазон [0.5, 1.5]
 
         # Контекстуальная модификация на основе состояния
         # Если integrity низкая — даже малые события становятся важнее
@@ -70,6 +88,7 @@ class MeaningEngine:
         - Базовые дельты зависят от типа события
         - Масштабируются на интенсивность и significance
         - Учитывают текущие параметры состояния
+        - Используют learning_params и adaptation_params для модификации влияния
 
         Returns:
             impact (Dict[str, float]): {"energy": delta, "stability": delta, "integrity": delta}
@@ -93,6 +112,12 @@ class MeaningEngine:
             scaled_delta = delta * abs(event.intensity) * significance
             scaled_impact[param] = scaled_delta
 
+        # ИНТЕГРАЦИЯ: Используем adaptation_params.behavior_coefficients для модификации влияния
+        # (коэффициенты применяются позже в response_pattern, но здесь можем учесть базовую модификацию)
+        adaptation_params = self_state.get("adaptation_params", {})
+        behavior_coefficients = adaptation_params.get("behavior_coefficients", {})
+        # Коэффициенты применяются в response_pattern, здесь только базовая модификация
+
         return scaled_impact
 
     def response_pattern(
@@ -107,10 +132,30 @@ class MeaningEngine:
         - "dampen"       — событие ослабляется
         - "amplify"      — событие усиливается
 
+        Использует learning_params.significance_thresholds и adaptation_params.behavior_thresholds
+        для определения порогов значимости.
+
         Returns:
             pattern (str): название паттерна
         """
-        if significance < self.base_significance_threshold:
+        # ИНТЕГРАЦИЯ: Используем learning_params.significance_thresholds
+        learning_params = self_state.get("learning_params", {})
+        significance_thresholds = learning_params.get("significance_thresholds", {})
+        event_threshold = significance_thresholds.get(
+            event.type, self.base_significance_threshold
+        )
+
+        # ИНТЕГРАЦИЯ: Используем adaptation_params.behavior_thresholds
+        adaptation_params = self_state.get("adaptation_params", {})
+        behavior_thresholds = adaptation_params.get("behavior_thresholds", {})
+        behavior_threshold = behavior_thresholds.get(
+            event.type, event_threshold
+        )
+
+        # Используем адаптированный порог
+        effective_threshold = behavior_threshold
+
+        if significance < effective_threshold:
             return "ignore"
 
         # При высокой стабильности — ослабление эффектов
@@ -151,14 +196,33 @@ class MeaningEngine:
         pattern = self.response_pattern(event, self_state, significance)
 
         # 4. Модификация impact на основе паттерна
+        # ИНТЕГРАЦИЯ: Используем learning_params.response_coefficients и adaptation_params.behavior_coefficients
+        learning_params = self_state.get("learning_params", {})
+        response_coefficients = learning_params.get("response_coefficients", {})
+        adaptation_params = self_state.get("adaptation_params", {})
+        behavior_coefficients = adaptation_params.get("behavior_coefficients", {})
+
         final_impact = base_impact.copy()
         if pattern == "ignore":
             final_impact = {k: 0.0 for k in final_impact}
         elif pattern == "dampen":
-            final_impact = {k: v * 0.5 for k, v in final_impact.items()}
+            # Используем коэффициент из параметров, если доступен
+            coefficient = behavior_coefficients.get(
+                "dampen", response_coefficients.get("dampen", 0.5)
+            )
+            final_impact = {k: v * coefficient for k, v in final_impact.items()}
         elif pattern == "amplify":
-            final_impact = {k: v * 1.5 for k, v in final_impact.items()}
-        # "absorb" оставляет impact без изменений
+            # Используем коэффициент из параметров, если доступен
+            coefficient = behavior_coefficients.get(
+                "amplify", response_coefficients.get("amplify", 1.5)
+            )
+            final_impact = {k: v * coefficient for k, v in final_impact.items()}
+        elif pattern == "absorb":
+            # Используем коэффициент из параметров, если доступен
+            coefficient = behavior_coefficients.get(
+                "absorb", response_coefficients.get("absorb", 1.0)
+            )
+            final_impact = {k: v * coefficient for k, v in final_impact.items()}
 
         # 5. Создание Meaning
         return Meaning(

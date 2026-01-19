@@ -40,7 +40,7 @@ pytest src/test/ -q
 
 Все тесты находятся в `src/test/`:
 
-- `test_memory.py` - Тесты модуля Memory (MemoryEntry, Memory)
+- `test_memory.py` - Тесты модуля Memory (MemoryEntry, Memory) + нагрузочные тесты
 - `test_state.py` - Тесты модуля State (SelfState, snapshots)
 - `test_activation.py` - Тесты модуля Activation
 - `test_meaning.py` - Тесты модуля Meaning (Meaning, MeaningEngine)
@@ -60,6 +60,9 @@ pytest src/test/ -q
 - `test_event_queue_edge_cases.py` - Edge cases EventQueue
 - `test_event_queue_race_condition.py` - Race conditions в EventQueue
 - `test_generator_cli.py` - Тесты CLI генератора
+- `test_degradation.py` - Тесты на деградацию системы + длительная работа
+- `test_property_based.py` - Property-based тесты (hypothesis) - **НОВЫЙ**
+- `test_performance.py` - Тесты производительности (benchmarks) - **НОВЫЙ**
 
 ## Покрытие модулей
 
@@ -101,6 +104,7 @@ pytest src/test/ -q
 - **[TESTING_INSTRUCTIONS.md](TESTING_INSTRUCTIONS.md)** - Подробные инструкции по тестированию
 - **[TESTING_GUIDE.md](TESTING_GUIDE.md)** - Руководство по тестированию
 - **[TESTING_RESULTS.md](TESTING_RESULTS.md)** - Результаты тестирования
+- **[TESTING_ROADMAP_T5.md](TESTING_ROADMAP_T5.md)** - Документация по выполнению ROADMAP Цель 5 (T.1-T.15)
 - **[COVERAGE_100_COMPLETE.md](COVERAGE_100_COMPLETE.md)** - Отчет о достижении максимального покрытия
 
 ### Отчеты по покрытию
@@ -125,6 +129,22 @@ pytest src/test/ -q
 - Тестирование взаимодействия между модулями
 - Проверка полных сценариев использования
 - Тесты с запуском реального сервера
+
+### Property-based тесты (hypothesis)
+- Тестирование инвариантов и свойств системы
+- Автоматическая генерация тестовых данных
+- Файл: `test_property_based.py`
+
+### Тесты производительности (benchmarks)
+- Проверка производительности критических операций
+- Установка порогов производительности
+- Файл: `test_performance.py`
+- Маркер: `@pytest.mark.performance`
+
+### Нагрузочные тесты
+- Тестирование при больших объемах данных
+- Проверка ограничений и производительности
+- Маркер: `@pytest.mark.slow`
 
 ## Команды для запуска
 
