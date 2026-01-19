@@ -10,9 +10,8 @@
 ## Краткая сводка
 
 - **Единый источник истины:** [PROJECT_STATUS.md](PROJECT_STATUS.md)
-- **Текущие задачи:** [todo/CURRENT.md](../../todo/CURRENT.md)
+- **Стратегический план:** [todo/ROADMAP_2026.md](../../todo/ROADMAP_2026.md)
 - **Технический долг:** [todo/DEBT.md](../../todo/DEBT.md)
-- **Стратегический план:** [todo/ROADMAP.md](../../todo/ROADMAP.md)
 
 ---
 

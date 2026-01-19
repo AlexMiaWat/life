@@ -75,10 +75,10 @@
 * **Примечания:** MeaningEngine интегрирован в loop
 
 ### 09. Memory & Experience
-* **Status:** ✅ Implemented (v1.0)
+* **Status:** ✅ Implemented (v2.0)
 * **Документация:** [memory.md](../components/memory.md)
 * **Код:** `src/memory/memory.py`
-* **Примечания:** Эпизодическая память, интегрирована в loop, ограничение 50 записей
+* **Примечания:** Эпизодическая память с забыванием, архивацией и оптимизацией. Интегрирована в loop, ограничение 50 записей, архивная память для долгосрочного хранения
 
 ### 10. Activation & Recall
 * **Status:** ✅ Implemented (v1.0)

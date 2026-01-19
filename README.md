@@ -82,25 +82,30 @@ life/
 - **`action/`** (этап 12.1, v1.0): Выполнение внутренних действий на основе принятого решения, с записью в память и минимальными эффектами на состояние.
 - **`intelligence/`** (этап 18, v1.0): Минимальная обработка информации из нейтральных источников.
 - **`planning/`** (этап 17, v1.0): Минимальная фиксация потенциальных последовательностей.
-- **`memory/`** (этап 09, v1.0): Эпизодическая память значимых событий.
+- **`memory/`** (этап 09, v2.0): Эпизодическая память с забыванием, архивацией и оптимизацией.
+- **`learning/`** (этап 14, v1.0): Медленное обучение на основе статистики Memory.
+- **`adaptation/`** (этап 15, v1.0): Медленная адаптация поведения на основе Learning.
 
 ## Текущий статус проекта
 
 - **Этапы 00–02**: Документация стабилизирована (VISION, ARCHITECTURE, RUNTIME_LOOP с модульностью).
-- **Этап 03**: SelfState реализован как dataclass с полями memory, intelligence, planning.
+- **Этап 03**: SelfState реализован как dataclass с полями memory, intelligence, planning (v2.1 с валидацией).
 - **Этапы 07–08**: Environment и MeaningEngine интегрированы в runtime loop.
-- **Этап 09**: Memory v1.0 реализован и интегрирован.
+- **Этап 09**: Memory v2.0 реализован с забыванием, архивацией и оптимизацией.
 - **Этап 10.1**: Activation v1.0 реализован и интегрирован.
 - **Этап 11.1**: Decision v1.0 реализован и интегрирован.
-- **Этап 12.1**: Action v1.0 реализован и интегрирован.
-- **Этап 13**: Feedback v1.0 реализован и интегрирован.
+- **Этап 12.1**: Action v1.0 реализован и интегрирован (с интеграцией Learning/Adaptation).
+- **Этап 13**: Feedback v1.1 реализован и интегрирован.
 - **Этапы 17–18**: Planning и Intelligence v1.0 реализованы и интегрированы.
+- **Этап 14**: Learning v1.0 реализован и интегрирован (медленное обучение на статистике).
+- **Этап 15**: Adaptation v1.0 реализован и интегрирован (медленная адаптация поведения).
+- **Архитектурные улучшения**: Lifecycle, Subjective Time, SelfState улучшения, Runtime Loop рефакторинг.
 
 ## Тестирование
 
 Проект покрыт комплексными тестами:
 
-- **Всего тестов:** 226+
+- **Всего тестов:** 226+ (см. [docs/development/STATISTICS.md](docs/development/STATISTICS.md) для актуальной статистики)
 - **Покрытие кода:** 96%
 - **Все тесты проходят:** ✅
 
@@ -144,8 +149,8 @@ pytest src/test/test_property_based.py -v
 ### Покрытие модулей
 
 **Полностью покрытые модули (100%):**
-- Все модули бизнес-логики (action, activation, decision, feedback, intelligence, meaning, memory, planning, state)
-- API эндпоинты (GET /status, GET /clear-data, POST /event)
+- Все модули бизнес-логики (action, activation, adaptation, decision, feedback, intelligence, learning, meaning, memory, planning, state)
+- API эндпоинты (GET /status, GET /clear-data, POST /event, аутентификация)
 - Генератор событий (EventGenerator)
 - Monitor (console.py)
 - Environment (Event, EventQueue, Generator)
@@ -156,7 +161,7 @@ pytest src/test/test_property_based.py -v
 
 ### Требования
 
-- Python 3.14 или выше
+- Python 3.10 или выше (рекомендуется 3.11+)
 
 ### Шаги установки
 
@@ -476,7 +481,7 @@ pytest src/test/ --real-server --server-port 8000 --cov=src --cov-report=html -W
 
 ### Документация по тестированию
 
-Подробная документация находится в [docs/test/README.md](docs/test/README.md):
+Подробная документация находится в [docs/testing/README.md](docs/testing/README.md):
 - Инструкции по запуску тестов
 - Описание всех тестовых файлов
 - Руководство по написанию новых тестов

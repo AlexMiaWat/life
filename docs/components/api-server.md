@@ -37,8 +37,62 @@ API Server предоставляет HTTP интерфейс для управ�
 Очищает все накопленные данные (логи, снапшоты).
 Полезно для сброса "памяти" между экспериментами без перезапуска сервера.
 
-#### POST /event (Планируется)
-Позволит отправлять события в Environment через HTTP.
+**Пример запроса:**
+```bash
+curl http://localhost:8000/clear-data
+```
+
+**Ответ:**
+```json
+"Data cleared"
+```
+
+#### POST /event
+Отправляет событие в систему Life для обработки.
+
+**Тело запроса:**
+```json
+{
+  "type": "noise",
+  "intensity": 0.1,
+  "timestamp": 1704987654.321,
+  "metadata": {
+    "source": "manual",
+    "description": "Тестовое событие"
+  }
+}
+```
+
+**Параметры:**
+- `type` (string, required): Тип события (`noise`, `decay`, `recovery`, `shock`, `idle`)
+- `intensity` (float, optional): Интенсивность события (-1.0 до 1.0)
+- `timestamp` (float, optional): Временная метка (Unix timestamp)
+- `metadata` (object, optional): Дополнительные данные
+
+**Примеры запросов:**
+
+1. **Простое событие:**
+```bash
+curl -X POST http://localhost:8000/event \
+  -H "Content-Type: application/json" \
+  -d '{"type":"noise","intensity":0.5}'
+```
+
+2. **Событие с метаданными:**
+```bash
+curl -X POST http://localhost:8000/event \
+  -H "Content-Type: application/json" \
+  -d '{"type":"shock","intensity":-0.8,"metadata":{"source":"test","reason":"experiment"}}'
+```
+
+**Ответ:**
+```json
+"Event accepted"
+```
+
+**Ошибки:**
+- `400 Bad Request`: Неверный формат данных
+- `422 Unprocessable Entity`: Неверные значения параметров
 
 **Запуск:**
 ```bash
@@ -73,6 +127,22 @@ REST API с JWT токенами для аутентификации польз�
 }
 ```
 
+**Пример запроса:**
+```bash
+curl -X POST "http://localhost:8001/register" \
+  -H "Content-Type: application/json" \
+  -d '{"username":"testuser","email":"test@example.com","password":"test123","full_name":"Test User"}'
+```
+
+**Ответ (успех):**
+```json
+{
+  "username": "testuser",
+  "email": "test@example.com",
+  "full_name": "Test User"
+}
+```
+
 #### POST /token
 Получение JWT токена для аутентификации.
 
@@ -81,10 +151,17 @@ REST API с JWT токенами для аутентификации польз�
 username=user&password=password123
 ```
 
+**Пример запроса:**
+```bash
+curl -X POST "http://localhost:8001/token" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "username=admin&password=admin123"
+```
+
 **Ответ:**
 ```json
 {
-  "access_token": "eyJ...",
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "token_type": "bearer"
 }
 ```
@@ -92,14 +169,71 @@ username=user&password=password123
 #### GET /users/me
 Получение информации о текущем пользователе (требует аутентификации).
 
+**Пример запроса:**
+```bash
+curl -X GET "http://localhost:8001/users/me" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+**Ответ:**
+```json
+{
+  "username": "admin",
+  "email": "admin@example.com",
+  "full_name": "Administrator"
+}
+```
+
 #### GET /protected
 Пример защищенного endpoint (требует аутентификации).
 
+**Пример запроса:**
+```bash
+curl -X GET "http://localhost:8001/protected" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+**Ответ:**
+```json
+{"message": "You are authenticated!"}
+```
+
 #### GET /status
-Получение статуса системы (требует аутентификации).
+Получение статуса системы Life (требует аутентификации).
+
+**Пример запроса:**
+```bash
+curl -X GET "http://localhost:8001/status" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+**Ответ:**
+```json
+{
+  "active": true,
+  "ticks": 150,
+  "age": 75.0,
+  "energy": 95.5,
+  "integrity": 1.0,
+  "stability": 0.98
+}
+```
 
 #### POST /event
-Создание события (требует аутентификации).
+Создание события в системе Life (требует аутентификации).
+
+**Пример запроса:**
+```bash
+curl -X POST "http://localhost:8001/event" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"type":"recovery","intensity":0.3,"metadata":{"source":"api"}}'
+```
+
+**Ответ:**
+```json
+{"message": "Event created successfully"}
+```
 
 **Запуск:**
 ```bash

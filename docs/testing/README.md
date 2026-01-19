@@ -6,8 +6,8 @@
 
 ## Статистика тестирования
 
-- **Всего тестов:** 226
-- **Все тесты проходят:** ✅ 226/226
+- **Всего тестов:** 226 (см. [docs/development/STATISTICS.md](../development/STATISTICS.md) для актуальной статистики)
+- **Все тесты проходят:** ✅
 - **Покрытие кода:** 96%
 - **Основные модули:** 100% покрытие
 
@@ -50,6 +50,9 @@ pytest src/test/ -q
 - `test_feedback.py` - Тесты модуля Feedback
 - `test_planning.py` - Тесты модуля Planning
 - `test_intelligence.py` - Тесты модуля Intelligence
+- `test_learning.py` - Тесты модуля Learning
+- `test_adaptation.py` - Тесты модуля Adaptation
+- `test_learning_adaptation_integration.py` - Интеграционные тесты Learning + Adaptation
 - `test_runtime_integration.py` - Интеграционные тесты для Runtime Loop
 - `test_api_integration.py` - Интеграционные тесты API сервера
 - `test_generator.py` - Тесты генератора событий
@@ -70,14 +73,16 @@ pytest src/test/ -q
 
 1. **action/action.py** - 100%
 2. **activation/activation.py** - 100%
-3. **decision/decision.py** - 100%
-4. **feedback/feedback.py** - 100%
-5. **intelligence/intelligence.py** - 100%
-6. **meaning/meaning.py** - 100%
-7. **meaning/engine.py** - 100%
-8. **memory/memory.py** - 100%
-9. **planning/planning.py** - 100%
-10. **state/self_state.py** - 100%
+3. **adaptation/adaptation.py** - 100%
+4. **decision/decision.py** - 100%
+5. **feedback/feedback.py** - 100%
+6. **intelligence/intelligence.py** - 100%
+7. **learning/learning.py** - 100%
+8. **meaning/meaning.py** - 100%
+9. **meaning/engine.py** - 100%
+10. **memory/memory.py** - 100%
+11. **planning/planning.py** - 100%
+12. **state/self_state.py** - 100%
 11. **environment/generator.py** - 100%
 12. **environment/event.py** - 100%
 13. **monitor/console.py** - 100%
