@@ -13,7 +13,7 @@ from meaning.engine import MeaningEngine
 from memory.memory import MemoryEntry
 from planning.planning import record_potential_sequences
 from state.self_state import SelfState, save_snapshot
-from src.adaptation.adaptation import AdaptationManager
+from adaptation.adaptation import AdaptationManager
 
 
 def run_loop(
@@ -40,6 +40,8 @@ def run_loop(
     learning_interval = 75  # Вызов Learning раз в 75 тиков (между 50-100)
     adaptation_manager = AdaptationManager()  # Adaptation Manager (Этап 15)
     adaptation_interval = 100  # Вызов Adaptation раз в 100 тиков (реже чем Learning)
+    archive_interval = 50  # Вызов архивации раз в 50 тиков
+    decay_interval = 10  # Вызов затухания весов раз в 10 тиков
     last_time = time.time()
     pending_actions = []  # Список ожидающих Feedback действий
     while stop_event is None or not stop_event.is_set():
@@ -163,6 +165,30 @@ def run_loop(
                         )
                 except Exception as e:
                     print(f"Ошибка в Learning: {e}")
+                    traceback.print_exc()
+
+            # Затухание весов памяти (Memory v2.0) - механизм забывания
+            # Вызывается раз в decay_interval тиков
+            if self_state.ticks > 0 and self_state.ticks % decay_interval == 0:
+                try:
+                    self_state.memory.decay_weights(decay_factor=0.99, min_weight=0.0)
+                except Exception as e:
+                    print(f"Ошибка в decay_weights: {e}")
+                    traceback.print_exc()
+
+            # Архивация старых записей памяти (Memory v2.0)
+            # Вызывается раз в archive_interval тиков
+            if self_state.ticks > 0 and self_state.ticks % archive_interval == 0:
+                try:
+                    # Архивируем записи старше 7 дней или с весом < 0.1
+                    archived_count = self_state.memory.archive_old_entries(
+                        max_age=7 * 24 * 3600,  # 7 дней в секундах
+                        min_weight=0.1
+                    )
+                    if archived_count > 0:
+                        print(f"[LOOP] Заархивировано {archived_count} записей памяти")
+                except Exception as e:
+                    print(f"Ошибка в archive_old_entries: {e}")
                     traceback.print_exc()
 
             # Adaptation (Этап 15) - медленная перестройка поведения на основе статистики Learning

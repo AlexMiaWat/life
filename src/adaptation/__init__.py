@@ -13,6 +13,6 @@ Adaptation только медленно перестраивает поведе
 - ✅ Разрешено: использование статистики из Learning
 """
 
-from src.adaptation.adaptation import AdaptationManager
+from adaptation.adaptation import AdaptationManager
 
 __all__ = ["AdaptationManager"]

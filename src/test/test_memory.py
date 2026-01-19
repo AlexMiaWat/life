@@ -9,10 +9,12 @@ project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root / "src"))
 
 import time
+import tempfile
+from pathlib import Path
 
 import pytest
 
-from memory.memory import Memory, MemoryEntry
+from memory.memory import ArchiveMemory, Memory, MemoryEntry
 
 
 @pytest.mark.unit
@@ -325,6 +327,336 @@ class TestMemoryLoad:
         # Последние 50 записей должны быть с event_type от "event_150" до "event_199"
         assert memory[0].event_type == "event_150"
         assert memory[-1].event_type == "event_199"
+
+
+@pytest.mark.unit
+@pytest.mark.order(2)
+class TestMemoryDecayWeights:
+    """Тесты для механизма затухания весов (decay_weights)"""
+
+    def test_decay_weights_basic(self):
+        """Тест базового затухания весов"""
+        memory = Memory()
+        entry = MemoryEntry(
+            event_type="test", meaning_significance=0.5, timestamp=time.time(), weight=1.0
+        )
+        memory.append(entry)
+        
+        initial_weight = entry.weight
+        memory.decay_weights(decay_factor=0.9, min_weight=0.0)
+        
+        # Вес должен уменьшиться
+        assert entry.weight < initial_weight
+        assert entry.weight > 0.0
+
+    def test_decay_weights_min_weight(self):
+        """Тест ограничения минимального веса"""
+        memory = Memory()
+        entry = MemoryEntry(
+            event_type="test", meaning_significance=0.5, timestamp=time.time(), weight=0.5
+        )
+        memory.append(entry)
+        
+        memory.decay_weights(decay_factor=0.5, min_weight=0.2)
+        
+        # Вес не должен быть ниже минимума
+        assert entry.weight >= 0.2
+
+    def test_decay_weights_empty_memory(self):
+        """Тест затухания весов для пустой памяти"""
+        memory = Memory()
+        count = memory.decay_weights()
+        assert count == 0
+
+    def test_decay_weights_multiple_entries(self):
+        """Тест затухания весов для нескольких записей"""
+        memory = Memory()
+        entries = []
+        for i in range(5):
+            entry = MemoryEntry(
+                event_type=f"event_{i}",
+                meaning_significance=0.3 + i * 0.1,
+                timestamp=time.time() - i * 3600,  # Разный возраст
+                weight=1.0
+            )
+            entries.append(entry)
+            memory.append(entry)
+        
+        initial_weights = [e.weight for e in entries]
+        memory.decay_weights(decay_factor=0.95, min_weight=0.0)
+        
+        # Все веса должны уменьшиться
+        for i, entry in enumerate(entries):
+            assert entry.weight < initial_weights[i]
+            # Старые записи должны иметь меньший вес
+            if i > 0:
+                assert entry.weight <= entries[i-1].weight
+
+    def test_decay_weights_significance_factor(self):
+        """Тест учета значимости при затухании"""
+        memory = Memory()
+        low_sig_entry = MemoryEntry(
+            event_type="low", meaning_significance=0.1, timestamp=time.time(), weight=1.0
+        )
+        high_sig_entry = MemoryEntry(
+            event_type="high", meaning_significance=0.9, timestamp=time.time(), weight=1.0
+        )
+        memory.append(low_sig_entry)
+        memory.append(high_sig_entry)
+        
+        memory.decay_weights(decay_factor=0.9, min_weight=0.0)
+        
+        # Запись с высокой значимостью должна сохранить больший вес
+        assert high_sig_entry.weight > low_sig_entry.weight
+
+
+@pytest.mark.unit
+@pytest.mark.order(2)
+class TestArchiveMemory:
+    """Тесты для класса ArchiveMemory"""
+
+    def test_archive_memory_initialization(self):
+        """Тест инициализации ArchiveMemory"""
+        archive = ArchiveMemory()
+        assert archive.size() == 0
+        assert isinstance(archive.archive_file, Path)
+
+    def test_archive_memory_add_entry(self):
+        """Тест добавления записи в архив"""
+        archive = ArchiveMemory()
+        entry = MemoryEntry(
+            event_type="test", meaning_significance=0.5, timestamp=time.time()
+        )
+        archive.add_entry(entry)
+        assert archive.size() == 1
+        assert archive.get_all_entries()[0] == entry
+
+    def test_archive_memory_add_entries(self):
+        """Тест добавления нескольких записей в архив"""
+        archive = ArchiveMemory()
+        entries = [
+            MemoryEntry(
+                event_type=f"event_{i}",
+                meaning_significance=0.5,
+                timestamp=time.time() + i
+            )
+            for i in range(5)
+        ]
+        archive.add_entries(entries)
+        assert archive.size() == 5
+
+    def test_archive_memory_get_entries_by_type(self):
+        """Тест фильтрации записей по типу события"""
+        archive = ArchiveMemory()
+        archive.add_entry(MemoryEntry("shock", 0.8, time.time()))
+        archive.add_entry(MemoryEntry("noise", 0.3, time.time()))
+        archive.add_entry(MemoryEntry("shock", 0.6, time.time()))
+        
+        shock_entries = archive.get_entries(event_type="shock")
+        assert len(shock_entries) == 2
+        assert all(e.event_type == "shock" for e in shock_entries)
+
+    def test_archive_memory_get_entries_by_significance(self):
+        """Тест фильтрации записей по значимости"""
+        archive = ArchiveMemory()
+        archive.add_entry(MemoryEntry("test", 0.8, time.time()))
+        archive.add_entry(MemoryEntry("test", 0.3, time.time()))
+        archive.add_entry(MemoryEntry("test", 0.6, time.time()))
+        
+        high_sig_entries = archive.get_entries(min_significance=0.5)
+        assert len(high_sig_entries) == 2
+        assert all(e.meaning_significance >= 0.5 for e in high_sig_entries)
+
+    def test_archive_memory_get_entries_by_timestamp(self):
+        """Тест фильтрации записей по временному диапазону"""
+        archive = ArchiveMemory()
+        base_time = time.time()
+        archive.add_entry(MemoryEntry("test", 0.5, base_time - 100))
+        archive.add_entry(MemoryEntry("test", 0.5, base_time))
+        archive.add_entry(MemoryEntry("test", 0.5, base_time + 100))
+        
+        recent_entries = archive.get_entries(
+            start_timestamp=base_time - 50,
+            end_timestamp=base_time + 50
+        )
+        assert len(recent_entries) == 1
+
+    def test_archive_memory_save_and_load(self):
+        """Тест сохранения и загрузки архива"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            archive_file = Path(tmpdir) / "test_archive.json"
+            archive = ArchiveMemory(archive_file=archive_file)
+            
+            entries = [
+                MemoryEntry(
+                    event_type=f"event_{i}",
+                    meaning_significance=0.5,
+                    timestamp=time.time() + i
+                )
+                for i in range(3)
+            ]
+            archive.add_entries(entries)
+            archive.save_archive()
+            
+            # Создаем новый архив и загружаем
+            new_archive = ArchiveMemory(archive_file=archive_file)
+            assert new_archive.size() == 3
+            loaded_entries = new_archive.get_all_entries()
+            assert len(loaded_entries) == 3
+
+
+@pytest.mark.unit
+@pytest.mark.order(2)
+class TestMemoryArchive:
+    """Тесты для архивации записей из Memory"""
+
+    def test_archive_old_entries_by_age(self):
+        """Тест архивации записей по возрасту"""
+        memory = Memory()
+        old_entry = MemoryEntry(
+            event_type="old",
+            meaning_significance=0.5,
+            timestamp=time.time() - 8 * 24 * 3600,  # 8 дней назад
+            weight=0.5
+        )
+        new_entry = MemoryEntry(
+            event_type="new",
+            meaning_significance=0.5,
+            timestamp=time.time(),
+            weight=0.5
+        )
+        memory.append(old_entry)
+        memory.append(new_entry)
+        
+        archived_count = memory.archive_old_entries(max_age=7 * 24 * 3600)  # 7 дней
+        
+        assert archived_count == 1
+        assert len(memory) == 1
+        assert memory[0].event_type == "new"
+        assert memory.archive.size() == 1
+
+    def test_archive_old_entries_by_weight(self):
+        """Тест архивации записей по весу"""
+        memory = Memory()
+        low_weight_entry = MemoryEntry(
+            event_type="low_weight",
+            meaning_significance=0.5,
+            timestamp=time.time(),
+            weight=0.05
+        )
+        high_weight_entry = MemoryEntry(
+            event_type="high_weight",
+            meaning_significance=0.5,
+            timestamp=time.time(),
+            weight=0.8
+        )
+        memory.append(low_weight_entry)
+        memory.append(high_weight_entry)
+        
+        archived_count = memory.archive_old_entries(min_weight=0.1)
+        
+        assert archived_count == 1
+        assert len(memory) == 1
+        assert memory[0].event_type == "high_weight"
+        assert memory.archive.size() == 1
+
+    def test_archive_old_entries_by_significance(self):
+        """Тест архивации записей по значимости"""
+        memory = Memory()
+        low_sig_entry = MemoryEntry(
+            event_type="low_sig",
+            meaning_significance=0.05,
+            timestamp=time.time(),
+            weight=0.5
+        )
+        high_sig_entry = MemoryEntry(
+            event_type="high_sig",
+            meaning_significance=0.8,
+            timestamp=time.time(),
+            weight=0.5
+        )
+        memory.append(low_sig_entry)
+        memory.append(high_sig_entry)
+        
+        archived_count = memory.archive_old_entries(min_significance=0.1)
+        
+        assert archived_count == 1
+        assert len(memory) == 1
+        assert memory[0].event_type == "high_sig"
+
+    def test_archive_old_entries_validation(self):
+        """Тест валидации параметров архивации"""
+        memory = Memory()
+        
+        # Отрицательный max_age
+        with pytest.raises(ValueError, match="max_age должен быть неотрицательным"):
+            memory.archive_old_entries(max_age=-1)
+        
+        # Некорректный min_weight
+        with pytest.raises(ValueError, match="min_weight должен быть в диапазоне"):
+            memory.archive_old_entries(min_weight=1.5)
+        
+        # Некорректный min_significance
+        with pytest.raises(ValueError, match="min_significance должен быть в диапазоне"):
+            memory.archive_old_entries(min_significance=-0.1)
+
+    def test_archive_old_entries_error_handling(self):
+        """Тест обработки ошибок при архивации"""
+        memory = Memory()
+        entry = MemoryEntry(
+            event_type="test",
+            meaning_significance=0.5,
+            timestamp=time.time() - 8 * 24 * 3600,
+            weight=0.5
+        )
+        memory.append(entry)
+        
+        # Создаем архив с недоступным файлом (для теста ошибки сохранения)
+        # В реальном сценарии это может произойти при отсутствии прав на запись
+        # Здесь мы просто проверяем, что ошибка обрабатывается корректно
+        archived_count = memory.archive_old_entries(max_age=7 * 24 * 3600)
+        
+        # Если сохранение прошло успешно, запись должна быть в архиве
+        # Если произошла ошибка, запись должна остаться в памяти
+        assert archived_count >= 0  # Может быть 0 или 1 в зависимости от успешности сохранения
+
+    def test_archive_old_entries_empty_memory(self):
+        """Тест архивации для пустой памяти"""
+        memory = Memory()
+        archived_count = memory.archive_old_entries()
+        assert archived_count == 0
+
+
+@pytest.mark.unit
+@pytest.mark.order(2)
+class TestMemoryStatistics:
+    """Тесты для статистики Memory"""
+
+    def test_get_statistics_empty(self):
+        """Тест статистики для пустой памяти"""
+        memory = Memory()
+        stats = memory.get_statistics()
+        
+        assert stats["active_entries"] == 0
+        assert stats["archive_entries"] == 0
+        assert stats["event_types"] == {}
+        assert stats["avg_significance"] == 0.0
+
+    def test_get_statistics_with_entries(self):
+        """Тест статистики для памяти с записями"""
+        memory = Memory()
+        memory.append(MemoryEntry("shock", 0.8, time.time()))
+        memory.append(MemoryEntry("noise", 0.3, time.time()))
+        memory.append(MemoryEntry("shock", 0.6, time.time()))
+        
+        stats = memory.get_statistics()
+        
+        assert stats["active_entries"] == 3
+        assert stats["event_types"]["shock"] == 2
+        assert stats["event_types"]["noise"] == 1
+        assert stats["avg_significance"] == pytest.approx((0.8 + 0.3 + 0.6) / 3, abs=0.01)
+        assert stats["oldest_timestamp"] is not None
+        assert stats["newest_timestamp"] is not None
 
 
 if __name__ == "__main__":

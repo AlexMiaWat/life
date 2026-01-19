@@ -4,7 +4,7 @@ import uuid
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
-from memory.memory import MemoryEntry
+from memory.memory import ArchiveMemory, Memory, MemoryEntry
 
 # Папка для снимков
 SNAPSHOT_DIR = Path("data/snapshots")
@@ -29,7 +29,15 @@ class SelfState:
     stability_history: list = field(default_factory=list)
     planning: dict = field(default_factory=dict)
     intelligence: dict = field(default_factory=dict)
-    memory: list[MemoryEntry] = field(default_factory=list)
+    memory: Memory = field(default=None)  # Активная память с поддержкой архивации
+    archive_memory: ArchiveMemory = field(
+        default_factory=ArchiveMemory, init=False
+    )  # Архивная память (не сериализуется в snapshot напрямую)
+    
+    def __post_init__(self):
+        """Инициализация memory с архивом после создания объекта"""
+        if self.memory is None:
+            self.memory = Memory(archive=self.archive_memory)
     activated_memory: list = field(
         default_factory=list
     )  # Transient, не сохраняется в snapshot
@@ -115,16 +123,32 @@ class SelfState:
             if mapped_key in SelfState.__dataclass_fields__:
                 mapped_data[mapped_key] = v
         # Конвертировать memory из list of dict в list of MemoryEntry
+        memory_entries = []
         if "memory" in mapped_data:
-            mapped_data["memory"] = [
+            memory_entries = [
                 MemoryEntry(**entry) for entry in mapped_data["memory"]
             ]
+            mapped_data.pop("memory")  # Удаляем из mapped_data, инициализируем отдельно
+        
         # Создать экземпляр из dict
-        return SelfState(**mapped_data)
+        state = SelfState(**mapped_data)
+        # Загружаем архив при загрузке snapshot
+        state.archive_memory = ArchiveMemory()
+        state.archive_memory._load_archive()
+        # Инициализируем memory с архивом и загруженными записями
+        state.memory = Memory(archive=state.archive_memory)
+        for entry in memory_entries:
+            state.memory.append(entry)
+        return state
 
 
 def create_initial_state() -> SelfState:
-    return SelfState()
+    state = SelfState()
+    # Инициализируем архивную память
+    state.archive_memory = ArchiveMemory()
+    # Инициализируем memory с архивом (__post_init__ уже создал memory, но пересоздадим с правильным архивом)
+    state.memory = Memory(archive=state.archive_memory)
+    return state
 
 
 def save_snapshot(state: SelfState):
@@ -135,6 +159,9 @@ def save_snapshot(state: SelfState):
     # Исключаем transient поля
     snapshot.pop("activated_memory", None)
     snapshot.pop("last_pattern", None)
+    # Конвертируем Memory в list для сериализации
+    if isinstance(state.memory, Memory):
+        snapshot["memory"] = [asdict(entry) for entry in state.memory]
     tick = snapshot["ticks"]
     filename = SNAPSHOT_DIR / f"snapshot_{tick:06d}.json"
     with filename.open("w") as f:
@@ -150,8 +177,19 @@ def load_snapshot(tick: int) -> SelfState:
         with filename.open("r") as f:
             data = json.load(f)
         # Конвертировать memory из list of dict в list of MemoryEntry
+        memory_entries = []
         if "memory" in data:
-            data["memory"] = [MemoryEntry(**entry) for entry in data["memory"]]
-        return SelfState(**data)
+            memory_entries = [MemoryEntry(**entry) for entry in data["memory"]]
+            data.pop("memory")  # Удаляем из data, инициализируем отдельно
+        
+        state = SelfState(**data)
+        # Загружаем архив при загрузке snapshot
+        state.archive_memory = ArchiveMemory()
+        state.archive_memory._load_archive()
+        # Инициализируем memory с архивом и загруженными записями
+        state.memory = Memory(archive=state.archive_memory)
+        for entry in memory_entries:
+            state.memory.append(entry)
+        return state
     else:
         raise FileNotFoundError(f"Snapshot {tick} не найден")

@@ -1,3 +1,3 @@
-from src.learning.learning import LearningEngine
+from learning.learning import LearningEngine
 
 __all__ = ["LearningEngine"]
