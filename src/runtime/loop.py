@@ -1,3 +1,4 @@
+import copy
 import time
 import traceback
 from dataclasses import asdict
@@ -12,6 +13,7 @@ from meaning.engine import MeaningEngine
 from memory.memory import MemoryEntry
 from planning.planning import record_potential_sequences
 from state.self_state import SelfState, save_snapshot
+from src.adaptation.adaptation import AdaptationManager
 
 
 def run_loop(
@@ -36,6 +38,8 @@ def run_loop(
     engine = MeaningEngine()
     learning_engine = LearningEngine()  # Learning Engine (Этап 14)
     learning_interval = 75  # Вызов Learning раз в 75 тиков (между 50-100)
+    adaptation_manager = AdaptationManager()  # Adaptation Manager (Этап 15)
+    adaptation_interval = 100  # Вызов Adaptation раз в 100 тиков (реже чем Learning)
     last_time = time.time()
     pending_actions = []  # Список ожидающих Feedback действий
     while stop_event is None or not stop_event.is_set():
@@ -159,6 +163,57 @@ def run_loop(
                         )
                 except Exception as e:
                     print(f"Ошибка в Learning: {e}")
+                    traceback.print_exc()
+
+            # Adaptation (Этап 15) - медленная перестройка поведения на основе статистики Learning
+            # Вызывается раз в adaptation_interval тиков, после Learning, перед Planning/Intelligence
+            if self_state.ticks > 0 and self_state.ticks % adaptation_interval == 0:
+                try:
+                    # Анализируем изменения от Learning
+                    analysis = adaptation_manager.analyze_changes(
+                        self_state.learning_params,
+                        self_state.adaptation_history,
+                    )
+
+                    # Получаем текущие параметры поведения (глубокая копия для истории)
+                    # Поля уже определены в SelfState с default_factory, поэтому всегда существуют
+                    old_behavior_params = copy.deepcopy(self_state.adaptation_params)
+
+                    # Применяем адаптацию (медленная перестройка поведения)
+                    new_behavior_params = adaptation_manager.apply_adaptation(
+                        analysis, old_behavior_params, self_state
+                    )
+
+                    # Сохраняем историю и обновляем параметры
+                    if new_behavior_params:
+                        # Глубокое объединение параметров в SelfState
+                        # Гарантируем, что все существующие параметры сохраняются
+                        for key, new_value_dict in new_behavior_params.items():
+                            if key not in self_state.adaptation_params:
+                                # Новый параметр - копируем полностью
+                                self_state.adaptation_params[key] = copy.deepcopy(
+                                    new_value_dict
+                                )
+                            else:
+                                # Существующий параметр - глубокое объединение
+                                current_value_dict = self_state.adaptation_params[key]
+                                if isinstance(new_value_dict, dict) and isinstance(
+                                    current_value_dict, dict
+                                ):
+                                    # Обновляем только измененные параметры, сохраняя остальные
+                                    for param_name, new_value in new_value_dict.items():
+                                        current_value_dict[param_name] = new_value
+                                    # Не перезаписываем весь словарь, чтобы сохранить ключи,
+                                    # которые не были в new_value_dict
+
+                        # Сохраняем историю адаптаций с актуальными старыми параметрами
+                        adaptation_manager.store_history(
+                            old_behavior_params,
+                            new_behavior_params,
+                            self_state,
+                        )
+                except Exception as e:
+                    print(f"Ошибка в Adaptation: {e}")
                     traceback.print_exc()
 
             # Логика слабости: когда параметры низкие, добавляем штрафы за немощность

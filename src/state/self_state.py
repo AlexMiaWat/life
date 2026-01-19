@@ -57,6 +57,32 @@ class SelfState:
             },
         }
     )  # Параметры для Learning (Этап 14)
+    adaptation_params: dict = field(
+        default_factory=lambda: {
+            "behavior_sensitivity": {
+                "noise": 0.2,
+                "decay": 0.2,
+                "recovery": 0.2,
+                "shock": 0.2,
+                "idle": 0.2,
+            },
+            "behavior_thresholds": {
+                "noise": 0.1,
+                "decay": 0.1,
+                "recovery": 0.1,
+                "shock": 0.1,
+                "idle": 0.1,
+            },
+            "behavior_coefficients": {
+                "dampen": 0.5,
+                "absorb": 1.0,
+                "ignore": 0.0,
+            },
+        }
+    )  # Параметры поведения для Adaptation (Этап 15)
+    adaptation_history: list = field(
+        default_factory=list
+    )  # История адаптаций для обратимости (Этап 15)
 
     def apply_delta(self, deltas: dict[str, float]) -> None:
         for key, delta in deltas.items():
