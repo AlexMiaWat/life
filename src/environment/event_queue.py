@@ -18,8 +18,7 @@ class EventQueue:
             # Логируем потерю события вместо молчаливого игнорирования
             self._dropped_events_count += 1
             logger.warning(
-                f"EventQueue переполнена, событие потеряно (тип: {event.type}, "
-                f"интенсивность: {event.intensity}). Всего потеряно: {self._dropped_events_count}"
+                f"EventQueue full, event dropped (type: {event.type}, count: {self._dropped_events_count})"
             )
 
     def pop(self) -> Event | None:
@@ -56,16 +55,16 @@ class EventQueue:
                 # Очередь пуста, выходим из цикла
                 break
         return events
-    
+
     def get_dropped_events_count(self) -> int:
         """
         Получить количество потерянных событий.
-        
+
         Returns:
             int: количество событий, потерянных из-за переполнения очереди
         """
         return self._dropped_events_count
-    
+
     def reset_dropped_events_count(self) -> None:
         """Сбросить счетчик потерянных событий."""
         self._dropped_events_count = 0

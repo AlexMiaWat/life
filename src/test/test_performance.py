@@ -2,6 +2,7 @@
 Тесты производительности (benchmarks) - ROADMAP T.10
 
 Тесты проверяют производительность различных компонентов системы.
+Включают проверку на регрессии с использованием baseline значений.
 """
 
 import sys
@@ -20,6 +21,10 @@ from src.environment.event_queue import EventQueue
 from src.memory.memory import Memory, MemoryEntry
 from src.runtime.loop import run_loop
 from src.state.self_state import SelfState
+from src.test.performance_baseline import (
+    performance_baseline,
+    update_baseline_if_needed,
+)
 
 
 def dummy_monitor(state):
@@ -47,10 +52,27 @@ class TestPerformanceBenchmarks:
             memory.append(entry)
         elapsed = time.time() - start_time
 
+        # Обновляем baseline если нужно
+        update_baseline_if_needed(
+            "test_memory_append_performance", {"elapsed": elapsed}
+        )
+
+        # Проверяем на регрессию
+        regression_check = performance_baseline.check_regression(
+            "test_memory_append_performance", "elapsed", elapsed, threshold_percent=15.0
+        )
+
+        # Логируем результат
+        print(regression_check["message"])
+
         # Проверяем производительность: должно быть < 0.1 секунды на 1000 записей
         assert (
             elapsed < 0.1
         ), f"Memory append too slow: {elapsed:.3f}s for {num_entries} entries"
+
+        # Проверяем на регрессию
+        assert not regression_check["is_regression"], regression_check["message"]
+
         assert len(memory) == 50  # Размер ограничен
 
     def test_memory_iteration_performance(self):
@@ -99,11 +121,39 @@ class TestPerformanceBenchmarks:
         events = queue.pop_all()
         pop_elapsed = time.time() - start_time
 
+        # Обновляем baseline
+        update_baseline_if_needed(
+            "test_event_queue_performance",
+            {"push_elapsed": push_elapsed, "pop_elapsed": pop_elapsed},
+        )
+
+        # Проверяем на регрессии
+        push_regression = performance_baseline.check_regression(
+            "test_event_queue_performance",
+            "push_elapsed",
+            push_elapsed,
+            threshold_percent=25.0,
+        )
+        pop_regression = performance_baseline.check_regression(
+            "test_event_queue_performance",
+            "pop_elapsed",
+            pop_elapsed,
+            threshold_percent=15.0,
+        )
+
+        # Логируем результаты
+        print(push_regression["message"])
+        print(pop_regression["message"])
+
         assert len(events) == num_events
         # Push должен быть быстрым (< 0.1 секунды на 1000 событий)
         assert push_elapsed < 0.1, f"EventQueue push too slow: {push_elapsed:.3f}s"
         # Pop_all должен быть быстрым (< 0.01 секунды)
         assert pop_elapsed < 0.01, f"EventQueue pop_all too slow: {pop_elapsed:.3f}s"
+
+        # Проверяем на регрессии
+        assert not push_regression["is_regression"], push_regression["message"]
+        assert not pop_regression["is_regression"], pop_regression["message"]
 
     def test_self_state_apply_delta_performance(self):
         """Benchmark: производительность apply_delta в SelfState"""
@@ -171,10 +221,29 @@ class TestPerformanceBenchmarks:
         ticks_done = state.ticks - initial_ticks
         ticks_per_second = ticks_done / elapsed if elapsed > 0 else 0
 
+        # Обновляем baseline
+        update_baseline_if_needed(
+            "test_runtime_loop_ticks_per_second", {"ticks_per_second": ticks_per_second}
+        )
+
+        # Проверяем на регрессию
+        regression_check = performance_baseline.check_regression(
+            "test_runtime_loop_ticks_per_second",
+            "ticks_per_second",
+            ticks_per_second,
+            threshold_percent=10.0,
+        )
+
+        # Логируем результат
+        print(regression_check["message"])
+
         # Должно быть минимум 100 тиков в секунду при интервале 0.01
         assert (
             ticks_per_second >= 100
         ), f"Loop too slow: {ticks_per_second:.1f} ticks/sec (expected >= 100)"
+
+        # Проверяем на регрессию
+        assert not regression_check["is_regression"], regression_check["message"]
 
     def test_memory_search_performance(self):
         """Benchmark: производительность поиска в Memory"""
@@ -477,6 +546,145 @@ class TestPerformanceBenchmarks:
         assert hasattr(state, "adaptation_params")
         assert isinstance(state.learning_params, dict)
         assert isinstance(state.adaptation_params, dict)
+
+    def test_event_queue_overflow_performance(self):
+        """Benchmark: производительность EventQueue при переполнении"""
+        queue = EventQueue()
+        # Маленькая очередь для тестирования переполнения
+        import queue as queue_module
+
+        queue._queue = queue_module.Queue(maxsize=10)
+        num_events = 50  # Больше максимального размера
+
+        start_time = time.time()
+        for i in range(num_events):
+            event = Event(
+                type=f"event_{i % 5}", intensity=0.5, timestamp=time.time() + i
+            )
+            queue.push(event)  # Должен логировать переполнение для некоторых событий
+        overflow_elapsed = time.time() - start_time
+
+        # Обновляем baseline
+        update_baseline_if_needed(
+            "test_event_queue_overflow_performance",
+            {"overflow_elapsed": overflow_elapsed},
+        )
+
+        # Проверяем на регрессии
+        overflow_regression = performance_baseline.check_regression(
+            "test_event_queue_overflow_performance",
+            "overflow_elapsed",
+            overflow_elapsed,
+            threshold_percent=25.0,
+        )
+
+        # Логируем результаты
+        print(overflow_regression["message"])
+
+        # Проверяем на регрессии
+        assert not overflow_regression["is_regression"], overflow_regression["message"]
+
+        # Проверяем, что некоторые события были потеряны
+        assert (
+            queue._dropped_events_count > 0
+        ), "Expected some events to be dropped due to overflow"
+
+    def test_subjective_time_performance(self):
+        """Benchmark: влияние субъективного времени на производительность"""
+        state = SelfState()
+        num_operations = 5000
+
+        # Тест с нормальным субъективным временем
+        start_time = time.time()
+        for i in range(num_operations):
+            # Имитируем работу MeaningEngine с субъективным временем
+            time_ratio = state.subjective_time / state.age if state.age > 0 else 1.0
+            significance = 0.5
+            if time_ratio > 1.1:
+                significance *= 1.3
+            elif time_ratio < 0.9:
+                significance *= 0.8
+            # Обновляем состояние
+            state.apply_delta({"subjective_time": 0.001})
+        normal_elapsed = time.time() - start_time
+
+        # Обновляем baseline
+        update_baseline_if_needed(
+            "test_subjective_time_performance", {"normal_elapsed": normal_elapsed}
+        )
+
+        # Проверяем на регрессии
+        normal_regression = performance_baseline.check_regression(
+            "test_subjective_time_performance",
+            "normal_elapsed",
+            normal_elapsed,
+            threshold_percent=20.0,
+        )
+
+        # Логируем результаты
+        print(normal_regression["message"])
+
+        # Проверяем на регрессии
+        assert not normal_regression["is_regression"], normal_regression["message"]
+
+    def test_memory_subjective_timestamp_performance(self):
+        """Benchmark: производительность Memory с субъективными timestamp"""
+        memory = Memory()
+        num_entries = 1000
+
+        start_time = time.time()
+        for i in range(num_entries):
+            entry = MemoryEntry(
+                event_type=f"event_{i % 10}",
+                meaning_significance=0.5,
+                timestamp=time.time() + i,
+                subjective_timestamp=float(i),  # Субъективное время
+            )
+            memory.append(entry)
+        memory_elapsed = time.time() - start_time
+
+        # Тест поиска по субъективному времени (пока не реализован, но измеряем базовую производительность)
+        search_start = time.time()
+        # Имитируем поиск (пока просто итерация)
+        count = sum(
+            1
+            for entry in memory
+            if entry.subjective_timestamp and entry.subjective_timestamp > 500
+        )
+        search_elapsed = time.time() - search_start
+
+        # Обновляем baseline
+        update_baseline_if_needed(
+            "test_memory_subjective_timestamp_performance",
+            {"memory_elapsed": memory_elapsed, "search_elapsed": search_elapsed},
+        )
+
+        # Проверяем на регрессии
+        memory_regression = performance_baseline.check_regression(
+            "test_memory_subjective_timestamp_performance",
+            "memory_elapsed",
+            memory_elapsed,
+            threshold_percent=20.0,
+        )
+        search_regression = performance_baseline.check_regression(
+            "test_memory_subjective_timestamp_performance",
+            "search_elapsed",
+            search_elapsed,
+            threshold_percent=20.0,
+        )
+
+        # Логируем результаты
+        print(memory_regression["message"])
+        print(search_regression["message"])
+
+        # Проверяем на регрессии
+        assert not memory_regression["is_regression"], memory_regression["message"]
+        assert not search_regression["is_regression"], search_regression["message"]
+
+        # Проверяем результаты
+        assert (
+            count > 0
+        ), "Expected to find some entries with subjective_timestamp > 500"
 
 
 if __name__ == "__main__":

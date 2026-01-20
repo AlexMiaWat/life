@@ -457,6 +457,14 @@ class TestArchiveMemory:
         # Убедимся, что файл не существует
         if archive_file.exists():
             archive_file.unlink()
+
+        # Также очистим дефолтный файл архива, чтобы избежать загрязнения
+        from pathlib import Path
+
+        default_archive = Path("data/archive/memory_archive.json")
+        if default_archive.exists():
+            default_archive.unlink()
+
         archive = ArchiveMemory(
             archive_file=archive_file, load_existing=False, ignore_existing_file=True
         )
@@ -627,6 +635,14 @@ class TestMemoryArchive:
         # Убедимся, что файл не существует
         if archive_file.exists():
             archive_file.unlink()
+
+        # Также очистим дефолтный файл архива
+        from pathlib import Path
+
+        default_archive = Path("data/archive/memory_archive.json")
+        if default_archive.exists():
+            default_archive.unlink()
+
         archive = ArchiveMemory(
             archive_file=archive_file, load_existing=False, ignore_existing_file=True
         )
@@ -776,6 +792,14 @@ class TestMemoryStatistics:
         # Убедимся, что файл не существует
         if archive_file.exists():
             archive_file.unlink()
+
+        # Также очистим дефолтный файл архива
+        from pathlib import Path
+
+        default_archive = Path("data/archive/memory_archive.json")
+        if default_archive.exists():
+            default_archive.unlink()
+
         archive = ArchiveMemory(
             archive_file=archive_file, load_existing=False, ignore_existing_file=True
         )

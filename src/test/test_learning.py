@@ -707,21 +707,19 @@ class TestLearningStatic:
 
     def test_method_signatures(self):
         """Проверка сигнатур методов"""
-        engine = LearningEngine()
-
-        # process_statistics
-        sig = inspect.signature(engine.process_statistics)
+        # process_statistics (проверяем unbound сигнатуру)
+        sig = inspect.signature(LearningEngine.process_statistics)
         assert len(sig.parameters) == 2  # self + memory
         assert "memory" in sig.parameters
 
-        # adjust_parameters
-        sig = inspect.signature(engine.adjust_parameters)
+        # adjust_parameters (проверяем unbound сигнатуру)
+        sig = inspect.signature(LearningEngine.adjust_parameters)
         assert len(sig.parameters) == 3  # self + statistics + current_params
         assert "statistics" in sig.parameters
         assert "current_params" in sig.parameters
 
-        # record_changes
-        sig = inspect.signature(engine.record_changes)
+        # record_changes (проверяем unbound сигнатуру)
+        sig = inspect.signature(LearningEngine.record_changes)
         assert len(sig.parameters) == 4  # self + old_params + new_params + self_state
         assert "old_params" in sig.parameters
         assert "new_params" in sig.parameters

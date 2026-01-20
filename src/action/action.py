@@ -13,7 +13,10 @@ def execute_action(pattern: str, self_state):
     """
     # Record action in memory
     action_entry = MemoryEntry(
-        event_type="action", meaning_significance=0.0, timestamp=time.time()
+        event_type="action",
+        meaning_significance=0.0,
+        timestamp=time.time(),
+        subjective_timestamp=self_state.subjective_time,
     )
     self_state.memory.append(action_entry)
 

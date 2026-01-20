@@ -28,6 +28,9 @@
 ### [Performance Profiling](performance_profiling.md)
 Система профилирования производительности runtime loop с использованием cProfile и анализ baseline результатов.
 
+### [Performance Regression Testing](performance_regression_testing.md)
+Автоматизированная система проверки регрессий производительности с baseline значениями и автоматическим обнаружением ухудшения производительности.
+
 ## Возможности
 
 - **Структурированное логирование**: JSONL формат для машинной обработки
