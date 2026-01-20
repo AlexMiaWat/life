@@ -30,8 +30,12 @@ def monitor(state: SelfState, log_file_path: Path = None):
     if log_file_path is None:
         log_file_path = LOG_FILE
 
+    # Убедимся, что директория существует
+    log_file_path.parent.mkdir(parents=True, exist_ok=True)
+
     ticks = state.ticks
     age = state.age
+    subjective_time = state.subjective_time
     energy = state.energy
     integrity = state.integrity
     stability = state.stability
@@ -45,7 +49,7 @@ def monitor(state: SelfState, log_file_path: Path = None):
 
     # Цветной структурированный вывод состояния в консоль
     heartbeat = f"{Fore.RED}*{Style.RESET_ALL}"
-    возраст_txt = f"{Fore.BLUE}возраст: {age:.1f} сек. {Style.RESET_ALL}"
+    возраст_txt = f"{Fore.BLUE}возраст: {age:.1f}/{subjective_time:.1f} сек. {Style.RESET_ALL}"
     энергия_txt = f"{Fore.GREEN}энергия: {energy:.1f} %{Style.RESET_ALL}"
     интеллект_txt = f"{Fore.YELLOW}интеллект: {integrity:.4f}{Style.RESET_ALL}"
     стабильность_txt = f"{Fore.CYAN}стабильность: {stability:.4f}{Style.RESET_ALL}"
@@ -63,6 +67,7 @@ def monitor(state: SelfState, log_file_path: Path = None):
     tick_data = {
         "tick": ticks,
         "age": age,
+        "subjective_time": subjective_time,
         "energy": energy,
         "integrity": integrity,
         "stability": stability,

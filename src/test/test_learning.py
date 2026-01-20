@@ -9,6 +9,7 @@ Unit-тесты для модуля Learning (Этап 14)
 """
 
 import inspect
+import json
 import sys
 import time
 from pathlib import Path
@@ -709,18 +710,18 @@ class TestLearningStatic:
 
         # process_statistics
         sig = inspect.signature(engine.process_statistics)
-        assert len(sig.parameters) == 2  # self + memory
+        assert len(sig.parameters) == 1  # memory (self не считается для bound метода)
         assert "memory" in sig.parameters
 
         # adjust_parameters
         sig = inspect.signature(engine.adjust_parameters)
-        assert len(sig.parameters) == 3  # self + statistics + current_params
+        assert len(sig.parameters) == 2  # statistics + current_params (self не считается для bound метода)
         assert "statistics" in sig.parameters
         assert "current_params" in sig.parameters
 
         # record_changes
         sig = inspect.signature(engine.record_changes)
-        assert len(sig.parameters) == 4  # self + old_params + new_params + self_state
+        assert len(sig.parameters) == 3  # old_params + new_params + self_state (self не считается для bound метода)
         assert "old_params" in sig.parameters
         assert "new_params" in sig.parameters
         assert "self_state" in sig.parameters

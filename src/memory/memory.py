@@ -17,6 +17,7 @@ class MemoryEntry:
     feedback_data: Optional[
         Dict
     ] = None  # Для Feedback записей (сериализованный FeedbackRecord)
+    subjective_timestamp: Optional[float] = None  # Субъективное время в момент создания записи
 
 
 class ArchiveMemory:

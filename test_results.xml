@@ -1,20 +1,1506 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="1" failures="2" skipped="4" tests="331" time="70.358" timestamp="2026-01-20T15:14:47.698439+00:00" hostname="a19b1fac3332"><properties><property name="hypothesis-statistics-src/test/test_property_based.py::TestSelfStatePropertyBased::test_state_parameters_always_in_bounds" value="c3JjL3Rlc3QvdGVzdF9wcm9wZXJ0eV9iYXNlZC5weTo6VGVzdFNlbGZTdGF0ZVByb3BlcnR5QmFzZWQ6OnRlc3Rfc3RhdGVfcGFyYW1ldGVyc19hbHdheXNfaW5fYm91bmRzOgoKICAtIGR1cmluZyBnZW5lcmF0ZSBwaGFzZSAoMS44NiBzZWNvbmRzKToKICAgIC0gVHlwaWNhbCBydW50aW1lczogfiA1LTYgbXMsIG9mIHdoaWNoIDwgMW1zIGluIGRhdGEgZ2VuZXJhdGlvbgogICAgLSAxMDAgcGFzc2luZyBleGFtcGxlcywgMCBmYWlsaW5nIGV4YW1wbGVzLCAwIGludmFsaWQgZXhhbXBsZXMKCiAgLSBTdG9wcGVkIGJlY2F1c2Ugc2V0dGluZ3MubWF4X2V4YW1wbGVzPTEwMA==" /><property name="hypothesis-statistics-src/test/test_property_based.py::TestSelfStatePropertyBased::test_apply_delta_always_clamps" value="c3JjL3Rlc3QvdGVzdF9wcm9wZXJ0eV9iYXNlZC5weTo6VGVzdFNlbGZTdGF0ZVByb3BlcnR5QmFzZWQ6OnRlc3RfYXBwbHlfZGVsdGFfYWx3YXlzX2NsYW1wczoKCiAgLSBkdXJpbmcgZ2VuZXJhdGUgcGhhc2UgKDAuNjIgc2Vjb25kcyk6CiAgICAtIFR5cGljYWwgcnVudGltZXM6IH4gNS02IG1zLCBvZiB3aGljaCA8IDFtcyBpbiBkYXRhIGdlbmVyYXRpb24KICAgIC0gMTAwIHBhc3NpbmcgZXhhbXBsZXMsIDAgZmFpbGluZyBleGFtcGxlcywgMCBpbnZhbGlkIGV4YW1wbGVzCgogIC0gU3RvcHBlZCBiZWNhdXNlIHNldHRpbmdzLm1heF9leGFtcGxlcz0xMDA=" /><property name="hypothesis-statistics-src/test/test_property_based.py::TestSelfStatePropertyBased::test_energy_delta_idempotent" value="c3JjL3Rlc3QvdGVzdF9wcm9wZXJ0eV9iYXNlZC5weTo6VGVzdFNlbGZTdGF0ZVByb3BlcnR5QmFzZWQ6OnRlc3RfZW5lcmd5X2RlbHRhX2lkZW1wb3RlbnQ6CgogIC0gZHVyaW5nIGdlbmVyYXRlIHBoYXNlICgxLjE3IHNlY29uZHMpOgogICAgLSBUeXBpY2FsIHJ1bnRpbWVzOiB+IDktMTMgbXMsIG9mIHdoaWNoIDwgMW1zIGluIGRhdGEgZ2VuZXJhdGlvbgogICAgLSAxMDAgcGFzc2luZyBleGFtcGxlcywgMCBmYWlsaW5nIGV4YW1wbGVzLCAwIGludmFsaWQgZXhhbXBsZXMKCiAgLSBTdG9wcGVkIGJlY2F1c2Ugc2V0dGluZ3MubWF4X2V4YW1wbGVzPTEwMA==" /><property name="hypothesis-statistics-src/test/test_property_based.py::TestMemoryPropertyBased::test_memory_size_always_limited" value="c3JjL3Rlc3QvdGVzdF9wcm9wZXJ0eV9iYXNlZC5weTo6VGVzdE1lbW9yeVByb3BlcnR5QmFzZWQ6OnRlc3RfbWVtb3J5X3NpemVfYWx3YXlzX2xpbWl0ZWQ6CgogIC0gZHVyaW5nIGdlbmVyYXRlIHBoYXNlICgwLjczIHNlY29uZHMpOgogICAgLSBUeXBpY2FsIHJ1bnRpbWVzOiB+IDUtOCBtcywgb2Ygd2hpY2ggPCAxbXMgaW4gZGF0YSBnZW5lcmF0aW9uCiAgICAtIDEwMCBwYXNzaW5nIGV4YW1wbGVzLCAwIGZhaWxpbmcgZXhhbXBsZXMsIDAgaW52YWxpZCBleGFtcGxlcwoKICAtIFN0b3BwZWQgYmVjYXVzZSBzZXR0aW5ncy5tYXhfZXhhbXBsZXM9MTAw" /><property name="hypothesis-statistics-src/test/test_property_based.py::TestMemoryPropertyBased::test_memory_preserves_order" value="c3JjL3Rlc3QvdGVzdF9wcm9wZXJ0eV9iYXNlZC5weTo6VGVzdE1lbW9yeVByb3BlcnR5QmFzZWQ6OnRlc3RfbWVtb3J5X3ByZXNlcnZlc19vcmRlcjoKCiAgLSBkdXJpbmcgZ2VuZXJhdGUgcGhhc2UgKDAuNzcgc2Vjb25kcyk6CiAgICAtIFR5cGljYWwgcnVudGltZXM6IH4gMS04IG1zLCBvZiB3aGljaCB+IDAtMiBtcyBpbiBkYXRhIGdlbmVyYXRpb24KICAgIC0gMTAwIHBhc3NpbmcgZXhhbXBsZXMsIDAgZmFpbGluZyBleGFtcGxlcywgMTAgaW52YWxpZCBleGFtcGxlcwoKICAtIFN0b3BwZWQgYmVjYXVzZSBzZXR0aW5ncy5tYXhfZXhhbXBsZXM9MTAw" /><property name="hypothesis-statistics-src/test/test_property_based.py::TestMemoryPropertyBased::test_memory_append_idempotent" value="c3JjL3Rlc3QvdGVzdF9wcm9wZXJ0eV9iYXNlZC5weTo6VGVzdE1lbW9yeVByb3BlcnR5QmFzZWQ6OnRlc3RfbWVtb3J5X2FwcGVuZF9pZGVtcG90ZW50OgoKICAtIGR1cmluZyByZXVzZSBwaGFzZSAoMC41NyBzZWNvbmRzKToKICAgIC0gVHlwaWNhbCBydW50aW1lczogfiA1MTRtcywgb2Ygd2hpY2ggPCAxbXMgaW4gZGF0YSBnZW5lcmF0aW9uCiAgICAtIDAgcGFzc2luZyBleGFtcGxlcywgMSBmYWlsaW5nIGV4YW1wbGVzLCAwIGludmFsaWQgZXhhbXBsZXMKICAgIC0gRm91bmQgMSBkaXN0aW5jdCBlcnJvciBpbiB0aGlzIHBoYXNlCgogIC0gU3RvcHBlZCBiZWNhdXNlIG5vdGhpbmcgbGVmdCB0byBkbw==" /><property name="hypothesis-statistics-src/test/test_property_based.py::TestMemoryEntryPropertyBased::test_memory_entry_creation" value="c3JjL3Rlc3QvdGVzdF9wcm9wZXJ0eV9iYXNlZC5weTo6VGVzdE1lbW9yeUVudHJ5UHJvcGVydHlCYXNlZDo6dGVzdF9tZW1vcnlfZW50cnlfY3JlYXRpb246CgogIC0gZHVyaW5nIGdlbmVyYXRlIHBoYXNlICgwLjE4IHNlY29uZHMpOgogICAgLSBUeXBpY2FsIHJ1bnRpbWVzOiB+IDAtMSBtcywgb2Ygd2hpY2ggPCAxbXMgaW4gZGF0YSBnZW5lcmF0aW9uCiAgICAtIDEwMCBwYXNzaW5nIGV4YW1wbGVzLCAwIGZhaWxpbmcgZXhhbXBsZXMsIDAgaW52YWxpZCBleGFtcGxlcwoKICAtIFN0b3BwZWQgYmVjYXVzZSBzZXR0aW5ncy5tYXhfZXhhbXBsZXM9MTAw" /><property name="hypothesis-statistics-src/test/test_property_based.py::TestMemoryEntryPropertyBased::test_memory_entry_with_feedback" value="c3JjL3Rlc3QvdGVzdF9wcm9wZXJ0eV9iYXNlZC5weTo6VGVzdE1lbW9yeUVudHJ5UHJvcGVydHlCYXNlZDo6dGVzdF9tZW1vcnlfZW50cnlfd2l0aF9mZWVkYmFjazoKCiAgLSBkdXJpbmcgZ2VuZXJhdGUgcGhhc2UgKDAuMzMgc2Vjb25kcyk6CiAgICAtIFR5cGljYWwgcnVudGltZXM6IH4gMC00IG1zLCBvZiB3aGljaCB+IDAtMyBtcyBpbiBkYXRhIGdlbmVyYXRpb24KICAgIC0gMTAwIHBhc3NpbmcgZXhhbXBsZXMsIDAgZmFpbGluZyBleGFtcGxlcywgMjIgaW52YWxpZCBleGFtcGxlcwogICAgLSBFdmVudHM6CiAgICAgICogMzEuOTclLCBSZXRyaWVkIGRyYXcgZnJvbSB0ZXh0KGNoYXJhY3RlcnMoY29kZWM9J3V0Zi04JyksIG1pbl9zaXplPTEsIG1heF9zaXplPTEwKS5maWx0ZXIobm90X3lldF9pbl91bmlxdWVfbGlzdCkgdG8gc2F0aXNmeSBmaWx0ZXIKCiAgLSBTdG9wcGVkIGJlY2F1c2Ugc2V0dGluZ3MubWF4X2V4YW1wbGVzPTEwMA==" /></properties><testcase classname="src.test.test_action.TestExecuteAction" name="test_execute_action_dampen" time="0.006" /><testcase classname="src.test.test_action.TestExecuteAction" name="test_execute_action_dampen_energy_minimum" time="0.006" /><testcase classname="src.test.test_action.TestExecuteAction" name="test_execute_action_absorb" time="0.006" /><testcase classname="src.test.test_action.TestExecuteAction" name="test_execute_action_ignore" time="0.006" /><testcase classname="src.test.test_action.TestExecuteAction" name="test_execute_action_memory_entry_timestamp" time="0.005" /><testcase classname="src.test.test_action.TestExecuteAction" name="test_execute_action_multiple_actions" time="0.006" /><testcase classname="src.test.test_action.TestExecuteAction" name="test_execute_action_dampen_multiple_times" time="0.005" /><testcase classname="src.test.test_action.TestExecuteAction" name="test_execute_action_unknown_pattern" time="0.006" /><testcase classname="src.test.test_action.TestExecuteAction" name="test_execute_action_preserves_other_state" time="0.005" /><testcase classname="src.test.test_action.TestExecuteAction" name="test_execute_action_memory_entry_significance" time="0.006" /><testcase classname="src.test.test_action.TestExecuteAction" name="test_execute_action_empty_memory" time="0.006" /><testcase classname="src.test.test_action.TestExecuteAction" name="test_execute_action_with_existing_memory" time="0.344" /><testcase classname="src.test.test_activation.TestActivateMemory" name="test_activate_memory_empty_memory" time="0.001" /><testcase classname="src.test.test_activation.TestActivateMemory" name="test_activate_memory_no_matches" time="0.001" /><testcase classname="src.test.test_activation.TestActivateMemory" name="test_activate_memory_single_match" time="0.001" /><testcase classname="src.test.test_activation.TestActivateMemory" name="test_activate_memory_multiple_matches" time="0.001" /><testcase classname="src.test.test_activation.TestActivateMemory" name="test_activate_memory_sorted_by_significance" time="0.001" /><testcase classname="src.test.test_activation.TestActivateMemory" name="test_activate_memory_limit_default" time="0.001" /><testcase classname="src.test.test_activation.TestActivateMemory" name="test_activate_memory_custom_limit" time="0.001" /><testcase classname="src.test.test_activation.TestActivateMemory" name="test_activate_memory_limit_one" time="0.001" /><testcase classname="src.test.test_activation.TestActivateMemory" name="test_activate_memory_limit_zero" time="0.001" /><testcase classname="src.test.test_activation.TestActivateMemory" name="test_activate_memory_preserves_original_memory" time="0.001" /><testcase classname="src.test.test_activation.TestActivateMemory" name="test_activate_memory_different_event_types" time="0.001" /><testcase classname="src.test.test_activation.TestActivateMemory" name="test_activate_memory_with_feedback_entries" time="0.001" /><testcase classname="src.test.test_activation.TestActivateMemory" name="test_activate_memory_equal_significance" time="0.001" /><testcase classname="src.test.test_decision.TestDecideResponse" name="test_decide_dampen_high_activated_memory" time="0.006" /><testcase classname="src.test.test_decision.TestDecideResponse" name="test_decide_dampen_max_significance_above_threshold" time="0.005" /><testcase classname="src.test.test_decision.TestDecideResponse" name="test_decide_dampen_max_significance_at_threshold" time="0.006" /><testcase classname="src.test.test_decision.TestDecideResponse" name="test_decide_ignore_low_significance_meaning" time="0.005" /><testcase classname="src.test.test_decision.TestDecideResponse" name="test_decide_ignore_meaning_significance_below_threshold" time="0.006" /><testcase classname="src.test.test_decision.TestDecideResponse" name="test_decide_absorb_normal_conditions" time="0.006" /><testcase classname="src.test.test_decision.TestDecideResponse" name="test_decide_absorb_high_significance_meaning" time="0.006" /><testcase classname="src.test.test_decision.TestDecideResponse" name="test_decide_empty_activated_memory" time="0.005" /><testcase classname="src.test.test_decision.TestDecideResponse" name="test_decide_multiple_activated_memories" time="0.006" /><testcase classname="src.test.test_decision.TestDecideResponse" name="test_decide_activated_memory_max_below_threshold" time="0.005" /><testcase classname="src.test.test_decision.TestDecideResponse" name="test_decide_activated_memory_exactly_at_threshold" time="0.006" /><testcase classname="src.test.test_decision.TestDecideResponse" name="test_decide_meaning_significance_at_threshold" time="0.006" /><testcase classname="src.test.test_decision.TestDecideResponse" name="test_decide_different_event_types_in_memory" time="0.005" /><testcase classname="src.test.test_decision.TestDecideResponse" name="test_decide_consistency" time="0.006" /><testcase classname="src.test.test_environment.TestEvent" name="test_event_creation_minimal" time="0.001" /><testcase classname="src.test.test_environment.TestEvent" name="test_event_creation_with_metadata" time="0.001" /><testcase classname="src.test.test_environment.TestEvent" name="test_event_creation_with_none_metadata" time="0.001" /><testcase classname="src.test.test_environment.TestEvent" name="test_event_different_types" time="0.001" /><testcase classname="src.test.test_environment.TestEvent" name="test_event_intensity_range" time="0.001" /><testcase classname="src.test.test_environment.TestEvent" name="test_event_timestamp" time="0.001" /><testcase classname="src.test.test_environment.TestEvent" name="test_event_custom_timestamp" time="0.001" /><testcase classname="src.test.test_environment.TestEventQueue" name="test_queue_initialization" time="0.001" /><testcase classname="src.test.test_environment.TestEventQueue" name="test_queue_push_single" time="0.001" /><testcase classname="src.test.test_environment.TestEventQueue" name="test_queue_push_multiple" time="0.001" /><testcase classname="src.test.test_environment.TestEventQueue" name="test_queue_pop_single" time="0.001" /><testcase classname="src.test.test_environment.TestEventQueue" name="test_queue_pop_empty" time="0.001" /><testcase classname="src.test.test_environment.TestEventQueue" name="test_queue_pop_fifo_order" time="0.001" /><testcase classname="src.test.test_environment.TestEventQueue" name="test_queue_pop_all_empty" time="0.001" /><testcase classname="src.test.test_environment.TestEventQueue" name="test_queue_pop_all_single" time="0.001" /><testcase classname="src.test.test_environment.TestEventQueue" name="test_queue_pop_all_multiple" time="0.001" /><testcase classname="src.test.test_environment.TestEventQueue" name="test_queue_pop_all_fifo_order" time="0.001" /><testcase classname="src.test.test_environment.TestEventQueue" name="test_queue_size_after_operations" time="0.001" /><testcase classname="src.test.test_environment.TestEventQueue" name="test_queue_is_empty_after_operations" time="0.001" /><testcase classname="src.test.test_environment.TestEventQueue" name="test_queue_push_after_pop_all" time="0.001" /><testcase classname="src.test.test_environment.TestEventQueue" name="test_queue_maxsize_behavior" time="0.001" /><testcase classname="src.test.test_environment.TestEventQueue" name="test_queue_mixed_operations" time="0.001" /><testcase classname="src.test.test_environment.TestEventQueue" name="test_queue_different_event_types" time="0.001" /><testcase classname="src.test.test_event_queue_edge_cases.TestEventQueueEdgeCases" name="test_pop_all_with_empty_exception" time="0.001" /><testcase classname="src.test.test_event_queue_race_condition.TestEventQueueRaceCondition" name="test_pop_all_empty_exception_handling" time="0.001" /><testcase classname="src.test.test_event_queue_race_condition.TestEventQueueRaceCondition" name="test_pop_all_concurrent_access" time="0.001" /><testcase classname="src.test.test_feedback.TestRegisterAction" name="test_register_action_basic" time="0.001" /><testcase classname="src.test.test_feedback.TestRegisterAction" name="test_register_action_different_patterns" time="0.001" /><testcase classname="src.test.test_feedback.TestRegisterAction" name="test_register_action_state_copy" time="0.001" /><testcase classname="src.test.test_feedback.TestRegisterAction" name="test_register_action_multiple" time="0.001" /><testcase classname="src.test.test_feedback.TestObserveConsequences" name="test_observe_consequences_with_changes" time="0.006" /><testcase classname="src.test.test_feedback.TestObserveConsequences" name="test_observe_consequences_minimal_changes" time="0.006" /><testcase classname="src.test.test_feedback.TestObserveConsequences" name="test_observe_consequences_timeout" time="0.006" /><testcase classname="src.test.test_feedback.TestObserveConsequences" name="test_multiple_actions" time="0.006" /><testcase classname="src.test.test_feedback.TestObserveConsequences" name="test_observe_consequences_ticks_waited_increment" time="0.005" /><testcase classname="src.test.test_feedback.TestObserveConsequences" name="test_observe_consequences_positive_delta" time="0.005" /><testcase classname="src.test.test_feedback_data" name="test_feedback_data_storage" time="0.006" /><testcase classname="src.test.test_generator.TestEventGenerator" name="test_generator_initialization" time="0.001" /><testcase classname="src.test.test_generator.TestEventGenerator" name="test_generate_returns_event" time="0.001" /><testcase classname="src.test.test_generator.TestEventGenerator" name="test_generate_event_types" time="0.001" /><testcase classname="src.test.test_generator.TestEventGenerator" name="test_generate_noise_intensity_range" time="0.001" /><testcase classname="src.test.test_generator.TestEventGenerator" name="test_generate_decay_intensity_range" time="0.001" /><testcase classname="src.test.test_generator.TestEventGenerator" name="test_generate_recovery_intensity_range" time="0.001" /><testcase classname="src.test.test_generator.TestEventGenerator" name="test_generate_shock_intensity_range" time="0.001" /><testcase classname="src.test.test_generator.TestEventGenerator" name="test_generate_idle_intensity" time="0.001" /><testcase classname="src.test.test_generator.TestEventGenerator" name="test_generate_timestamp" time="0.001" /><testcase classname="src.test.test_generator.TestEventGenerator" name="test_generate_metadata" time="0.001" /><testcase classname="src.test.test_generator.TestEventGenerator" name="test_generate_multiple_events" time="0.001" /><testcase classname="src.test.test_generator.TestEventGenerator" name="test_generate_event_distribution" time="0.004" /><testcase classname="src.test.test_generator.TestEventGenerator" name="test_generate_event_uniqueness" time="0.001" /><testcase classname="src.test.test_generator.TestGeneratorCLI" name="test_send_event_success" time="0.045" /><testcase classname="src.test.test_generator.TestGeneratorCLI" name="test_send_event_connection_error" time="0.001" /><testcase classname="src.test.test_generator.TestGeneratorCLI" name="test_send_event_timeout" time="0.001" /><testcase classname="src.test.test_generator_cli.TestGeneratorCLI" name="test_send_event_success" time="0.001" /><testcase classname="src.test.test_generator_cli.TestGeneratorCLI" name="test_send_event_request_exception" time="0.001" /><testcase classname="src.test.test_generator_cli.TestGeneratorCLI" name="test_send_event_general_exception" time="0.001" /><testcase classname="src.test.test_generator_cli.TestGeneratorCLI" name="test_main_function_basic" time="0.004" /><testcase classname="src.test.test_generator_cli.TestGeneratorCLI" name="test_main_function_send_event_called" time="0.003" /><testcase classname="src.test.test_generator_cli.TestGeneratorCLI" name="test_main_function_send_failure" time="0.004" /><testcase classname="src.test.test_generator_cli.TestGeneratorCLI" name="test_main_function_if_name_main" time="0.004" /><testcase classname="src.test.test_intelligence.TestProcessInformation" name="test_process_information_basic" time="0.006" /><testcase classname="src.test.test_intelligence.TestProcessInformation" name="test_process_information_empty_recent_events" time="0.006" /><testcase classname="src.test.test_intelligence.TestProcessInformation" name="test_process_information_empty_planning" time="0.006" /><testcase classname="src.test.test_intelligence.TestProcessInformation" name="test_process_information_energy_values" time="0.005" /><testcase classname="src.test.test_intelligence.TestProcessInformation" name="test_process_information_stability_values" time="0.006" /><testcase classname="src.test.test_intelligence.TestProcessInformation" name="test_process_information_planning_sequences" time="0.006" /><testcase classname="src.test.test_intelligence.TestProcessInformation" name="test_process_information_preserves_other_fields" time="0.006" /><testcase classname="src.test.test_intelligence.TestProcessInformation" name="test_process_information_multiple_calls" time="0.006" /><testcase classname="src.test.test_intelligence.TestProcessInformation" name="test_process_information_complex_state" time="0.006" /><testcase classname="src.test.test_intelligence.TestProcessInformation" name="test_process_information_planning_without_sequences_key" time="0.005" /><testcase classname="src.test.test_meaning.TestMeaning" name="test_meaning_creation_minimal" time="0.001" /><testcase classname="src.test.test_meaning.TestMeaning" name="test_meaning_creation_full" time="0.001" /><testcase classname="src.test.test_meaning.TestMeaning" name="test_meaning_significance_validation_valid" time="0.001" /><testcase classname="src.test.test_meaning.TestMeaning" name="test_meaning_significance_validation_invalid_negative" time="0.001" /><testcase classname="src.test.test_meaning.TestMeaning" name="test_meaning_significance_validation_invalid_above_one" time="0.001" /><testcase classname="src.test.test_meaning.TestMeaning" name="test_meaning_impact_empty" time="0.001" /><testcase classname="src.test.test_meaning.TestMeaning" name="test_meaning_impact_multiple_params" time="0.001" /><testcase classname="src.test.test_meaning.TestMeaningEngine" name="test_engine_initialization" time="0.001" /><testcase classname="src.test.test_meaning.TestMeaningEngine" name="test_appraisal_shock_event" time="0.001" /><testcase classname="src.test.test_meaning.TestMeaningEngine" name="test_appraisal_noise_event" time="0.001" /><testcase classname="src.test.test_meaning.TestMeaningEngine" name="test_appraisal_intensity_effect" time="0.001" /><testcase classname="src.test.test_meaning.TestMeaningEngine" name="test_appraisal_low_integrity_amplification" time="0.001" /><testcase classname="src.test.test_meaning.TestMeaningEngine" name="test_appraisal_low_stability_amplification" time="0.001" /><testcase classname="src.test.test_meaning.TestMeaningEngine" name="test_appraisal_range_limits" time="0.001" /><testcase classname="src.test.test_meaning.TestMeaningEngine" name="test_impact_model_shock" time="0.001" /><testcase classname="src.test.test_meaning.TestMeaningEngine" name="test_impact_model_recovery" time="0.001" /><testcase classname="src.test.test_meaning.TestMeaningEngine" name="test_impact_model_intensity_scaling" time="0.001" /><testcase classname="src.test.test_meaning.TestMeaningEngine" name="test_impact_model_significance_scaling" time="0.001" /><testcase classname="src.test.test_meaning.TestMeaningEngine" name="test_impact_model_unknown_event_type" time="0.001" /><testcase classname="src.test.test_meaning.TestMeaningEngine" name="test_response_pattern_ignore_low_significance" time="0.001" /><testcase classname="src.test.test_meaning.TestMeaningEngine" name="test_response_pattern_dampen_high_stability" time="0.001" /><testcase classname="src.test.test_meaning.TestMeaningEngine" name="test_response_pattern_amplify_low_stability" time="0.001" /><testcase classname="src.test.test_meaning.TestMeaningEngine" name="test_response_pattern_absorb_normal" time="0.001" /><testcase classname="src.test.test_meaning.TestMeaningEngine" name="test_process_complete_flow" time="0.001" /><testcase classname="src.test.test_meaning.TestMeaningEngine" name="test_process_ignore_pattern" time="0.001" /><testcase classname="src.test.test_meaning.TestMeaningEngine" name="test_process_dampen_pattern" time="0.001" /><testcase classname="src.test.test_meaning.TestMeaningEngine" name="test_process_amplify_pattern" time="0.001" /><testcase classname="src.test.test_memory.TestMemoryEntry" name="test_memory_entry_creation" time="0.001" /><testcase classname="src.test.test_memory.TestMemoryEntry" name="test_memory_entry_with_feedback_data" time="0.001" /><testcase classname="src.test.test_memory.TestMemoryEntry" name="test_memory_entry_different_event_types" time="0.001" /><testcase classname="src.test.test_memory.TestMemoryEntry" name="test_memory_entry_significance_range" time="0.001" /><testcase classname="src.test.test_memory.TestMemory" name="test_memory_initialization" time="0.007" /><testcase classname="src.test.test_memory.TestMemory" name="test_memory_append_single" time="0.007" /><testcase classname="src.test.test_memory.TestMemory" name="test_memory_append_multiple" time="0.005" /><testcase classname="src.test.test_memory.TestMemory" name="test_memory_clamp_size_at_limit" time="0.006" /><testcase classname="src.test.test_memory.TestMemory" name="test_memory_clamp_size_over_limit" time="0.006" /><testcase classname="src.test.test_memory.TestMemory" name="test_memory_preserves_order" time="0.006" /><testcase classname="src.test.test_memory.TestMemory" name="test_memory_with_feedback_entries" time="0.006" /><testcase classname="src.test.test_memory.TestMemory" name="test_memory_mixed_entries" time="0.006" /><testcase classname="src.test.test_memory.TestMemory" name="test_memory_list_operations" time="0.006" /><testcase classname="src.test.test_monitor.TestMonitor" name="test_log_function" time="0.002" /><testcase classname="src.test.test_monitor.TestMonitor" name="test_monitor_basic" time="0.163" /><testcase classname="src.test.test_monitor.TestMonitor" name="test_monitor_with_activated_memory" time="0.010" /><testcase classname="src.test.test_monitor.TestMonitor" name="test_monitor_without_activated_memory" time="0.010" /><testcase classname="src.test.test_monitor.TestMonitor" name="test_monitor_multiple_calls" time="0.010" /><testcase classname="src.test.test_monitor.TestMonitor" name="test_monitor_log_file_append" time="0.009" /><testcase classname="src.test.test_monitor.TestMonitor" name="test_monitor_all_state_fields" time="0.009" /><testcase classname="src.test.test_planning.TestRecordPotentialSequences" name="test_record_potential_sequences_empty_recent_events" time="0.007" /><testcase classname="src.test.test_planning.TestRecordPotentialSequences" name="test_record_potential_sequences_single_event" time="0.006" /><testcase classname="src.test.test_planning.TestRecordPotentialSequences" name="test_record_potential_sequences_two_events" time="0.006" /><testcase classname="src.test.test_planning.TestRecordPotentialSequences" name="test_record_potential_sequences_multiple_events" time="0.006" /><testcase classname="src.test.test_planning.TestRecordPotentialSequences" name="test_record_potential_sequences_sources_used" time="0.006" /><testcase classname="src.test.test_planning.TestRecordPotentialSequences" name="test_record_potential_sequences_preserves_other_fields" time="0.006" /><testcase classname="src.test.test_planning.TestRecordPotentialSequences" name="test_record_potential_sequences_multiple_calls" time="0.006" /><testcase classname="src.test.test_planning.TestRecordPotentialSequences" name="test_record_potential_sequences_empty_histories" time="0.006" /><testcase classname="src.test.test_planning.TestRecordPotentialSequences" name="test_record_potential_sequences_different_event_types" time="0.005" /><testcase classname="src.test.test_property_based.TestSelfStatePropertyBased" name="test_state_parameters_always_in_bounds" time="1.896" /><testcase classname="src.test.test_property_based.TestSelfStatePropertyBased" name="test_apply_delta_always_clamps" time="0.653" /><testcase classname="src.test.test_property_based.TestSelfStatePropertyBased" name="test_energy_delta_idempotent" time="1.199" /><testcase classname="src.test.test_property_based.TestMemoryPropertyBased" name="test_memory_size_always_limited" time="0.803" /><testcase classname="src.test.test_property_based.TestMemoryPropertyBased" name="test_memory_preserves_order" time="0.796" /><testcase classname="src.test.test_property_based.TestMemoryPropertyBased" name="test_memory_append_idempotent" time="0.617"><failure message="AssertionError: assert 1 == 2&#10; +  where 1 = len([MemoryEntry(event_type='0', meaning_significance=0.0, timestamp=1768922099.508854, weight=1.0, feedback_data=None)])&#10; +  and   2 = len([MemoryEntry(event_type='0', meaning_significance=0.0, timestamp=1768922099.508854, weight=1.0, feedback_data=None), MemoryEntry(event_type='0', meaning_significance=0.0, timestamp=1768922099.508854, weight=1.0, feedback_data=None)])&#10;Falsifying example: test_memory_append_idempotent(&#10;    self=&lt;test_property_based.TestMemoryPropertyBased object at 0x7c6851f22260&gt;,&#10;    event_type='0',&#10;    significance=0.0,&#10;    num_appends=2,&#10;)">src/test/test_property_based.py:152: in test_memory_append_idempotent
-    event_type=st.text(min_size=1, max_size=20),
-src/test/test_property_based.py:176: in test_memory_append_idempotent
-    assert len(memory1) == len(memory2)
-E   AssertionError: assert 1 == 2
-E    +  where 1 = len([MemoryEntry(event_type='0', meaning_significance=0.0, timestamp=1768922099.508854, weight=1.0, feedback_data=None)])
-E    +  and   2 = len([MemoryEntry(event_type='0', meaning_significance=0.0, timestamp=1768922099.508854, weight=1.0, feedback_data=None), MemoryEntry(event_type='0', meaning_significance=0.0, timestamp=1768922099.508854, weight=1.0, feedback_data=None)])
-E   Falsifying example: test_memory_append_idempotent(
-E       self=&lt;test_property_based.TestMemoryPropertyBased object at 0x7c6851f22260&gt;,
-E       event_type='0',
-E       significance=0.0,
-E       num_appends=2,
-E   )</failure></testcase><testcase classname="src.test.test_property_based.TestMemoryEntryPropertyBased" name="test_memory_entry_creation" time="0.206" /><testcase classname="src.test.test_property_based.TestMemoryEntryPropertyBased" name="test_memory_entry_with_feedback" time="0.355" /><testcase classname="src.test.test_state.TestSelfState" name="test_self_state_initialization" time="0.006" /><testcase classname="src.test.test_state.TestSelfState" name="test_self_state_unique_life_id" time="0.011" /><testcase classname="src.test.test_state.TestSelfState" name="test_self_state_birth_timestamp" time="0.006" /><testcase classname="src.test.test_state.TestSelfState" name="test_apply_delta_energy" time="0.006" /><testcase classname="src.test.test_state.TestSelfState" name="test_apply_delta_integrity" time="0.006" /><testcase classname="src.test.test_state.TestSelfState" name="test_apply_delta_stability" time="0.006" /><testcase classname="src.test.test_state.TestSelfState" name="test_apply_delta_multiple_params" time="0.006" /><testcase classname="src.test.test_state.TestSelfState" name="test_apply_delta_ticks" time="0.006" /><testcase classname="src.test.test_state.TestSelfState" name="test_apply_delta_age" time="0.006" /><testcase classname="src.test.test_state.TestSelfState" name="test_apply_delta_unknown_field" time="0.006" /><testcase classname="src.test.test_state.TestSelfState" name="test_apply_delta_non_numeric_field" time="0.006" /><testcase classname="src.test.test_state.TestSelfState" name="test_self_state_memory_operations" time="0.006" /><testcase classname="src.test.test_state.TestSelfState" name="test_self_state_recent_events" time="0.006" /><testcase classname="src.test.test_state.TestSnapshots" name="test_save_snapshot" time="0.023" /><testcase classname="src.test.test_state.TestSnapshots" name="test_load_snapshot" time="0.032" /><testcase classname="src.test.test_state.TestSnapshots" name="test_load_snapshot_not_found" time="0.002" /><testcase classname="src.test.test_state.TestSnapshots" name="test_load_latest_snapshot" time="0.074" /><testcase classname="src.test.test_state.TestSnapshots" name="test_load_latest_snapshot_not_found" time="0.008" /><testcase classname="src.test.test_state.TestSnapshots" name="test_snapshot_preserves_memory" time="0.043" /><testcase classname="src.test.test_state.TestCreateInitialState" name="test_create_initial_state" time="0.010" /><testcase classname="src.test.test_subjective_time.TestSubjectiveTimeModel" name="test_rate_is_clamped_to_range" time="0.006" /><testcase classname="src.test.test_subjective_time.TestSubjectiveTimeModel" name="test_subjective_time_is_monotonic_for_positive_dt" time="0.007" /><testcase classname="src.test.test_subjective_time.TestSubjectiveTimeModel" name="test_intensity_and_stability_influence_rate_direction" time="0.006" /><testcase classname="src.test.test_subjective_time.TestSubjectiveTimeModel" name="test_negative_dt_returns_zero_increment" time="0.006" /><testcase classname="src.test.test_subjective_time.TestSubjectiveTimeModel" name="test_extreme_intensity_and_stability_values" time="0.005" /><testcase classname="src.test.test_subjective_time.TestSubjectiveTimeModel" name="test_boundary_rate_min_max_values" time="0.001" /><testcase classname="src.test.test_subjective_time.TestSubjectiveTimeModel" name="test_invalid_input_types" time="0.006" /><testcase classname="src.test.test_subjective_time.TestSubjectiveTimeModel" name="test_extreme_coefficient_values" time="0.006" /><testcase classname="src.test.test_subjective_time.TestSubjectiveTimeModel" name="test_zero_and_negative_base_rate" time="0.005" /><testcase classname="src.test.test_api" name="test_get_status" time="0.001"><skipped type="pytest.skip" message="test_api.py requires real server. Use --real-server or test_api_integration.py">/workspace/src/test/test_api.py:28: test_api.py requires real server. Use --real-server or test_api_integration.py</skipped></testcase><testcase classname="src.test.test_api" name="test_get_clear_data" time="0.001"><skipped type="pytest.skip" message="test_api.py requires real server. Use --real-server or test_api_integration.py">/workspace/src/test/test_api.py:42: test_api.py requires real server. Use --real-server or test_api_integration.py</skipped></testcase><testcase classname="src.test.test_api" name="test_post_event_success" time="0.001"><skipped type="pytest.skip" message="test_api.py requires real server. Use --real-server or test_api_integration.py">/workspace/src/test/test_api.py:52: test_api.py requires real server. Use --real-server or test_api_integration.py</skipped></testcase><testcase classname="src.test.test_api" name="test_post_event_invalid_json" time="0.001"><skipped type="pytest.skip" message="test_api.py requires real server. Use --real-server or test_api_integration.py">/workspace/src/test/test_api.py:63: test_api.py requires real server. Use --real-server or test_api_integration.py</skipped></testcase><testcase classname="src.test.test_api_integration.TestAPIServer" name="test_get_status" time="0.688" /><testcase classname="src.test.test_api_integration.TestAPIServer" name="test_get_status_returns_current_state" time="0.613" /><testcase classname="src.test.test_api_integration.TestAPIServer" name="test_get_clear_data" time="0.890" /><testcase classname="src.test.test_api_integration.TestAPIServer" name="test_get_unknown_endpoint" time="0.611" /><testcase classname="src.test.test_api_integration.TestAPIServer" name="test_post_event_success" time="0.609" /><testcase classname="src.test.test_api_integration.TestAPIServer" name="test_post_event_minimal" time="0.610" /><testcase classname="src.test.test_api_integration.TestAPIServer" name="test_post_event_with_timestamp" time="0.610" /><testcase classname="src.test.test_api_integration.TestAPIServer" name="test_post_event_invalid_json" time="0.611" /><testcase classname="src.test.test_api_integration.TestAPIServer" name="test_post_event_missing_type" time="0.611" /><testcase classname="src.test.test_api_integration.TestAPIServer" name="test_post_event_invalid_type" time="0.611" /><testcase classname="src.test.test_api_integration.TestAPIServer" name="test_post_event_multiple_events" time="0.615" /><testcase classname="src.test.test_api_integration.TestAPIServer" name="test_post_event_different_types" time="0.618" /><testcase classname="src.test.test_api_integration.TestAPIServer" name="test_post_unknown_endpoint" time="0.611" /><testcase classname="src.test.test_api_integration.TestAPIServer" name="test_post_event_queue_overflow" time="0.831" /><testcase classname="src.test.test_api_integration.TestAPIServer" name="test_get_status_after_events" time="0.615" /><testcase classname="src.test.test_feedback.TestFeedbackIntegration" name="test_integration_with_memory" time="0.006" /><testcase classname="src.test.test_generator_integration.TestGeneratorServerIntegration" name="test_generator_send_to_server" time="0.609" /><testcase classname="src.test.test_generator_integration.TestGeneratorServerIntegration" name="test_generator_multiple_events_to_server" time="0.620" /><testcase classname="src.test.test_generator_integration.TestGeneratorServerIntegration" name="test_generator_all_event_types_to_server" time="0.776" /><testcase classname="src.test.test_generator_integration.TestGeneratorServerIntegration" name="test_generator_event_intensity_ranges" time="0.506" /><testcase classname="src.test.test_generator_integration.TestGeneratorServerIntegration" name="test_generator_server_full_cycle" time="0.611" /><testcase classname="src.test.test_memory.TestMemoryLoad" name="test_memory_performance_with_1000_entries" time="0.016" /><testcase classname="src.test.test_memory.TestMemoryLoad" name="test_memory_performance_with_10000_entries" time="0.115" /><testcase classname="src.test.test_memory.TestMemoryLoad" name="test_memory_iteration_performance" time="0.006" /><testcase classname="src.test.test_memory.TestMemoryLoad" name="test_memory_search_performance" time="0.006" /><testcase classname="src.test.test_memory.TestMemoryLoad" name="test_memory_memory_usage" time="0.008" /><testcase classname="src.test.test_memory.TestMemoryDecayWeights" name="test_decay_weights_basic" time="0.005" /><testcase classname="src.test.test_memory.TestMemoryDecayWeights" name="test_decay_weights_min_weight" time="0.006" /><testcase classname="src.test.test_memory.TestMemoryDecayWeights" name="test_decay_weights_empty_memory" time="0.006" /><testcase classname="src.test.test_memory.TestMemoryDecayWeights" name="test_decay_weights_multiple_entries" time="0.006" /><testcase classname="src.test.test_memory.TestMemoryDecayWeights" name="test_decay_weights_significance_factor" time="0.006" /><testcase classname="src.test.test_memory.TestArchiveMemory" name="test_archive_memory_initialization" time="0.003" /><testcase classname="src.test.test_memory.TestArchiveMemory" name="test_archive_memory_add_entry" time="0.003" /><testcase classname="src.test.test_memory.TestArchiveMemory" name="test_archive_memory_add_entries" time="0.004" /><testcase classname="src.test.test_memory.TestArchiveMemory" name="test_archive_memory_get_entries_by_type" time="0.003" /><testcase classname="src.test.test_memory.TestArchiveMemory" name="test_archive_memory_get_entries_by_significance" time="0.003" /><testcase classname="src.test.test_memory.TestArchiveMemory" name="test_archive_memory_get_entries_by_timestamp" time="0.004" /><testcase classname="src.test.test_memory.TestArchiveMemory" name="test_archive_memory_save_and_load" time="0.002" /><testcase classname="src.test.test_memory.TestMemoryArchive" name="test_archive_old_entries_by_age" time="0.003" /><testcase classname="src.test.test_memory.TestMemoryArchive" name="test_archive_old_entries_by_weight" time="0.005" /><testcase classname="src.test.test_memory.TestMemoryArchive" name="test_archive_old_entries_by_significance" time="0.004" /><testcase classname="src.test.test_memory.TestMemoryArchive" name="test_archive_old_entries_validation" time="0.004" /><testcase classname="src.test.test_memory.TestMemoryArchive" name="test_archive_old_entries_error_handling" time="0.005" /><testcase classname="src.test.test_memory.TestMemoryArchive" name="test_archive_old_entries_empty_memory" time="0.003" /><testcase classname="src.test.test_memory.TestMemoryStatistics" name="test_get_statistics_empty" time="0.003" /><testcase classname="src.test.test_memory.TestMemoryStatistics" name="test_get_statistics_with_entries" time="0.004" /><testcase classname="src.test.test_runtime_integration.TestRuntimeLoop" name="test_loop_single_tick" time="0.308" /><testcase classname="src.test.test_runtime_integration.TestRuntimeLoop" name="test_loop_processes_events" time="0.608" /><testcase classname="src.test.test_runtime_integration.TestRuntimeLoop" name="test_loop_feedback_registration" time="0.608" /><testcase classname="src.test.test_runtime_integration.TestRuntimeLoop" name="test_loop_state_updates" time="0.308" /><testcase classname="src.test.test_runtime_integration.TestRuntimeLoop" name="test_loop_stops_on_stop_event" time="0.508" /><testcase classname="src.test.test_runtime_integration.TestRuntimeLoop" name="test_loop_handles_empty_queue" time="0.307" /><testcase classname="src.test.test_runtime_integration.TestRuntimeLoop" name="test_loop_multiple_events" time="0.608" /><testcase classname="src.test.test_runtime_integration.TestRuntimeLoop" name="test_loop_snapshot_creation" time="0.773" /><testcase classname="src.test.test_runtime_integration.TestRuntimeLoop" name="test_loop_weakness_penalty" time="0.309" /><testcase classname="src.test.test_runtime_integration.TestRuntimeLoop" name="test_loop_deactivates_on_zero_params" time="0.208" /><testcase classname="src.test.test_runtime_loop_edge_cases.TestRuntimeLoopEdgeCases" name="test_loop_ignore_pattern_skip_apply_delta" time="0.451" /><testcase classname="src.test.test_runtime_loop_edge_cases.TestRuntimeLoopEdgeCases" name="test_loop_dampen_pattern_modify_impact" time="0.644" /><testcase classname="src.test.test_runtime_loop_edge_cases.TestRuntimeLoopEdgeCases" name="test_loop_monitor_exception_handling" time="0.408" /><testcase classname="src.test.test_runtime_loop_edge_cases.TestRuntimeLoopEdgeCases" name="test_loop_snapshot_exception_handling" time="0.313" /><testcase classname="src.test.test_runtime_loop_edge_cases.TestRuntimeLoopEdgeCases" name="test_loop_general_exception_handling" time="0.321" /><testcase classname="src.test.test_runtime_loop_feedback_coverage.TestRuntimeLoopFeedbackCoverage" name="test_loop_processes_feedback_records" time="1.365" /><testcase classname="src.test.test_runtime_loop_feedback_coverage.TestRuntimeLoopFeedbackCoverage" name="test_loop_feedback_entry_creation" time="1.110" /><testcase classname="src.test.test_state.TestSelfStateValidation" name="test_energy_validation_valid" time="0.006" /><testcase classname="src.test.test_state.TestSelfStateValidation" name="test_energy_validation_invalid" time="0.007" /><testcase classname="src.test.test_state.TestSelfStateValidation" name="test_integrity_validation_valid" time="0.006" /><testcase classname="src.test.test_state.TestSelfStateValidation" name="test_integrity_validation_invalid" time="0.006" /><testcase classname="src.test.test_state.TestSelfStateValidation" name="test_stability_validation_valid" time="0.006" /><testcase classname="src.test.test_state.TestSelfStateValidation" name="test_stability_validation_invalid" time="0.006" /><testcase classname="src.test.test_state.TestSelfStateValidation" name="test_fatigue_validation" time="0.006" /><testcase classname="src.test.test_state.TestSelfStateValidation" name="test_tension_validation" time="0.006" /><testcase classname="src.test.test_state.TestSelfStateValidation" name="test_age_validation" time="0.006" /><testcase classname="src.test.test_state.TestSelfStateValidation" name="test_ticks_validation" time="0.006" /><testcase classname="src.test.test_state.TestSelfStateProtection" name="test_life_id_protection" time="0.006" /><testcase classname="src.test.test_state.TestSelfStateProtection" name="test_birth_timestamp_protection" time="0.006" /><testcase classname="src.test.test_state.TestSelfStateSafeMethods" name="test_update_energy" time="0.006" /><testcase classname="src.test.test_state.TestSelfStateSafeMethods" name="test_update_integrity" time="0.006" /><testcase classname="src.test.test_state.TestSelfStateSafeMethods" name="test_update_stability" time="0.006" /><testcase classname="src.test.test_state.TestSelfStateSafeMethods" name="test_update_vital_params" time="0.006" /><testcase classname="src.test.test_state.TestSelfStateSafeMethods" name="test_reset_to_defaults" time="0.006" /><testcase classname="src.test.test_state.TestSelfStateIsActive" name="test_is_active_all_positive" time="0.006" /><testcase classname="src.test.test_state.TestSelfStateIsActive" name="test_is_active_energy_zero" time="0.006" /><testcase classname="src.test.test_state.TestSelfStateIsActive" name="test_is_active_integrity_zero" time="0.005" /><testcase classname="src.test.test_state.TestSelfStateIsActive" name="test_is_active_stability_zero" time="0.006" /><testcase classname="src.test.test_state.TestSelfStateIsActive" name="test_is_active_all_zero" time="0.006" /><testcase classname="src.test.test_state.TestSelfStateIsActive" name="test_is_active_auto_update" time="0.006" /><testcase classname="src.test.test_state.TestSelfStateIsActive" name="test_is_viable" time="0.006" /><testcase classname="src.test.test_state.TestSelfStateLogging" name="test_logging_enabled" time="0.008" /><testcase classname="src.test.test_state.TestSelfStateLogging" name="test_logging_disabled" time="0.008" /><testcase classname="src.test.test_state.TestSelfStateLogging" name="test_get_change_history" time="0.008" /><testcase classname="src.test.test_state.TestSelfStateLogging" name="test_get_change_history_limit" time="0.008" /><testcase classname="src.test.test_degradation.TestDegradationUnit" name="test_energy_degradation_to_zero" time="0.006" /><testcase classname="src.test.test_degradation.TestDegradationUnit" name="test_integrity_degradation_to_zero" time="0.006" /><testcase classname="src.test.test_degradation.TestDegradationUnit" name="test_stability_degradation_to_zero" time="0.006" /><testcase classname="src.test.test_degradation.TestDegradationUnit" name="test_simultaneous_degradation_all_params" time="0.006" /><testcase classname="src.test.test_degradation.TestDegradationUnit" name="test_active_flag_set_false_on_zero_energy" time="0.006" /><testcase classname="src.test.test_degradation.TestDegradationUnit" name="test_active_flag_set_false_on_zero_integrity" time="0.006" /><testcase classname="src.test.test_degradation.TestDegradationUnit" name="test_active_flag_set_false_on_zero_stability" time="0.005" /><testcase classname="src.test.test_degradation.TestDegradationUnit" name="test_degradation_preserves_other_state" time="0.005" /><testcase classname="src.test.test_degradation.TestDegradationUnit" name="test_gradual_degradation_history" time="0.006" /><testcase classname="src.test.test_degradation.TestDegradationIntegration" name="test_energy_degradation_in_loop_with_events" time="0.558" /><testcase classname="src.test.test_degradation.TestDegradationIntegration" name="test_weakness_penalty_acceleration" time="0.308" /><testcase classname="src.test.test_degradation.TestDegradationIntegration" name="test_full_degradation_cycle" time="0.811" /><testcase classname="src.test.test_degradation.TestDegradationIntegration" name="test_deactivation_on_energy_zero" time="0.309" /><testcase classname="src.test.test_degradation.TestDegradationIntegration" name="test_deactivation_on_integrity_zero" time="0.209" /><testcase classname="src.test.test_degradation.TestDegradationIntegration" name="test_deactivation_on_stability_zero" time="0.209" /><testcase classname="src.test.test_degradation.TestDegradationIntegration" name="test_loop_continues_while_degrading" time="0.308" /><testcase classname="src.test.test_degradation.TestDegradationEdgeCases" name="test_boundary_values_energy" time="0.007" /><testcase classname="src.test.test_degradation.TestDegradationEdgeCases" name="test_boundary_values_integrity" time="0.006" /><testcase classname="src.test.test_degradation.TestDegradationEdgeCases" name="test_boundary_values_stability" time="0.008" /><testcase classname="src.test.test_degradation.TestDegradationEdgeCases" name="test_weakness_threshold_boundary" time="0.014" /><testcase classname="src.test.test_degradation.TestDegradationEdgeCases" name="test_rapid_degradation_many_events" time="0.516" /><testcase classname="src.test.test_degradation.TestDegradationEdgeCases" name="test_degradation_with_memory" time="0.359" /><testcase classname="src.test.test_degradation.TestDegradationEdgeCases" name="test_degradation_does_not_affect_identity" time="0.310" /><testcase classname="src.test.test_degradation.TestDegradationEdgeCases" name="test_all_params_zero_simultaneously" time="0.210" /><testcase classname="src.test.test_degradation.TestDegradationRecovery" name="test_energy_recovery_possible" time="0.006" /><testcase classname="src.test.test_degradation.TestDegradationRecovery" name="test_integrity_recovery_possible" time="0.006" /><testcase classname="src.test.test_degradation.TestDegradationRecovery" name="test_stability_recovery_possible" time="0.007" /><testcase classname="src.test.test_degradation.TestDegradationRecovery" name="test_recovery_from_near_zero" time="0.007" /><testcase classname="src.test.test_degradation.TestDegradationRecovery" name="test_active_flag_stays_false_after_deactivation" time="0.007" /><testcase classname="src.test.test_degradation.TestDegradationRecovery" name="test_learning_params_recovery_from_snapshot" time="0.057" /><testcase classname="src.test.test_degradation.TestDegradationRecovery" name="test_adaptation_params_recovery_from_snapshot" time="0.061" /><testcase classname="src.test.test_degradation.TestDegradationRecovery" name="test_learning_adaptation_params_recovery_together" time="0.059" /><testcase classname="src.test.test_degradation.TestDegradationLongRunning" name="test_degradation_over_1000_ticks" time="15.038"><failure message="AssertionError: Expected &gt;= 1000 ticks, got 936&#10;assert 936 &gt;= 1000&#10; +  where 936 = SelfState(life_id='4f289412-863b-4a0c-b4a5-65bf8eb5c44a', birth_timestamp=1768922127.9160872, age=15.012933254241943, subjective_time=14.262286591529852, ticks=936, energy=80.0, integrity=0.9, stability=0.9, fatigue=0.0, tension=0.0, active=True, recent_events=[], last_significance=0.0, energy_history=[], stability_history=[], planning={}, intelligence={}, memory=[], archive_memory=&lt;src.memory.memory.ArchiveMemory object at 0x7c6851e13fd0&gt;, subjective_time_base_rate=1.0, subjective_time_rate_min=0.1, subjective_time_rate_max=3.0, subjective_time_intensity_coeff=1.0, subjective_time_stability_coeff=0.5, last_event_intensity=0.0, activated_memory=[], last_pattern='', learning_params={'event_type_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'significance_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'response_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, adaptation_params={'behavior_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'behavior_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, adaptation_history=[{'timestamp': 1768922129.5416634, 'tick': 100, 'old_params': {'behavior_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'behavior_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, 'new_params': {'behavior_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'behavior_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, 'changes': {}, 'learning_params_snapshot': {'event_type_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'significance_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'response_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}}, {'timestamp': 1768922131.002334, 'tick': 200, 'old_params': {'behavior_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'behavior_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, 'new_params': {'behavior_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'behavior_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, 'changes': {}, 'learning_params_snapshot': {'event_type_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'significance_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'response_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}}, {'timestamp': 1768922132.5339265, 'tick': 300, 'old_params': {'behavior_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'behavior_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, 'new_params': {'behavior_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'behavior_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, 'changes': {}, 'learning_params_snapshot': {'event_type_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'significance_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'response_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}}, {'timestamp': 1768922134.0992126, 'tick': 400, 'old_params': {'behavior_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'behavior_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, 'new_params': {'behavior_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'behavior_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, 'changes': {}, 'learning_params_snapshot': {'event_type_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'significance_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'response_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}}, {'timestamp': 1768922135.7314472, 'tick': 500, 'old_params': {'behavior_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'behavior_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, 'new_params': {'behavior_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'behavior_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, 'changes': {}, 'learning_params_snapshot': {'event_type_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'significance_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'response_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}}, {'timestamp': 1768922137.325029, 'tick': 600, 'old_params': {'behavior_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'behavior_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, 'new_params': {'behavior_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'behavior_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, 'changes': {}, 'learning_params_snapshot': {'event_type_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'significance_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'response_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}}, {'timestamp': 1768922138.897531, 'tick': 700, 'old_params': {'behavior_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'behavior_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, 'new_params': {'behavior_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'behavior_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, 'changes': {}, 'learning_params_snapshot': {'event_type_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'significance_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'response_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}}, {'timestamp': 1768922140.4911685, 'tick': 800, 'old_params': {'behavior_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'behavior_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, 'new_params': {'behavior_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'behavior_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, 'changes': {}, 'learning_params_snapshot': {'event_type_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'significance_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'response_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}}, {'timestamp': 1768922142.3503149, 'tick': 900, 'old_params': {'behavior_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'behavior_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, 'new_params': {'behavior_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'behavior_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, 'changes': {}, 'learning_params_snapshot': {'event_type_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'significance_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'response_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}}]).ticks">src/test/test_degradation.py:809: in test_degradation_over_1000_ticks
-    assert state.ticks &gt;= 1000, f"Expected &gt;= 1000 ticks, got {state.ticks}"
-E   AssertionError: Expected &gt;= 1000 ticks, got 936
-E   assert 936 &gt;= 1000
-E    +  where 936 = SelfState(life_id='4f289412-863b-4a0c-b4a5-65bf8eb5c44a', birth_timestamp=1768922127.9160872, age=15.012933254241943, subjective_time=14.262286591529852, ticks=936, energy=80.0, integrity=0.9, stability=0.9, fatigue=0.0, tension=0.0, active=True, recent_events=[], last_significance=0.0, energy_history=[], stability_history=[], planning={}, intelligence={}, memory=[], archive_memory=&lt;src.memory.memory.ArchiveMemory object at 0x7c6851e13fd0&gt;, subjective_time_base_rate=1.0, subjective_time_rate_min=0.1, subjective_time_rate_max=3.0, subjective_time_intensity_coeff=1.0, subjective_time_stability_coeff=0.5, last_event_intensity=0.0, activated_memory=[], last_pattern='', learning_params={'event_type_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'significance_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'response_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, adaptation_params={'behavior_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'behavior_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, adaptation_history=[{'timestamp': 1768922129.5416634, 'tick': 100, 'old_params': {'behavior_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'behavior_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, 'new_params': {'behavior_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'behavior_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, 'changes': {}, 'learning_params_snapshot': {'event_type_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'significance_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'response_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}}, {'timestamp': 1768922131.002334, 'tick': 200, 'old_params': {'behavior_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'behavior_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, 'new_params': {'behavior_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'behavior_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, 'changes': {}, 'learning_params_snapshot': {'event_type_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'significance_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'response_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}}, {'timestamp': 1768922132.5339265, 'tick': 300, 'old_params': {'behavior_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'behavior_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, 'new_params': {'behavior_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'behavior_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, 'changes': {}, 'learning_params_snapshot': {'event_type_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'significance_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'response_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}}, {'timestamp': 1768922134.0992126, 'tick': 400, 'old_params': {'behavior_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'behavior_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, 'new_params': {'behavior_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'behavior_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, 'changes': {}, 'learning_params_snapshot': {'event_type_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'significance_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'response_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}}, {'timestamp': 1768922135.7314472, 'tick': 500, 'old_params': {'behavior_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'behavior_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, 'new_params': {'behavior_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'behavior_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, 'changes': {}, 'learning_params_snapshot': {'event_type_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'significance_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'response_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}}, {'timestamp': 1768922137.325029, 'tick': 600, 'old_params': {'behavior_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'behavior_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, 'new_params': {'behavior_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'behavior_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, 'changes': {}, 'learning_params_snapshot': {'event_type_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'significance_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'response_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}}, {'timestamp': 1768922138.897531, 'tick': 700, 'old_params': {'behavior_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'behavior_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, 'new_params': {'behavior_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'behavior_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, 'changes': {}, 'learning_params_snapshot': {'event_type_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'significance_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'response_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}}, {'timestamp': 1768922140.4911685, 'tick': 800, 'old_params': {'behavior_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'behavior_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, 'new_params': {'behavior_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'behavior_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, 'changes': {}, 'learning_params_snapshot': {'event_type_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'significance_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'response_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}}, {'timestamp': 1768922142.3503149, 'tick': 900, 'old_params': {'behavior_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'behavior_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, 'new_params': {'behavior_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'behavior_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, 'changes': {}, 'learning_params_snapshot': {'event_type_sensitivity': {'noise': 0.2, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'significance_thresholds': {'noise': 0.1, 'decay': 0.1, 'recovery': 0.1, 'shock': 0.1, 'idle': 0.1}, 'response_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}}]).ticks</failure></testcase><testcase time="0.001" /><testcase classname="pytest" name="internal" time="0.000"><error message="internal error">Traceback (most recent call last):
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="1" failures="15" skipped="4" tests="336" time="54.914" timestamp="2026-01-20T17:16:15.500933+00:00" hostname="601e704739a9"><properties><property name="hypothesis-statistics-src/test/test_property_based.py::TestSelfStatePropertyBased::test_apply_delta_always_clamps" value="c3JjL3Rlc3QvdGVzdF9wcm9wZXJ0eV9iYXNlZC5weTo6VGVzdFNlbGZTdGF0ZVByb3BlcnR5QmFzZWQ6OnRlc3RfYXBwbHlfZGVsdGFfYWx3YXlzX2NsYW1wczoKCiAgLSBkdXJpbmcgZ2VuZXJhdGUgcGhhc2UgKDAuNzQgc2Vjb25kcyk6CiAgICAtIFR5cGljYWwgcnVudGltZXM6IH4gNi04IG1zLCBvZiB3aGljaCA8IDFtcyBpbiBkYXRhIGdlbmVyYXRpb24KICAgIC0gMTAwIHBhc3NpbmcgZXhhbXBsZXMsIDAgZmFpbGluZyBleGFtcGxlcywgMCBpbnZhbGlkIGV4YW1wbGVzCgogIC0gU3RvcHBlZCBiZWNhdXNlIHNldHRpbmdzLm1heF9leGFtcGxlcz0xMDA=" /><property name="hypothesis-statistics-src/test/test_property_based.py::TestSelfStatePropertyBased::test_energy_delta_idempotent" value="c3JjL3Rlc3QvdGVzdF9wcm9wZXJ0eV9iYXNlZC5weTo6VGVzdFNlbGZTdGF0ZVByb3BlcnR5QmFzZWQ6OnRlc3RfZW5lcmd5X2RlbHRhX2lkZW1wb3RlbnQ6CgogIC0gZHVyaW5nIGdlbmVyYXRlIHBoYXNlICgxLjMxIHNlY29uZHMpOgogICAgLSBUeXBpY2FsIHJ1bnRpbWVzOiB+IDExLTEzIG1zLCBvZiB3aGljaCA8IDFtcyBpbiBkYXRhIGdlbmVyYXRpb24KICAgIC0gMTAwIHBhc3NpbmcgZXhhbXBsZXMsIDAgZmFpbGluZyBleGFtcGxlcywgMCBpbnZhbGlkIGV4YW1wbGVzCgogIC0gU3RvcHBlZCBiZWNhdXNlIHNldHRpbmdzLm1heF9leGFtcGxlcz0xMDA=" /><property name="hypothesis-statistics-src/test/test_property_based.py::TestMemoryPropertyBased::test_memory_size_always_limited" value="c3JjL3Rlc3QvdGVzdF9wcm9wZXJ0eV9iYXNlZC5weTo6VGVzdE1lbW9yeVByb3BlcnR5QmFzZWQ6OnRlc3RfbWVtb3J5X3NpemVfYWx3YXlzX2xpbWl0ZWQ6CgogIC0gZHVyaW5nIGdlbmVyYXRlIHBoYXNlICgwLjg0IHNlY29uZHMpOgogICAgLSBUeXBpY2FsIHJ1bnRpbWVzOiB+IDYtOSBtcywgb2Ygd2hpY2ggPCAxbXMgaW4gZGF0YSBnZW5lcmF0aW9uCiAgICAtIDEwMCBwYXNzaW5nIGV4YW1wbGVzLCAwIGZhaWxpbmcgZXhhbXBsZXMsIDAgaW52YWxpZCBleGFtcGxlcwoKICAtIFN0b3BwZWQgYmVjYXVzZSBzZXR0aW5ncy5tYXhfZXhhbXBsZXM9MTAw" /><property name="hypothesis-statistics-src/test/test_property_based.py::TestMemoryPropertyBased::test_memory_preserves_order" value="c3JjL3Rlc3QvdGVzdF9wcm9wZXJ0eV9iYXNlZC5weTo6VGVzdE1lbW9yeVByb3BlcnR5QmFzZWQ6OnRlc3RfbWVtb3J5X3ByZXNlcnZlc19vcmRlcjoKCiAgLSBkdXJpbmcgZ2VuZXJhdGUgcGhhc2UgKDAuNzggc2Vjb25kcyk6CiAgICAtIFR5cGljYWwgcnVudGltZXM6IH4gMC04IG1zLCBvZiB3aGljaCB+IDAtMiBtcyBpbiBkYXRhIGdlbmVyYXRpb24KICAgIC0gMTAwIHBhc3NpbmcgZXhhbXBsZXMsIDAgZmFpbGluZyBleGFtcGxlcywgMTEgaW52YWxpZCBleGFtcGxlcwoKICAtIFN0b3BwZWQgYmVjYXVzZSBzZXR0aW5ncy5tYXhfZXhhbXBsZXM9MTAw" /><property name="hypothesis-statistics-src/test/test_property_based.py::TestMemoryPropertyBased::test_memory_append_idempotent" value="c3JjL3Rlc3QvdGVzdF9wcm9wZXJ0eV9iYXNlZC5weTo6VGVzdE1lbW9yeVByb3BlcnR5QmFzZWQ6OnRlc3RfbWVtb3J5X2FwcGVuZF9pZGVtcG90ZW50OgoKICAtIGR1cmluZyByZXVzZSBwaGFzZSAoMC4wOCBzZWNvbmRzKToKICAgIC0gVHlwaWNhbCBydW50aW1lczogfiAzM21zLCBvZiB3aGljaCA8IDFtcyBpbiBkYXRhIGdlbmVyYXRpb24KICAgIC0gMCBwYXNzaW5nIGV4YW1wbGVzLCAxIGZhaWxpbmcgZXhhbXBsZXMsIDAgaW52YWxpZCBleGFtcGxlcwogICAgLSBGb3VuZCAxIGRpc3RpbmN0IGVycm9yIGluIHRoaXMgcGhhc2UKCiAgLSBTdG9wcGVkIGJlY2F1c2Ugbm90aGluZyBsZWZ0IHRvIGRv" /><property name="hypothesis-statistics-src/test/test_property_based.py::TestMemoryEntryPropertyBased::test_memory_entry_creation" value="c3JjL3Rlc3QvdGVzdF9wcm9wZXJ0eV9iYXNlZC5weTo6VGVzdE1lbW9yeUVudHJ5UHJvcGVydHlCYXNlZDo6dGVzdF9tZW1vcnlfZW50cnlfY3JlYXRpb246CgogIC0gZHVyaW5nIGdlbmVyYXRlIHBoYXNlICgwLjEwIHNlY29uZHMpOgogICAgLSBUeXBpY2FsIHJ1bnRpbWVzOiA8IDFtcywgb2Ygd2hpY2ggPCAxbXMgaW4gZGF0YSBnZW5lcmF0aW9uCiAgICAtIDEwMCBwYXNzaW5nIGV4YW1wbGVzLCAwIGZhaWxpbmcgZXhhbXBsZXMsIDAgaW52YWxpZCBleGFtcGxlcwoKICAtIFN0b3BwZWQgYmVjYXVzZSBzZXR0aW5ncy5tYXhfZXhhbXBsZXM9MTAw" /><property name="hypothesis-statistics-src/test/test_property_based.py::TestMemoryEntryPropertyBased::test_memory_entry_with_feedback" value="c3JjL3Rlc3QvdGVzdF9wcm9wZXJ0eV9iYXNlZC5weTo6VGVzdE1lbW9yeUVudHJ5UHJvcGVydHlCYXNlZDo6dGVzdF9tZW1vcnlfZW50cnlfd2l0aF9mZWVkYmFjazoKCiAgLSBkdXJpbmcgZ2VuZXJhdGUgcGhhc2UgKDAuMzggc2Vjb25kcyk6CiAgICAtIFR5cGljYWwgcnVudGltZXM6IH4gMC00IG1zLCBvZiB3aGljaCB+IDAtMyBtcyBpbiBkYXRhIGdlbmVyYXRpb24KICAgIC0gMTAwIHBhc3NpbmcgZXhhbXBsZXMsIDAgZmFpbGluZyBleGFtcGxlcywgMTAgaW52YWxpZCBleGFtcGxlcwogICAgLSBFdmVudHM6CiAgICAgICogMzMuNjQlLCBSZXRyaWVkIGRyYXcgZnJvbSB0ZXh0KGNoYXJhY3RlcnMoY29kZWM9J3V0Zi04JyksIG1pbl9zaXplPTEsIG1heF9zaXplPTEwKS5maWx0ZXIobm90X3lldF9pbl91bmlxdWVfbGlzdCkgdG8gc2F0aXNmeSBmaWx0ZXIKCiAgLSBTdG9wcGVkIGJlY2F1c2Ugc2V0dGluZ3MubWF4X2V4YW1wbGVzPTEwMA==" /></properties><testcase classname="src.test.test_action.TestExecuteAction" name="test_execute_action_dampen" time="0.009" /><testcase classname="src.test.test_action.TestExecuteAction" name="test_execute_action_dampen_energy_minimum" time="0.008" /><testcase classname="src.test.test_action.TestExecuteAction" name="test_execute_action_absorb" time="0.007" /><testcase classname="src.test.test_action.TestExecuteAction" name="test_execute_action_ignore" time="0.007" /><testcase classname="src.test.test_action.TestExecuteAction" name="test_execute_action_memory_entry_timestamp" time="0.007" /><testcase classname="src.test.test_action.TestExecuteAction" name="test_execute_action_multiple_actions" time="0.007" /><testcase classname="src.test.test_action.TestExecuteAction" name="test_execute_action_dampen_multiple_times" time="0.007" /><testcase classname="src.test.test_action.TestExecuteAction" name="test_execute_action_unknown_pattern" time="0.008" /><testcase classname="src.test.test_action.TestExecuteAction" name="test_execute_action_preserves_other_state" time="0.007" /><testcase classname="src.test.test_action.TestExecuteAction" name="test_execute_action_memory_entry_significance" time="0.008" /><testcase classname="src.test.test_action.TestExecuteAction" name="test_execute_action_empty_memory" time="0.008" /><testcase classname="src.test.test_action.TestExecuteAction" name="test_execute_action_with_existing_memory" time="0.337" /><testcase classname="src.test.test_activation.TestActivateMemory" name="test_activate_memory_empty_memory" time="0.001" /><testcase classname="src.test.test_activation.TestActivateMemory" name="test_activate_memory_no_matches" time="0.001" /><testcase classname="src.test.test_activation.TestActivateMemory" name="test_activate_memory_single_match" time="0.001" /><testcase classname="src.test.test_activation.TestActivateMemory" name="test_activate_memory_multiple_matches" time="0.001" /><testcase classname="src.test.test_activation.TestActivateMemory" name="test_activate_memory_sorted_by_significance" time="0.001" /><testcase classname="src.test.test_activation.TestActivateMemory" name="test_activate_memory_limit_default" time="0.001" /><testcase classname="src.test.test_activation.TestActivateMemory" name="test_activate_memory_custom_limit" time="0.001" /><testcase classname="src.test.test_activation.TestActivateMemory" name="test_activate_memory_limit_one" time="0.001" /><testcase classname="src.test.test_activation.TestActivateMemory" name="test_activate_memory_limit_zero" time="0.001" /><testcase classname="src.test.test_activation.TestActivateMemory" name="test_activate_memory_preserves_original_memory" time="0.001" /><testcase classname="src.test.test_activation.TestActivateMemory" name="test_activate_memory_different_event_types" time="0.001" /><testcase classname="src.test.test_activation.TestActivateMemory" name="test_activate_memory_with_feedback_entries" time="0.001" /><testcase classname="src.test.test_activation.TestActivateMemory" name="test_activate_memory_equal_significance" time="0.001" /><testcase classname="src.test.test_decision.TestDecideResponse" name="test_decide_dampen_high_activated_memory" time="0.009" /><testcase classname="src.test.test_decision.TestDecideResponse" name="test_decide_dampen_max_significance_above_threshold" time="0.008" /><testcase classname="src.test.test_decision.TestDecideResponse" name="test_decide_dampen_max_significance_at_threshold" time="0.008" /><testcase classname="src.test.test_decision.TestDecideResponse" name="test_decide_ignore_low_significance_meaning" time="0.007" /><testcase classname="src.test.test_decision.TestDecideResponse" name="test_decide_ignore_meaning_significance_below_threshold" time="0.007" /><testcase classname="src.test.test_decision.TestDecideResponse" name="test_decide_absorb_normal_conditions" time="0.007" /><testcase classname="src.test.test_decision.TestDecideResponse" name="test_decide_absorb_high_significance_meaning" time="0.007" /><testcase classname="src.test.test_decision.TestDecideResponse" name="test_decide_empty_activated_memory" time="0.007" /><testcase classname="src.test.test_decision.TestDecideResponse" name="test_decide_multiple_activated_memories" time="0.007" /><testcase classname="src.test.test_decision.TestDecideResponse" name="test_decide_activated_memory_max_below_threshold" time="0.007" /><testcase classname="src.test.test_decision.TestDecideResponse" name="test_decide_activated_memory_exactly_at_threshold" time="0.007" /><testcase classname="src.test.test_decision.TestDecideResponse" name="test_decide_meaning_significance_at_threshold" time="0.008" /><testcase classname="src.test.test_decision.TestDecideResponse" name="test_decide_different_event_types_in_memory" time="0.007" /><testcase classname="src.test.test_decision.TestDecideResponse" name="test_decide_consistency" time="0.007" /><testcase classname="src.test.test_environment.TestEvent" name="test_event_creation_minimal" time="0.001" /><testcase classname="src.test.test_environment.TestEvent" name="test_event_creation_with_metadata" time="0.001" /><testcase classname="src.test.test_environment.TestEvent" name="test_event_creation_with_none_metadata" time="0.001" /><testcase classname="src.test.test_environment.TestEvent" name="test_event_different_types" time="0.001" /><testcase classname="src.test.test_environment.TestEvent" name="test_event_intensity_range" time="0.001" /><testcase classname="src.test.test_environment.TestEvent" name="test_event_timestamp" time="0.001" /><testcase classname="src.test.test_environment.TestEvent" name="test_event_custom_timestamp" time="0.000" /><testcase classname="src.test.test_environment.TestEventQueue" name="test_queue_initialization" time="0.001" /><testcase classname="src.test.test_environment.TestEventQueue" name="test_queue_push_single" time="0.001" /><testcase classname="src.test.test_environment.TestEventQueue" name="test_queue_push_multiple" time="0.001" /><testcase classname="src.test.test_environment.TestEventQueue" name="test_queue_pop_single" time="0.001" /><testcase classname="src.test.test_environment.TestEventQueue" name="test_queue_pop_empty" time="0.001" /><testcase classname="src.test.test_environment.TestEventQueue" name="test_queue_pop_fifo_order" time="0.001" /><testcase classname="src.test.test_environment.TestEventQueue" name="test_queue_pop_all_empty" time="0.001" /><testcase classname="src.test.test_environment.TestEventQueue" name="test_queue_pop_all_single" time="0.001" /><testcase classname="src.test.test_environment.TestEventQueue" name="test_queue_pop_all_multiple" time="0.001" /><testcase classname="src.test.test_environment.TestEventQueue" name="test_queue_pop_all_fifo_order" time="0.001" /><testcase classname="src.test.test_environment.TestEventQueue" name="test_queue_size_after_operations" time="0.001" /><testcase classname="src.test.test_environment.TestEventQueue" name="test_queue_is_empty_after_operations" time="0.001" /><testcase classname="src.test.test_environment.TestEventQueue" name="test_queue_push_after_pop_all" time="0.001" /><testcase classname="src.test.test_environment.TestEventQueue" name="test_queue_maxsize_behavior" time="0.001" /><testcase classname="src.test.test_environment.TestEventQueue" name="test_queue_mixed_operations" time="0.001" /><testcase classname="src.test.test_environment.TestEventQueue" name="test_queue_different_event_types" time="0.001" /><testcase classname="src.test.test_event_queue_edge_cases.TestEventQueueEdgeCases" name="test_pop_all_with_empty_exception" time="0.001" /><testcase classname="src.test.test_event_queue_race_condition.TestEventQueueRaceCondition" name="test_pop_all_empty_exception_handling" time="0.001" /><testcase classname="src.test.test_event_queue_race_condition.TestEventQueueRaceCondition" name="test_pop_all_concurrent_access" time="0.001" /><testcase classname="src.test.test_feedback.TestRegisterAction" name="test_register_action_basic" time="0.001" /><testcase classname="src.test.test_feedback.TestRegisterAction" name="test_register_action_different_patterns" time="0.001" /><testcase classname="src.test.test_feedback.TestRegisterAction" name="test_register_action_state_copy" time="0.001" /><testcase classname="src.test.test_feedback.TestRegisterAction" name="test_register_action_multiple" time="0.001" /><testcase classname="src.test.test_feedback.TestObserveConsequences" name="test_observe_consequences_with_changes" time="0.007" /><testcase classname="src.test.test_feedback.TestObserveConsequences" name="test_observe_consequences_minimal_changes" time="0.007" /><testcase classname="src.test.test_feedback.TestObserveConsequences" name="test_observe_consequences_timeout" time="0.007" /><testcase classname="src.test.test_feedback.TestObserveConsequences" name="test_multiple_actions" time="0.007" /><testcase classname="src.test.test_feedback.TestObserveConsequences" name="test_observe_consequences_ticks_waited_increment" time="0.007" /><testcase classname="src.test.test_feedback.TestObserveConsequences" name="test_observe_consequences_positive_delta" time="0.007" /><testcase classname="src.test.test_feedback_data" name="test_feedback_data_storage" time="0.007" /><testcase classname="src.test.test_generator.TestEventGenerator" name="test_generator_initialization" time="0.001" /><testcase classname="src.test.test_generator.TestEventGenerator" name="test_generate_returns_event" time="0.001" /><testcase classname="src.test.test_generator.TestEventGenerator" name="test_generate_event_types" time="0.001" /><testcase classname="src.test.test_generator.TestEventGenerator" name="test_generate_noise_intensity_range" time="0.001" /><testcase classname="src.test.test_generator.TestEventGenerator" name="test_generate_decay_intensity_range" time="0.001" /><testcase classname="src.test.test_generator.TestEventGenerator" name="test_generate_recovery_intensity_range" time="0.001" /><testcase classname="src.test.test_generator.TestEventGenerator" name="test_generate_shock_intensity_range" time="0.001" /><testcase classname="src.test.test_generator.TestEventGenerator" name="test_generate_idle_intensity" time="0.001" /><testcase classname="src.test.test_generator.TestEventGenerator" name="test_generate_timestamp" time="0.001" /><testcase classname="src.test.test_generator.TestEventGenerator" name="test_generate_metadata" time="0.001" /><testcase classname="src.test.test_generator.TestEventGenerator" name="test_generate_multiple_events" time="0.001" /><testcase classname="src.test.test_generator.TestEventGenerator" name="test_generate_event_distribution" time="0.003" /><testcase classname="src.test.test_generator.TestEventGenerator" name="test_generate_event_uniqueness" time="0.001" /><testcase classname="src.test.test_generator.TestGeneratorCLI" name="test_send_event_success" time="0.039"><failure message="ImportError: attempted relative import beyond top-level package">self = &lt;test_generator.TestGeneratorCLI object at 0x7b89f05649a0&gt;
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x7b89ef773190&gt;
+
+    def test_send_event_success(self, monkeypatch):
+        """Тест успешной отправки события"""
+&gt;       from environment.generator_cli import send_event
+
+src/test/test_generator.py:152: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    """
+    CLI для генерации событий и отправки их на API сервера.
+    
+    Пример:
+        python -m environment.generator_cli --interval 5 --host localhost --port 8000
+    """
+    
+    import argparse
+    import os
+    import sys
+    import time
+    
+    import requests
+    
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from .generator import EventGenerator
+&gt;   from ..logging_config import get_logger, setup_logging
+E   ImportError: attempted relative import beyond top-level package
+
+src/environment/generator_cli.py:17: ImportError</failure></testcase><testcase classname="src.test.test_generator.TestGeneratorCLI" name="test_send_event_connection_error" time="0.009"><failure message="ImportError: attempted relative import beyond top-level package">self = &lt;test_generator.TestGeneratorCLI object at 0x7b89f0565870&gt;
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x7b89eee685b0&gt;
+
+    def test_send_event_connection_error(self, monkeypatch):
+        """Тест обработки ошибки соединения"""
+        import requests
+    
+&gt;       from environment.generator_cli import send_event
+
+src/test/test_generator.py:173: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    """
+    CLI для генерации событий и отправки их на API сервера.
+    
+    Пример:
+        python -m environment.generator_cli --interval 5 --host localhost --port 8000
+    """
+    
+    import argparse
+    import os
+    import sys
+    import time
+    
+    import requests
+    
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from .generator import EventGenerator
+&gt;   from ..logging_config import get_logger, setup_logging
+E   ImportError: attempted relative import beyond top-level package
+
+src/environment/generator_cli.py:17: ImportError</failure></testcase><testcase classname="src.test.test_generator.TestGeneratorCLI" name="test_send_event_timeout" time="0.008"><failure message="ImportError: attempted relative import beyond top-level package">self = &lt;test_generator.TestGeneratorCLI object at 0x7b89f0565ba0&gt;
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x7b89eee6ef80&gt;
+
+    def test_send_event_timeout(self, monkeypatch):
+        """Тест обработки таймаута"""
+        import requests
+    
+&gt;       from environment.generator_cli import send_event
+
+src/test/test_generator.py:189: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    """
+    CLI для генерации событий и отправки их на API сервера.
+    
+    Пример:
+        python -m environment.generator_cli --interval 5 --host localhost --port 8000
+    """
+    
+    import argparse
+    import os
+    import sys
+    import time
+    
+    import requests
+    
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from .generator import EventGenerator
+&gt;   from ..logging_config import get_logger, setup_logging
+E   ImportError: attempted relative import beyond top-level package
+
+src/environment/generator_cli.py:17: ImportError</failure></testcase><testcase classname="src.test.test_generator_cli.TestGeneratorCLI" name="test_send_event_success" time="0.001" /><testcase classname="src.test.test_generator_cli.TestGeneratorCLI" name="test_send_event_request_exception" time="0.001" /><testcase classname="src.test.test_generator_cli.TestGeneratorCLI" name="test_send_event_general_exception" time="0.001" /><testcase classname="src.test.test_generator_cli.TestGeneratorCLI" name="test_main_function_basic" time="0.003" /><testcase classname="src.test.test_generator_cli.TestGeneratorCLI" name="test_main_function_send_event_called" time="0.003" /><testcase classname="src.test.test_generator_cli.TestGeneratorCLI" name="test_main_function_send_failure" time="0.007" /><testcase classname="src.test.test_generator_cli.TestGeneratorCLI" name="test_main_function_if_name_main" time="0.013"><failure message="ImportError: attempted relative import beyond top-level package">thing = &lt;module 'environment' from '/workspace/src/environment/__init__.py'&gt;
+comp = 'generator_cli', import_path = 'environment.generator_cli'
+
+    def _dot_lookup(thing, comp, import_path):
+        try:
+&gt;           return getattr(thing, comp)
+E           AttributeError: module 'environment' has no attribute 'generator_cli'. Did you mean: 'generator'?
+
+/usr/lib/python3.10/unittest/mock.py:1248: AttributeError
+
+During handling of the above exception, another exception occurred:
+
+self = &lt;test_generator_cli.TestGeneratorCLI object at 0x7b89f0565570&gt;
+
+    def test_main_function_if_name_main(self):
+        """Тест вызова main при запуске как скрипт (строка 64)"""
+        import sys
+        from unittest.mock import patch
+    
+        # Мокируем все зависимости
+&gt;       with patch("environment.generator_cli.EventGenerator") as mock_gen_class, patch(
+            "environment.generator_cli.send_event"
+        ) as mock_send, patch("time.sleep", side_effect=KeyboardInterrupt()), patch(
+            "builtins.print"
+        ):
+
+src/test/test_generator_cli.py:201: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;unittest.mock._patch object at 0x7b89eeeb3d00&gt;
+
+    def __enter__(self):
+        """Perform the patch."""
+        new, spec, spec_set = self.new, self.spec, self.spec_set
+        autospec, kwargs = self.autospec, self.kwargs
+        new_callable = self.new_callable
+&gt;       self.target = self.getter()
+
+/usr/lib/python3.10/unittest/mock.py:1431: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+&gt;   getter = lambda: _importer(target)
+
+/usr/lib/python3.10/unittest/mock.py:1618: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+target = 'environment.generator_cli'
+
+    def _importer(target):
+        components = target.split('.')
+        import_path = components.pop(0)
+        thing = __import__(import_path)
+    
+        for comp in components:
+            import_path += ".%s" % comp
+&gt;           thing = _dot_lookup(thing, comp, import_path)
+
+/usr/lib/python3.10/unittest/mock.py:1261: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+thing = &lt;module 'environment' from '/workspace/src/environment/__init__.py'&gt;
+comp = 'generator_cli', import_path = 'environment.generator_cli'
+
+    def _dot_lookup(thing, comp, import_path):
+        try:
+            return getattr(thing, comp)
+        except AttributeError:
+&gt;           __import__(import_path)
+
+/usr/lib/python3.10/unittest/mock.py:1250: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    """
+    CLI для генерации событий и отправки их на API сервера.
+    
+    Пример:
+        python -m environment.generator_cli --interval 5 --host localhost --port 8000
+    """
+    
+    import argparse
+    import os
+    import sys
+    import time
+    
+    import requests
+    
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from .generator import EventGenerator
+&gt;   from ..logging_config import get_logger, setup_logging
+E   ImportError: attempted relative import beyond top-level package
+
+src/environment/generator_cli.py:17: ImportError</failure></testcase><testcase classname="src.test.test_generator_cli.TestGeneratorCLI" name="test_main_verbose_logging_setup" time="0.078" /><testcase classname="src.test.test_generator_cli.TestGeneratorCLI" name="test_main_default_logging_setup" time="0.005" /><testcase classname="src.test.test_intelligence.TestProcessInformation" name="test_process_information_basic" time="0.007" /><testcase classname="src.test.test_intelligence.TestProcessInformation" name="test_process_information_empty_recent_events" time="0.009" /><testcase classname="src.test.test_intelligence.TestProcessInformation" name="test_process_information_empty_planning" time="0.009" /><testcase classname="src.test.test_intelligence.TestProcessInformation" name="test_process_information_energy_values" time="0.009" /><testcase classname="src.test.test_intelligence.TestProcessInformation" name="test_process_information_stability_values" time="0.007" /><testcase classname="src.test.test_intelligence.TestProcessInformation" name="test_process_information_planning_sequences" time="0.007" /><testcase classname="src.test.test_intelligence.TestProcessInformation" name="test_process_information_preserves_other_fields" time="0.007" /><testcase classname="src.test.test_intelligence.TestProcessInformation" name="test_process_information_multiple_calls" time="0.007" /><testcase classname="src.test.test_intelligence.TestProcessInformation" name="test_process_information_complex_state" time="0.008" /><testcase classname="src.test.test_intelligence.TestProcessInformation" name="test_process_information_planning_without_sequences_key" time="0.008" /><testcase classname="src.test.test_meaning.TestMeaning" name="test_meaning_creation_minimal" time="0.001" /><testcase classname="src.test.test_meaning.TestMeaning" name="test_meaning_creation_full" time="0.001" /><testcase classname="src.test.test_meaning.TestMeaning" name="test_meaning_significance_validation_valid" time="0.001" /><testcase classname="src.test.test_meaning.TestMeaning" name="test_meaning_significance_validation_invalid_negative" time="0.001" /><testcase classname="src.test.test_meaning.TestMeaning" name="test_meaning_significance_validation_invalid_above_one" time="0.001" /><testcase classname="src.test.test_meaning.TestMeaning" name="test_meaning_impact_empty" time="0.001" /><testcase classname="src.test.test_meaning.TestMeaning" name="test_meaning_impact_multiple_params" time="0.001" /><testcase classname="src.test.test_meaning.TestMeaningEngine" name="test_engine_initialization" time="0.001" /><testcase classname="src.test.test_meaning.TestMeaningEngine" name="test_appraisal_shock_event" time="0.001" /><testcase classname="src.test.test_meaning.TestMeaningEngine" name="test_appraisal_noise_event" time="0.001" /><testcase classname="src.test.test_meaning.TestMeaningEngine" name="test_appraisal_intensity_effect" time="0.001" /><testcase classname="src.test.test_meaning.TestMeaningEngine" name="test_appraisal_low_integrity_amplification" time="0.001" /><testcase classname="src.test.test_meaning.TestMeaningEngine" name="test_appraisal_low_stability_amplification" time="0.001" /><testcase classname="src.test.test_meaning.TestMeaningEngine" name="test_appraisal_range_limits" time="0.001" /><testcase classname="src.test.test_meaning.TestMeaningEngine" name="test_impact_model_shock" time="0.001" /><testcase classname="src.test.test_meaning.TestMeaningEngine" name="test_impact_model_recovery" time="0.001" /><testcase classname="src.test.test_meaning.TestMeaningEngine" name="test_impact_model_intensity_scaling" time="0.001" /><testcase classname="src.test.test_meaning.TestMeaningEngine" name="test_impact_model_significance_scaling" time="0.001" /><testcase classname="src.test.test_meaning.TestMeaningEngine" name="test_impact_model_unknown_event_type" time="0.001" /><testcase classname="src.test.test_meaning.TestMeaningEngine" name="test_response_pattern_ignore_low_significance" time="0.001" /><testcase classname="src.test.test_meaning.TestMeaningEngine" name="test_response_pattern_dampen_high_stability" time="0.001" /><testcase classname="src.test.test_meaning.TestMeaningEngine" name="test_response_pattern_amplify_low_stability" time="0.001" /><testcase classname="src.test.test_meaning.TestMeaningEngine" name="test_response_pattern_absorb_normal" time="0.001" /><testcase classname="src.test.test_meaning.TestMeaningEngine" name="test_process_complete_flow" time="0.001" /><testcase classname="src.test.test_meaning.TestMeaningEngine" name="test_process_ignore_pattern" time="0.001" /><testcase classname="src.test.test_meaning.TestMeaningEngine" name="test_process_dampen_pattern" time="0.001" /><testcase classname="src.test.test_meaning.TestMeaningEngine" name="test_process_amplify_pattern" time="0.001" /><testcase classname="src.test.test_memory.TestMemoryEntry" name="test_memory_entry_creation" time="0.001" /><testcase classname="src.test.test_memory.TestMemoryEntry" name="test_memory_entry_with_feedback_data" time="0.001" /><testcase classname="src.test.test_memory.TestMemoryEntry" name="test_memory_entry_with_subjective_timestamp" time="0.001" /><testcase classname="src.test.test_memory.TestMemoryEntry" name="test_memory_entry_subjective_timestamp_default" time="0.000" /><testcase classname="src.test.test_memory.TestMemoryEntry" name="test_memory_entry_different_event_types" time="0.001" /><testcase classname="src.test.test_memory.TestMemoryEntry" name="test_memory_entry_significance_range" time="0.000" /><testcase classname="src.test.test_memory.TestMemory" name="test_memory_initialization" time="0.007" /><testcase classname="src.test.test_memory.TestMemory" name="test_memory_append_single" time="0.007" /><testcase classname="src.test.test_memory.TestMemory" name="test_memory_append_multiple" time="0.007" /><testcase classname="src.test.test_memory.TestMemory" name="test_memory_clamp_size_at_limit" time="0.008" /><testcase classname="src.test.test_memory.TestMemory" name="test_memory_clamp_size_over_limit" time="0.007" /><testcase classname="src.test.test_memory.TestMemory" name="test_memory_preserves_order" time="0.007" /><testcase classname="src.test.test_memory.TestMemory" name="test_memory_with_feedback_entries" time="0.007" /><testcase classname="src.test.test_memory.TestMemory" name="test_memory_mixed_entries" time="0.007" /><testcase classname="src.test.test_memory.TestMemory" name="test_memory_list_operations" time="0.007" /><testcase classname="src.test.test_monitor.TestMonitor" name="test_log_function" time="0.001"><failure message="AssertionError: assert '[RELOAD] Test message' in ''&#10; +  where '' = CaptureResult(out='', err='').out">self = &lt;test_monitor.TestMonitor object at 0x7b89efb6b4f0&gt;
+capsys = &lt;_pytest.capture.CaptureFixture object at 0x7b89eeeaaf20&gt;
+
+    def test_log_function(self, capsys):
+        """Тест функции log (строки 13-14)"""
+        log("Test message")
+        captured = capsys.readouterr()
+&gt;       assert "[RELOAD] Test message" in captured.out
+E       AssertionError: assert '[RELOAD] Test message' in ''
+E        +  where '' = CaptureResult(out='', err='').out
+
+src/test/test_monitor.py:37: AssertionError</failure></testcase><testcase classname="src.test.test_monitor.TestMonitor" name="test_monitor_basic" time="0.150" /><testcase classname="src.test.test_monitor.TestMonitor" name="test_monitor_with_activated_memory" time="0.010" /><testcase classname="src.test.test_monitor.TestMonitor" name="test_monitor_without_activated_memory" time="0.010" /><testcase classname="src.test.test_monitor.TestMonitor" name="test_monitor_multiple_calls" time="0.010" /><testcase classname="src.test.test_monitor.TestMonitor" name="test_monitor_log_file_append" time="0.009" /><testcase classname="src.test.test_monitor.TestMonitor" name="test_monitor_all_state_fields" time="0.009" /><testcase classname="src.test.test_planning.TestRecordPotentialSequences" name="test_record_potential_sequences_empty_recent_events" time="0.007" /><testcase classname="src.test.test_planning.TestRecordPotentialSequences" name="test_record_potential_sequences_single_event" time="0.007" /><testcase classname="src.test.test_planning.TestRecordPotentialSequences" name="test_record_potential_sequences_two_events" time="0.007" /><testcase classname="src.test.test_planning.TestRecordPotentialSequences" name="test_record_potential_sequences_multiple_events" time="0.007" /><testcase classname="src.test.test_planning.TestRecordPotentialSequences" name="test_record_potential_sequences_sources_used" time="0.007" /><testcase classname="src.test.test_planning.TestRecordPotentialSequences" name="test_record_potential_sequences_preserves_other_fields" time="0.008" /><testcase classname="src.test.test_planning.TestRecordPotentialSequences" name="test_record_potential_sequences_multiple_calls" time="0.008" /><testcase classname="src.test.test_planning.TestRecordPotentialSequences" name="test_record_potential_sequences_empty_histories" time="0.007" /><testcase classname="src.test.test_planning.TestRecordPotentialSequences" name="test_record_potential_sequences_different_event_types" time="0.007" /><testcase classname="src.test.test_property_based.TestSelfStatePropertyBased" name="test_state_parameters_always_in_bounds" time="1.271"><failure message="hypothesis.errors.FailedHealthCheck: Input generation is slow: Hypothesis only generated 4 valid inputs after 1.20 seconds.&#10;&#10;              count | fraction |    slowest draws (seconds)&#10;  stability |    4  |    100%  |      --      --      --      --   1.199&#10;   energy   |    4  |      0%  |      --      --      --      --      -- &#10;  integrity |    4  |      0%  |      --      --      --      --      -- &#10;&#10;This could be for a few reasons:&#10;1. This strategy could be generating too much data per input. Try decreasing the amount of data generated, for example by decreasing the minimum size of collection strategies like st.lists().&#10;2. Some other expensive computation could be running during input generation. For example, if @st.composite or st.data() is interspersed with an expensive computation, HealthCheck.too_slow is likely to trigger. If this computation is unrelated to input generation, move it elsewhere. Otherwise, try making it more efficient, or disable this health check if that is not possible.&#10;&#10;If you expect input generation to take this long, you can disable this health check with @settings(suppress_health_check=[HealthCheck.too_slow]). See https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.HealthCheck for details.">self = &lt;test_property_based.TestSelfStatePropertyBased object at 0x7b89f2871390&gt;
+
+    @given(
+&gt;       energy=st.floats(min_value=0.0, max_value=100.0),
+        integrity=st.floats(min_value=0.0, max_value=1.0),
+        stability=st.floats(min_value=0.0, max_value=1.0),
+    )
+E   hypothesis.errors.FailedHealthCheck: Input generation is slow: Hypothesis only generated 4 valid inputs after 1.20 seconds.
+E   
+E                 count | fraction |    slowest draws (seconds)
+E     stability |    4  |    100%  |      --      --      --      --   1.199
+E      energy   |    4  |      0%  |      --      --      --      --      -- 
+E     integrity |    4  |      0%  |      --      --      --      --      -- 
+E   
+E   This could be for a few reasons:
+E   1. This strategy could be generating too much data per input. Try decreasing the amount of data generated, for example by decreasing the minimum size of collection strategies like st.lists().
+E   2. Some other expensive computation could be running during input generation. For example, if @st.composite or st.data() is interspersed with an expensive computation, HealthCheck.too_slow is likely to trigger. If this computation is unrelated to input generation, move it elsewhere. Otherwise, try making it more efficient, or disable this health check if that is not possible.
+E   
+E   If you expect input generation to take this long, you can disable this health check with @settings(suppress_health_check=[HealthCheck.too_slow]). See https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.HealthCheck for details.
+
+src/test/test_property_based.py:29: FailedHealthCheck</failure></testcase><testcase classname="src.test.test_property_based.TestSelfStatePropertyBased" name="test_apply_delta_always_clamps" time="0.766" /><testcase classname="src.test.test_property_based.TestSelfStatePropertyBased" name="test_energy_delta_idempotent" time="1.336" /><testcase classname="src.test.test_property_based.TestMemoryPropertyBased" name="test_memory_size_always_limited" time="0.894" /><testcase classname="src.test.test_property_based.TestMemoryPropertyBased" name="test_memory_preserves_order" time="0.804" /><testcase classname="src.test.test_property_based.TestMemoryPropertyBased" name="test_memory_append_idempotent" time="0.123"><failure message="AssertionError: assert 1 == 2&#10; +  where 1 = len([MemoryEntry(event_type='0', meaning_significance=0.0, timestamp=1768929388.1512513, weight=1.0, feedback_data=None, subjective_timestamp=None)])&#10; +  and   2 = len([MemoryEntry(event_type='0', meaning_significance=0.0, timestamp=1768929388.1512513, weight=1.0, feedback_data=None, subjective_timestamp=None), MemoryEntry(event_type='0', meaning_significance=0.0, timestamp=1768929388.1512513, weight=1.0, feedback_data=None, subjective_timestamp=None)])&#10;Falsifying example: test_memory_append_idempotent(&#10;    self=&lt;test_property_based.TestMemoryPropertyBased object at 0x7b89f2890f70&gt;,&#10;    event_type='0',&#10;    significance=0.0,&#10;    num_appends=2,&#10;)">self = &lt;test_property_based.TestMemoryPropertyBased object at 0x7b89f2890f70&gt;
+
+    @given(
+&gt;       event_type=st.text(min_size=1, max_size=20),
+        significance=st.floats(min_value=0.0, max_value=1.0),
+        num_appends=st.integers(min_value=1, max_value=100),
+    )
+
+src/test/test_property_based.py:152: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;test_property_based.TestMemoryPropertyBased object at 0x7b89f2890f70&gt;
+event_type = '0', significance = 0.0, num_appends = 2
+
+    @given(
+        event_type=st.text(min_size=1, max_size=20),
+        significance=st.floats(min_value=0.0, max_value=1.0),
+        num_appends=st.integers(min_value=1, max_value=100),
+    )
+    def test_memory_append_idempotent(self, event_type, significance, num_appends):
+        """Свойство: множественные append одного элемента эквивалентны одному append"""
+        memory1 = Memory()
+        memory2 = Memory()
+    
+        entry = MemoryEntry(
+            event_type=event_type,
+            meaning_significance=significance,
+            timestamp=time.time(),
+        )
+    
+        # Добавляем один раз
+        memory1.append(entry)
+    
+        # Добавляем много раз (но из-за ограничения размера результат должен быть одинаковым)
+        for _ in range(num_appends):
+            memory2.append(entry)
+    
+        # Если память не переполнена, результаты должны быть одинаковыми
+        if num_appends &lt;= 50:
+&gt;           assert len(memory1) == len(memory2)
+E           AssertionError: assert 1 == 2
+E            +  where 1 = len([MemoryEntry(event_type='0', meaning_significance=0.0, timestamp=1768929388.1512513, weight=1.0, feedback_data=None, subjective_timestamp=None)])
+E            +  and   2 = len([MemoryEntry(event_type='0', meaning_significance=0.0, timestamp=1768929388.1512513, weight=1.0, feedback_data=None, subjective_timestamp=None), MemoryEntry(event_type='0', meaning_significance=0.0, timestamp=1768929388.1512513, weight=1.0, feedback_data=None, subjective_timestamp=None)])
+E           Falsifying example: test_memory_append_idempotent(
+E               self=&lt;test_property_based.TestMemoryPropertyBased object at 0x7b89f2890f70&gt;,
+E               event_type='0',
+E               significance=0.0,
+E               num_appends=2,
+E           )
+
+src/test/test_property_based.py:176: AssertionError</failure></testcase><testcase classname="src.test.test_property_based.TestMemoryEntryPropertyBased" name="test_memory_entry_creation" time="0.121" /><testcase classname="src.test.test_property_based.TestMemoryEntryPropertyBased" name="test_memory_entry_with_feedback" time="0.409" /><testcase classname="src.test.test_state.TestSelfState" name="test_self_state_initialization" time="0.009" /><testcase classname="src.test.test_state.TestSelfState" name="test_self_state_unique_life_id" time="0.015" /><testcase classname="src.test.test_state.TestSelfState" name="test_self_state_birth_timestamp" time="0.008" /><testcase classname="src.test.test_state.TestSelfState" name="test_apply_delta_energy" time="0.008" /><testcase classname="src.test.test_state.TestSelfState" name="test_apply_delta_integrity" time="0.008" /><testcase classname="src.test.test_state.TestSelfState" name="test_apply_delta_stability" time="0.008" /><testcase classname="src.test.test_state.TestSelfState" name="test_apply_delta_multiple_params" time="0.008" /><testcase classname="src.test.test_state.TestSelfState" name="test_apply_delta_ticks" time="0.008" /><testcase classname="src.test.test_state.TestSelfState" name="test_apply_delta_age" time="0.008" /><testcase classname="src.test.test_state.TestSelfState" name="test_apply_delta_unknown_field" time="0.008" /><testcase classname="src.test.test_state.TestSelfState" name="test_apply_delta_non_numeric_field" time="0.008" /><testcase classname="src.test.test_state.TestSelfState" name="test_self_state_memory_operations" time="0.008" /><testcase classname="src.test.test_state.TestSelfState" name="test_self_state_recent_events" time="0.008" /><testcase classname="src.test.test_state.TestSnapshots" name="test_save_snapshot" time="0.015"><failure message="TypeError: cannot pickle '_thread.RLock' object">self = &lt;test_state.TestSnapshots object at 0x7b89f28d73a0&gt;
+temp_snapshot_dir = PosixPath('/tmp/tmpnz2c0jz5')
+
+    def test_save_snapshot(self, temp_snapshot_dir):
+        """Тест сохранения снимка"""
+        state = SelfState()
+        state.ticks = 100
+        state.energy = 75.0
+        state.integrity = 0.8
+        state.stability = 0.9
+    
+        # Добавляем запись в память
+        entry = MemoryEntry(
+            event_type="test", meaning_significance=0.5, timestamp=time.time()
+        )
+        state.memory.append(entry)
+    
+&gt;       save_snapshot(state)
+
+src/test/test_state.py:237: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+state = SelfState(life_id='e3165080-aabc-4679-86ca-0bbeb0e12c1a', birth_timestamp=1768929388.948939, age=0.0, subjective_time=...ck': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, adaptation_history=[])
+
+    def save_snapshot(state: SelfState):
+        """
+        Сохраняет текущее состояние жизни как отдельный JSON файл.
+        Оптимизированная сериализация с исключением transient полей.
+    
+        ПРИМЕЧАНИЕ: Логирование временно отключается во время сериализации для производительности.
+        Изменения состояния, которые могут произойти во время вызова asdict() (например,
+        конвертация dataclass), не будут залогированы. Это намеренное решение для оптимизации.
+    
+        ПРИМЕЧАНИЕ: Flush буфера логов должен управляться через LogManager в runtime loop,
+        а не внутри этой функции. Это обеспечивает правильное разделение ответственности.
+    
+        Args:
+            state: Состояние для сохранения
+        """
+        # Временно отключаем логирование для сериализации
+        # Это предотвращает логирование изменений, которые могут произойти при конвертации dataclass
+        logging_was_enabled = state._logging_enabled
+        state.disable_logging()
+    
+        try:
+&gt;           snapshot = asdict(state)
+
+src/state/self_state.py:1038: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+obj = SelfState(life_id='e3165080-aabc-4679-86ca-0bbeb0e12c1a', birth_timestamp=1768929388.948939, age=0.0, subjective_time=...ck': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, adaptation_history=[])
+
+    def asdict(obj, *, dict_factory=dict):
+        """Return the fields of a dataclass instance as a new dictionary mapping
+        field names to field values.
+    
+        Example usage:
+    
+          @dataclass
+          class C:
+              x: int
+              y: int
+    
+          c = C(1, 2)
+          assert asdict(c) == {'x': 1, 'y': 2}
+    
+        If given, 'dict_factory' will be used instead of built-in dict.
+        The function applies recursively to field values that are
+        dataclass instances. This will also look into built-in containers:
+        tuples, lists, and dicts.
+        """
+        if not _is_dataclass_instance(obj):
+            raise TypeError("asdict() should be called on dataclass instances")
+&gt;       return _asdict_inner(obj, dict_factory)
+
+/usr/lib/python3.10/dataclasses.py:1238: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+obj = SelfState(life_id='e3165080-aabc-4679-86ca-0bbeb0e12c1a', birth_timestamp=1768929388.948939, age=0.0, subjective_time=...ck': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, adaptation_history=[])
+dict_factory = &lt;class 'dict'&gt;
+
+    def _asdict_inner(obj, dict_factory):
+        if _is_dataclass_instance(obj):
+            result = []
+            for f in fields(obj):
+&gt;               value = _asdict_inner(getattr(obj, f.name), dict_factory)
+
+/usr/lib/python3.10/dataclasses.py:1245: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+obj = &lt;unlocked _thread.RLock object owner=0 count=0 at 0x7b89eeba3040&gt;
+dict_factory = &lt;class 'dict'&gt;
+
+    def _asdict_inner(obj, dict_factory):
+        if _is_dataclass_instance(obj):
+            result = []
+            for f in fields(obj):
+                value = _asdict_inner(getattr(obj, f.name), dict_factory)
+                result.append((f.name, value))
+            return dict_factory(result)
+        elif isinstance(obj, tuple) and hasattr(obj, '_fields'):
+            # obj is a namedtuple.  Recurse into it, but the returned
+            # object is another namedtuple of the same type.  This is
+            # similar to how other list- or tuple-derived classes are
+            # treated (see below), but we just need to create them
+            # differently because a namedtuple's __init__ needs to be
+            # called differently (see bpo-34363).
+    
+            # I'm not using namedtuple's _asdict()
+            # method, because:
+            # - it does not recurse in to the namedtuple fields and
+            #   convert them to dicts (using dict_factory).
+            # - I don't actually want to return a dict here.  The main
+            #   use case here is json.dumps, and it handles converting
+            #   namedtuples to lists.  Admittedly we're losing some
+            #   information here when we produce a json list instead of a
+            #   dict.  Note that if we returned dicts here instead of
+            #   namedtuples, we could no longer call asdict() on a data
+            #   structure where a namedtuple was used as a dict key.
+    
+            return type(obj)(*[_asdict_inner(v, dict_factory) for v in obj])
+        elif isinstance(obj, (list, tuple)):
+            # Assume we can create an object of this type by passing in a
+            # generator (which is not true for namedtuples, handled
+            # above).
+            return type(obj)(_asdict_inner(v, dict_factory) for v in obj)
+        elif isinstance(obj, dict):
+            return type(obj)((_asdict_inner(k, dict_factory),
+                              _asdict_inner(v, dict_factory))
+                             for k, v in obj.items())
+        else:
+&gt;           return copy.deepcopy(obj)
+
+/usr/lib/python3.10/dataclasses.py:1279: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+x = &lt;unlocked _thread.RLock object owner=0 count=0 at 0x7b89eeba3040&gt;, memo = {}
+_nil = []
+
+    def deepcopy(x, memo=None, _nil=[]):
+        """Deep copy operation on arbitrary Python objects.
+    
+        See the module's __doc__ string for more info.
+        """
+    
+        if memo is None:
+            memo = {}
+    
+        d = id(x)
+        y = memo.get(d, _nil)
+        if y is not _nil:
+            return y
+    
+        cls = type(x)
+    
+        copier = _deepcopy_dispatch.get(cls)
+        if copier is not None:
+            y = copier(x, memo)
+        else:
+            if issubclass(cls, type):
+                y = _deepcopy_atomic(x, memo)
+            else:
+                copier = getattr(x, "__deepcopy__", None)
+                if copier is not None:
+                    y = copier(memo)
+                else:
+                    reductor = dispatch_table.get(cls)
+                    if reductor:
+                        rv = reductor(x)
+                    else:
+                        reductor = getattr(x, "__reduce_ex__", None)
+                        if reductor is not None:
+&gt;                           rv = reductor(4)
+E                           TypeError: cannot pickle '_thread.RLock' object
+
+/usr/lib/python3.10/copy.py:161: TypeError</failure></testcase><testcase classname="src.test.test_state.TestSnapshots" name="test_load_snapshot" time="0.013"><failure message="TypeError: cannot pickle '_thread.RLock' object">self = &lt;test_state.TestSnapshots object at 0x7b89f28bfdc0&gt;
+temp_snapshot_dir = PosixPath('/tmp/tmp4p9eri1m')
+
+    def test_load_snapshot(self, temp_snapshot_dir):
+        """Тест загрузки снимка"""
+        # Создаем снимок
+        state = SelfState(life_id="test_life_id")
+        state.ticks = 200
+        state.energy = 50.0
+        state.integrity = 0.6
+        state.stability = 0.7
+    
+        entry = MemoryEntry(
+            event_type="loaded_event", meaning_significance=0.7, timestamp=time.time()
+        )
+        state.memory.append(entry)
+    
+&gt;       save_snapshot(state)
+
+src/test/test_state.py:272: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+state = SelfState(life_id='test_life_id', birth_timestamp=1768929389.0491216, age=0.0, subjective_time=0.0, ticks=200, energy=...ck': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, adaptation_history=[])
+
+    def save_snapshot(state: SelfState):
+        """
+        Сохраняет текущее состояние жизни как отдельный JSON файл.
+        Оптимизированная сериализация с исключением transient полей.
+    
+        ПРИМЕЧАНИЕ: Логирование временно отключается во время сериализации для производительности.
+        Изменения состояния, которые могут произойти во время вызова asdict() (например,
+        конвертация dataclass), не будут залогированы. Это намеренное решение для оптимизации.
+    
+        ПРИМЕЧАНИЕ: Flush буфера логов должен управляться через LogManager в runtime loop,
+        а не внутри этой функции. Это обеспечивает правильное разделение ответственности.
+    
+        Args:
+            state: Состояние для сохранения
+        """
+        # Временно отключаем логирование для сериализации
+        # Это предотвращает логирование изменений, которые могут произойти при конвертации dataclass
+        logging_was_enabled = state._logging_enabled
+        state.disable_logging()
+    
+        try:
+&gt;           snapshot = asdict(state)
+
+src/state/self_state.py:1038: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+obj = SelfState(life_id='test_life_id', birth_timestamp=1768929389.0491216, age=0.0, subjective_time=0.0, ticks=200, energy=...ck': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, adaptation_history=[])
+
+    def asdict(obj, *, dict_factory=dict):
+        """Return the fields of a dataclass instance as a new dictionary mapping
+        field names to field values.
+    
+        Example usage:
+    
+          @dataclass
+          class C:
+              x: int
+              y: int
+    
+          c = C(1, 2)
+          assert asdict(c) == {'x': 1, 'y': 2}
+    
+        If given, 'dict_factory' will be used instead of built-in dict.
+        The function applies recursively to field values that are
+        dataclass instances. This will also look into built-in containers:
+        tuples, lists, and dicts.
+        """
+        if not _is_dataclass_instance(obj):
+            raise TypeError("asdict() should be called on dataclass instances")
+&gt;       return _asdict_inner(obj, dict_factory)
+
+/usr/lib/python3.10/dataclasses.py:1238: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+obj = SelfState(life_id='test_life_id', birth_timestamp=1768929389.0491216, age=0.0, subjective_time=0.0, ticks=200, energy=...ck': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, adaptation_history=[])
+dict_factory = &lt;class 'dict'&gt;
+
+    def _asdict_inner(obj, dict_factory):
+        if _is_dataclass_instance(obj):
+            result = []
+            for f in fields(obj):
+&gt;               value = _asdict_inner(getattr(obj, f.name), dict_factory)
+
+/usr/lib/python3.10/dataclasses.py:1245: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+obj = &lt;unlocked _thread.RLock object owner=0 count=0 at 0x7b89ef7d1980&gt;
+dict_factory = &lt;class 'dict'&gt;
+
+    def _asdict_inner(obj, dict_factory):
+        if _is_dataclass_instance(obj):
+            result = []
+            for f in fields(obj):
+                value = _asdict_inner(getattr(obj, f.name), dict_factory)
+                result.append((f.name, value))
+            return dict_factory(result)
+        elif isinstance(obj, tuple) and hasattr(obj, '_fields'):
+            # obj is a namedtuple.  Recurse into it, but the returned
+            # object is another namedtuple of the same type.  This is
+            # similar to how other list- or tuple-derived classes are
+            # treated (see below), but we just need to create them
+            # differently because a namedtuple's __init__ needs to be
+            # called differently (see bpo-34363).
+    
+            # I'm not using namedtuple's _asdict()
+            # method, because:
+            # - it does not recurse in to the namedtuple fields and
+            #   convert them to dicts (using dict_factory).
+            # - I don't actually want to return a dict here.  The main
+            #   use case here is json.dumps, and it handles converting
+            #   namedtuples to lists.  Admittedly we're losing some
+            #   information here when we produce a json list instead of a
+            #   dict.  Note that if we returned dicts here instead of
+            #   namedtuples, we could no longer call asdict() on a data
+            #   structure where a namedtuple was used as a dict key.
+    
+            return type(obj)(*[_asdict_inner(v, dict_factory) for v in obj])
+        elif isinstance(obj, (list, tuple)):
+            # Assume we can create an object of this type by passing in a
+            # generator (which is not true for namedtuples, handled
+            # above).
+            return type(obj)(_asdict_inner(v, dict_factory) for v in obj)
+        elif isinstance(obj, dict):
+            return type(obj)((_asdict_inner(k, dict_factory),
+                              _asdict_inner(v, dict_factory))
+                             for k, v in obj.items())
+        else:
+&gt;           return copy.deepcopy(obj)
+
+/usr/lib/python3.10/dataclasses.py:1279: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+x = &lt;unlocked _thread.RLock object owner=0 count=0 at 0x7b89ef7d1980&gt;, memo = {}
+_nil = []
+
+    def deepcopy(x, memo=None, _nil=[]):
+        """Deep copy operation on arbitrary Python objects.
+    
+        See the module's __doc__ string for more info.
+        """
+    
+        if memo is None:
+            memo = {}
+    
+        d = id(x)
+        y = memo.get(d, _nil)
+        if y is not _nil:
+            return y
+    
+        cls = type(x)
+    
+        copier = _deepcopy_dispatch.get(cls)
+        if copier is not None:
+            y = copier(x, memo)
+        else:
+            if issubclass(cls, type):
+                y = _deepcopy_atomic(x, memo)
+            else:
+                copier = getattr(x, "__deepcopy__", None)
+                if copier is not None:
+                    y = copier(memo)
+                else:
+                    reductor = dispatch_table.get(cls)
+                    if reductor:
+                        rv = reductor(x)
+                    else:
+                        reductor = getattr(x, "__reduce_ex__", None)
+                        if reductor is not None:
+&gt;                           rv = reductor(4)
+E                           TypeError: cannot pickle '_thread.RLock' object
+
+/usr/lib/python3.10/copy.py:161: TypeError</failure></testcase><testcase classname="src.test.test_state.TestSnapshots" name="test_load_snapshot_not_found" time="0.002" /><testcase classname="src.test.test_state.TestSnapshots" name="test_load_latest_snapshot" time="0.014"><failure message="TypeError: cannot pickle '_thread.RLock' object">self = &lt;test_state.TestSnapshots object at 0x7b89f28d7280&gt;
+temp_snapshot_dir = PosixPath('/tmp/tmp7olry_9a')
+
+    def test_load_latest_snapshot(self, temp_snapshot_dir):
+        """Тест загрузки последнего снимка"""
+        # Создаем несколько снимков
+        for ticks in [10, 20, 30]:
+            state = SelfState()
+            state.ticks = ticks
+            state.energy = ticks * 2.0
+&gt;           save_snapshot(state)
+
+src/test/test_state.py:298: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+state = SelfState(life_id='4add5cb4-1fd2-4b9a-9d58-9fc10d34e89b', birth_timestamp=1768929389.1985357, age=0.0, subjective_time...ck': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, adaptation_history=[])
+
+    def save_snapshot(state: SelfState):
+        """
+        Сохраняет текущее состояние жизни как отдельный JSON файл.
+        Оптимизированная сериализация с исключением transient полей.
+    
+        ПРИМЕЧАНИЕ: Логирование временно отключается во время сериализации для производительности.
+        Изменения состояния, которые могут произойти во время вызова asdict() (например,
+        конвертация dataclass), не будут залогированы. Это намеренное решение для оптимизации.
+    
+        ПРИМЕЧАНИЕ: Flush буфера логов должен управляться через LogManager в runtime loop,
+        а не внутри этой функции. Это обеспечивает правильное разделение ответственности.
+    
+        Args:
+            state: Состояние для сохранения
+        """
+        # Временно отключаем логирование для сериализации
+        # Это предотвращает логирование изменений, которые могут произойти при конвертации dataclass
+        logging_was_enabled = state._logging_enabled
+        state.disable_logging()
+    
+        try:
+&gt;           snapshot = asdict(state)
+
+src/state/self_state.py:1038: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+obj = SelfState(life_id='4add5cb4-1fd2-4b9a-9d58-9fc10d34e89b', birth_timestamp=1768929389.1985357, age=0.0, subjective_time...ck': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, adaptation_history=[])
+
+    def asdict(obj, *, dict_factory=dict):
+        """Return the fields of a dataclass instance as a new dictionary mapping
+        field names to field values.
+    
+        Example usage:
+    
+          @dataclass
+          class C:
+              x: int
+              y: int
+    
+          c = C(1, 2)
+          assert asdict(c) == {'x': 1, 'y': 2}
+    
+        If given, 'dict_factory' will be used instead of built-in dict.
+        The function applies recursively to field values that are
+        dataclass instances. This will also look into built-in containers:
+        tuples, lists, and dicts.
+        """
+        if not _is_dataclass_instance(obj):
+            raise TypeError("asdict() should be called on dataclass instances")
+&gt;       return _asdict_inner(obj, dict_factory)
+
+/usr/lib/python3.10/dataclasses.py:1238: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+obj = SelfState(life_id='4add5cb4-1fd2-4b9a-9d58-9fc10d34e89b', birth_timestamp=1768929389.1985357, age=0.0, subjective_time...ck': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, adaptation_history=[])
+dict_factory = &lt;class 'dict'&gt;
+
+    def _asdict_inner(obj, dict_factory):
+        if _is_dataclass_instance(obj):
+            result = []
+            for f in fields(obj):
+&gt;               value = _asdict_inner(getattr(obj, f.name), dict_factory)
+
+/usr/lib/python3.10/dataclasses.py:1245: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+obj = &lt;unlocked _thread.RLock object owner=0 count=0 at 0x7b89f28fc740&gt;
+dict_factory = &lt;class 'dict'&gt;
+
+    def _asdict_inner(obj, dict_factory):
+        if _is_dataclass_instance(obj):
+            result = []
+            for f in fields(obj):
+                value = _asdict_inner(getattr(obj, f.name), dict_factory)
+                result.append((f.name, value))
+            return dict_factory(result)
+        elif isinstance(obj, tuple) and hasattr(obj, '_fields'):
+            # obj is a namedtuple.  Recurse into it, but the returned
+            # object is another namedtuple of the same type.  This is
+            # similar to how other list- or tuple-derived classes are
+            # treated (see below), but we just need to create them
+            # differently because a namedtuple's __init__ needs to be
+            # called differently (see bpo-34363).
+    
+            # I'm not using namedtuple's _asdict()
+            # method, because:
+            # - it does not recurse in to the namedtuple fields and
+            #   convert them to dicts (using dict_factory).
+            # - I don't actually want to return a dict here.  The main
+            #   use case here is json.dumps, and it handles converting
+            #   namedtuples to lists.  Admittedly we're losing some
+            #   information here when we produce a json list instead of a
+            #   dict.  Note that if we returned dicts here instead of
+            #   namedtuples, we could no longer call asdict() on a data
+            #   structure where a namedtuple was used as a dict key.
+    
+            return type(obj)(*[_asdict_inner(v, dict_factory) for v in obj])
+        elif isinstance(obj, (list, tuple)):
+            # Assume we can create an object of this type by passing in a
+            # generator (which is not true for namedtuples, handled
+            # above).
+            return type(obj)(_asdict_inner(v, dict_factory) for v in obj)
+        elif isinstance(obj, dict):
+            return type(obj)((_asdict_inner(k, dict_factory),
+                              _asdict_inner(v, dict_factory))
+                             for k, v in obj.items())
+        else:
+&gt;           return copy.deepcopy(obj)
+
+/usr/lib/python3.10/dataclasses.py:1279: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+x = &lt;unlocked _thread.RLock object owner=0 count=0 at 0x7b89f28fc740&gt;, memo = {}
+_nil = []
+
+    def deepcopy(x, memo=None, _nil=[]):
+        """Deep copy operation on arbitrary Python objects.
+    
+        See the module's __doc__ string for more info.
+        """
+    
+        if memo is None:
+            memo = {}
+    
+        d = id(x)
+        y = memo.get(d, _nil)
+        if y is not _nil:
+            return y
+    
+        cls = type(x)
+    
+        copier = _deepcopy_dispatch.get(cls)
+        if copier is not None:
+            y = copier(x, memo)
+        else:
+            if issubclass(cls, type):
+                y = _deepcopy_atomic(x, memo)
+            else:
+                copier = getattr(x, "__deepcopy__", None)
+                if copier is not None:
+                    y = copier(memo)
+                else:
+                    reductor = dispatch_table.get(cls)
+                    if reductor:
+                        rv = reductor(x)
+                    else:
+                        reductor = getattr(x, "__reduce_ex__", None)
+                        if reductor is not None:
+&gt;                           rv = reductor(4)
+E                           TypeError: cannot pickle '_thread.RLock' object
+
+/usr/lib/python3.10/copy.py:161: TypeError</failure></testcase><testcase classname="src.test.test_state.TestSnapshots" name="test_load_latest_snapshot_not_found" time="0.010" /><testcase classname="src.test.test_state.TestSnapshots" name="test_snapshot_preserves_memory" time="0.015"><failure message="TypeError: cannot pickle '_thread.RLock' object">self = &lt;test_state.TestSnapshots object at 0x7b89f28d63b0&gt;
+temp_snapshot_dir = PosixPath('/tmp/tmpm5lzy3pw')
+
+    def test_snapshot_preserves_memory(self, temp_snapshot_dir):
+        """Тест сохранения памяти в снимке"""
+        state = SelfState()
+    
+        # Добавляем несколько записей
+        for i in range(5):
+            entry = MemoryEntry(
+                event_type=f"event_{i}",
+                meaning_significance=0.1 * i,
+                timestamp=time.time(),
+            )
+            state.memory.append(entry)
+    
+        state.ticks = 50
+&gt;       save_snapshot(state)
+
+src/test/test_state.py:326: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+state = SelfState(life_id='d3c54144-7b1c-4c64-8c45-8ae675064594', birth_timestamp=1768929389.2973232, age=0.0, subjective_time...ck': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, adaptation_history=[])
+
+    def save_snapshot(state: SelfState):
+        """
+        Сохраняет текущее состояние жизни как отдельный JSON файл.
+        Оптимизированная сериализация с исключением transient полей.
+    
+        ПРИМЕЧАНИЕ: Логирование временно отключается во время сериализации для производительности.
+        Изменения состояния, которые могут произойти во время вызова asdict() (например,
+        конвертация dataclass), не будут залогированы. Это намеренное решение для оптимизации.
+    
+        ПРИМЕЧАНИЕ: Flush буфера логов должен управляться через LogManager в runtime loop,
+        а не внутри этой функции. Это обеспечивает правильное разделение ответственности.
+    
+        Args:
+            state: Состояние для сохранения
+        """
+        # Временно отключаем логирование для сериализации
+        # Это предотвращает логирование изменений, которые могут произойти при конвертации dataclass
+        logging_was_enabled = state._logging_enabled
+        state.disable_logging()
+    
+        try:
+&gt;           snapshot = asdict(state)
+
+src/state/self_state.py:1038: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+obj = SelfState(life_id='d3c54144-7b1c-4c64-8c45-8ae675064594', birth_timestamp=1768929389.2973232, age=0.0, subjective_time...ck': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, adaptation_history=[])
+
+    def asdict(obj, *, dict_factory=dict):
+        """Return the fields of a dataclass instance as a new dictionary mapping
+        field names to field values.
+    
+        Example usage:
+    
+          @dataclass
+          class C:
+              x: int
+              y: int
+    
+          c = C(1, 2)
+          assert asdict(c) == {'x': 1, 'y': 2}
+    
+        If given, 'dict_factory' will be used instead of built-in dict.
+        The function applies recursively to field values that are
+        dataclass instances. This will also look into built-in containers:
+        tuples, lists, and dicts.
+        """
+        if not _is_dataclass_instance(obj):
+            raise TypeError("asdict() should be called on dataclass instances")
+&gt;       return _asdict_inner(obj, dict_factory)
+
+/usr/lib/python3.10/dataclasses.py:1238: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+obj = SelfState(life_id='d3c54144-7b1c-4c64-8c45-8ae675064594', birth_timestamp=1768929389.2973232, age=0.0, subjective_time...ck': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, adaptation_history=[])
+dict_factory = &lt;class 'dict'&gt;
+
+    def _asdict_inner(obj, dict_factory):
+        if _is_dataclass_instance(obj):
+            result = []
+            for f in fields(obj):
+&gt;               value = _asdict_inner(getattr(obj, f.name), dict_factory)
+
+/usr/lib/python3.10/dataclasses.py:1245: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+obj = &lt;unlocked _thread.RLock object owner=0 count=0 at 0x7b89eeca8180&gt;
+dict_factory = &lt;class 'dict'&gt;
+
+    def _asdict_inner(obj, dict_factory):
+        if _is_dataclass_instance(obj):
+            result = []
+            for f in fields(obj):
+                value = _asdict_inner(getattr(obj, f.name), dict_factory)
+                result.append((f.name, value))
+            return dict_factory(result)
+        elif isinstance(obj, tuple) and hasattr(obj, '_fields'):
+            # obj is a namedtuple.  Recurse into it, but the returned
+            # object is another namedtuple of the same type.  This is
+            # similar to how other list- or tuple-derived classes are
+            # treated (see below), but we just need to create them
+            # differently because a namedtuple's __init__ needs to be
+            # called differently (see bpo-34363).
+    
+            # I'm not using namedtuple's _asdict()
+            # method, because:
+            # - it does not recurse in to the namedtuple fields and
+            #   convert them to dicts (using dict_factory).
+            # - I don't actually want to return a dict here.  The main
+            #   use case here is json.dumps, and it handles converting
+            #   namedtuples to lists.  Admittedly we're losing some
+            #   information here when we produce a json list instead of a
+            #   dict.  Note that if we returned dicts here instead of
+            #   namedtuples, we could no longer call asdict() on a data
+            #   structure where a namedtuple was used as a dict key.
+    
+            return type(obj)(*[_asdict_inner(v, dict_factory) for v in obj])
+        elif isinstance(obj, (list, tuple)):
+            # Assume we can create an object of this type by passing in a
+            # generator (which is not true for namedtuples, handled
+            # above).
+            return type(obj)(_asdict_inner(v, dict_factory) for v in obj)
+        elif isinstance(obj, dict):
+            return type(obj)((_asdict_inner(k, dict_factory),
+                              _asdict_inner(v, dict_factory))
+                             for k, v in obj.items())
+        else:
+&gt;           return copy.deepcopy(obj)
+
+/usr/lib/python3.10/dataclasses.py:1279: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+x = &lt;unlocked _thread.RLock object owner=0 count=0 at 0x7b89eeca8180&gt;, memo = {}
+_nil = []
+
+    def deepcopy(x, memo=None, _nil=[]):
+        """Deep copy operation on arbitrary Python objects.
+    
+        See the module's __doc__ string for more info.
+        """
+    
+        if memo is None:
+            memo = {}
+    
+        d = id(x)
+        y = memo.get(d, _nil)
+        if y is not _nil:
+            return y
+    
+        cls = type(x)
+    
+        copier = _deepcopy_dispatch.get(cls)
+        if copier is not None:
+            y = copier(x, memo)
+        else:
+            if issubclass(cls, type):
+                y = _deepcopy_atomic(x, memo)
+            else:
+                copier = getattr(x, "__deepcopy__", None)
+                if copier is not None:
+                    y = copier(memo)
+                else:
+                    reductor = dispatch_table.get(cls)
+                    if reductor:
+                        rv = reductor(x)
+                    else:
+                        reductor = getattr(x, "__reduce_ex__", None)
+                        if reductor is not None:
+&gt;                           rv = reductor(4)
+E                           TypeError: cannot pickle '_thread.RLock' object
+
+/usr/lib/python3.10/copy.py:161: TypeError</failure></testcase><testcase classname="src.test.test_state.TestCreateInitialState" name="test_create_initial_state" time="0.015" /><testcase classname="src.test.test_subjective_time.TestSubjectiveTimeModel" name="test_rate_is_clamped_to_range" time="0.008" /><testcase classname="src.test.test_subjective_time.TestSubjectiveTimeModel" name="test_subjective_time_is_monotonic_for_positive_dt" time="0.009" /><testcase classname="src.test.test_subjective_time.TestSubjectiveTimeModel" name="test_intensity_and_stability_influence_rate_direction" time="0.008" /><testcase classname="src.test.test_subjective_time.TestSubjectiveTimeModel" name="test_negative_dt_returns_zero_increment" time="0.008" /><testcase classname="src.test.test_subjective_time.TestSubjectiveTimeModel" name="test_extreme_intensity_and_stability_values" time="0.008" /><testcase classname="src.test.test_subjective_time.TestSubjectiveTimeModel" name="test_boundary_rate_min_max_values" time="0.001" /><testcase classname="src.test.test_subjective_time.TestSubjectiveTimeModel" name="test_invalid_input_types" time="0.009" /><testcase classname="src.test.test_subjective_time.TestSubjectiveTimeModel" name="test_extreme_coefficient_values" time="0.008" /><testcase classname="src.test.test_subjective_time.TestSubjectiveTimeModel" name="test_zero_and_negative_base_rate" time="0.008" /><testcase classname="src.test.test_api" name="test_get_status" time="0.001"><skipped type="pytest.skip" message="test_api.py requires real server. Use --real-server or test_api_integration.py">/workspace/src/test/test_api.py:28: test_api.py requires real server. Use --real-server or test_api_integration.py</skipped></testcase><testcase classname="src.test.test_api" name="test_get_clear_data" time="0.001"><skipped type="pytest.skip" message="test_api.py requires real server. Use --real-server or test_api_integration.py">/workspace/src/test/test_api.py:42: test_api.py requires real server. Use --real-server or test_api_integration.py</skipped></testcase><testcase classname="src.test.test_api" name="test_post_event_success" time="0.001"><skipped type="pytest.skip" message="test_api.py requires real server. Use --real-server or test_api_integration.py">/workspace/src/test/test_api.py:52: test_api.py requires real server. Use --real-server or test_api_integration.py</skipped></testcase><testcase classname="src.test.test_api" name="test_post_event_invalid_json" time="0.001"><skipped type="pytest.skip" message="test_api.py requires real server. Use --real-server or test_api_integration.py">/workspace/src/test/test_api.py:63: test_api.py requires real server. Use --real-server or test_api_integration.py</skipped></testcase><testcase classname="src.test.test_api_integration.TestAPIServer" name="test_get_status" time="0.613" /><testcase classname="src.test.test_api_integration.TestAPIServer" name="test_get_status_returns_current_state" time="0.613" /><testcase classname="src.test.test_api_integration.TestAPIServer" name="test_get_clear_data" time="0.693" /><testcase classname="src.test.test_api_integration.TestAPIServer" name="test_get_unknown_endpoint" time="0.613" /><testcase classname="src.test.test_api_integration.TestAPIServer" name="test_post_event_success" time="0.613" /><testcase classname="src.test.test_api_integration.TestAPIServer" name="test_post_event_minimal" time="0.612" /><testcase classname="src.test.test_api_integration.TestAPIServer" name="test_post_event_with_timestamp" time="0.613" /><testcase classname="src.test.test_api_integration.TestAPIServer" name="test_post_event_invalid_json" time="0.612" /><testcase classname="src.test.test_api_integration.TestAPIServer" name="test_post_event_missing_type" time="0.613" /><testcase classname="src.test.test_api_integration.TestAPIServer" name="test_post_event_invalid_type" time="0.613" /><testcase classname="src.test.test_api_integration.TestAPIServer" name="test_post_event_multiple_events" time="0.616" /><testcase classname="src.test.test_api_integration.TestAPIServer" name="test_post_event_different_types" time="0.672" /><testcase classname="src.test.test_api_integration.TestAPIServer" name="test_post_unknown_endpoint" time="0.612" /><testcase classname="src.test.test_api_integration.TestAPIServer" name="test_post_event_queue_overflow" time="0.788" /><testcase classname="src.test.test_api_integration.TestAPIServer" name="test_get_status_after_events" time="0.614" /><testcase classname="src.test.test_feedback.TestFeedbackIntegration" name="test_integration_with_memory" time="0.008" /><testcase classname="src.test.test_generator_integration.TestGeneratorServerIntegration" name="test_generator_send_to_server" time="0.611" /><testcase classname="src.test.test_generator_integration.TestGeneratorServerIntegration" name="test_generator_multiple_events_to_server" time="0.621" /><testcase classname="src.test.test_generator_integration.TestGeneratorServerIntegration" name="test_generator_all_event_types_to_server" time="0.664" /><testcase classname="src.test.test_generator_integration.TestGeneratorServerIntegration" name="test_generator_event_intensity_ranges" time="0.508" /><testcase classname="src.test.test_generator_integration.TestGeneratorServerIntegration" name="test_generator_server_full_cycle" time="0.615" /><testcase classname="src.test.test_memory.TestMemoryLoad" name="test_memory_performance_with_1000_entries" time="0.018" /><testcase classname="src.test.test_memory.TestMemoryLoad" name="test_memory_performance_with_10000_entries" time="0.101" /><testcase classname="src.test.test_memory.TestMemoryLoad" name="test_memory_iteration_performance" time="0.007" /><testcase classname="src.test.test_memory.TestMemoryLoad" name="test_memory_search_performance" time="0.007" /><testcase classname="src.test.test_memory.TestMemoryLoad" name="test_memory_memory_usage" time="0.009" /><testcase classname="src.test.test_memory.TestMemoryDecayWeights" name="test_decay_weights_basic" time="0.007" /><testcase classname="src.test.test_memory.TestMemoryDecayWeights" name="test_decay_weights_min_weight" time="0.006" /><testcase classname="src.test.test_memory.TestMemoryDecayWeights" name="test_decay_weights_empty_memory" time="0.010" /><testcase classname="src.test.test_memory.TestMemoryDecayWeights" name="test_decay_weights_multiple_entries" time="0.008" /><testcase classname="src.test.test_memory.TestMemoryDecayWeights" name="test_decay_weights_significance_factor" time="0.007" /><testcase classname="src.test.test_memory.TestArchiveMemory" name="test_archive_memory_initialization" time="0.002" /><testcase classname="src.test.test_memory.TestArchiveMemory" name="test_archive_memory_add_entry" time="0.002" /><testcase classname="src.test.test_memory.TestArchiveMemory" name="test_archive_memory_add_entries" time="0.003" /><testcase classname="src.test.test_memory.TestArchiveMemory" name="test_archive_memory_get_entries_by_type" time="0.003" /><testcase classname="src.test.test_memory.TestArchiveMemory" name="test_archive_memory_get_entries_by_significance" time="0.003" /><testcase classname="src.test.test_memory.TestArchiveMemory" name="test_archive_memory_get_entries_by_timestamp" time="0.003" /><testcase classname="src.test.test_memory.TestArchiveMemory" name="test_archive_memory_save_and_load" time="0.002" /><testcase classname="src.test.test_memory.TestArchiveMemory" name="test_archive_memory_backward_compatibility" time="0.002" /><testcase classname="src.test.test_memory.TestArchiveMemory" name="test_archive_memory_forward_compatibility" time="0.002" /><testcase classname="src.test.test_memory.TestMemoryArchive" name="test_archive_old_entries_by_age" time="0.003" /><testcase classname="src.test.test_memory.TestMemoryArchive" name="test_archive_old_entries_by_weight" time="0.003"><failure message="AssertionError: assert 1 == 2&#10; +  where 1 = len([MemoryEntry(event_type='high_weight', meaning_significance=0.5, timestamp=1768929402.371458, weight=0.8, feedback_data=None, subjective_timestamp=None)])">self = &lt;test_memory.TestMemoryArchive object at 0x7b89efb69c30&gt;
+temp_memory = [MemoryEntry(event_type='high_weight', meaning_significance=0.5, timestamp=1768929402.371458, weight=0.8, feedback_data=None, subjective_timestamp=None)]
+
+    def test_archive_old_entries_by_weight(self, temp_memory):
+        """Тест архивации записей по весу"""
+        memory = temp_memory
+        low_weight_entry = MemoryEntry(
+            event_type="low_weight",
+            meaning_significance=0.5,
+            timestamp=time.time(),
+            weight=0.05,  # Ниже порога 0.1 для clamp_size, но тест проверяет архивацию
+        )
+        high_weight_entry = MemoryEntry(
+            event_type="high_weight",
+            meaning_significance=0.5,
+            timestamp=time.time(),
+            weight=0.8,
+        )
+        memory.append(low_weight_entry)
+        memory.append(high_weight_entry)
+    
+&gt;       assert len(memory) == 2  # Убеждаемся, что обе записи добавлены
+E       AssertionError: assert 1 == 2
+E        +  where 1 = len([MemoryEntry(event_type='high_weight', meaning_significance=0.5, timestamp=1768929402.371458, weight=0.8, feedback_data=None, subjective_timestamp=None)])
+
+src/test/test_memory.py:671: AssertionError</failure></testcase><testcase classname="src.test.test_memory.TestMemoryArchive" name="test_archive_old_entries_by_significance" time="0.003" /><testcase classname="src.test.test_memory.TestMemoryArchive" name="test_archive_old_entries_validation" time="0.004" /><testcase classname="src.test.test_memory.TestMemoryArchive" name="test_archive_old_entries_error_handling" time="0.003" /><testcase classname="src.test.test_memory.TestMemoryArchive" name="test_archive_old_entries_empty_memory" time="0.003" /><testcase classname="src.test.test_memory.TestMemoryStatistics" name="test_get_statistics_empty" time="0.002" /><testcase classname="src.test.test_memory.TestMemoryStatistics" name="test_get_statistics_with_entries" time="0.003" /><testcase classname="src.test.test_runtime_integration.TestRuntimeLoop" name="test_loop_single_tick" time="0.208" /><testcase classname="src.test.test_runtime_integration.TestRuntimeLoop" name="test_loop_processes_events" time="0.509" /><testcase classname="src.test.test_runtime_integration.TestRuntimeLoop" name="test_loop_feedback_registration" time="0.509" /><testcase classname="src.test.test_runtime_integration.TestRuntimeLoop" name="test_loop_state_updates" time="0.309" /><testcase classname="src.test.test_runtime_integration.TestRuntimeLoop" name="test_loop_stops_on_stop_event" time="0.409" /><testcase classname="src.test.test_runtime_integration.TestRuntimeLoop" name="test_loop_handles_empty_queue" time="0.310" /><testcase classname="src.test.test_runtime_integration.TestRuntimeLoop" name="test_loop_multiple_events" time="0.509" /><testcase classname="src.test.test_runtime_integration.TestRuntimeLoop" name="test_loop_snapshot_creation" time="0.619" /><testcase classname="src.test.test_runtime_integration.TestRuntimeLoop" name="test_loop_weakness_penalty" time="0.408" /><testcase classname="src.test.test_runtime_integration.TestRuntimeLoop" name="test_loop_deactivates_on_zero_params" time="0.208" /><testcase classname="src.test.test_runtime_loop_edge_cases.TestRuntimeLoopEdgeCases" name="test_loop_ignore_pattern_skip_apply_delta" time="0.336" /><testcase classname="src.test.test_runtime_loop_edge_cases.TestRuntimeLoopEdgeCases" name="test_loop_dampen_pattern_modify_impact" time="0.509" /><testcase classname="src.test.test_runtime_loop_edge_cases.TestRuntimeLoopEdgeCases" name="test_loop_monitor_exception_handling" time="0.309" /><testcase classname="src.test.test_runtime_loop_edge_cases.TestRuntimeLoopEdgeCases" name="test_loop_snapshot_exception_handling" time="0.311" /><testcase classname="src.test.test_runtime_loop_edge_cases.TestRuntimeLoopEdgeCases" name="test_loop_general_exception_handling" time="0.318" /><testcase classname="src.test.test_runtime_loop_feedback_coverage.TestRuntimeLoopFeedbackCoverage" name="test_loop_processes_feedback_records" time="1.318" /><testcase classname="src.test.test_runtime_loop_feedback_coverage.TestRuntimeLoopFeedbackCoverage" name="test_loop_feedback_entry_creation" time="1.011" /><testcase classname="src.test.test_state.TestSelfStateValidation" name="test_energy_validation_valid" time="0.007" /><testcase classname="src.test.test_state.TestSelfStateValidation" name="test_energy_validation_invalid" time="0.007" /><testcase classname="src.test.test_state.TestSelfStateValidation" name="test_integrity_validation_valid" time="0.006" /><testcase classname="src.test.test_state.TestSelfStateValidation" name="test_integrity_validation_invalid" time="0.007" /><testcase classname="src.test.test_state.TestSelfStateValidation" name="test_stability_validation_valid" time="0.008" /><testcase classname="src.test.test_state.TestSelfStateValidation" name="test_stability_validation_invalid" time="0.007" /><testcase classname="src.test.test_state.TestSelfStateValidation" name="test_fatigue_validation" time="0.010" /><testcase classname="src.test.test_state.TestSelfStateValidation" name="test_tension_validation" time="0.008" /><testcase classname="src.test.test_state.TestSelfStateValidation" name="test_age_validation" time="0.007" /><testcase classname="src.test.test_state.TestSelfStateValidation" name="test_ticks_validation" time="0.008" /><testcase classname="src.test.test_state.TestSelfStateProtection" name="test_life_id_protection" time="0.007" /><testcase classname="src.test.test_state.TestSelfStateProtection" name="test_birth_timestamp_protection" time="0.007" /><testcase classname="src.test.test_state.TestSelfStateSafeMethods" name="test_update_energy" time="0.006" /><testcase classname="src.test.test_state.TestSelfStateSafeMethods" name="test_update_integrity" time="0.006" /><testcase classname="src.test.test_state.TestSelfStateSafeMethods" name="test_update_stability" time="0.006" /><testcase classname="src.test.test_state.TestSelfStateSafeMethods" name="test_update_vital_params" time="0.006" /><testcase classname="src.test.test_state.TestSelfStateSafeMethods" name="test_reset_to_defaults" time="0.006" /><testcase classname="src.test.test_state.TestSelfStateIsActive" name="test_is_active_all_positive" time="0.006" /><testcase classname="src.test.test_state.TestSelfStateIsActive" name="test_is_active_energy_zero" time="0.006" /><testcase classname="src.test.test_state.TestSelfStateIsActive" name="test_is_active_integrity_zero" time="0.006" /><testcase classname="src.test.test_state.TestSelfStateIsActive" name="test_is_active_stability_zero" time="0.007" /><testcase classname="src.test.test_state.TestSelfStateIsActive" name="test_is_active_all_zero" time="0.006" /><testcase classname="src.test.test_state.TestSelfStateIsActive" name="test_is_active_auto_update" time="0.006" /><testcase classname="src.test.test_state.TestSelfStateIsActive" name="test_is_viable" time="0.006" /><testcase classname="src.test.test_state.TestSelfStateLogging" name="test_logging_enabled" time="0.008" /><testcase classname="src.test.test_state.TestSelfStateLogging" name="test_logging_disabled" time="0.009" /><testcase classname="src.test.test_state.TestSelfStateLogging" name="test_get_change_history" time="0.008" /><testcase classname="src.test.test_state.TestSelfStateLogging" name="test_get_change_history_limit" time="0.008" /><testcase classname="src.test.test_degradation.TestDegradationUnit" name="test_energy_degradation_to_zero" time="0.008" /><testcase classname="src.test.test_degradation.TestDegradationUnit" name="test_integrity_degradation_to_zero" time="0.007" /><testcase classname="src.test.test_degradation.TestDegradationUnit" name="test_stability_degradation_to_zero" time="0.006" /><testcase classname="src.test.test_degradation.TestDegradationUnit" name="test_simultaneous_degradation_all_params" time="0.006" /><testcase classname="src.test.test_degradation.TestDegradationUnit" name="test_active_flag_set_false_on_zero_energy" time="0.006" /><testcase classname="src.test.test_degradation.TestDegradationUnit" name="test_active_flag_set_false_on_zero_integrity" time="0.006" /><testcase classname="src.test.test_degradation.TestDegradationUnit" name="test_active_flag_set_false_on_zero_stability" time="0.006" /><testcase classname="src.test.test_degradation.TestDegradationUnit" name="test_degradation_preserves_other_state" time="0.006" /><testcase classname="src.test.test_degradation.TestDegradationUnit" name="test_gradual_degradation_history" time="0.006" /><testcase classname="src.test.test_degradation.TestDegradationIntegration" name="test_energy_degradation_in_loop_with_events" time="0.509" /><testcase classname="src.test.test_degradation.TestDegradationIntegration" name="test_weakness_penalty_acceleration" time="0.308" /><testcase classname="src.test.test_degradation.TestDegradationIntegration" name="test_full_degradation_cycle" time="0.810" /><testcase classname="src.test.test_degradation.TestDegradationIntegration" name="test_deactivation_on_energy_zero" time="0.309" /><testcase classname="src.test.test_degradation.TestDegradationIntegration" name="test_deactivation_on_integrity_zero" time="0.210" /><testcase classname="src.test.test_degradation.TestDegradationIntegration" name="test_deactivation_on_stability_zero" time="0.209" /><testcase classname="src.test.test_degradation.TestDegradationIntegration" name="test_loop_continues_while_degrading" time="0.309" /><testcase classname="src.test.test_degradation.TestDegradationEdgeCases" name="test_boundary_values_energy" time="0.007" /><testcase classname="src.test.test_degradation.TestDegradationEdgeCases" name="test_boundary_values_integrity" time="0.006" /><testcase classname="src.test.test_degradation.TestDegradationEdgeCases" name="test_boundary_values_stability" time="0.007" /><testcase classname="src.test.test_degradation.TestDegradationEdgeCases" name="test_weakness_threshold_boundary" time="0.013" /><testcase classname="src.test.test_degradation.TestDegradationEdgeCases" name="test_rapid_degradation_many_events" time="0.516" /><testcase classname="src.test.test_degradation.TestDegradationEdgeCases" name="test_degradation_with_memory" time="0.309" /><testcase classname="src.test.test_degradation.TestDegradationEdgeCases" name="test_degradation_does_not_affect_identity" time="0.310" /><testcase classname="src.test.test_degradation.TestDegradationEdgeCases" name="test_all_params_zero_simultaneously" time="0.210" /><testcase classname="src.test.test_degradation.TestDegradationRecovery" name="test_energy_recovery_possible" time="0.007" /><testcase classname="src.test.test_degradation.TestDegradationRecovery" name="test_integrity_recovery_possible" time="0.006" /><testcase classname="src.test.test_degradation.TestDegradationRecovery" name="test_stability_recovery_possible" time="0.006" /><testcase classname="src.test.test_degradation.TestDegradationRecovery" name="test_recovery_from_near_zero" time="0.006" /><testcase classname="src.test.test_degradation.TestDegradationRecovery" name="test_active_flag_stays_false_after_deactivation" time="0.006" /><testcase classname="src.test.test_degradation.TestDegradationRecovery" name="test_learning_params_recovery_from_snapshot" time="0.011"><failure message="TypeError: cannot pickle '_thread.RLock' object">self = &lt;test_degradation.TestDegradationRecovery object at 0x7b89f051ce80&gt;
+
+    def test_learning_params_recovery_from_snapshot(self):
+        """Тест: восстановление learning_params из snapshot"""
+        from state.self_state import load_snapshot, save_snapshot
+    
+        state = SelfState()
+        state.energy = 50.0
+    
+        # Модифицируем learning_params
+        state.learning_params["event_type_sensitivity"]["noise"] = 0.8
+        state.learning_params["event_type_sensitivity"]["shock"] = 0.9
+        state.learning_params["significance_thresholds"]["noise"] = 0.15
+        state.learning_params["response_coefficients"]["dampen"] = 0.7
+    
+        # Сохраняем snapshot
+&gt;       save_snapshot(state)
+
+src/test/test_degradation.py:682: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+state = SelfState(life_id='39320e08-f913-4c81-8349-ed7959a13197', birth_timestamp=1768929415.0557504, age=0.0, subjective_time...ck': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, adaptation_history=[])
+
+    def save_snapshot(state: SelfState):
+        """
+        Сохраняет текущее состояние жизни как отдельный JSON файл.
+        Оптимизированная сериализация с исключением transient полей.
+    
+        ПРИМЕЧАНИЕ: Логирование временно отключается во время сериализации для производительности.
+        Изменения состояния, которые могут произойти во время вызова asdict() (например,
+        конвертация dataclass), не будут залогированы. Это намеренное решение для оптимизации.
+    
+        ПРИМЕЧАНИЕ: Flush буфера логов должен управляться через LogManager в runtime loop,
+        а не внутри этой функции. Это обеспечивает правильное разделение ответственности.
+    
+        Args:
+            state: Состояние для сохранения
+        """
+        # Временно отключаем логирование для сериализации
+        # Это предотвращает логирование изменений, которые могут произойти при конвертации dataclass
+        logging_was_enabled = state._logging_enabled
+        state.disable_logging()
+    
+        try:
+&gt;           snapshot = asdict(state)
+
+src/state/self_state.py:1038: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+obj = SelfState(life_id='39320e08-f913-4c81-8349-ed7959a13197', birth_timestamp=1768929415.0557504, age=0.0, subjective_time...ck': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, adaptation_history=[])
+
+    def asdict(obj, *, dict_factory=dict):
+        """Return the fields of a dataclass instance as a new dictionary mapping
+        field names to field values.
+    
+        Example usage:
+    
+          @dataclass
+          class C:
+              x: int
+              y: int
+    
+          c = C(1, 2)
+          assert asdict(c) == {'x': 1, 'y': 2}
+    
+        If given, 'dict_factory' will be used instead of built-in dict.
+        The function applies recursively to field values that are
+        dataclass instances. This will also look into built-in containers:
+        tuples, lists, and dicts.
+        """
+        if not _is_dataclass_instance(obj):
+            raise TypeError("asdict() should be called on dataclass instances")
+&gt;       return _asdict_inner(obj, dict_factory)
+
+/usr/lib/python3.10/dataclasses.py:1238: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+obj = SelfState(life_id='39320e08-f913-4c81-8349-ed7959a13197', birth_timestamp=1768929415.0557504, age=0.0, subjective_time...ck': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 1.0, 'ignore': 0.0}}, adaptation_history=[])
+dict_factory = &lt;class 'dict'&gt;
+
+    def _asdict_inner(obj, dict_factory):
+        if _is_dataclass_instance(obj):
+            result = []
+            for f in fields(obj):
+&gt;               value = _asdict_inner(getattr(obj, f.name), dict_factory)
+
+/usr/lib/python3.10/dataclasses.py:1245: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+obj = &lt;unlocked _thread.RLock object owner=0 count=0 at 0x7b89eeafa7c0&gt;
+dict_factory = &lt;class 'dict'&gt;
+
+    def _asdict_inner(obj, dict_factory):
+        if _is_dataclass_instance(obj):
+            result = []
+            for f in fields(obj):
+                value = _asdict_inner(getattr(obj, f.name), dict_factory)
+                result.append((f.name, value))
+            return dict_factory(result)
+        elif isinstance(obj, tuple) and hasattr(obj, '_fields'):
+            # obj is a namedtuple.  Recurse into it, but the returned
+            # object is another namedtuple of the same type.  This is
+            # similar to how other list- or tuple-derived classes are
+            # treated (see below), but we just need to create them
+            # differently because a namedtuple's __init__ needs to be
+            # called differently (see bpo-34363).
+    
+            # I'm not using namedtuple's _asdict()
+            # method, because:
+            # - it does not recurse in to the namedtuple fields and
+            #   convert them to dicts (using dict_factory).
+            # - I don't actually want to return a dict here.  The main
+            #   use case here is json.dumps, and it handles converting
+            #   namedtuples to lists.  Admittedly we're losing some
+            #   information here when we produce a json list instead of a
+            #   dict.  Note that if we returned dicts here instead of
+            #   namedtuples, we could no longer call asdict() on a data
+            #   structure where a namedtuple was used as a dict key.
+    
+            return type(obj)(*[_asdict_inner(v, dict_factory) for v in obj])
+        elif isinstance(obj, (list, tuple)):
+            # Assume we can create an object of this type by passing in a
+            # generator (which is not true for namedtuples, handled
+            # above).
+            return type(obj)(_asdict_inner(v, dict_factory) for v in obj)
+        elif isinstance(obj, dict):
+            return type(obj)((_asdict_inner(k, dict_factory),
+                              _asdict_inner(v, dict_factory))
+                             for k, v in obj.items())
+        else:
+&gt;           return copy.deepcopy(obj)
+
+/usr/lib/python3.10/dataclasses.py:1279: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+x = &lt;unlocked _thread.RLock object owner=0 count=0 at 0x7b89eeafa7c0&gt;, memo = {}
+_nil = []
+
+    def deepcopy(x, memo=None, _nil=[]):
+        """Deep copy operation on arbitrary Python objects.
+    
+        See the module's __doc__ string for more info.
+        """
+    
+        if memo is None:
+            memo = {}
+    
+        d = id(x)
+        y = memo.get(d, _nil)
+        if y is not _nil:
+            return y
+    
+        cls = type(x)
+    
+        copier = _deepcopy_dispatch.get(cls)
+        if copier is not None:
+            y = copier(x, memo)
+        else:
+            if issubclass(cls, type):
+                y = _deepcopy_atomic(x, memo)
+            else:
+                copier = getattr(x, "__deepcopy__", None)
+                if copier is not None:
+                    y = copier(memo)
+                else:
+                    reductor = dispatch_table.get(cls)
+                    if reductor:
+                        rv = reductor(x)
+                    else:
+                        reductor = getattr(x, "__reduce_ex__", None)
+                        if reductor is not None:
+&gt;                           rv = reductor(4)
+E                           TypeError: cannot pickle '_thread.RLock' object
+
+/usr/lib/python3.10/copy.py:161: TypeError</failure></testcase><testcase classname="src.test.test_degradation.TestDegradationRecovery" name="test_adaptation_params_recovery_from_snapshot" time="0.012"><failure message="TypeError: cannot pickle '_thread.RLock' object">self = &lt;test_degradation.TestDegradationRecovery object at 0x7b89f051cd00&gt;
+
+    def test_adaptation_params_recovery_from_snapshot(self):
+        """Тест: восстановление adaptation_params из snapshot"""
+        from state.self_state import load_snapshot, save_snapshot
+    
+        state = SelfState()
+        state.energy = 50.0
+    
+        # Модифицируем adaptation_params
+        state.adaptation_params["behavior_sensitivity"]["noise"] = 0.8
+        state.adaptation_params["behavior_sensitivity"]["shock"] = 0.9
+        state.adaptation_params["behavior_thresholds"]["noise"] = 0.15
+        state.adaptation_params["behavior_coefficients"]["dampen"] = 0.7
+    
+        # Сохраняем snapshot
+&gt;       save_snapshot(state)
+
+src/test/test_degradation.py:712: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+state = SelfState(life_id='4f839d20-f319-4f4f-9b99-43c20dfb26af', birth_timestamp=1768929415.1996121, age=0.0, subjective_time...ck': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.7, 'absorb': 1.0, 'ignore': 0.0}}, adaptation_history=[])
+
+    def save_snapshot(state: SelfState):
+        """
+        Сохраняет текущее состояние жизни как отдельный JSON файл.
+        Оптимизированная сериализация с исключением transient полей.
+    
+        ПРИМЕЧАНИЕ: Логирование временно отключается во время сериализации для производительности.
+        Изменения состояния, которые могут произойти во время вызова asdict() (например,
+        конвертация dataclass), не будут залогированы. Это намеренное решение для оптимизации.
+    
+        ПРИМЕЧАНИЕ: Flush буфера логов должен управляться через LogManager в runtime loop,
+        а не внутри этой функции. Это обеспечивает правильное разделение ответственности.
+    
+        Args:
+            state: Состояние для сохранения
+        """
+        # Временно отключаем логирование для сериализации
+        # Это предотвращает логирование изменений, которые могут произойти при конвертации dataclass
+        logging_was_enabled = state._logging_enabled
+        state.disable_logging()
+    
+        try:
+&gt;           snapshot = asdict(state)
+
+src/state/self_state.py:1038: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+obj = SelfState(life_id='4f839d20-f319-4f4f-9b99-43c20dfb26af', birth_timestamp=1768929415.1996121, age=0.0, subjective_time...ck': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.7, 'absorb': 1.0, 'ignore': 0.0}}, adaptation_history=[])
+
+    def asdict(obj, *, dict_factory=dict):
+        """Return the fields of a dataclass instance as a new dictionary mapping
+        field names to field values.
+    
+        Example usage:
+    
+          @dataclass
+          class C:
+              x: int
+              y: int
+    
+          c = C(1, 2)
+          assert asdict(c) == {'x': 1, 'y': 2}
+    
+        If given, 'dict_factory' will be used instead of built-in dict.
+        The function applies recursively to field values that are
+        dataclass instances. This will also look into built-in containers:
+        tuples, lists, and dicts.
+        """
+        if not _is_dataclass_instance(obj):
+            raise TypeError("asdict() should be called on dataclass instances")
+&gt;       return _asdict_inner(obj, dict_factory)
+
+/usr/lib/python3.10/dataclasses.py:1238: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+obj = SelfState(life_id='4f839d20-f319-4f4f-9b99-43c20dfb26af', birth_timestamp=1768929415.1996121, age=0.0, subjective_time...ck': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.7, 'absorb': 1.0, 'ignore': 0.0}}, adaptation_history=[])
+dict_factory = &lt;class 'dict'&gt;
+
+    def _asdict_inner(obj, dict_factory):
+        if _is_dataclass_instance(obj):
+            result = []
+            for f in fields(obj):
+&gt;               value = _asdict_inner(getattr(obj, f.name), dict_factory)
+
+/usr/lib/python3.10/dataclasses.py:1245: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+obj = &lt;unlocked _thread.RLock object owner=0 count=0 at 0x7b89eebd4d00&gt;
+dict_factory = &lt;class 'dict'&gt;
+
+    def _asdict_inner(obj, dict_factory):
+        if _is_dataclass_instance(obj):
+            result = []
+            for f in fields(obj):
+                value = _asdict_inner(getattr(obj, f.name), dict_factory)
+                result.append((f.name, value))
+            return dict_factory(result)
+        elif isinstance(obj, tuple) and hasattr(obj, '_fields'):
+            # obj is a namedtuple.  Recurse into it, but the returned
+            # object is another namedtuple of the same type.  This is
+            # similar to how other list- or tuple-derived classes are
+            # treated (see below), but we just need to create them
+            # differently because a namedtuple's __init__ needs to be
+            # called differently (see bpo-34363).
+    
+            # I'm not using namedtuple's _asdict()
+            # method, because:
+            # - it does not recurse in to the namedtuple fields and
+            #   convert them to dicts (using dict_factory).
+            # - I don't actually want to return a dict here.  The main
+            #   use case here is json.dumps, and it handles converting
+            #   namedtuples to lists.  Admittedly we're losing some
+            #   information here when we produce a json list instead of a
+            #   dict.  Note that if we returned dicts here instead of
+            #   namedtuples, we could no longer call asdict() on a data
+            #   structure where a namedtuple was used as a dict key.
+    
+            return type(obj)(*[_asdict_inner(v, dict_factory) for v in obj])
+        elif isinstance(obj, (list, tuple)):
+            # Assume we can create an object of this type by passing in a
+            # generator (which is not true for namedtuples, handled
+            # above).
+            return type(obj)(_asdict_inner(v, dict_factory) for v in obj)
+        elif isinstance(obj, dict):
+            return type(obj)((_asdict_inner(k, dict_factory),
+                              _asdict_inner(v, dict_factory))
+                             for k, v in obj.items())
+        else:
+&gt;           return copy.deepcopy(obj)
+
+/usr/lib/python3.10/dataclasses.py:1279: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+x = &lt;unlocked _thread.RLock object owner=0 count=0 at 0x7b89eebd4d00&gt;, memo = {}
+_nil = []
+
+    def deepcopy(x, memo=None, _nil=[]):
+        """Deep copy operation on arbitrary Python objects.
+    
+        See the module's __doc__ string for more info.
+        """
+    
+        if memo is None:
+            memo = {}
+    
+        d = id(x)
+        y = memo.get(d, _nil)
+        if y is not _nil:
+            return y
+    
+        cls = type(x)
+    
+        copier = _deepcopy_dispatch.get(cls)
+        if copier is not None:
+            y = copier(x, memo)
+        else:
+            if issubclass(cls, type):
+                y = _deepcopy_atomic(x, memo)
+            else:
+                copier = getattr(x, "__deepcopy__", None)
+                if copier is not None:
+                    y = copier(memo)
+                else:
+                    reductor = dispatch_table.get(cls)
+                    if reductor:
+                        rv = reductor(x)
+                    else:
+                        reductor = getattr(x, "__reduce_ex__", None)
+                        if reductor is not None:
+&gt;                           rv = reductor(4)
+E                           TypeError: cannot pickle '_thread.RLock' object
+
+/usr/lib/python3.10/copy.py:161: TypeError</failure></testcase><testcase classname="src.test.test_degradation.TestDegradationRecovery" name="test_learning_adaptation_params_recovery_together" time="0.011"><failure message="TypeError: cannot pickle '_thread.RLock' object">self = &lt;test_degradation.TestDegradationRecovery object at 0x7b89f051c7f0&gt;
+
+    def test_learning_adaptation_params_recovery_together(self):
+        """Тест: совместное восстановление learning_params и adaptation_params из snapshot"""
+        from state.self_state import load_snapshot, save_snapshot
+    
+        state = SelfState()
+        state.energy = 50.0
+    
+        # Модифицируем оба набора параметров
+        state.learning_params["event_type_sensitivity"]["noise"] = 0.75
+        state.adaptation_params["behavior_sensitivity"]["noise"] = 0.85
+        state.adaptation_params["behavior_coefficients"]["absorb"] = 0.6
+    
+        # Сохраняем snapshot
+&gt;       save_snapshot(state)
+
+src/test/test_degradation.py:741: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+state = SelfState(life_id='a149acea-8a1b-4812-9208-45b52dc79989', birth_timestamp=1768929415.2815757, age=0.0, subjective_time...ck': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 0.6, 'ignore': 0.0}}, adaptation_history=[])
+
+    def save_snapshot(state: SelfState):
+        """
+        Сохраняет текущее состояние жизни как отдельный JSON файл.
+        Оптимизированная сериализация с исключением transient полей.
+    
+        ПРИМЕЧАНИЕ: Логирование временно отключается во время сериализации для производительности.
+        Изменения состояния, которые могут произойти во время вызова asdict() (например,
+        конвертация dataclass), не будут залогированы. Это намеренное решение для оптимизации.
+    
+        ПРИМЕЧАНИЕ: Flush буфера логов должен управляться через LogManager в runtime loop,
+        а не внутри этой функции. Это обеспечивает правильное разделение ответственности.
+    
+        Args:
+            state: Состояние для сохранения
+        """
+        # Временно отключаем логирование для сериализации
+        # Это предотвращает логирование изменений, которые могут произойти при конвертации dataclass
+        logging_was_enabled = state._logging_enabled
+        state.disable_logging()
+    
+        try:
+&gt;           snapshot = asdict(state)
+
+src/state/self_state.py:1038: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+obj = SelfState(life_id='a149acea-8a1b-4812-9208-45b52dc79989', birth_timestamp=1768929415.2815757, age=0.0, subjective_time...ck': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 0.6, 'ignore': 0.0}}, adaptation_history=[])
+
+    def asdict(obj, *, dict_factory=dict):
+        """Return the fields of a dataclass instance as a new dictionary mapping
+        field names to field values.
+    
+        Example usage:
+    
+          @dataclass
+          class C:
+              x: int
+              y: int
+    
+          c = C(1, 2)
+          assert asdict(c) == {'x': 1, 'y': 2}
+    
+        If given, 'dict_factory' will be used instead of built-in dict.
+        The function applies recursively to field values that are
+        dataclass instances. This will also look into built-in containers:
+        tuples, lists, and dicts.
+        """
+        if not _is_dataclass_instance(obj):
+            raise TypeError("asdict() should be called on dataclass instances")
+&gt;       return _asdict_inner(obj, dict_factory)
+
+/usr/lib/python3.10/dataclasses.py:1238: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+obj = SelfState(life_id='a149acea-8a1b-4812-9208-45b52dc79989', birth_timestamp=1768929415.2815757, age=0.0, subjective_time...ck': 0.1, 'idle': 0.1}, 'behavior_coefficients': {'dampen': 0.5, 'absorb': 0.6, 'ignore': 0.0}}, adaptation_history=[])
+dict_factory = &lt;class 'dict'&gt;
+
+    def _asdict_inner(obj, dict_factory):
+        if _is_dataclass_instance(obj):
+            result = []
+            for f in fields(obj):
+&gt;               value = _asdict_inner(getattr(obj, f.name), dict_factory)
+
+/usr/lib/python3.10/dataclasses.py:1245: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+obj = &lt;unlocked _thread.RLock object owner=0 count=0 at 0x7b89ee86c680&gt;
+dict_factory = &lt;class 'dict'&gt;
+
+    def _asdict_inner(obj, dict_factory):
+        if _is_dataclass_instance(obj):
+            result = []
+            for f in fields(obj):
+                value = _asdict_inner(getattr(obj, f.name), dict_factory)
+                result.append((f.name, value))
+            return dict_factory(result)
+        elif isinstance(obj, tuple) and hasattr(obj, '_fields'):
+            # obj is a namedtuple.  Recurse into it, but the returned
+            # object is another namedtuple of the same type.  This is
+            # similar to how other list- or tuple-derived classes are
+            # treated (see below), but we just need to create them
+            # differently because a namedtuple's __init__ needs to be
+            # called differently (see bpo-34363).
+    
+            # I'm not using namedtuple's _asdict()
+            # method, because:
+            # - it does not recurse in to the namedtuple fields and
+            #   convert them to dicts (using dict_factory).
+            # - I don't actually want to return a dict here.  The main
+            #   use case here is json.dumps, and it handles converting
+            #   namedtuples to lists.  Admittedly we're losing some
+            #   information here when we produce a json list instead of a
+            #   dict.  Note that if we returned dicts here instead of
+            #   namedtuples, we could no longer call asdict() on a data
+            #   structure where a namedtuple was used as a dict key.
+    
+            return type(obj)(*[_asdict_inner(v, dict_factory) for v in obj])
+        elif isinstance(obj, (list, tuple)):
+            # Assume we can create an object of this type by passing in a
+            # generator (which is not true for namedtuples, handled
+            # above).
+            return type(obj)(_asdict_inner(v, dict_factory) for v in obj)
+        elif isinstance(obj, dict):
+            return type(obj)((_asdict_inner(k, dict_factory),
+                              _asdict_inner(v, dict_factory))
+                             for k, v in obj.items())
+        else:
+&gt;           return copy.deepcopy(obj)
+
+/usr/lib/python3.10/dataclasses.py:1279: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+x = &lt;unlocked _thread.RLock object owner=0 count=0 at 0x7b89ee86c680&gt;, memo = {}
+_nil = []
+
+    def deepcopy(x, memo=None, _nil=[]):
+        """Deep copy operation on arbitrary Python objects.
+    
+        See the module's __doc__ string for more info.
+        """
+    
+        if memo is None:
+            memo = {}
+    
+        d = id(x)
+        y = memo.get(d, _nil)
+        if y is not _nil:
+            return y
+    
+        cls = type(x)
+    
+        copier = _deepcopy_dispatch.get(cls)
+        if copier is not None:
+            y = copier(x, memo)
+        else:
+            if issubclass(cls, type):
+                y = _deepcopy_atomic(x, memo)
+            else:
+                copier = getattr(x, "__deepcopy__", None)
+                if copier is not None:
+                    y = copier(memo)
+                else:
+                    reductor = dispatch_table.get(cls)
+                    if reductor:
+                        rv = reductor(x)
+                    else:
+                        reductor = getattr(x, "__reduce_ex__", None)
+                        if reductor is not None:
+&gt;                           rv = reductor(4)
+E                           TypeError: cannot pickle '_thread.RLock' object
+
+/usr/lib/python3.10/copy.py:161: TypeError</failure></testcase><testcase time="0.000" /><testcase classname="pytest" name="internal" time="0.000"><error message="internal error">Traceback (most recent call last):
   File "/usr/local/lib/python3.10/dist-packages/_pytest/main.py", line 318, in wrap_session
     session.exitstatus = doit(config, session) or 0
   File "/usr/local/lib/python3.10/dist-packages/_pytest/main.py", line 372, in _main

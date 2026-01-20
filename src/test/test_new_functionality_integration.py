@@ -1152,3 +1152,133 @@ class TestNewFunctionalityIntegration:
             shutil.rmtree(docs_dir, ignore_errors=True)
             shutil.rmtree(todo_dir, ignore_errors=True)
             shutil.rmtree(src_dir, ignore_errors=True)
+
+    def test_subjective_time_memory_integration(self):
+        """Интеграционный тест записи субъективного времени в память"""
+        self_state = SelfState()
+        event_queue = EventQueue()
+        stop_event = threading.Event()
+
+        # Устанавливаем начальное субъективное время
+        self_state.subjective_time = 10.0
+
+        # Добавляем событие для обработки
+        event = Event(type="shock", intensity=0.8, timestamp=time.time())
+        event_queue.push(event)
+
+        def dummy_monitor(state):
+            pass
+
+        # Запускаем loop на один тик
+        thread = threading.Thread(
+            target=run_loop,
+            args=(self_state, dummy_monitor, 0.01, 1000, stop_event, event_queue),
+        )
+        thread.start()
+
+        # Ждем обработки
+        time.sleep(0.05)
+        stop_event.set()
+        thread.join(timeout=1.0)
+
+        # Проверяем, что в памяти есть запись с subjective_timestamp
+        memory_entries = [entry for entry in self_state.memory if entry.event_type == "shock"]
+        assert len(memory_entries) > 0, "Должна быть запись о событии shock в памяти"
+
+        entry = memory_entries[0]
+        assert entry.subjective_timestamp is not None, "subjective_timestamp должен быть установлен"
+        assert isinstance(entry.subjective_timestamp, float), "subjective_timestamp должен быть float"
+        assert entry.subjective_timestamp > 0, "subjective_timestamp должен быть положительным"
+
+    def test_subjective_time_feedback_memory_integration(self):
+        """Интеграционный тест записи субъективного времени в Feedback записи"""
+        from src.feedback import register_action
+
+        self_state = SelfState()
+        event_queue = EventQueue()
+        stop_event = threading.Event()
+        pending_actions = []
+
+        # Устанавливаем начальное субъективное время
+        self_state.subjective_time = 5.0
+
+        # Регистрируем действие для создания Feedback
+        action_id = "test_action_123"
+        register_action(
+            action_id=action_id,
+            pattern="dampen",
+            state_before={"energy": 100.0, "stability": 1.0},
+            action_timestamp=time.time(),
+            pending_actions=pending_actions,
+        )
+
+        # Запускаем loop для обработки Feedback
+        def dummy_monitor(state):
+            pass
+
+        thread = threading.Thread(
+            target=run_loop,
+            args=(self_state, dummy_monitor, 0.01, 1000, stop_event, event_queue),
+        )
+        thread.start()
+
+        # Ждем обработки Feedback
+        time.sleep(0.05)
+        stop_event.set()
+        thread.join(timeout=1.0)
+
+        # Проверяем, что в памяти есть Feedback запись с subjective_timestamp
+        feedback_entries = [entry for entry in self_state.memory if entry.event_type == "feedback"]
+        assert len(feedback_entries) > 0, "Должна быть Feedback запись в памяти"
+
+        entry = feedback_entries[0]
+        assert entry.subjective_timestamp is not None, "subjective_timestamp должен быть установлен в Feedback"
+        assert isinstance(entry.subjective_timestamp, float), "subjective_timestamp должен быть float"
+        assert entry.subjective_timestamp > 0, "subjective_timestamp должен быть положительным"
+
+        # Проверяем структуру feedback_data
+        assert entry.feedback_data is not None, "Feedback запись должна иметь feedback_data"
+        assert "action_id" in entry.feedback_data, "feedback_data должен содержать action_id"
+
+    def test_subjective_time_monotonic_in_memory(self):
+        """Интеграционный тест монотонности субъективного времени в памяти"""
+        self_state = SelfState()
+        event_queue = EventQueue()
+        stop_event = threading.Event()
+
+        # Добавляем несколько событий
+        events = [
+            Event(type="noise", intensity=0.3, timestamp=time.time() + i)
+            for i in range(3)
+        ]
+        for event in events:
+            event_queue.push(event)
+
+        timestamps_collected = []
+
+        def monitor_collecting_timestamps(state):
+            # Собираем все subjective_timestamp из памяти на каждом тике
+            for entry in state.memory:
+                if hasattr(entry, 'subjective_timestamp') and entry.subjective_timestamp is not None:
+                    if entry.subjective_timestamp not in timestamps_collected:
+                        timestamps_collected.append(entry.subjective_timestamp)
+
+        # Запускаем loop
+        thread = threading.Thread(
+            target=run_loop,
+            args=(self_state, monitor_collecting_timestamps, 0.01, 1000, stop_event, event_queue),
+        )
+        thread.start()
+
+        # Ждем обработки всех событий
+        time.sleep(0.1)
+        stop_event.set()
+        thread.join(timeout=1.0)
+
+        # Проверяем монотонность: все timestamp должны быть >= 0 и не убывать
+        assert len(timestamps_collected) > 0, "Должны быть собраны subjective_timestamp"
+        assert all(ts >= 0 for ts in timestamps_collected), "Все subjective_timestamp должны быть >= 0"
+
+        # Проверяем монотонность (неубывание)
+        sorted_timestamps = sorted(timestamps_collected)
+        assert timestamps_collected == sorted_timestamps, "subjective_timestamp должны быть монотонными"

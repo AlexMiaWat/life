@@ -148,7 +148,7 @@ fake_users_db: dict[str, UserInDB] = {
         username="admin",
         email="admin@example.com",
         full_name="Administrator",
-        hashed_password=pwd_context.hash("admin123"[:72]),
+        hashed_password=pwd_context.hash("admin123"),
         disabled=False,
     ),
     "user": UserInDB(
@@ -169,7 +169,8 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 def get_password_hash(password: str) -> str:
     """Хеширование пароля."""
-    return pwd_context.hash(password)
+    # bcrypt ограничивает пароль 72 байтами
+    return pwd_context.hash(password[:72])
 
 
 def get_user(db: dict, username: str) -> Optional[UserInDB]:

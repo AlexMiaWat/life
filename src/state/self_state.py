@@ -520,12 +520,19 @@ class SelfState:
         Returns:
             dict: Безопасный словарь состояния для публичного API
         """
-        from dataclasses import asdict
-
         # Thread-safe чтение состояния
         with self._api_lock:
-            # Получаем все поля через asdict (создает глубокую копию)
-            state_dict = asdict(self)
+            # Создаем словарь вручную, избегая проблемных полей
+            state_dict = {}
+            for field_name in SelfState.__dataclass_fields__:
+                if not field_name.startswith('_'):  # Пропускаем внутренние поля
+                    try:
+                        value = getattr(self, field_name)
+                        # Пропускаем не сериализуемые объекты
+                        if field_name not in ['_api_lock', 'archive_memory', 'memory']:
+                            state_dict[field_name] = value
+                    except AttributeError:
+                        continue
 
         # Исключаем transient поля
         state_dict.pop("activated_memory", None)

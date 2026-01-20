@@ -1,12 +1,13 @@
 # 09.1_Memory_Entry.md — Запись памяти (MemoryEntry)
 
 ## Текущий статус
-✅ **Реализован** (v2.0)
+✅ **Реализован** (v2.1)
 *   Файл: [`src/memory/memory.py`](../../src/memory/memory.py)
 *   Интегрирован в [`src/state/self_state.py`](../../src/state/self_state.py)
 *   Поддерживает хранение эпизодов с типом события, значимостью и временной меткой.
 *   Ограничение размера памяти до 50 записей.
 *   **v2.0:** Добавлена архивная память, механизм забывания с весами, статистика использования.
+*   **v2.1:** Добавлено субъективное время как сквозная ось жизни.
 
 ### Описание реализации
 Memory как `list[MemoryEntry]` в SelfState, append после MeaningEngine если significance >0, clamp_size=50 (удаление по весу). Поддержка архивации старых записей.
@@ -20,6 +21,7 @@ class MemoryEntry:
     timestamp: float  # Время создания записи (Unix timestamp)
     weight: float = 1.0  # Вес записи для механизма забывания (v2.0)
     feedback_data: Optional[Dict] = None  # Для Feedback записей
+    subjective_timestamp: Optional[float] = None  # Субъективное время в момент создания записи (v2.1)
 ```
 
 #### Принципы
@@ -28,13 +30,14 @@ class MemoryEntry:
 
 ## Текущая реализация
 
-### MemoryEntry (v2.0)
+### MemoryEntry (v2.1)
 Класс [`MemoryEntry`](../../src/memory/memory.py) представляет единицу памяти:
 *   `event_type: str` — тип события (например, 'decay', 'recovery').
 *   `meaning_significance: float` — значимость события для памяти.
 *   `timestamp: float` — время создания записи (Unix timestamp).
 *   `weight: float` — вес записи для механизма забывания (по умолчанию 1.0). Записи с низким весом удаляются первыми.
 *   `feedback_data: Optional[Dict]` — дополнительные данные для Feedback записей (сериализованный FeedbackRecord).
+*   `subjective_timestamp: Optional[float]` — субъективное время в момент создания записи (v2.1). Дополняет физическое время второй шкалой времени, отражающей внутренний опыт системы.
 
 ### Memory (v2.0)
 Класс [`Memory`](../../src/memory/memory.py) наследует от `list` и управляет коллекцией записей:

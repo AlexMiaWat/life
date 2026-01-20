@@ -258,6 +258,7 @@ def run_loop(
                     event_type="feedback",
                     meaning_significance=0.0,  # Feedback не имеет значимости
                     timestamp=feedback.timestamp,
+                    subjective_timestamp=self_state.subjective_time,
                     feedback_data={
                         "action_id": feedback.action_id,
                         "action_pattern": feedback.action_pattern,
@@ -286,7 +287,7 @@ def run_loop(
                     logger.debug(
                         f"[LOOP] Interpreting event: type={event.type}, intensity={event.intensity}"
                     )
-                    meaning = engine.process(event, asdict(self_state))
+                    meaning = engine.process(event, self_state.get_safe_status_dict(include_optional=False))
                     if meaning.significance > 0:
                         # Активация памяти для события
                         activated = activate_memory(event.type, self_state.memory)
@@ -334,6 +335,7 @@ def run_loop(
                                 event_type=event.type,
                                 meaning_significance=meaning.significance,
                                 timestamp=time.time(),
+                                subjective_timestamp=self_state.subjective_time,
                             )
                         )
                     logger.debug(

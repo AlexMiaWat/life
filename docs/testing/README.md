@@ -6,10 +6,11 @@
 
 ## Статистика тестирования
 
-- **Всего тестов:** 233 (см. [docs/development/STATISTICS.md](../development/STATISTICS.md) для актуальной статистики)
+- **Всего тестов:** 242+ (см. [docs/development/STATISTICS.md](../development/STATISTICS.md) для актуальной статистики)
 - **Все тесты проходят:** ✅
 - **Покрытие кода:** 96%
 - **Основные модули:** 100% покрытие
+- **Новые тесты (v2.1):** +9 тестов для субъективного времени
 
 ## Быстрый старт
 
@@ -40,7 +41,7 @@ pytest src/test/ -q
 
 Все тесты находятся в `src/test/`:
 
-- `test_memory.py` - Тесты модуля Memory (MemoryEntry, Memory) + нагрузочные тесты
+- `test_memory.py` - Тесты модуля Memory (MemoryEntry, Memory) + нагрузочные тесты + тесты субъективного времени (v2.1)
 - `test_state.py` - Тесты модуля State (SelfState, snapshots)
 - `test_activation.py` - Тесты модуля Activation
 - `test_meaning.py` - Тесты модуля Meaning (Meaning, MeaningEngine)
@@ -48,6 +49,7 @@ pytest src/test/ -q
 - `test_action.py` - Тесты модуля Action
 - `test_environment.py` - Тесты модуля Environment (Event, EventQueue)
 - `test_feedback.py` - Тесты модуля Feedback
+- `test_new_functionality_integration.py` - Интеграционные тесты новой функциональности + тесты субъективного времени (v2.1)
 - `test_planning.py` - Тесты модуля Planning
 - `test_intelligence.py` - Тесты модуля Intelligence
 - `test_learning.py` - Тесты модуля Learning
@@ -91,6 +93,27 @@ pytest src/test/ -q
 12. **environment/event.py** - 100%
 13. **monitor/console.py** - 100%
 14. **environment/generator_cli.py** - 100%
+
+### Тесты субъективного времени (v2.1)
+
+Новая функциональность субъективного времени покрыта комплексными тестами:
+
+**Unit-тесты в `test_memory.py`:**
+- `test_memory_entry_with_subjective_timestamp` - создание MemoryEntry с субъективным временем
+- `test_memory_entry_subjective_timestamp_default` - значение по умолчанию для поля
+- `test_archive_memory_backward_compatibility` - обратная совместимость загрузки старых архивов
+- `test_archive_memory_forward_compatibility` - прямая совместимость сохранения новых архивов
+
+**Интеграционные тесты в `test_new_functionality_integration.py`:**
+- `test_subjective_time_memory_integration` - интеграция записи субъективного времени в обычные события
+- `test_subjective_time_feedback_memory_integration` - интеграция записи субъективного времени в Feedback
+- `test_subjective_time_monotonic_in_memory` - проверка монотонности субъективного времени
+
+**Особенности тестирования:**
+- Обратная совместимость: старые snapshot/memory файлы загружаются корректно
+- Прямая совместимость: новые файлы сохраняют поле subjective_timestamp
+- Интеграционные тесты проверяют работу в полном Runtime Loop
+- Все тесты используют реальное многопоточное исполнение
 
 ### Частично покрытые модули
 

@@ -80,6 +80,8 @@ class TestAdaptationManager:
             "significance_thresholds": {"noise": 0.2, "shock": 0.4},
             "response_coefficients": {"dampen": 0.6, "absorb": 0.8},
         }
+        # Очищаем adaptation_params для теста инициализации
+        self_state.adaptation_params = {}
 
         analysis = {"learning_params_snapshot": self_state.learning_params}
         current_params = {}
