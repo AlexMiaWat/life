@@ -13,8 +13,8 @@ import time
 import pytest
 
 from feedback import observe_consequences, register_action
-from memory.memory import MemoryEntry
-from state.self_state import SelfState
+from src.memory.memory import MemoryEntry
+from src.state.self_state import SelfState
 
 
 @pytest.mark.unit

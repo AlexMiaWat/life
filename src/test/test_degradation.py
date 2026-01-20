@@ -20,11 +20,11 @@ import time
 
 import pytest
 
-from environment.event import Event
-from environment.event_queue import EventQueue
-from memory.memory import MemoryEntry
-from runtime.loop import run_loop
-from state.self_state import SelfState
+from src.environment.event import Event
+from src.environment.event_queue import EventQueue
+from src.memory.memory import MemoryEntry
+from src.runtime.loop import run_loop
+from src.state.self_state import SelfState
 
 
 def dummy_monitor(state):

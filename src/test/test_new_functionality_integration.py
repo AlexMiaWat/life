@@ -25,8 +25,8 @@ from src.meaning.engine import MeaningEngine
 from src.state.self_state import SelfState
 from src.memory.memory import MemoryEntry
 from src.runtime.loop import run_loop
-from environment.event import Event
-from environment.event_queue import EventQueue
+from src.environment.event import Event
+from src.environment.event_queue import EventQueue
 
 
 @pytest.mark.integration

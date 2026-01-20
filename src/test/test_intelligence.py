@@ -10,8 +10,8 @@ sys.path.insert(0, str(project_root / "src"))
 
 import pytest
 
-from intelligence.intelligence import process_information
-from state.self_state import SelfState
+from src.intelligence.intelligence import process_information
+from src.state.self_state import SelfState
 
 
 @pytest.mark.unit

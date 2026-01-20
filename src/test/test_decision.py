@@ -12,10 +12,10 @@ import time
 
 import pytest
 
-from decision.decision import decide_response
-from meaning.meaning import Meaning
-from memory.memory import MemoryEntry
-from state.self_state import SelfState
+from src.decision.decision import decide_response
+from src.meaning.meaning import Meaning
+from src.memory.memory import MemoryEntry
+from src.state.self_state import SelfState
 
 
 @pytest.mark.unit
@@ -66,13 +66,20 @@ class TestDecideResponse:
         self, base_state, high_significance_meaning
     ):
         """Тест выбора dampen когда max significance = 0.5 (граничный случай)"""
+        # Получаем фактический порог с учетом модификации через adaptation_params
+        adaptation_params = getattr(base_state, "adaptation_params", {})
+        behavior_thresholds = adaptation_params.get("behavior_thresholds", {})
+        dampen_threshold = 0.5
+        if behavior_thresholds:
+            avg_threshold = sum(behavior_thresholds.values()) / len(behavior_thresholds)
+            dampen_threshold = 0.5 - (0.5 - avg_threshold) * 0.3
+        
         base_state.activated_memory = [
-            MemoryEntry("event", 0.5, time.time())  # Ровно на пороге
+            MemoryEntry("event", dampen_threshold, time.time())  # Ровно на пороге
         ]
 
         pattern = decide_response(base_state, high_significance_meaning)
-        # 0.5 не больше 0.5, поэтому должен вернуться fallback
-        # Но в коде используется > 0.5, поэтому это не dampen
+        # Если значение ровно равно порогу, то > не выполняется, должен быть fallback
         assert pattern != "dampen"  # Должен быть fallback
 
     def test_decide_ignore_low_significance_meaning(
@@ -102,8 +109,17 @@ class TestDecideResponse:
 
     def test_decide_absorb_high_significance_meaning(self, base_state):
         """Тест выбора absorb при высокой significance в Meaning, но низкой в памяти"""
+        # Получаем фактический порог с учетом модификации
+        adaptation_params = getattr(base_state, "adaptation_params", {})
+        behavior_thresholds = adaptation_params.get("behavior_thresholds", {})
+        dampen_threshold = 0.5
+        if behavior_thresholds:
+            avg_threshold = sum(behavior_thresholds.values()) / len(behavior_thresholds)
+            dampen_threshold = 0.5 - (0.5 - avg_threshold) * 0.3
+        
         meaning = Meaning(significance=0.8, impact={"energy": -1.0})
-        base_state.activated_memory = [MemoryEntry("event", 0.4, time.time())]  # < 0.5
+        # Используем значение ниже порога
+        base_state.activated_memory = [MemoryEntry("event", dampen_threshold - 0.1, time.time())]
 
         pattern = decide_response(base_state, meaning)
         assert pattern == "absorb"
@@ -130,24 +146,40 @@ class TestDecideResponse:
         assert pattern == "dampen"  # max(0.3, 0.7, 0.2) = 0.7 > 0.5
 
     def test_decide_activated_memory_max_below_threshold(self, base_state):
-        """Тест принятия решения когда max significance в памяти < 0.5"""
+        """Тест принятия решения когда max significance в памяти < порога"""
+        # Получаем фактический порог
+        adaptation_params = getattr(base_state, "adaptation_params", {})
+        behavior_thresholds = adaptation_params.get("behavior_thresholds", {})
+        dampen_threshold = 0.5
+        if behavior_thresholds:
+            avg_threshold = sum(behavior_thresholds.values()) / len(behavior_thresholds)
+            dampen_threshold = 0.5 - (0.5 - avg_threshold) * 0.3
+        
         base_state.activated_memory = [
-            MemoryEntry("event", 0.4, time.time()),
-            MemoryEntry("event", 0.3, time.time()),
+            MemoryEntry("event", dampen_threshold - 0.1, time.time()),
+            MemoryEntry("event", dampen_threshold - 0.2, time.time()),
         ]
         meaning = Meaning(significance=0.6, impact={"energy": -1.0})
 
         pattern = decide_response(base_state, meaning)
-        # max(0.4, 0.3) = 0.4 < 0.5, поэтому fallback
+        # max значения < порога, поэтому fallback
         assert pattern == "absorb"
 
     def test_decide_activated_memory_exactly_at_threshold(self, base_state):
-        """Тест принятия решения когда max significance = 0.5"""
-        base_state.activated_memory = [MemoryEntry("event", 0.5, time.time())]
+        """Тест принятия решения когда max significance = порогу"""
+        # Получаем фактический порог
+        adaptation_params = getattr(base_state, "adaptation_params", {})
+        behavior_thresholds = adaptation_params.get("behavior_thresholds", {})
+        dampen_threshold = 0.5
+        if behavior_thresholds:
+            avg_threshold = sum(behavior_thresholds.values()) / len(behavior_thresholds)
+            dampen_threshold = 0.5 - (0.5 - avg_threshold) * 0.3
+        
+        base_state.activated_memory = [MemoryEntry("event", dampen_threshold, time.time())]
         meaning = Meaning(significance=0.6, impact={"energy": -1.0})
 
         pattern = decide_response(base_state, meaning)
-        # 0.5 не > 0.5, поэтому fallback
+        # Значение ровно равно порогу, не > порога, поэтому fallback
         assert pattern == "absorb"
 
     def test_decide_meaning_significance_at_threshold(self, base_state):

@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pytest
 
-from memory.memory import ArchiveMemory, Memory, MemoryEntry
+from src.memory.memory import ArchiveMemory, Memory, MemoryEntry
 
 
 @pytest.mark.unit

@@ -5,7 +5,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Optional
 
-from memory.memory import ArchiveMemory, Memory, MemoryEntry
+from src.memory.memory import ArchiveMemory, Memory, MemoryEntry
 
 # Папка для снимков
 SNAPSHOT_DIR = Path("data/snapshots")
@@ -58,25 +58,16 @@ class SelfState:
         object.__setattr__(self, '_initialized', True)
     
     def _validate_field(self, field_name: str, value: float) -> float:
-        """Валидация значения поля с учетом его границ"""
+        """Валидация значения поля с учетом его границ (обрезает значения до границ)"""
         if field_name == "energy":
-            if not (0.0 <= value <= 100.0):
-                raise ValueError(
-                    f"energy must be between 0.0 and 100.0, got {value}"
-                )
-            return value
+            # Обрезаем значение до допустимого диапазона
+            return max(0.0, min(100.0, value))
         elif field_name in ["integrity", "stability"]:
-            if not (0.0 <= value <= 1.0):
-                raise ValueError(
-                    f"{field_name} must be between 0.0 and 1.0, got {value}"
-                )
-            return value
+            # Обрезаем значение до допустимого диапазона
+            return max(0.0, min(1.0, value))
         elif field_name in ["fatigue", "tension", "age"]:
-            if value < 0.0:
-                raise ValueError(
-                    f"{field_name} must be >= 0.0, got {value}"
-                )
-            return value
+            # Обрезаем значение до минимума (не может быть отрицательным)
+            return max(0.0, value)
         elif field_name == "ticks":
             if value < 0:
                 raise ValueError(

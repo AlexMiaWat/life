@@ -1,6 +1,6 @@
 from typing import Dict
 
-from environment.event import Event
+from src.environment.event import Event
 
 from .meaning import Meaning
 

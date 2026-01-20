@@ -1,6 +1,6 @@
 from typing import List
 
-from state.self_state import SelfState
+from src.state.self_state import SelfState
 
 
 def record_potential_sequences(self_state: SelfState) -> None:

@@ -19,13 +19,13 @@ sys.path.insert(0, str(project_root / "src"))
 
 import pytest
 
-from environment.event import Event
-from environment.event_queue import EventQueue
-from runtime.loop import run_loop
-from state.self_state import SelfState
-from learning.learning import LearningEngine
+from src.environment.event import Event
+from src.environment.event_queue import EventQueue
+from src.runtime.loop import run_loop
+from src.state.self_state import SelfState
+from src.learning.learning import LearningEngine
 from src.adaptation.adaptation import AdaptationManager
-from feedback import register_action, observe_consequences, PendingAction, FeedbackRecord
+from src.feedback import register_action, observe_consequences, PendingAction, FeedbackRecord
 
 
 def dummy_monitor(state):

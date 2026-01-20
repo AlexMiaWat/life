@@ -11,10 +11,10 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from colorama import Fore, Style, init
 
-from environment import Event, EventQueue
-from monitor.console import log, monitor
-from runtime.loop import run_loop
-from state.self_state import SelfState, asdict
+from src.environment import Event, EventQueue
+from src.monitor.console import log, monitor
+from src.runtime.loop import run_loop
+from src.state.self_state import SelfState, asdict
 
 init()
 

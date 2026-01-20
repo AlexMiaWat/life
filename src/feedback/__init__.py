@@ -1,4 +1,4 @@
-from feedback.feedback import (
+from src.feedback.feedback import (
     FeedbackRecord,
     PendingAction,
     observe_consequences,

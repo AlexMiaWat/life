@@ -12,9 +12,9 @@ import time
 
 import pytest
 
-from environment.event import Event
-from meaning.engine import MeaningEngine
-from meaning.meaning import Meaning
+from src.environment.event import Event
+from src.meaning.engine import MeaningEngine
+from src.meaning.meaning import Meaning
 
 
 @pytest.mark.unit

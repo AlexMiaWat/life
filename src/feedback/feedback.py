@@ -3,8 +3,8 @@ import time
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
-from environment.event_queue import EventQueue
-from state.self_state import SelfState
+from src.environment.event_queue import EventQueue
+from src.state.self_state import SelfState
 
 
 @dataclass

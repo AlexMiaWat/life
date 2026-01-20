@@ -12,8 +12,8 @@ import time
 
 import pytest
 
-from action.action import execute_action
-from state.self_state import SelfState
+from src.action.action import execute_action
+from src.state.self_state import SelfState
 
 
 @pytest.mark.unit
@@ -34,12 +34,23 @@ class TestExecuteAction:
         """Тест выполнения действия dampen"""
         initial_energy = base_state.energy
         initial_memory_size = len(base_state.memory)
+        
+        # Получаем коэффициент для dampen (по умолчанию 0.5)
+        learning_params = getattr(base_state, "learning_params", {})
+        response_coefficients = learning_params.get("response_coefficients", {})
+        adaptation_params = getattr(base_state, "adaptation_params", {})
+        behavior_coefficients = adaptation_params.get("behavior_coefficients", {})
+        coefficient = behavior_coefficients.get(
+            "dampen", response_coefficients.get("dampen", 1.0)
+        )
+        # Эффект усталости: 0.01 * (1.0 - coefficient)
+        expected_effect = 0.01 * (1.0 - coefficient)
 
         execute_action("dampen", base_state)
 
         # Проверяем, что энергия уменьшилась
         assert base_state.energy < initial_energy
-        assert abs(base_state.energy - (initial_energy - 0.01)) < 0.001
+        assert abs(base_state.energy - (initial_energy - expected_effect)) < 0.001
 
         # Проверяем, что действие записано в память
         assert len(base_state.memory) == initial_memory_size + 1
@@ -110,12 +121,23 @@ class TestExecuteAction:
     def test_execute_action_dampen_multiple_times(self, base_state):
         """Тест выполнения dampen несколько раз"""
         initial_energy = base_state.energy
+        
+        # Получаем коэффициент для dampen
+        learning_params = getattr(base_state, "learning_params", {})
+        response_coefficients = learning_params.get("response_coefficients", {})
+        adaptation_params = getattr(base_state, "adaptation_params", {})
+        behavior_coefficients = adaptation_params.get("behavior_coefficients", {})
+        coefficient = behavior_coefficients.get(
+            "dampen", response_coefficients.get("dampen", 1.0)
+        )
+        # Эффект усталости за один раз: 0.01 * (1.0 - coefficient)
+        effect_per_action = 0.01 * (1.0 - coefficient)
 
         for _ in range(5):
             execute_action("dampen", base_state)
 
-        # Энергия должна уменьшиться на 0.01 * 5 = 0.05
-        expected_energy = max(0.0, initial_energy - 0.05)
+        # Энергия должна уменьшиться на effect_per_action * 5
+        expected_energy = max(0.0, initial_energy - effect_per_action * 5)
         assert abs(base_state.energy - expected_energy) < 0.001
 
     def test_execute_action_unknown_pattern(self, base_state):

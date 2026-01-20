@@ -16,7 +16,7 @@ Learning только медленно изменяет внутренние п�
 import logging
 from typing import Dict, List
 
-from memory.memory import MemoryEntry
+from src.memory.memory import MemoryEntry
 
 logger = logging.getLogger(__name__)
 

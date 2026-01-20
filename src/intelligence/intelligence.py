@@ -1,4 +1,4 @@
-from state.self_state import SelfState
+from src.state.self_state import SelfState
 
 
 def process_information(self_state: SelfState) -> None:

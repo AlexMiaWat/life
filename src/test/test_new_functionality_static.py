@@ -23,7 +23,7 @@ from src.learning.learning import LearningEngine
 from src.adaptation.adaptation import AdaptationManager
 from src.meaning.engine import MeaningEngine
 from src.meaning.meaning import Meaning
-from environment.event import Event
+from src.environment.event import Event
 
 
 @pytest.mark.static

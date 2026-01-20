@@ -1,6 +1,6 @@
 from typing import List
 
-from memory.memory import MemoryEntry
+from src.memory.memory import MemoryEntry
 
 
 def activate_memory(

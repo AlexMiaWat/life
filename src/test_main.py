@@ -3,7 +3,7 @@ import json
 import sys
 from pathlib import Path
 
-from state.self_state import SelfState
+from src.state.self_state import SelfState
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -44,8 +44,8 @@ def monitor(state: SelfState):
 import threading
 import time
 
-from environment import EventGenerator, EventQueue
-from runtime.loop import run_loop
+from src.environment import EventGenerator, EventQueue
+from src.runtime.loop import run_loop
 
 try:
     self_state = SelfState().load_latest_snapshot()

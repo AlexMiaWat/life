@@ -14,9 +14,9 @@ from pathlib import Path
 
 import pytest
 
-from memory.memory import MemoryEntry
-from monitor.console import log, monitor
-from state.self_state import SelfState
+from src.memory.memory import MemoryEntry
+from src.monitor.console import log, monitor
+from src.state.self_state import SelfState
 
 
 @pytest.mark.unit

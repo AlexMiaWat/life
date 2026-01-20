@@ -23,7 +23,7 @@ from src.meaning.engine import MeaningEngine
 from src.meaning.meaning import Meaning
 from src.state.self_state import SelfState
 from src.memory.memory import MemoryEntry
-from environment.event import Event
+from src.environment.event import Event
 
 
 @pytest.mark.smoke

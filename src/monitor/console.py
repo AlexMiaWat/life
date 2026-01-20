@@ -6,7 +6,7 @@ import colorama
 from colorama import Fore, Style
 
 colorama.init(autoreset=True)
-from state.self_state import SelfState
+from src.state.self_state import SelfState
 
 LOG_FILE = Path("data/tick_log.jsonl")
 LOG_FILE.parent.mkdir(exist_ok=True)

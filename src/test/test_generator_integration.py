@@ -11,8 +11,8 @@ sys.path.insert(0, str(project_root / "src"))
 
 import pytest
 
-from environment.generator import EventGenerator
-from environment.generator_cli import send_event
+from src.environment.generator import EventGenerator
+from src.environment.generator_cli import send_event
 
 
 @pytest.mark.integration

@@ -15,8 +15,8 @@ import time
 import pytest
 from hypothesis import given, strategies as st
 
-from memory.memory import Memory, MemoryEntry
-from state.self_state import SelfState
+from src.memory.memory import Memory, MemoryEntry
+from src.state.self_state import SelfState
 
 
 @pytest.mark.unit

@@ -10,8 +10,8 @@ sys.path.insert(0, str(project_root / "src"))
 
 import pytest
 
-from planning.planning import record_potential_sequences
-from state.self_state import SelfState
+from src.planning.planning import record_potential_sequences
+from src.state.self_state import SelfState
 
 
 @pytest.mark.unit

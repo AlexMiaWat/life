@@ -14,8 +14,8 @@ import time
 
 import pytest
 
-from environment.event import Event
-from environment.event_queue import EventQueue
+from src.environment.event import Event
+from src.environment.event_queue import EventQueue
 
 
 @pytest.mark.unit

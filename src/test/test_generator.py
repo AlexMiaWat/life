@@ -10,8 +10,8 @@ sys.path.insert(0, str(project_root / "src"))
 
 import pytest
 
-from environment.event import Event
-from environment.generator import EventGenerator
+from src.environment.event import Event
+from src.environment.generator import EventGenerator
 
 
 @pytest.mark.unit

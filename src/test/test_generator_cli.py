@@ -12,7 +12,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from environment.generator_cli import main, send_event
+from src.environment.generator_cli import main, send_event
 
 
 @pytest.mark.unit

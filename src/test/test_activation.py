@@ -12,8 +12,8 @@ import time
 
 import pytest
 
-from activation.activation import activate_memory
-from memory.memory import MemoryEntry
+from src.activation.activation import activate_memory
+from src.memory.memory import MemoryEntry
 
 
 @pytest.mark.unit

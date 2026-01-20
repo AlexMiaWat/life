@@ -1,6 +1,6 @@
 import time
 
-from memory.memory import MemoryEntry
+from src.memory.memory import MemoryEntry
 
 
 def execute_action(pattern: str, self_state):

@@ -15,9 +15,9 @@ import time
 import pytest
 import requests
 
-from environment.event_queue import EventQueue
-from main_server_api import LifeHandler, StoppableHTTPServer
-from state.self_state import SelfState
+from src.environment.event_queue import EventQueue
+from src.main_server_api import LifeHandler, StoppableHTTPServer
+from src.state.self_state import SelfState
 
 
 def pytest_addoption(parser):

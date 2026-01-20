@@ -3,17 +3,17 @@ import time
 import traceback
 from dataclasses import asdict
 
-from action import execute_action
-from activation.activation import activate_memory
-from decision.decision import decide_response
-from feedback import observe_consequences, register_action
-from intelligence.intelligence import process_information
-from learning.learning import LearningEngine
-from meaning.engine import MeaningEngine
-from memory.memory import MemoryEntry
-from planning.planning import record_potential_sequences
-from state.self_state import SelfState, save_snapshot
-from adaptation.adaptation import AdaptationManager
+from src.action import execute_action
+from src.activation.activation import activate_memory
+from src.decision.decision import decide_response
+from src.feedback import observe_consequences, register_action
+from src.intelligence.intelligence import process_information
+from src.learning.learning import LearningEngine
+from src.meaning.engine import MeaningEngine
+from src.memory.memory import MemoryEntry
+from src.planning.planning import record_potential_sequences
+from src.state.self_state import SelfState, save_snapshot
+from src.adaptation.adaptation import AdaptationManager
 
 
 def run_loop(

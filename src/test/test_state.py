@@ -16,8 +16,8 @@ from pathlib import Path
 
 import pytest
 
-from memory.memory import MemoryEntry
-from state.self_state import (
+from src.memory.memory import MemoryEntry
+from src.state.self_state import (
     SelfState,
     create_initial_state,
     load_snapshot,
