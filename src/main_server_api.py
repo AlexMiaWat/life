@@ -2,6 +2,7 @@ import argparse
 import glob
 import importlib
 import json
+import logging
 import os
 import sys
 import threading
@@ -20,12 +21,8 @@ init()
 
 from typing import Any
 
-print(f"[ДИАГ] Тип monitor: {type(monitor).__name__}")
-print(f"[ДИАГ] monitor вызываемая функция? {callable(monitor)}")
-if hasattr(monitor, "__file__"):
-    print(f"[ДИАГ] monitor.__file__: {monitor.__file__}")
-print(f"[ДИАГ] monitor.__name__: {getattr(monitor, '__name__', 'нет __name__')}")
-print(f"[ДИАГ] dir(monitor)[:10]: {dir(monitor)[:10]}")
+# Настройка логирования
+logger = logging.getLogger(__name__)
 
 HOST = "localhost"
 PORT = 8000
@@ -159,8 +156,8 @@ class LifeHandler(BaseHTTPRequestHandler):
         metadata = payload.get("metadata") or {}
 
         try:
-            print(
-                f"[API] Получен POST /event: type='{event_type}', intensity={intensity}"
+            logger.debug(
+                f"Получен POST /event: type='{event_type}', intensity={intensity}"
             )
             event = Event(
                 type=event_type,
@@ -169,8 +166,8 @@ class LifeHandler(BaseHTTPRequestHandler):
                 metadata=metadata,
             )
             self.server.event_queue.push(event)
-            print(
-                f"[API] Event PUSHED to queue. Size now: {self.server.event_queue.size()}"
+            logger.debug(
+                f"Event PUSHED to queue. Size now: {self.server.event_queue.size()}"
             )
             self.send_response(200)
             self.end_headers()
@@ -183,36 +180,36 @@ class LifeHandler(BaseHTTPRequestHandler):
     def log_request(self, code, size=-1):  # pragma: no cover
         if self.server.dev_mode:
             try:
-                print(Fore.CYAN + "=" * 80 + Style.RESET_ALL)
-                print(Fore.GREEN + "ВХОДЯЩИЙ HTTP-ЗАПРОС" + Style.RESET_ALL)
-                print(
+                logger.debug(Fore.CYAN + "=" * 80 + Style.RESET_ALL)
+                logger.debug(Fore.GREEN + "ВХОДЯЩИЙ HTTP-ЗАПРОС" + Style.RESET_ALL)
+                logger.debug(
                     Fore.YELLOW
                     + f"Время: {self.log_date_time_string()}"
                     + Style.RESET_ALL
                 )
-                print(
+                logger.debug(
                     Fore.YELLOW
                     + f"Клиент IP: {self.client_address[0]}"
                     + Style.RESET_ALL
                 )
-                print(Fore.YELLOW + f"Запрос: {self.requestline}" + Style.RESET_ALL)
-                print(Fore.MAGENTA + f"Статус ответа: {code}" + Style.RESET_ALL)
+                logger.debug(Fore.YELLOW + f"Запрос: {self.requestline}" + Style.RESET_ALL)
+                logger.debug(Fore.MAGENTA + f"Статус ответа: {code}" + Style.RESET_ALL)
                 if isinstance(size, (int, float)) and size > 0:
-                    print(
+                    logger.debug(
                         Fore.MAGENTA + f"Размер ответа: {size} байт" + Style.RESET_ALL
                     )
-                print(Fore.CYAN + "=" * 80 + Style.RESET_ALL)
+                logger.debug(Fore.CYAN + "=" * 80 + Style.RESET_ALL)
             except UnicodeEncodeError:
                 # Fallback to plain text if color output fails
-                print("=" * 80)
-                print("ВХОДЯЩИЙ HTTP-ЗАПРОС")
-                print(f"Время: {self.log_date_time_string()}")
-                print(f"Клиент IP: {self.client_address[0]}")
-                print(f"Запрос: {self.requestline}")
-                print(f"Статус ответа: {code}")
+                logger.debug("=" * 80)
+                logger.debug("ВХОДЯЩИЙ HTTP-ЗАПРОС")
+                logger.debug(f"Время: {self.log_date_time_string()}")
+                logger.debug(f"Клиент IP: {self.client_address[0]}")
+                logger.debug(f"Запрос: {self.requestline}")
+                logger.debug(f"Статус ответа: {code}")
                 if isinstance(size, (int, float)) and size > 0:
-                    print(f"Размер ответа: {size} байт")
-                print("=" * 80)
+                    logger.debug(f"Размер ответа: {size} байт")
+                logger.debug("=" * 80)
             sys.stdout.flush()
 
 
@@ -222,7 +219,7 @@ def start_api_server(self_state, event_queue, dev_mode):
     server.self_state = self_state
     server.event_queue = event_queue
     server.dev_mode = dev_mode
-    print(f"API server running on http://{HOST}:{PORT}")
+    logger.info(f"API server running on http://{HOST}:{PORT}")
     server.serve_forever()
 
 
@@ -249,11 +246,11 @@ def reloader_thread():  # pragma: no cover
     for f in files_to_watch:
         try:
             mtime_dict[f] = os.stat(f).st_mtime
-            log(f"Watching {f}")
+            logger.debug(f"Watching {f}")
         except Exception as e:
-            print(f"Error watching {f}: {e}")
+            logger.error(f"Error watching {f}: {e}")
 
-    print("Reloader initialized, starting poll loop")
+    logger.info("Reloader initialized, starting poll loop")
 
     while True:
         time.sleep(1)
@@ -269,7 +266,7 @@ def reloader_thread():  # pragma: no cover
                 continue
 
         if changed:
-            print("Detected change, reloading modules...")
+            logger.info("Detected change, reloading modules...")
 
             # Остановка API сервера
             if server:
@@ -277,7 +274,7 @@ def reloader_thread():  # pragma: no cover
                 if api_thread:
                     api_thread.join(timeout=5.0)
                     if api_thread.is_alive():
-                        log("[RELOAD] WARNING: api_thread не завершился за 5 секунд, продолжается перезагрузка")
+                        logger.warning("[RELOAD] api_thread не завершился за 5 секунд, продолжается перезагрузка")
 
             # Перезагрузка модулей
             import environment.event as event_module
@@ -294,11 +291,11 @@ def reloader_thread():  # pragma: no cover
             importlib.reload(event_queue_module)
             importlib.reload(generator_module)
 
-            print(
-                f"[RELOAD DIAG] Reloaded loop_module.run_loop: firstlineno={loop_module.run_loop.__code__.co_firstlineno}, argcount={loop_module.run_loop.__code__.co_argcount}"
+            logger.debug(
+                f"Reloaded loop_module.run_loop: firstlineno={loop_module.run_loop.__code__.co_firstlineno}, argcount={loop_module.run_loop.__code__.co_argcount}"
             )
-            print(
-                f"[RELOAD DIAG] New run_loop code file: {loop_module.run_loop.__code__.co_filename}"
+            logger.debug(
+                f"New run_loop code file: {loop_module.run_loop.__code__.co_filename}"
             )
 
             # Обновляем ссылки на функции
@@ -318,13 +315,13 @@ def reloader_thread():  # pragma: no cover
             )
             api_thread.start()
 
-            print("Modules reloaded and server restarted")
+            logger.info("Modules reloaded and server restarted")
 
             # Restart runtime loop
             if loop_thread and loop_thread.is_alive():
                 loop_stop.set()
                 loop_thread.join(timeout=5.0)
-                log("[RELOAD] Old loop stopped")
+                logger.info("[RELOAD] Old loop stopped")
 
             loop_stop = threading.Event()
             loop_thread = threading.Thread(
@@ -340,7 +337,7 @@ def reloader_thread():  # pragma: no cover
                 daemon=True,
             )
             loop_thread.start()
-            log("[RELOAD] New loop started")
+            logger.info("[RELOAD] New loop started")
 
 
 if __name__ == "__main__":  # pragma: no cover
@@ -354,13 +351,20 @@ if __name__ == "__main__":  # pragma: no cover
     args = parser.parse_args()
     dev_mode = args.dev
 
+    # Настройка уровня логирования в зависимости от режима
+    logging.basicConfig(
+        level=logging.DEBUG if dev_mode else logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+
     config = {
         "tick_interval": args.tick_interval,
         "snapshot_period": args.snapshot_period,
     }
 
     if args.clear_data.lower() == "yes":
-        print("Очистка данных при старте...")
+        logger.info("Очистка данных при старте...")
         log_file = "data/tick_log.jsonl"
         snapshots = glob.glob("data/snapshots/*.json")
         if os.path.exists(log_file):
@@ -381,7 +385,7 @@ if __name__ == "__main__":  # pragma: no cover
     event_queue = EventQueue()
 
     if args.dev:
-        log("--dev mode enabled, starting reloader")
+        logger.info("--dev mode enabled, starting reloader")
         threading.Thread(target=reloader_thread, daemon=True).start()
 
     # Start API thread
@@ -406,12 +410,8 @@ if __name__ == "__main__":  # pragma: no cover
     )
     loop_thread.start()
 
-    print(
-        "monitor:", monitor, type(monitor) if "monitor" in locals() else "NOT DEFINED"
-    )
-
     loop_thread.join()
-    print("Loop ended. Server still running. Press Enter to stop.")
+    logger.info("Loop ended. Server still running. Press Enter to stop.")
     input()
-    print("\nЖизнь завершена. Финальное состояние:")
-    print(self_state)
+    logger.info("\nЖизнь завершена. Финальное состояние:")
+    logger.info(str(self_state))

@@ -42,6 +42,10 @@ class LearningEngine:
     # Минимальное изменение для применения (чтобы избежать микро-изменений)
     MIN_PARAMETER_DELTA = 0.001
 
+    # Допуск для проверки изменений параметров (для учета погрешностей вычислений с плавающей точкой)
+    # Используется при сравнении delta с MAX_PARAMETER_DELTA
+    _VALIDATION_TOLERANCE = 0.001
+
     # Пороги частоты для изменения чувствительности к типам событий
     # Если частота события > HIGH_FREQUENCY_THRESHOLD, увеличиваем чувствительность
     # Если частота события < LOW_FREQUENCY_THRESHOLD, уменьшаем чувствительность
@@ -372,33 +376,40 @@ class LearningEngine:
                     for param_name, new_value in new_value_dict.items():
                         if param_name in old_value_dict:
                             old_value = old_value_dict[param_name]
+                            # Проверка на None для избежания TypeError
+                            if old_value is None or new_value is None:
+                                raise ValueError(
+                                    f"Параметр {key}.{param_name} не может быть None: "
+                                    f"old_value={old_value}, new_value={new_value}"
+                                )
                             delta = abs(new_value - old_value)
                             # Проверка: изменения не должны превышать MAX_PARAMETER_DELTA
-                            if delta > self.MAX_PARAMETER_DELTA + 0.001:
+                            # Используем константу для допуска проверки
+                            if delta > self.MAX_PARAMETER_DELTA + self._VALIDATION_TOLERANCE:
                                 raise ValueError(
                                     f"Изменение параметра {key}.{param_name} слишком большое: "
                                     f"{delta} > {self.MAX_PARAMETER_DELTA}"
                                 )
 
-        # Обновляем параметры в SelfState
-        # ВАЖНО: Выполняем глубокое объединение (merge), а не полную перезапись
-        if not hasattr(self_state, "learning_params"):
-            self_state.learning_params = {}
+            # Обновляем параметры в SelfState ВНУТРИ блокировки
+            # ВАЖНО: Выполняем глубокое объединение (merge), а не полную перезапись
+            if not hasattr(self_state, "learning_params"):
+                self_state.learning_params = {}
 
-        # Объединяем старые и новые параметры
-        # Для каждого ключа в new_params объединяем вложенные словари
-        for key, new_value_dict in new_params.items():
-            if key not in self_state.learning_params:
-                # Если ключа нет, просто копируем новый словарь
-                self_state.learning_params[key] = new_value_dict.copy()
-            else:
-                # Если ключ есть, объединяем вложенные словари
-                current_value_dict = self_state.learning_params[key]
-                # Обновляем только те параметры, которые есть в new_params
-                for param_name, new_value in new_value_dict.items():
-                    current_value_dict[param_name] = new_value
-                # Сохраняем обновленный словарь
-                self_state.learning_params[key] = current_value_dict
+            # Объединяем старые и новые параметры
+            # Для каждого ключа в new_params объединяем вложенные словари
+            for key, new_value_dict in new_params.items():
+                if key not in self_state.learning_params:
+                    # Если ключа нет, просто копируем новый словарь
+                    self_state.learning_params[key] = new_value_dict.copy()
+                else:
+                    # Если ключ есть, объединяем вложенные словари
+                    current_value_dict = self_state.learning_params[key]
+                    # Обновляем только те параметры, которые есть в new_params
+                    for param_name, new_value in new_value_dict.items():
+                        current_value_dict[param_name] = new_value
+                    # Сохраняем обновленный словарь
+                    self_state.learning_params[key] = current_value_dict
 
         # ВАЖНО: Не сохраняем историю изменений, не интерпретируем, не оцениваем
         # Просто обновляем параметры

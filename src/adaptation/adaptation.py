@@ -46,6 +46,10 @@ class AdaptationManager:
     # Максимальный размер истории адаптаций
     MAX_HISTORY_SIZE = 50
 
+    # Допуск для проверки изменений параметров (для учета погрешностей вычислений с плавающей точкой)
+    # Используется при сравнении delta с MAX_ADAPTATION_DELTA
+    _VALIDATION_TOLERANCE = 0.001
+
     def __init__(self):
         """Инициализация AdaptationManager с блокировкой для защиты от параллельных вызовов."""
         self._lock = threading.Lock()
@@ -245,8 +249,14 @@ class AdaptationManager:
                     for param_name, new_value in new_value_dict.items():
                         if param_name in old_value_dict:
                             old_value = old_value_dict[param_name]
+                            # Проверка на None для избежания TypeError
+                            if old_value is None or new_value is None:
+                                raise ValueError(
+                                    f"Параметр {key}.{param_name} не может быть None: "
+                                    f"old_value={old_value}, new_value={new_value}"
+                                )
                             delta = abs(new_value - old_value)
-                            if delta > self.MAX_ADAPTATION_DELTA + 0.001:
+                            if delta > self.MAX_ADAPTATION_DELTA + self._VALIDATION_TOLERANCE:
                                 raise ValueError(
                                     f"Изменение параметра {key}.{param_name} слишком большое: "
                                     f"{delta} > {self.MAX_ADAPTATION_DELTA}"
@@ -394,12 +404,14 @@ class AdaptationManager:
                         for param_name, new_value in new_value_dict.items():
                             if param_name in old_value_dict:
                                 old_value = old_value_dict[param_name]
-                                if abs(new_value - old_value) >= self.MIN_ADAPTATION_DELTA:
-                                    param_changes[param_name] = {
-                                        "old": old_value,
-                                        "new": new_value,
-                                        "delta": new_value - old_value,
-                                    }
+                                # Проверка на None для избежания TypeError
+                                if old_value is not None and new_value is not None:
+                                    if abs(new_value - old_value) >= self.MIN_ADAPTATION_DELTA:
+                                        param_changes[param_name] = {
+                                            "old": old_value,
+                                            "new": new_value,
+                                            "delta": new_value - old_value,
+                                        }
                         if param_changes:
                             changes[key] = param_changes
                 else:

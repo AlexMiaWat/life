@@ -29,6 +29,83 @@ DECAY_INTERVAL = 10  # Вызов затухания весов раз в 10 т�
 MEMORY_DECAY_FACTOR = 0.99  # Фактор затухания весов памяти
 MEMORY_MIN_WEIGHT = 0.1  # Минимальный вес для архивации
 MEMORY_MAX_AGE_SECONDS = 7 * 24 * 3600  # Максимальный возраст записей (7 дней в секундах)
+MEMORY_DECAY_MIN_WEIGHT = 0.0  # Минимальный вес при затухании (для полного забывания)
+
+# Константы для логики слабости
+# Порог для определения слабости (energy, integrity, stability)
+WEAKNESS_THRESHOLD = 0.05
+# Коэффициент штрафа за слабость (применяется к dt)
+WEAKNESS_PENALTY_COEFFICIENT = 0.02
+# Множитель штрафа для stability и integrity (больше чем для energy)
+WEAKNESS_STABILITY_INTEGRITY_MULTIPLIER = 2.0
+
+# Константы для обработки ошибок
+# Штраф integrity при ошибке в цикле
+ERROR_INTEGRITY_PENALTY = 0.05
+
+# Константы для модификации impact
+# Коэффициент для уменьшения impact при обработке событий
+IMPACT_REDUCTION_COEFFICIENT = 0.5
+
+
+def _get_default_learning_params() -> dict:
+    """
+    Получить параметры learning по умолчанию без создания временного объекта SelfState.
+
+    Returns:
+        dict: словарь с параметрами learning по умолчанию
+    """
+    return {
+        "event_type_sensitivity": {
+            "noise": 0.2,
+            "decay": 0.2,
+            "recovery": 0.2,
+            "shock": 0.2,
+            "idle": 0.2,
+        },
+        "significance_thresholds": {
+            "noise": 0.1,
+            "decay": 0.1,
+            "recovery": 0.1,
+            "shock": 0.1,
+            "idle": 0.1,
+        },
+        "response_coefficients": {
+            "dampen": 0.5,
+            "absorb": 1.0,
+            "ignore": 0.0,
+        },
+    }
+
+
+def _get_default_adaptation_params() -> dict:
+    """
+    Получить параметры adaptation по умолчанию без создания временного объекта SelfState.
+
+    Returns:
+        dict: словарь с параметрами adaptation по умолчанию
+    """
+    return {
+        "behavior_sensitivity": {
+            "noise": 0.2,
+            "decay": 0.2,
+            "recovery": 0.2,
+            "shock": 0.2,
+            "idle": 0.2,
+        },
+        "behavior_thresholds": {
+            "noise": 0.1,
+            "decay": 0.1,
+            "recovery": 0.1,
+            "shock": 0.1,
+            "idle": 0.1,
+        },
+        "behavior_coefficients": {
+            "dampen": 0.5,
+            "absorb": 1.0,
+            "ignore": 0.0,
+        },
+    }
 
 
 def _validate_learning_params(learning_params: dict) -> bool:
@@ -211,7 +288,7 @@ def run_loop(
                             continue  # skip apply_delta
                         elif pattern == "dampen":
                             meaning.impact = {
-                                k: v * 0.5 for k, v in meaning.impact.items()
+                                k: v * IMPACT_REDUCTION_COEFFICIENT for k, v in meaning.impact.items()
                             }
                         # else "absorb" — no change
 
@@ -272,10 +349,8 @@ def run_loop(
                         if hasattr(self_state, "_get_default_learning_params"):
                             self_state.learning_params = self_state._get_default_learning_params()
                         else:
-                            # Fallback: используем значения из dataclass field default_factory
-                            from src.state.self_state import SelfState
-                            temp_state = SelfState()
-                            self_state.learning_params = temp_state._get_default_learning_params()
+                            # Fallback: используем вспомогательную функцию без создания временного объекта
+                            self_state.learning_params = _get_default_learning_params()
 
                     # Валидируем структуру параметров
                     if not _validate_learning_params(self_state.learning_params):
@@ -286,9 +361,8 @@ def run_loop(
                         if hasattr(self_state, "_get_default_learning_params"):
                             self_state.learning_params = self_state._get_default_learning_params()
                         else:
-                            from src.state.self_state import SelfState
-                            temp_state = SelfState()
-                            self_state.learning_params = temp_state._get_default_learning_params()
+                            # Fallback: используем вспомогательную функцию без создания временного объекта
+                            self_state.learning_params = _get_default_learning_params()
 
                     # Обрабатываем статистику из Memory
                     statistics = learning_engine.process_statistics(self_state.memory)
@@ -308,17 +382,20 @@ def run_loop(
                         )
                 except (TypeError, ValueError) as e:
                     logger.error(f"Критическая ошибка в Learning (параметры): {e}", exc_info=True)
-                    # При критичных ошибках валидации пропускаем итерацию
-                    continue
+                    # При критичных ошибках валидации пропускаем только блок Learning,
+                    # но продолжаем выполнение остальных частей итерации
+                    pass
                 except Exception as e:
                     logger.error(f"Неожиданная ошибка в Learning: {e}", exc_info=True)
-                    # При неожиданных ошибках тоже пропускаем итерацию для безопасности
+                    # При неожиданных ошибках пропускаем только блок Learning,
+                    # но продолжаем выполнение остальных частей итерации
+                    pass
 
             # Затухание весов памяти (Memory v2.0) - механизм забывания
             # Вызывается раз в DECAY_INTERVAL тиков
             if self_state.ticks > 0 and self_state.ticks % DECAY_INTERVAL == 0:
                 try:
-                    self_state.memory.decay_weights(decay_factor=MEMORY_DECAY_FACTOR, min_weight=0.0)
+                    self_state.memory.decay_weights(decay_factor=MEMORY_DECAY_FACTOR, min_weight=MEMORY_DECAY_MIN_WEIGHT)
                 except Exception as e:
                     logger.error(f"Ошибка в decay_weights: {e}", exc_info=True)
 
@@ -363,9 +440,8 @@ def run_loop(
                         if hasattr(self_state, "_get_default_adaptation_params"):
                             self_state.adaptation_params = self_state._get_default_adaptation_params()
                         else:
-                            from src.state.self_state import SelfState
-                            temp_state = SelfState()
-                            self_state.adaptation_params = temp_state._get_default_adaptation_params()
+                            # Fallback: используем вспомогательную функцию без создания временного объекта
+                            self_state.adaptation_params = _get_default_adaptation_params()
 
                     # Валидируем структуру параметров
                     if not _validate_learning_params(self_state.learning_params):
@@ -386,9 +462,8 @@ def run_loop(
                         if hasattr(self_state, "_get_default_adaptation_params"):
                             self_state.adaptation_params = self_state._get_default_adaptation_params()
                         else:
-                            from src.state.self_state import SelfState
-                            temp_state = SelfState()
-                            self_state.adaptation_params = temp_state._get_default_adaptation_params()
+                            # Fallback: используем вспомогательную функцию без создания временного объекта
+                            self_state.adaptation_params = _get_default_adaptation_params()
 
                     # Анализируем изменения от Learning
                     analysis = adaptation_manager.analyze_changes(
@@ -435,25 +510,27 @@ def run_loop(
                         )
                 except (TypeError, ValueError) as e:
                     logger.error(f"Критическая ошибка в Adaptation (параметры): {e}", exc_info=True)
-                    # При критичных ошибках валидации пропускаем итерацию
-                    continue
+                    # При критичных ошибках валидации пропускаем только блок Adaptation,
+                    # но продолжаем выполнение остальных частей итерации
+                    pass
                 except Exception as e:
                     logger.error(f"Неожиданная ошибка в Adaptation: {e}", exc_info=True)
-                    # При неожиданных ошибках тоже пропускаем итерацию для безопасности
+                    # При неожиданных ошибках пропускаем только блок Adaptation,
+                    # но продолжаем выполнение остальных частей итерации
+                    pass
 
             # Логика слабости: когда параметры низкие, добавляем штрафы за немощность
-            weakness_threshold = 0.05
             if (
-                self_state.energy <= weakness_threshold
-                or self_state.integrity <= weakness_threshold
-                or self_state.stability <= weakness_threshold
+                self_state.energy <= WEAKNESS_THRESHOLD
+                or self_state.integrity <= WEAKNESS_THRESHOLD
+                or self_state.stability <= WEAKNESS_THRESHOLD
             ):
-                penalty = 0.02 * dt
+                penalty = WEAKNESS_PENALTY_COEFFICIENT * dt
                 self_state.apply_delta(
                     {
                         "energy": -penalty,
-                        "stability": -penalty * 2,
-                        "integrity": -penalty * 2,
+                        "stability": -penalty * WEAKNESS_STABILITY_INTEGRITY_MULTIPLIER,
+                        "integrity": -penalty * WEAKNESS_STABILITY_INTEGRITY_MULTIPLIER,
                     }
                 )
                 print(
@@ -480,7 +557,7 @@ def run_loop(
             time.sleep(sleep_duration)
 
         except Exception as e:
-            self_state.apply_delta({"integrity": -0.05})
+            self_state.apply_delta({"integrity": -ERROR_INTEGRITY_PENALTY})
             print(f"Ошибка в цикле: {e}")
             traceback.print_exc()
 

@@ -18,9 +18,56 @@ class MeaningEngine:
     3. ResponsePattern — формирование паттерна реакции
     """
 
+    # Коэффициент для линейной интерполяции модификаторов чувствительности
+    # Используется для преобразования sensitivity [0.0, 1.0] в модификатор [0.5, 1.0]
+    # Формула: modifier = SENSITIVITY_INTERPOLATION_BASE + sensitivity * SENSITIVITY_INTERPOLATION_RANGE
+    SENSITIVITY_INTERPOLATION_BASE = 0.5
+    SENSITIVITY_INTERPOLATION_RANGE = 0.5
+
+    # Максимальный модификатор значимости для соблюдения принципа медленного изменения
+    # Ограничивает максимальное изменение значимости до 1.5x от исходной
+    MAX_SIGNIFICANCE_MODIFIER = 1.5
+
+    # Порог integrity для контекстуальной модификации значимости
+    # Если integrity ниже этого порога, события становятся более значимыми
+    LOW_INTEGRITY_THRESHOLD = 0.3
+
+    # Множитель значимости при низкой integrity
+    # Применяется когда integrity < LOW_INTEGRITY_THRESHOLD
+    LOW_INTEGRITY_SIGNIFICANCE_MULTIPLIER = 1.5
+
     def __init__(self):
         """Инициализация движка с базовыми настройками"""
         self.base_significance_threshold = 0.1
+
+    def _get_learning_and_adaptation_params(
+        self, self_state: Union[SelfState, Dict]
+    ) -> tuple[Dict, Dict]:
+        """
+        Получить learning_params и adaptation_params из self_state.
+
+        Поддерживает как объект SelfState, так и словарь (для обратной совместимости).
+
+        Args:
+            self_state: SelfState или словарь с параметрами
+
+        Returns:
+            tuple[Dict, Dict]: (learning_params, adaptation_params)
+        """
+        if isinstance(self_state, SelfState):
+            learning_params = getattr(self_state, "learning_params", {})
+            adaptation_params = getattr(self_state, "adaptation_params", {})
+        else:
+            learning_params = self_state.get("learning_params", {})
+            adaptation_params = self_state.get("adaptation_params", {})
+
+        # Проверяем, что параметры действительно словари
+        if not isinstance(learning_params, dict):
+            learning_params = {}
+        if not isinstance(adaptation_params, dict):
+            adaptation_params = {}
+
+        return learning_params, adaptation_params
 
     def appraisal(self, event: Event, self_state: Union[SelfState, Dict]) -> float:
         """
@@ -54,16 +101,12 @@ class MeaningEngine:
         # ИНТЕГРАЦИЯ: Используем learning_params.event_type_sensitivity
         # ВАЖНО: Используем среднее значение для избежания квадратичного эффекта
         # и соблюдения принципа медленного изменения
-        # Поддержка как объекта SelfState, так и словаря (для обратной совместимости)
-        if isinstance(self_state, SelfState):
-            learning_params = getattr(self_state, "learning_params", {})
-            adaptation_params = getattr(self_state, "adaptation_params", {})
-        else:
-            learning_params = self_state.get("learning_params", {})
-            adaptation_params = self_state.get("adaptation_params", {})
-        
-        event_sensitivity = learning_params.get("event_type_sensitivity", {}) if isinstance(learning_params, dict) else {}
-        behavior_sensitivity = adaptation_params.get("behavior_sensitivity", {}) if isinstance(adaptation_params, dict) else {}
+        learning_params, adaptation_params = self._get_learning_and_adaptation_params(
+            self_state
+        )
+
+        event_sensitivity = learning_params.get("event_type_sensitivity", {})
+        behavior_sensitivity = adaptation_params.get("behavior_sensitivity", {})
 
         # Вычисляем модификаторы чувствительности
         learning_modifier = 1.0
@@ -73,12 +116,18 @@ class MeaningEngine:
             # Модифицируем значимость на основе обученной чувствительности
             # Используем линейную интерполяцию вместо умножения для мягкого эффекта
             sensitivity = event_sensitivity[event.type]
-            learning_modifier = 0.5 + sensitivity * 0.5  # Диапазон [0.5, 1.0]
+            learning_modifier = (
+                self.SENSITIVITY_INTERPOLATION_BASE
+                + sensitivity * self.SENSITIVITY_INTERPOLATION_RANGE
+            )  # Диапазон [0.5, 1.0]
 
         if event.type in behavior_sensitivity:
             # Дополнительная модификация на основе адаптированной чувствительности
             behavior_sens = behavior_sensitivity[event.type]
-            adaptation_modifier = 0.5 + behavior_sens * 0.5  # Диапазон [0.5, 1.0]
+            adaptation_modifier = (
+                self.SENSITIVITY_INTERPOLATION_BASE
+                + behavior_sens * self.SENSITIVITY_INTERPOLATION_RANGE
+            )  # Диапазон [0.5, 1.0]
 
         # Используем среднее значение модификаторов вместо умножения
         # Это предотвращает квадратичный эффект и соблюдает принцип медленного изменения
@@ -87,17 +136,16 @@ class MeaningEngine:
         combined_modifier = (learning_modifier + adaptation_modifier) / 2.0
 
         # Ограничиваем максимальное изменение значимости для соблюдения принципа медленного изменения
-        # Максимальное изменение не должно превышать 1.5x от исходной значимости
-        max_modifier = 1.5
-        combined_modifier = min(combined_modifier, max_modifier)
+        # Максимальное изменение не должно превышать MAX_SIGNIFICANCE_MODIFIER от исходной значимости
+        combined_modifier = min(combined_modifier, self.MAX_SIGNIFICANCE_MODIFIER)
 
         significance *= combined_modifier
 
         # Контекстуальная модификация на основе состояния
         # Если integrity низкая — даже малые события становятся важнее
         integrity = getattr(self_state, "integrity", self_state.get("integrity", 1.0)) if isinstance(self_state, SelfState) else self_state.get("integrity", 1.0)
-        if integrity < 0.3:
-            significance *= 1.5
+        if integrity < self.LOW_INTEGRITY_THRESHOLD:
+            significance *= self.LOW_INTEGRITY_SIGNIFICANCE_MULTIPLIER
 
         # Если stability низкая — события ощущаются сильнее
         stability = getattr(self_state, "stability", self_state.get("stability", 1.0)) if isinstance(self_state, SelfState) else self_state.get("stability", 1.0)
@@ -166,20 +214,17 @@ class MeaningEngine:
             pattern (str): название паттерна
         """
         # ИНТЕГРАЦИЯ: Используем learning_params.significance_thresholds
-        if isinstance(self_state, SelfState):
-            learning_params = getattr(self_state, "learning_params", {})
-            adaptation_params = getattr(self_state, "adaptation_params", {})
-        else:
-            learning_params = self_state.get("learning_params", {})
-            adaptation_params = self_state.get("adaptation_params", {})
-        
-        significance_thresholds = learning_params.get("significance_thresholds", {}) if isinstance(learning_params, dict) else {}
+        learning_params, adaptation_params = self._get_learning_and_adaptation_params(
+            self_state
+        )
+
+        significance_thresholds = learning_params.get("significance_thresholds", {})
         event_threshold = significance_thresholds.get(
             event.type, self.base_significance_threshold
         )
 
         # ИНТЕГРАЦИЯ: Используем adaptation_params.behavior_thresholds
-        behavior_thresholds = adaptation_params.get("behavior_thresholds", {}) if isinstance(adaptation_params, dict) else {}
+        behavior_thresholds = adaptation_params.get("behavior_thresholds", {})
         behavior_threshold = behavior_thresholds.get(event.type, event_threshold)
 
         # Используем адаптированный порог
@@ -228,15 +273,12 @@ class MeaningEngine:
 
         # 4. Модификация impact на основе паттерна
         # ИНТЕГРАЦИЯ: Используем learning_params.response_coefficients и adaptation_params.behavior_coefficients
-        if isinstance(self_state, SelfState):
-            learning_params = getattr(self_state, "learning_params", {})
-            adaptation_params = getattr(self_state, "adaptation_params", {})
-        else:
-            learning_params = self_state.get("learning_params", {})
-            adaptation_params = self_state.get("adaptation_params", {})
-        
-        response_coefficients = learning_params.get("response_coefficients", {}) if isinstance(learning_params, dict) else {}
-        behavior_coefficients = adaptation_params.get("behavior_coefficients", {}) if isinstance(adaptation_params, dict) else {}
+        learning_params, adaptation_params = self._get_learning_and_adaptation_params(
+            self_state
+        )
+
+        response_coefficients = learning_params.get("response_coefficients", {})
+        behavior_coefficients = adaptation_params.get("behavior_coefficients", {})
 
         final_impact = base_impact.copy()
         if pattern == "ignore":

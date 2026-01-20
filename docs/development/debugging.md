@@ -354,6 +354,27 @@ python src/main_server_api.py --dev --tick-interval 1.0
 
 ### Логирование отладки
 
+#### API сервер
+
+API сервер (`src/main_server_api.py`) использует управляемое логирование через стандартный Python модуль `logging`. Уровень логирования настраивается автоматически:
+
+- **Dev-режим (`--dev`)**: `DEBUG` уровень — выводится вся диагностическая информация
+- **Production режим**: `INFO` уровень — выводятся только важные сообщения
+
+**Примеры логов в dev-режиме:**
+```
+2026-01-20 14:30:15 - __main__ - INFO - API server running on http://localhost:8000
+2026-01-20 14:30:15 - __main__ - DEBUG - Получен POST /event: type='noise', intensity=0.5
+2026-01-20 14:30:15 - __main__ - DEBUG - Event PUSHED to queue. Size now: 1
+```
+
+**Примеры логов в production режиме:**
+```
+2026-01-20 14:30:15 - __main__ - INFO - API server running on http://localhost:8000
+```
+
+#### Настройка логирования в коде
+
 ```python
 import logging
 
@@ -364,7 +385,16 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 logger.debug(f"Processing event: {event}")
 logger.info(f"Memory size: {len(memory)}")
+logger.warning(f"High memory usage: {memory_mb} MB")
+logger.error(f"Error processing event: {error}", exc_info=True)
 ```
+
+#### Уровни логирования
+
+- **DEBUG**: Детальная диагностическая информация (только в dev-режиме)
+- **INFO**: Информационные сообщения о работе системы
+- **WARNING**: Предупреждения о потенциальных проблемах
+- **ERROR**: Сообщения об ошибках
 
 ## Создание отчета об ошибке
 
