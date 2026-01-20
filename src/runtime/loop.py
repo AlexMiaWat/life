@@ -1,7 +1,6 @@
 import copy
 import logging
 import time
-import traceback
 from dataclasses import asdict
 
 from src.action import execute_action
@@ -15,6 +14,9 @@ from src.meaning.engine import MeaningEngine
 from src.memory.memory import MemoryEntry
 from src.planning.planning import record_potential_sequences
 from src.runtime.subjective_time import compute_subjective_dt
+from src.runtime.snapshot_manager import SnapshotManager
+from src.runtime.log_manager import LogManager, FlushPolicy
+from src.runtime.life_policy import LifePolicy
 from src.state.self_state import SelfState, save_snapshot
 
 logger = logging.getLogger(__name__)
@@ -30,14 +32,6 @@ MEMORY_DECAY_FACTOR = 0.99  # Фактор затухания весов пам�
 MEMORY_MIN_WEIGHT = 0.1  # Минимальный вес для архивации
 MEMORY_MAX_AGE_SECONDS = 7 * 24 * 3600  # Максимальный возраст записей (7 дней в секундах)
 MEMORY_DECAY_MIN_WEIGHT = 0.0  # Минимальный вес при затухании (для полного забывания)
-
-# Константы для логики слабости
-# Порог для определения слабости (energy, integrity, stability)
-WEAKNESS_THRESHOLD = 0.05
-# Коэффициент штрафа за слабость (применяется к dt)
-WEAKNESS_PENALTY_COEFFICIENT = 0.02
-# Множитель штрафа для stability и integrity (больше чем для energy)
-WEAKNESS_STABILITY_INTEGRITY_MULTIPLIER = 2.0
 
 # Константы для обработки ошибок
 # Штраф integrity при ошибке в цикле
@@ -212,6 +206,20 @@ def run_loop(
     last_time = time.time()
     pending_actions = []  # Список ожидающих Feedback действий
     
+    # Менеджеры для управления снапшотами, логами и политикой
+    snapshot_manager = SnapshotManager(period_ticks=snapshot_period, saver=save_snapshot)
+    flush_policy = FlushPolicy(
+        flush_period_ticks=10,
+        flush_before_snapshot=True,
+        flush_on_exception=True,
+        flush_on_shutdown=True,
+    )
+    log_manager = LogManager(
+        flush_policy=flush_policy,
+        flush_fn=self_state._flush_log_buffer,
+    )
+    life_policy = LifePolicy()  # Использует значения по умолчанию (совпадают с предыдущими константами)
+    
     # Счетчики ошибок для отслеживания проблем
     learning_errors = 0
     adaptation_errors = 0
@@ -262,9 +270,9 @@ def run_loop(
 
             # === ШАГ 1: Получить события из среды ===
             if event_queue and not event_queue.is_empty():
-                print(f"[LOOP] Queue not empty, size={event_queue.size()}")
+                logger.debug(f"[LOOP] Queue not empty, size={event_queue.size()}")
                 events = event_queue.pop_all()
-                print(f"[LOOP] POPPED {len(events)} events")
+                logger.debug(f"[LOOP] POPPED {len(events)} events")
                 # Update intensity signal for this tick (max intensity of batch).
                 try:
                     self_state.last_event_intensity = max(
@@ -275,7 +283,7 @@ def run_loop(
 
                 # === ШАГ 2: Интерпретировать события ===
                 for event in events:
-                    print(
+                    logger.debug(
                         f"[LOOP] Interpreting event: type={event.type}, intensity={event.intensity}"
                     )
                     meaning = engine.process(event, asdict(self_state))
@@ -283,7 +291,7 @@ def run_loop(
                         # Активация памяти для события
                         activated = activate_memory(event.type, self_state.memory)
                         self_state.activated_memory = activated
-                        print(
+                        logger.debug(
                             f"[LOOP] Activated {len(activated)} memories for type '{event.type}'"
                         )
 
@@ -328,7 +336,7 @@ def run_loop(
                                 timestamp=time.time(),
                             )
                         )
-                    print(
+                    logger.debug(
                         f"[LOOP] After interpret: energy={self_state.energy:.2f}, stability={self_state.stability:.4f}"
                     )
 
@@ -424,7 +432,7 @@ def run_loop(
                         max_age=MEMORY_MAX_AGE_SECONDS, min_weight=MEMORY_MIN_WEIGHT
                     )
                     if archived_count > 0:
-                        print(f"[LOOP] Заархивировано {archived_count} записей памяти")
+                        logger.info(f"[LOOP] Заархивировано {archived_count} записей памяти")
                 except Exception as e:
                     logger.error(f"Ошибка в archive_old_entries: {e}", exc_info=True)
 
@@ -534,20 +542,11 @@ def run_loop(
                     pass
 
             # Логика слабости: когда параметры низкие, добавляем штрафы за немощность
-            if (
-                self_state.energy <= WEAKNESS_THRESHOLD
-                or self_state.integrity <= WEAKNESS_THRESHOLD
-                or self_state.stability <= WEAKNESS_THRESHOLD
-            ):
-                penalty = WEAKNESS_PENALTY_COEFFICIENT * dt
-                self_state.apply_delta(
-                    {
-                        "energy": -penalty,
-                        "stability": -penalty * WEAKNESS_STABILITY_INTEGRITY_MULTIPLIER,
-                        "integrity": -penalty * WEAKNESS_STABILITY_INTEGRITY_MULTIPLIER,
-                    }
-                )
-                print(
+            if life_policy.is_weak(self_state):
+                penalty_deltas = life_policy.weakness_penalty(dt)
+                self_state.apply_delta(penalty_deltas)
+                penalty = abs(penalty_deltas["energy"])
+                logger.debug(
                     f"[LOOP] Слабость: штрафы penalty={penalty:.4f}, energy={self_state.energy:.2f}"
                 )
 
@@ -557,12 +556,18 @@ def run_loop(
             except Exception as e:
                 logger.error(f"Ошибка в monitor: {e}", exc_info=True)
 
-            # Snapshot каждые snapshot_period тиков
-            if self_state.ticks % snapshot_period == 0:
-                try:
-                    save_snapshot(self_state)
-                except Exception as e:
-                    logger.error(f"Ошибка при сохранении snapshot: {e}", exc_info=True)
+            # Flush логов перед снапшотом (если политика требует)
+            log_manager.maybe_flush(self_state, phase="before_snapshot")
+            
+            # Snapshot через SnapshotManager
+            snapshot_was_made = snapshot_manager.maybe_snapshot(self_state)
+            
+            # Flush логов после снапшота (если политика требует)
+            if snapshot_was_made:
+                log_manager.maybe_flush(self_state, phase="after_snapshot")
+            
+            # Flush логов по периодичности (редко, не на каждом тике)
+            log_manager.maybe_flush(self_state, phase="tick", snapshot_was_made=snapshot_was_made)
 
             # Поддержка постоянного интервала тиков
             tick_end = time.time()
@@ -572,16 +577,13 @@ def run_loop(
 
         except Exception as e:
             self_state.apply_delta({"integrity": -ERROR_INTEGRITY_PENALTY})
-            print(f"Ошибка в цикле: {e}")
-            traceback.print_exc()
+            logger.error(f"[LOOP] Ошибка в цикле: {e}", exc_info=True)
+            # Flush логов при исключении (если политика требует)
+            log_manager.maybe_flush(self_state, phase="exception")
 
         finally:
-            # Сбрасываем буфер логов при завершении работы для предотвращения потери данных
-            try:
-                self_state._flush_log_buffer()
-            except Exception:
-                # Игнорируем ошибки при сбросе буфера, чтобы не нарушить завершение работы
-                pass
+            # Flush логов при завершении (обязательно)
+            log_manager.maybe_flush(self_state, phase="shutdown")
 
             if (
                 self_state.energy <= 0

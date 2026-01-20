@@ -1,0 +1,396 @@
+{
+  "summary": {
+    "total": 652,
+    "passed": 574,
+    "failed": 74,
+    "errors": 0,
+    "skipped": 4
+  },
+  "failures_by_category": {
+    "Monitor": [
+      {
+        "test": "src.test.test_monitor.TestMonitor::test_monitor_basic",
+        "message": "AssertionError: assert False\n +  where False = exists()\n +    where exists = PosixPath('/tmp/pytest-of-root/pytest-135/test_monitor_basic0/tick_log.jsonl').exists",
+        "error_type": "src/test/test_monitor.py:58: in test_monitor_basic\n    assert temp_log_file.exists()"
+      },
+      {
+        "test": "src.test.test_monitor.TestMonitor::test_monitor_with_activated_memory",
+        "message": "AssertionError: assert False\n +  where False = exists()\n +    where exists = PosixPath('/tmp/pytest-of-root/pytest-135/test_monitor_with_activated_me0/tick_log.jsonl').exists",
+        "error_type": "src/test/test_monitor.py:80: in test_monitor_with_activated_memory\n    assert temp_log_file.exists()"
+      },
+      {
+        "test": "src.test.test_monitor.TestMonitor::test_monitor_without_activated_memory",
+        "message": "AssertionError: assert False\n +  where False = exists()\n +    where exists = PosixPath('/tmp/pytest-of-root/pytest-135/test_monitor_without_activated0/tick_log.jsonl').exists",
+        "error_type": "src/test/test_monitor.py:95: in test_monitor_without_activated_memory\n    assert temp_log_file.exist"
+      },
+      {
+        "test": "src.test.test_monitor.TestMonitor::test_monitor_multiple_calls",
+        "message": "AssertionError: assert False\n +  where False = exists()\n +    where exists = PosixPath('/tmp/pytest-of-root/pytest-135/test_monitor_multiple_calls0/tick_log.jsonl').exists",
+        "error_type": "src/test/test_monitor.py:110: in test_monitor_multiple_calls\n    assert temp_log_file.exists()"
+      },
+      {
+        "test": "src.test.test_monitor.TestMonitor::test_monitor_log_file_append",
+        "message": "FileNotFoundError: [Errno 2] No such file or directory: '/tmp/pytest-of-root/pytest-135/test_monitor_log_file_append0/tick_log.jsonl'",
+        "error_type": "src/test/test_monitor.py:133: in test_monitor_log_file_append\n    with temp_log_file.open(\"r\") as f:"
+      },
+      {
+        "test": "src.test.test_monitor.TestMonitor::test_monitor_all_state_fields",
+        "message": "FileNotFoundError: [Errno 2] No such file or directory: '/tmp/pytest-of-root/pytest-135/test_monitor_all_state_fields0/tick_log.jsonl'",
+        "error_type": "src/test/test_monitor.py:151: in test_monitor_all_state_fields\n    with temp_log_file.open(\"r\") as f"
+      }
+    ],
+    "Memory": [
+      {
+        "test": "src.test.test_property_based.TestMemoryPropertyBased::test_memory_append_idempotent",
+        "message": "AssertionError: assert 1 == 2\n +  where 1 = len([MemoryEntry(event_type='0', meaning_significance=0.0, timestamp=1768916640.5703335, weight=1.0, feedback_data=None)])\n +  and   2 = len([MemoryEntry(ev",
+        "error_type": "src/test/test_property_based.py:152: in test_memory_append_idempotent\n    event_type=st.text(min_siz"
+      },
+      {
+        "test": "src.test.test_memory.TestMemoryDecayWeights::test_decay_weights_multiple_entries",
+        "message": "AssertionError: assert 0.6383999998647053 <= 0.6174999996472772\n +  where 0.6383999998647053 = MemoryEntry(event_type='event_1', meaning_significance=0.4, timestamp=1768913058.9446468, weight=0.638399",
+        "error_type": "src/test/test_memory.py:399: in test_decay_weights_multiple_entries\n    assert entry.weight <= entri"
+      },
+      {
+        "test": "src.test.test_memory.TestArchiveMemory::test_archive_memory_initialization",
+        "message": "assert 4391 == 0\n +  where 4391 = size()\n +    where size = <src.memory.memory.ArchiveMemory object at 0x7bb2fd2e84f0>.size",
+        "error_type": "src/test/test_memory.py:433: in test_archive_memory_initialization\n    assert archive.size() == 0"
+      },
+      {
+        "test": "src.test.test_memory.TestArchiveMemory::test_archive_memory_add_entry",
+        "message": "assert 4392 == 1\n +  where 4392 = size()\n +    where size = <src.memory.memory.ArchiveMemory object at 0x7bb30033c7f0>.size",
+        "error_type": "src/test/test_memory.py:443: in test_archive_memory_add_entry\n    assert archive.size() == 1"
+      },
+      {
+        "test": "src.test.test_memory.TestArchiveMemory::test_archive_memory_add_entries",
+        "message": "assert 4396 == 5\n +  where 4396 = size()\n +    where size = <src.memory.memory.ArchiveMemory object at 0x7bb2feb6fc40>.size",
+        "error_type": "src/test/test_memory.py:458: in test_archive_memory_add_entries\n    assert archive.size() == 5"
+      },
+      {
+        "test": "src.test.test_memory.TestArchiveMemory::test_archive_memory_get_entries_by_type",
+        "message": "AssertionError: assert 129 == 2\n +  where 129 = len([MemoryEntry(event_type='shock', meaning_significance=0.4752, timestamp=1768902192.7381802, weight=0.04310399125702878, feedback_data=None), MemoryE",
+        "error_type": "src/test/test_memory.py:468: in test_archive_memory_get_entries_by_type\n    assert len(shock_entries"
+      },
+      {
+        "test": "src.test.test_memory.TestArchiveMemory::test_archive_memory_get_entries_by_significance",
+        "message": "AssertionError: assert 134 == 2\n +  where 134 = len([MemoryEntry(event_type='old', meaning_significance=0.5, timestamp=1768210967.0607967, weight=0.5, feedback_data=None), MemoryEntry(event_type='test",
+        "error_type": "src/test/test_memory.py:479: in test_archive_memory_get_entries_by_significance\n    assert len(high_"
+      },
+      {
+        "test": "src.test.test_memory.TestMemoryArchive::test_archive_old_entries_by_age",
+        "message": "AssertionError: assert 4392 == 1\n +  where 4392 = size()\n +    where size = <src.memory.memory.ArchiveMemory object at 0x7bb2fd41fc70>.size\n +      where <src.memory.memory.ArchiveMemory object at 0x7",
+        "error_type": "src/test/test_memory.py:547: in test_archive_old_entries_by_age\n    assert memory.archive.size() == "
+      },
+      {
+        "test": "src.test.test_memory.TestMemoryArchive::test_archive_old_entries_by_weight",
+        "message": "assert 0 == 1",
+        "error_type": "src/test/test_memory.py:569: in test_archive_old_entries_by_weight\n    assert archived_count == 1"
+      },
+      {
+        "test": "src.test.test_memory.TestMemoryArchive::test_archive_old_entries_by_significance",
+        "message": "assert 0 == 1",
+        "error_type": "src/test/test_memory.py:594: in test_archive_old_entries_by_significance\n    assert archived_count ="
+      },
+      {
+        "test": "src.test.test_memory.TestMemoryStatistics::test_get_statistics_empty",
+        "message": "assert 4393 == 0",
+        "error_type": "src/test/test_memory.py:656: in test_get_statistics_empty\n    assert stats[\"archive_entries\"] == 0"
+      }
+    ],
+    "State Management": [
+      {
+        "test": "src.test.test_state.TestSnapshots::test_save_snapshot",
+        "message": "AssertionError: assert False\n +  where False = exists()\n +    where exists = PosixPath('/tmp/tmpgsw4nbqa/snapshot_000100.json').exists",
+        "error_type": "src/test/test_state.py:246: in test_save_snapshot\n    assert snapshot_file.exists()"
+      },
+      {
+        "test": "src.test.test_state.TestSnapshots::test_load_snapshot",
+        "message": "AttributeError: Cannot modify immutable field 'life_id' after initialization",
+        "error_type": "src/test/test_state.py:271: in test_load_snapshot\n    state.life_id = \"test_life_id\"\nsrc/state/self_"
+      },
+      {
+        "test": "src.test.test_state.TestSnapshots::test_load_latest_snapshot",
+        "message": "AssertionError: assert 200 == 30\n +  where 200 = SelfState(life_id='360a5996-2afa-447b-a6ce-ebb1c6762a81', birth_timestamp=1768916160.999843, age=0.0, subjective_time=0.0, ticks=200, energy=100.0, int",
+        "error_type": "src/test/test_state.py:309: in test_load_latest_snapshot\n    assert latest.ticks == 30"
+      },
+      {
+        "test": "src.test.test_state.TestSnapshots::test_load_latest_snapshot_not_found",
+        "message": "Failed: DID NOT RAISE <class 'FileNotFoundError'>",
+        "error_type": "src/test/test_state.py:315: in test_load_latest_snapshot_not_found\n    with pytest.raises(FileNotFou"
+      },
+      {
+        "test": "src.test.test_state.TestSelfStateValidation::test_energy_validation_invalid",
+        "message": "Failed: DID NOT RAISE <class 'ValueError'>",
+        "error_type": "src/test/test_state.py:375: in test_energy_validation_invalid\n    with pytest.raises(Value"
+      },
+      {
+        "test": "src.test.test_state.TestSelfStateValidation::test_integrity_validation_invalid",
+        "message": "Failed: DID NOT RAISE <class 'ValueError'>",
+        "error_type": "src/test/test_state.py:393: in test_integrity_validation_invalid\n    with pytest.raises(Value"
+      },
+      {
+        "test": "src.test.test_state.TestSelfStateValidation::test_stability_validation_invalid",
+        "message": "Failed: DID NOT RAISE <class 'ValueError'>",
+        "error_type": "src/test/test_state.py:411: in test_stability_validation_invalid\n    with pytest.raises(Value"
+      },
+      {
+        "test": "src.test.test_state.TestSelfStateValidation::test_fatigue_validation",
+        "message": "Failed: DID NOT RAISE <class 'ValueError'>",
+        "error_type": "src/test/test_state.py:423: in test_fatigue_validation\n    with pytest.raises(Value"
+      },
+      {
+        "test": "src.test.test_state.TestSelfStateValidation::test_tension_validation",
+        "message": "Failed: DID NOT RAISE <class 'ValueError'>",
+        "error_type": "src/test/test_state.py:433: in test_tension_validation\n    with pytest.raises(Value"
+      },
+      {
+        "test": "src.test.test_state.TestSelfStateValidation::test_age_validation",
+        "message": "Failed: DID NOT RAISE <class 'ValueError'>",
+        "error_type": "src/test/test_state.py:443: in test_age_validation\n    with pytest.raises(Value"
+      },
+      {
+        "test": "src.test.test_state.TestSelfStateSafeMethods::test_update_energy",
+        "message": "Failed: DID NOT RAISE <class 'ValueError'>",
+        "error_type": "src/test/test_state.py:503: in test_update_energy\n    with pytest.raises(Value"
+      },
+      {
+        "test": "src.test.test_state.TestSelfStateSafeMethods::test_update_integrity",
+        "message": "Failed: DID NOT RAISE <class 'ValueError'>",
+        "error_type": "src/test/test_state.py:513: in test_update_integrity\n    with pytest.raises(Value"
+      },
+      {
+        "test": "src.test.test_state.TestSelfStateSafeMethods::test_update_stability",
+        "message": "Failed: DID NOT RAISE <class 'ValueError'>",
+        "error_type": "src/test/test_state.py:523: in test_update_stability\n    with pytest.raises(Value"
+      },
+      {
+        "test": "src.test.test_state.TestSelfStateLogging::test_logging_enabled",
+        "message": "AssertionError: assert False\n +  where False = exists()\n +    where exists = PosixPath('/tmp/tmpovwgocuf/state_changes.jsonl').exists\n +      where PosixPath('/tmp/tmpovwgocuf/state_changes.jsonl') = ",
+        "error_type": "src/test/test_state.py:678: in test_logging_enabled\n    assert self_state.STAT"
+      },
+      {
+        "test": "src.test.test_state.TestSelfStateLogging::test_get_change_history",
+        "message": "assert 0 >= 3\n +  where 0 = len([])",
+        "error_type": "src/test/test_state.py:710: in test_get_change_history\n    assert len(history) >= 3"
+      }
+    ],
+    "Degradation": [
+      {
+        "test": "src.test.test_degradation.TestDegradationRecovery::test_active_flag_stays_false_after_deactivation",
+        "message": "AssertionError: assert True is False\n +  where True = SelfState(life_id='a0967e9a-48eb-47ab-8176-6507119ed8e1', birth_timestamp=1768916679.223903, age=0.0, subjective_time=0.0, ticks=0, energy=100.0, ",
+        "error_type": "src/test/test_degradation.py:666: in test_active_flag_stays_false_after_deactivation\n    assert stat"
+      },
+      {
+        "test": "src.test.test_degradation.TestDegradationLongRunning::test_degradation_over_1000_ticks",
+        "message": "AssertionError: Expected >= 1000 ticks, got 1\nassert 1 >= 1000\n +  where 1 = SelfState(life_id='340d5244-c0d2-4089-ae4a-0ff5e9fca588', birth_timestamp=1768916680.4758065, age=1.9073486328125e-05, subj",
+        "error_type": "src/test/test_degradation.py:814: in test_degradation_over_1000_ticks\n    assert state.ticks >= 1000"
+      },
+      {
+        "test": "src.test.test_degradation.TestDegradationLongRunning::test_degradation_stability_over_time",
+        "message": "AssertionError: assert 112 >= 1000\n +  where 112 = SelfState(life_id='22cccba6-3e2b-4624-adfa-2eb0b0448a2d', birth_timestamp=1768916684.5479977, age=1.498086929321289, subjective_time=1.34827823638915",
+        "error_type": "src/test/test_degradation.py:852: in test_degradation_stability_over_time\n    assert state.ticks >= "
+      }
+    ],
+    "Performance": [
+      {
+        "test": "src.test.test_performance.TestPerformanceBenchmarks::test_event_queue_performance",
+        "message": "AssertionError: assert 100 == 1000\n +  where 100 = len([Event(type='event_0', intensity=0.5, timestamp=1768916689.3552673, metadata={}), Event(type='event_1', intensity=0.5, timestamp=1768916690.35528",
+        "error_type": "src/test/test_performance.py:98: in test_event_queue_performance\n    assert len(events) == num_event"
+      },
+      {
+        "test": "src.test.test_performance.TestPerformanceBenchmarks::test_self_state_apply_delta_performance",
+        "message": "AssertionError: apply_delta too slow: 2.940s for 10000 operations\nassert 2.939574718475342 < 0.5",
+        "error_type": "src/test/test_performance.py:121: in test_self_state_apply_delta_performance\n    assert ("
+      },
+      {
+        "test": "src.test.test_performance.TestPerformanceBenchmarks::test_runtime_loop_ticks_per_second",
+        "message": "AssertionError: Loop too slow: 74.2 ticks/sec (expected >= 100)\nassert 74.23718589834054 >= 100",
+        "error_type": "src/test/test_performance.py:155: in test_runtime_loop_ticks_per_second\n    assert ("
+      },
+      {
+        "test": "src.test.test_performance.TestPerformanceBenchmarks::test_state_snapshot_performance",
+        "message": "AssertionError: Snapshot save too slow: 8.735s for 100 snapshots\nassert 8.735469102859497 < 1.0",
+        "error_type": "src/test/test_performance.py:217: in test_state_snapshot_performance\n    assert ("
+      }
+    ],
+    "Learning/Adaptation": [
+      {
+        "test": "src.test.test_adaptation.TestAdaptationManager::test_apply_adaptation_initialization",
+        "message": "assert 0.21000000000000002 == 0.3",
+        "error_type": "src/test/test_adaptation.py:92: in test_apply_adaptation_initialization\n    assert new_params[\"behav"
+      },
+      {
+        "test": "src.test.test_adaptation.TestAdaptationManager::test_apply_adaptation_no_decision_action_control",
+        "message": "Failed: DID NOT RAISE <class 'ValueError'>",
+        "error_type": "src/test/test_adaptation.py:151: in test_apply_adaptation_no_decision_action_control\n    with pytest"
+      },
+      {
+        "test": "src.test.test_learning.TestLearningIntegration::test_learning_persistence_in_snapshots",
+        "message": "NameError: name 'json' is not defined",
+        "error_type": "src/test/test_learning.py:590: in test_learning_persistence_in_snapshots\n    snapshot_data = json.lo"
+      },
+      {
+        "test": "src.test.test_learning.TestLearningStatic::test_method_signatures",
+        "message": "assert 1 == 2\n +  where 1 = len(mappingproxy(OrderedDict([('memory', <Parameter \"memory: List[src.memory.memory.MemoryEntry]\">)])))\n +    where mappingproxy(OrderedDict([('memory', <Parameter \"memory:",
+        "error_type": "src/test/test_learning.py:712: in test_method_signatures\n    assert len(sig.parameters) == 2  # self"
+      },
+      {
+        "test": "src.test.test_learning.TestLearningStatic::test_method_return_types",
+        "message": "ValueError: current_params не может быть пустым",
+        "error_type": "src/test/test_learning.py:737: in test_method_return_types\n    result = engine.adjust_parameters({},"
+      },
+      {
+        "test": "src.test.test_learning.TestLearningStatic::test_imports_structure",
+        "message": "AssertionError: assert <class 'learning.learning.LearningEngine'> == LearningEngine\n +  where <class 'learning.learning.LearningEngine'> = <module 'learning.learning' from '/workspace/src/learning/lea",
+        "error_type": "src/test/test_learning.py:892: in test_imports_structure\n    assert learning_module.Learning"
+      },
+      {
+        "test": "src.test.test_learning.TestLearningSmoke::test_full_cycle_smoke",
+        "message": "AssertionError: assert 'learning_params' in {'event_type_sensitivity': {'noise': 0.21000000000000002, 'decay': 0.19, 'recovery': 0.19, 'shock': 0.19, 'idle': 0.19}, 'significance_thresholds': {'noise'",
+        "error_type": "src/test/test_learning.py:986: in test_full_cycle_smoke\n    assert \"learning_params\" in self_state.l"
+      },
+      {
+        "test": "src.test.test_learning.TestLearningIntegrationExtended::test_learning_persistence_across_snapshots",
+        "message": "AssertionError: assert 'learning_params' in {'event_type_sensitivity': {'noise': 0.20500000000000002, 'decay': 0.2, 'recovery': 0.2, 'shock': 0.2, 'idle': 0.2}, 'significance_thresholds': {'noise': 0.",
+        "error_type": "src/test/test_learning.py:1216: in test_learning_persistence_across_snapshots\n    assert \"learning_p"
+      },
+      {
+        "test": "src.test.test_learning.TestLearningIntegrationExtended::test_learning_with_large_memory",
+        "message": "assert 50 == 120",
+        "error_type": "src/test/test_learning.py:1261: in test_learning_with_large_memory\n    assert statistics[\"total_entr"
+      },
+      {
+        "test": "src.test.test_learning_adaptation_integration.TestLearningAdaptationStatic::test_learning_interval_constants",
+        "message": "assert 'learning_interval' in 'import copy\\nimport logging\\nimport time\\nfrom dataclasses import asdict\\n\\nfrom src.action import execute_action\\nfrom src.activation.activation import activate_memory\\",
+        "error_type": "src/test/test_learning_adaptation_integration.py:111: in test_learning_interval_constants\n    assert"
+      },
+      {
+        "test": "src.test.test_learning_adaptation_integration.TestLearningAdaptationStatic::test_return_types",
+        "message": "ValueError: current_params не может быть пустым",
+        "error_type": "src/test/test_learning_adaptation_integration.py:198: in test_return_types\n    result = engine.adjus"
+      },
+      {
+        "test": "src.test.test_learning_adaptation_integration.TestLearningAdaptationRuntimeIntegration::test_learning_frequency_in_runtime",
+        "message": "NameError: name 'learning_interval' is not defined",
+        "error_type": "src/test/test_learning_adaptation_integration.py:450: in test_learning_frequency_in_runtime\n    if b"
+      }
+    ],
+    "MCP Server (Async)": [
+      {
+        "test": "src.test.test_mcp_interactive::test_mcp_functions",
+        "message": "Failed: async def functions are not natively supported.\nYou need to install a suitable plugin for your async framework, for example:\n  - anyio\n  - pytest-asyncio\n  - pytest-tornasync\n  - pytest-trio\n ",
+        "error_type": "async def functions are not natively supported.\nYou need to install a suitable plugin for your async"
+      },
+      {
+        "test": "src.test.test_mcp_refresh_index.TestRefreshIndexErrorHandling::test_refresh_index_handles_os_error",
+        "message": "AssertionError: assert ('\\u0444\\u0430\\u0439\\u043b\\u043e\\u0432\\u043e\\u0439 \\u0441\\u0438\\u0441\\u0442\\u0435\\u043c\\u0435' in '\\u043e\\u0448\\u0438\\u0431\\u043a\\u0430 \\u043f\\u0440\\u0438 \\u043e\\u0431\\u043d\\u04",
+        "error_type": "src/test/test_mcp_refresh_index.py:128: in test_refresh_index_handles_os_error\n    assert \"файловой "
+      },
+      {
+        "test": "src.test.test_mcp_server::test_search_docs",
+        "message": "Failed: async def functions are not natively supported.\nYou need to install a suitable plugin for your async framework, for example:\n  - anyio\n  - pytest-asyncio\n  - pytest-tornasync\n  - pytest-trio\n ",
+        "error_type": "async def functions are not natively supported.\nYou need to install a suitable plugin for your async"
+      },
+      {
+        "test": "src.test.test_mcp_server::test_list_docs",
+        "message": "Failed: async def functions are not natively supported.\nYou need to install a suitable plugin for your async framework, for example:\n  - anyio\n  - pytest-asyncio\n  - pytest-tornasync\n  - pytest-trio\n ",
+        "error_type": "async def functions are not natively supported.\nYou need to install a suitable plugin for your async"
+      },
+      {
+        "test": "src.test.test_mcp_server::test_get_doc_content",
+        "message": "Failed: async def functions are not natively supported.\nYou need to install a suitable plugin for your async framework, for example:\n  - anyio\n  - pytest-asyncio\n  - pytest-tornasync\n  - pytest-trio\n ",
+        "error_type": "async def functions are not natively supported.\nYou need to install a suitable plugin for your async"
+      },
+      {
+        "test": "src.test.test_mcp_server::test_search_todo",
+        "message": "Failed: async def functions are not natively supported.\nYou need to install a suitable plugin for your async framework, for example:\n  - anyio\n  - pytest-asyncio\n  - pytest-tornasync\n  - pytest-trio\n ",
+        "error_type": "async def functions are not natively supported.\nYou need to install a suitable plugin for your async"
+      },
+      {
+        "test": "src.test.test_mcp_server::test_search_docs_and_mode",
+        "message": "Failed: async def functions are not natively supported.\nYou need to install a suitable plugin for your async framework, for example:\n  - anyio\n  - pytest-asyncio\n  - pytest-tornasync\n  - pytest-trio\n ",
+        "error_type": "async def functions are not natively supported.\nYou need to install a suitable plugin for your async"
+      },
+      {
+        "test": "src.test.test_mcp_server::test_search_docs_or_mode",
+        "message": "Failed: async def functions are not natively supported.\nYou need to install a suitable plugin for your async framework, for example:\n  - anyio\n  - pytest-asyncio\n  - pytest-tornasync\n  - pytest-trio\n ",
+        "error_type": "async def functions are not natively supported.\nYou need to install a suitable plugin for your async"
+      },
+      {
+        "test": "src.test.test_mcp_server::test_search_docs_or_mode_with_quoted_query",
+        "message": "Failed: async def functions are not natively supported.\nYou need to install a suitable plugin for your async framework, for example:\n  - anyio\n  - pytest-asyncio\n  - pytest-tornasync\n  - pytest-trio\n ",
+        "error_type": "async def functions are not natively supported.\nYou need to install a suitable plugin for your async"
+      },
+      {
+        "test": "src.test.test_mcp_server::test_search_docs_phrase_mode",
+        "message": "Failed: async def functions are not natively supported.\nYou need to install a suitable plugin for your async framework, for example:\n  - anyio\n  - pytest-asyncio\n  - pytest-tornasync\n  - pytest-trio\n ",
+        "error_type": "async def functions are not natively supported.\nYou need to install a suitable plugin for your async"
+      },
+      {
+        "test": "src.test.test_mcp_server::test_tokenize_query_quotes_auto_phrase",
+        "message": "Failed: async def functions are not natively supported.\nYou need to install a suitable plugin for your async framework, for example:\n  - anyio\n  - pytest-asyncio\n  - pytest-tornasync\n  - pytest-trio\n ",
+        "error_type": "async def functions are not natively supported.\nYou need to install a suitable plugin for your async"
+      },
+      {
+        "test": "src.test.test_mcp_server::test_tokenize_query_explicit_mode_priority",
+        "message": "Failed: async def functions are not natively supported.\nYou need to install a suitable plugin for your async framework, for example:\n  - anyio\n  - pytest-asyncio\n  - pytest-tornasync\n  - pytest-trio\n ",
+        "error_type": "async def functions are not natively supported.\nYou need to install a suitable plugin for your async"
+      },
+      {
+        "test": "src.test.test_mcp_server::test_tokenize_query_empty_query",
+        "message": "Failed: async def functions are not natively supported.\nYou need to install a suitable plugin for your async framework, for example:\n  - anyio\n  - pytest-asyncio\n  - pytest-tornasync\n  - pytest-trio\n ",
+        "error_type": "async def functions are not natively supported.\nYou need to install a suitable plugin for your async"
+      },
+      {
+        "test": "src.test.test_mcp_server::test_search_docs_empty_query",
+        "message": "Failed: async def functions are not natively supported.\nYou need to install a suitable plugin for your async framework, for example:\n  - anyio\n  - pytest-asyncio\n  - pytest-tornasync\n  - pytest-trio\n ",
+        "error_type": "async def functions are not natively supported.\nYou need to install a suitable plugin for your async"
+      },
+      {
+        "test": "src.test.test_mcp_server::test_search_todo_and_mode",
+        "message": "Failed: async def functions are not natively supported.\nYou need to install a suitable plugin for your async framework, for example:\n  - anyio\n  - pytest-asyncio\n  - pytest-tornasync\n  - pytest-trio\n ",
+        "error_type": "async def functions are not natively supported.\nYou need to install a suitable plugin for your async"
+      },
+      {
+        "test": "src.test.test_mcp_server::test_search_todo_or_mode",
+        "message": "Failed: async def functions are not natively supported.\nYou need to install a suitable plugin for your async framework, for example:\n  - anyio\n  - pytest-asyncio\n  - pytest-tornasync\n  - pytest-trio\n ",
+        "error_type": "async def functions are not natively supported.\nYou need to install a suitable plugin for your async"
+      },
+      {
+        "test": "src.test.test_mcp_server::test_search_todo_phrase_mode",
+        "message": "Failed: async def functions are not natively supported.\nYou need to install a suitable plugin for your async framework, for example:\n  - anyio\n  - pytest-asyncio\n  - pytest-tornasync\n  - pytest-trio\n ",
+        "error_type": "async def functions are not natively supported.\nYou need to install a suitable plugin for your async"
+      },
+      {
+        "test": "src.test.test_mcp_server::test_list_todo",
+        "message": "Failed: async def functions are not natively supported.\nYou need to install a suitable plugin for your async framework, for example:\n  - anyio\n  - pytest-asyncio\n  - pytest-tornasync\n  - pytest-trio\n ",
+        "error_type": "async def functions are not natively supported.\nYou need to install a suitable plugin for your async"
+      },
+      {
+        "test": "src.test.test_mcp_server::test_get_todo_content",
+        "message": "Failed: async def functions are not natively supported.\nYou need to install a suitable plugin for your async framework, for example:\n  - anyio\n  - pytest-asyncio\n  - pytest-tornasync\n  - pytest-trio\n ",
+        "error_type": "async def functions are not natively supported.\nYou need to install a suitable plugin for your async"
+      },
+      {
+        "test": "src.test.test_mcp_server::test_refresh_index",
+        "message": "Failed: async def functions are not natively supported.\nYou need to install a suitable plugin for your async framework, for example:\n  - anyio\n  - pytest-asyncio\n  - pytest-tornasync\n  - pytest-trio\n ",
+        "error_type": "async def functions are not natively supported.\nYou need to install a suitable plugin for your async"
+      },
+      {
+        "test": "src.test.test_mcp_server::test_refresh_index_statistics",
+        "message": "Failed: async def functions are not natively supported.\nYou need to install a suitable plugin for your async framework, for example:\n  - anyio\n  - pytest-asyncio\n  - pytest-tornasync\n  - pytest-trio\n ",
+        "error_type": "async def functions are not natively supported.\nYou need to install a suitable plugin for your async"
+      },
+      {
+        "test": "src.test.test_mcp_server::test_refresh_index_timing",
+        "message": "Failed: async def functions are not natively supported.\nYou need to install a suitable plugin for your async framework, for example:\n  - anyio\n  - pytest-asyncio\n  - pytest-tornasync\n  - pytest-trio\n ",
+        "error_type": "async def functions are not natively supported.\nYou need to install a suitable plugin for your async"
+      },
+      {
+        "test": "src.test.test_mcp_server::test_mcp_server_init",
+        "message": "Failed: async def functions are not natively supported.\nYou need to install a suitable plugin for your async framework, for example:\n  - anyio\n  - pytest-asyncio\n  - pytest-tornasync\n  - pytest-trio\n ",
+        "error_type": "async def functions are not natively supported.\nYou need to install a suitable plugin for your async"
+      }
+    ]
+  },
+  "total_failures": 74
+}
