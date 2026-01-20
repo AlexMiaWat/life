@@ -47,9 +47,36 @@ def monitor(state: SelfState, log_file_path: Path = None):
     )
     last_pattern = getattr(state, "last_pattern", "")
 
+    # Расчет метрик субъективного времени
+    time_ratio = subjective_time / age if age > 0 else 1.0
+
+    # Добавляем в историю соотношений
+    time_ratio_history = getattr(state, "time_ratio_history", [])
+    time_ratio_history.append(time_ratio)
+    # Ограничиваем историю последними 10 значениями
+    if len(time_ratio_history) > 10:
+        time_ratio_history.pop(0)
+    state.time_ratio_history = time_ratio_history
+
+    # Вычисляем тренд на основе последних значений
+    time_trend = "→"  # Стабильный
+    if len(time_ratio_history) >= 3:
+        recent_ratios = time_ratio_history[-3:]
+        avg_recent = sum(recent_ratios) / len(recent_ratios)
+        avg_earlier = sum(time_ratio_history[:-3]) / len(time_ratio_history[:-3]) if len(time_ratio_history) > 3 else avg_recent
+
+        if avg_recent > avg_earlier * 1.05:  # Рост более 5%
+            time_trend = "↗"  # Тренд на ускорение
+        elif avg_recent < avg_earlier * 0.95:  # Падение более 5%
+            time_trend = "↘"  # Тренд на замедление
+
+    # Скорость изменения субъективного времени
+    subjective_rate = getattr(state, "subjective_time_base_rate", 1.0)
+
     # Цветной структурированный вывод состояния в консоль
     heartbeat = f"{Fore.RED}*{Style.RESET_ALL}"
-    возраст_txt = f"{Fore.BLUE}возраст: {age:.1f}/{subjective_time:.1f} сек. {Style.RESET_ALL}"
+    # Показываем physical vs subjective time с соотношением и трендом
+    время_txt = f"{Fore.BLUE}физ: {age:.1f}с | субъект: {subjective_time:.1f}с (x{time_ratio:.2f}{time_trend}){Style.RESET_ALL}"
     энергия_txt = f"{Fore.GREEN}энергия: {energy:.1f} %{Style.RESET_ALL}"
     интеллект_txt = f"{Fore.YELLOW}интеллект: {integrity:.4f}{Style.RESET_ALL}"
     стабильность_txt = f"{Fore.CYAN}стабильность: {stability:.4f}{Style.RESET_ALL}"
@@ -59,7 +86,7 @@ def monitor(state: SelfState, log_file_path: Path = None):
     активация_txt = f"активация: {activated_count} ({top_significance:.2f})"
     decision_txt = f"{Fore.YELLOW}decision: {last_pattern}{Style.RESET_ALL}"
     action_txt = f"{Fore.GREEN}action: executed {last_pattern}{Style.RESET_ALL}"
-    msg = f"{heartbeat} [{ticks}] {возраст_txt} | {энергия_txt} | {интеллект_txt} | {стабильность_txt} | {значимость_txt} | {активация_txt} | {decision_txt} | {action_txt} | "
+    msg = f"{heartbeat} [{ticks}] {время_txt} | {энергия_txt} | {интеллект_txt} | {стабильность_txt} | {значимость_txt} | {активация_txt} | {decision_txt} | {action_txt} | "
     sys.stdout.write(f"\r{msg}")
     sys.stdout.flush()
 
@@ -68,10 +95,17 @@ def monitor(state: SelfState, log_file_path: Path = None):
         "tick": ticks,
         "age": age,
         "subjective_time": subjective_time,
+        "time_ratio": time_ratio,
+        "time_trend": time_trend,
+        "time_ratio_history": time_ratio_history.copy(),
+        "subjective_rate": subjective_rate,
         "energy": energy,
         "integrity": integrity,
         "stability": stability,
         "last_significance": last_significance,
+        "activated_memory_count": activated_count,
+        "top_activated_significance": top_significance,
+        "last_decision_pattern": last_pattern,
     }
 
     with log_file_path.open("a") as f:

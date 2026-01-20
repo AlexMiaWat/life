@@ -195,6 +195,10 @@ class LearningEngine:
 
         # Используем валидированные параметры
         current_params = validated_params
+
+        # Проверяем, что после валидации остались валидные параметры
+        if not current_params:
+            raise ValueError("После валидации current_params стал пустым")
         new_params = {}
 
         # 1. Изменение чувствительности к типам событий

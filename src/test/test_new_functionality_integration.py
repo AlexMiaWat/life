@@ -831,7 +831,7 @@ class TestNewFunctionalityIntegration:
         from fastapi.testclient import TestClient
         from api import app
 
-        client = TestClient(app, timeout=10.0)
+        client = TestClient(app)
 
         # 1. Регистрация пользователей
         users = [
@@ -887,7 +887,7 @@ class TestNewFunctionalityIntegration:
         import time
         from api import app, SECRET_KEY, ALGORITHM
 
-        client = TestClient(app, timeout=10.0)
+        client = TestClient(app)
 
         # Создаем токен с коротким сроком действия
         expire_time = int(time.time()) + 2  # Истекает через 2 секунды
@@ -923,7 +923,7 @@ class TestNewFunctionalityIntegration:
         from fastapi.testclient import TestClient
         from api import app
 
-        client = TestClient(app, timeout=10.0)
+        client = TestClient(app)
 
         # Создаем несколько токенов для одного пользователя
         tokens = []
@@ -956,7 +956,7 @@ class TestNewFunctionalityIntegration:
         from fastapi.testclient import TestClient
         from api import app
 
-        client = TestClient(app, timeout=10.0)
+        client = TestClient(app)
 
         # Получаем токен
         login_response = client.post("/token", data={"username": "admin", "password": "admin123"})
@@ -995,7 +995,7 @@ class TestNewFunctionalityIntegration:
         from fastapi.testclient import TestClient
         from api import app
 
-        client = TestClient(app, timeout=10.0)
+        client = TestClient(app)
 
         # Регистрируем нового пользователя для тестирования
         user_data = {"username": "status_test", "email": "status@example.com", "password": "status123"}
@@ -1046,7 +1046,7 @@ class TestNewFunctionalityIntegration:
         from fastapi.testclient import TestClient
         from api import app
 
-        client = TestClient(app, timeout=10.0)
+        client = TestClient(app)
 
         # Получаем токен
         login_response = client.post("/token", data={"username": "admin", "password": "admin123"})
@@ -1120,7 +1120,7 @@ class TestNewFunctionalityIntegration:
             assert len(api_results) >= 2  # документы, содержащие "api"
 
             # Тестируем API аутентификацию
-            client = TestClient(app, timeout=10.0)
+            client = TestClient(app)
 
             # Регистрируем пользователя
             user_data = {"username": "search_user", "email": "search@example.com", "password": "search123"}

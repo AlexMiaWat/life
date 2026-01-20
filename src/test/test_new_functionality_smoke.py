@@ -871,7 +871,7 @@ class TestNewFunctionalitySmoke:
         from fastapi.testclient import TestClient
         from api import app
 
-        client = TestClient(app, timeout=10.0)
+        client = TestClient(app)
         assert client is not None
 
         # Тест базового запроса
@@ -887,7 +887,7 @@ class TestNewFunctionalitySmoke:
         from fastapi.testclient import TestClient
         from api import app
 
-        client = TestClient(app, timeout=10.0)
+        client = TestClient(app)
 
         # Получаем спецификацию OpenAPI
         response = client.get("/openapi.json")
@@ -942,7 +942,7 @@ class TestNewFunctionalitySmoke:
 
             # Тест API клиента
             from api import app
-            client = TestClient(app, timeout=10.0)
+            client = TestClient(app)
 
             # Регистрируем пользователя
             import uuid

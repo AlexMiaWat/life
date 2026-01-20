@@ -143,12 +143,13 @@ class TestAdaptationManager:
         manager = AdaptationManager()
         self_state = SelfState()
 
-        # Попытка передать параметры с "decision" или "action" должна вызвать ошибку
-        current_params = {
+        # Устанавливаем запрещенные параметры в adaptation_params
+        self_state.adaptation_params = {
             "decision": {"pattern": "dampen"},  # Запрещенный параметр
         }
 
         analysis = {"learning_params_snapshot": {}}
+        current_params = {}
 
         with pytest.raises(
             ValueError, match="не может напрямую изменять Decision/Action"

@@ -66,6 +66,7 @@ class SelfState:
     subjective_time_stability_coeff: float = 0.5
     subjective_time_energy_coeff: float = 0.5
     subjective_time_intensity_smoothing: float = 0.3  # Коэффициент экспоненциального сглаживания для интенсивности
+    time_ratio_history: list = field(default_factory=list)  # История соотношений physical/subjective time
 
     # Last perceived event intensity (signal for subjective time), in [0..1].
     last_event_intensity: float = 0.0
@@ -327,7 +328,8 @@ class SelfState:
             self._log_change(name, old_value, value)
 
         # Автоматически обновляем active при изменении vital параметров (только после инициализации)
-        if is_initialized and name in ["energy", "integrity", "stability"]:
+        # Обновляем только если active был True (не восстанавливаем deactivated систему)
+        if is_initialized and name in ["energy", "integrity", "stability"] and self.active:
             object.__setattr__(self, "active", self.is_active())
 
     activated_memory: list = field(

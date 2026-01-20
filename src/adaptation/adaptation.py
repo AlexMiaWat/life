@@ -183,12 +183,13 @@ class AdaptationManager:
                 if isinstance(value, dict):
                     _check_forbidden_keys(value, current_path)
 
-        _check_forbidden_keys(current_behavior_params)
+        # Проверяем actual_params, который фактически используется
+        _check_forbidden_keys(actual_params)
 
         new_params = {}
 
-        # Получаем learning_params из self_state
-        learning_params = getattr(self_state, "learning_params", {})
+        # Получаем learning_params из анализа
+        learning_params = analysis.get("learning_params_snapshot", {})
 
         # Используем self_state.adaptation_params напрямую для получения актуальных значений
         # Это гарантирует, что мы работаем с реальными параметрами, даже если

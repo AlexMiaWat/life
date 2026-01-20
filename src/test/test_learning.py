@@ -566,6 +566,7 @@ class TestLearningIntegration:
 
     def test_learning_persistence_in_snapshots(self):
         """Тест сохранения параметров Learning в snapshots"""
+        import json
         from state.self_state import save_snapshot
 
         engine = LearningEngine()
@@ -896,7 +897,7 @@ class TestLearningStatic:
 
         # Проверяем, что модуль экспортирует LearningEngine
         assert hasattr(learning_module, "LearningEngine")
-        assert learning_module.LearningEngine == LearningEngine
+        assert learning_module.LearningEngine is LearningEngine
 
     def test_class_inheritance(self):
         """Проверка наследования класса"""
@@ -1271,6 +1272,10 @@ class TestLearningIntegrationExtended:
         # Memory имеет ограничение в 50 записей, поэтому ожидаем не более 50
         assert statistics["total_entries"] <= 50
         assert statistics["feedback_entries"] <= 20  # Feedback записи могут быть отфильтрованы по весу
+
+        # Проверяем, что statistics корректно подсчитаны
+        total_memory_entries = len(self_state.memory)
+        assert statistics["total_entries"] == total_memory_entries
 
         # Изменяем параметры
         new_params = engine.adjust_parameters(statistics, self_state.learning_params)
