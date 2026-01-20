@@ -599,6 +599,233 @@ class IndexEngine:
         
         return score
 
+    def _apply_search_mode(
+        self,
+        content: str,
+        mode: str,
+        tokens_or_phrase: list[str] | str,
+        search_and_func,
+        search_or_func,
+        search_phrase_func,
+    ) -> bool:
+        """
+        Применяет режим поиска к содержимому.
+
+        Args:
+            content: Содержимое файла для поиска
+            mode: Режим поиска ("AND", "OR", "PHRASE")
+            tokens_or_phrase: Токены или фраза для поиска
+            search_and_func: Функция поиска в режиме AND
+            search_or_func: Функция поиска в режиме OR
+            search_phrase_func: Функция поиска в режиме PHRASE
+
+        Returns:
+            True если найдено совпадение, False иначе
+        """
+        if mode == "PHRASE":
+            return search_phrase_func(content, str(tokens_or_phrase))
+        elif mode == "AND" and isinstance(tokens_or_phrase, list):
+            return search_and_func(content, tokens_or_phrase)
+        elif mode == "OR" and isinstance(tokens_or_phrase, list):
+            return search_or_func(content, tokens_or_phrase)
+        return False
+
+    def _is_index_available(self) -> bool:
+        """
+        Проверяет, доступен ли инвертированный индекс для поиска.
+
+        Returns:
+            True если индекс доступен и готов к использованию, False иначе
+        """
+        try:
+            return (
+                self._initialized
+                and self.inverted_index is not None
+                and len(self.inverted_index) > 0
+                and len(self.content_cache) > 0
+            )
+        except (AttributeError, TypeError):
+            # Обработка случая когда индекс поврежден или None
+            return False
+
+    def _linear_search_in_cache(
+        self,
+        directory: Path,
+        query: str,
+        mode: str,
+        tokens_or_phrase: list[str] | str,
+        limit: int,
+        search_and_func,
+        search_or_func,
+        search_phrase_func,
+        find_context_func,
+    ) -> list[dict]:
+        """
+        Линейный поиск по кэшированному содержимому файлов.
+        Используется как fallback уровень 2, если индекс недоступен.
+
+        Args:
+            directory: Директория для поиска
+            query: Поисковый запрос
+            mode: Режим поиска ("AND", "OR", "PHRASE")
+            tokens_or_phrase: Токены или фраза для поиска
+            limit: Максимальное количество результатов
+            search_and_func: Функция поиска в режиме AND
+            search_or_func: Функция поиска в режиме OR
+            search_phrase_func: Функция поиска в режиме PHRASE
+            find_context_func: Функция поиска контекста
+
+        Returns:
+            Список результатов поиска с путями и контекстом
+        """
+        # Валидация входных параметров
+        if directory is None or not isinstance(directory, Path):
+            logger.warning("Невалидный параметр directory в _linear_search_in_cache")
+            return []
+        if not query or not isinstance(query, str) or not query.strip():
+            logger.warning("Пустой или невалидный запрос в _linear_search_in_cache")
+            return []
+        if limit <= 0:
+            limit = DEFAULT_SEARCH_LIMIT
+        if mode not in {"AND", "OR", "PHRASE"}:
+            logger.warning(f"Невалидный режим поиска: {mode}, используется AND")
+            mode = "AND"
+
+        results = []
+        query_lower = query.lower()
+
+        for rel_path, content in self.content_cache.items():
+            if len(results) >= limit:
+                break
+
+            full_path = directory / rel_path
+            if not full_path.exists():
+                continue
+
+            # Применяем режим поиска
+            match = self._apply_search_mode(
+                content, mode, tokens_or_phrase,
+                search_and_func, search_or_func, search_phrase_func
+            )
+
+            if match:
+                context_lines = find_context_func(
+                    content, query, mode, tokens_or_phrase
+                )
+                context = "\n".join(context_lines)
+                score = self._calculate_document_score(rel_path)
+
+                results.append(
+                    {
+                        "path": rel_path,
+                        "title": full_path.name,
+                        "context": context,
+                        "score": score,
+                    }
+                )
+
+        # Сортируем по score
+        results.sort(key=lambda x: x.get("score", 0), reverse=True)
+        return results
+
+    def _grep_search_in_files(
+        self,
+        directory: Path,
+        query: str,
+        mode: str,
+        tokens_or_phrase: list[str] | str,
+        limit: int,
+        search_and_func,
+        search_or_func,
+        search_phrase_func,
+        find_context_func,
+    ) -> list[dict]:
+        """
+        Простой grep-подобный поиск по файлам.
+        Используется как fallback уровень 3 (последний резерв), если кэш недоступен.
+
+        Args:
+            directory: Директория для поиска
+            query: Поисковый запрос
+            mode: Режим поиска ("AND", "OR", "PHRASE")
+            tokens_or_phrase: Токены или фраза для поиска
+            limit: Максимальное количество результатов
+            search_and_func: Функция поиска в режиме AND
+            search_or_func: Функция поиска в режиме OR
+            search_phrase_func: Функция поиска в режиме PHRASE
+            find_context_func: Функция поиска контекста
+
+        Returns:
+            Список результатов поиска с путями и контекстом
+        """
+        # Валидация входных параметров
+        if directory is None or not isinstance(directory, Path):
+            logger.warning("Невалидный параметр directory в _grep_search_in_files")
+            return []
+        if not query or not isinstance(query, str) or not query.strip():
+            logger.warning("Пустой или невалидный запрос в _grep_search_in_files")
+            return []
+        if limit <= 0:
+            limit = DEFAULT_SEARCH_LIMIT
+        if mode not in {"AND", "OR", "PHRASE"}:
+            logger.warning(f"Невалидный режим поиска: {mode}, используется AND")
+            mode = "AND"
+
+        results = []
+        query_lower = query.lower()
+
+        # Ищем все .md файлы в директории
+        for file_path in directory.rglob("*.md"):
+            if len(results) >= limit:
+                break
+
+            if not file_path.is_file():
+                continue
+
+            try:
+                # Загружаем файл
+                content = self._load_content(file_path)
+                rel_path = self._get_relative_path(file_path, directory)
+
+                # Применяем режим поиска
+                match = False
+                if mode == "PHRASE":
+                    match = search_phrase_func(content, str(tokens_or_phrase))
+                elif mode == "AND" and isinstance(tokens_or_phrase, list):
+                    match = search_and_func(content, tokens_or_phrase)
+                elif mode == "OR" and isinstance(tokens_or_phrase, list):
+                    match = search_or_func(content, tokens_or_phrase)
+
+                if match:
+                    context_lines = find_context_func(
+                        content, query, mode, tokens_or_phrase
+                    )
+                    context = "\n".join(context_lines)
+                    score = self._calculate_document_score(rel_path)
+
+                    results.append(
+                        {
+                            "path": rel_path,
+                            "title": file_path.name,
+                            "context": context,
+                            "score": score,
+                        }
+                    )
+
+                    # Обновляем кэш для будущих запросов
+                    self._evict_cache_if_needed()
+                    self.content_cache[rel_path] = content
+                    self.file_mtimes[rel_path] = file_path.stat().st_mtime
+                    self._update_index_for_file(rel_path, content)
+
+            except Exception as e:
+                logger.warning(f"Ошибка при grep-поиске в {file_path}: {e}")
+                continue
+
+        # Сортируем по score
+        results.sort(key=lambda x: x.get("score", 0), reverse=True)
+        return results
+
     def search_in_directory(
         self,
         directory: Path,
@@ -673,76 +900,132 @@ class IndexEngine:
         explicit_mode = mode != "AND"
         search_mode, tokens_or_phrase = tokenize_query_func(query, mode, explicit_mode)
 
-        # Определяем кандидатов из индекса
-        candidate_files = set()
-
-        if search_mode == "PHRASE":
-            # Для PHRASE mode используем полный поиск по кэшу
-            phrase = str(tokens_or_phrase)
-            for rel_path, content in self.content_cache.items():
-                full_path = directory / rel_path
-                if full_path.exists() and search_phrase_func(content, phrase):
-                    candidate_files.add(rel_path)
-        elif search_mode == "AND" and isinstance(tokens_or_phrase, list):
-            # Пересечение множеств файлов для каждого токена
-            if tokens_or_phrase:
-                candidate_files = set(
-                    self.inverted_index.get(tokens_or_phrase[0].lower(), set())
-                )
-                for token in tokens_or_phrase[1:]:
-                    candidate_files &= self.inverted_index.get(token.lower(), set())
-        elif search_mode == "OR" and isinstance(tokens_or_phrase, list):
-            # Объединение множеств файлов
-            for token in tokens_or_phrase:
-                candidate_files |= self.inverted_index.get(token.lower(), set())
-
-        # Фильтруем результаты и добавляем контекст
-        results = []
-        for rel_path in candidate_files:
-            if len(results) >= limit:
-                break
-
-            full_path = directory / rel_path
-            if not full_path.exists():
-                continue
-
+        # Уровень 1: Попытка использовать инвертированный индекс
+        if self._is_index_available():
             try:
-                content = self._get_content(full_path, directory)
+                # Определяем кандидатов из индекса
+                candidate_files = set()
 
-                # Применяем режим поиска для точной проверки
-                match = False
                 if search_mode == "PHRASE":
-                    match = search_phrase_func(content, str(tokens_or_phrase))
+                    # Для PHRASE mode используем полный поиск по кэшу
+                    phrase = str(tokens_or_phrase)
+                    for rel_path, content in self.content_cache.items():
+                        full_path = directory / rel_path
+                        if full_path.exists() and search_phrase_func(content, phrase):
+                            candidate_files.add(rel_path)
                 elif search_mode == "AND" and isinstance(tokens_or_phrase, list):
-                    match = search_and_func(content, tokens_or_phrase)
+                    # Пересечение множеств файлов для каждого токена
+                    if tokens_or_phrase:
+                        candidate_files = set(
+                            self.inverted_index.get(tokens_or_phrase[0].lower(), set())
+                        )
+                        for token in tokens_or_phrase[1:]:
+                            candidate_files &= self.inverted_index.get(
+                                token.lower(), set()
+                            )
                 elif search_mode == "OR" and isinstance(tokens_or_phrase, list):
-                    match = search_or_func(content, tokens_or_phrase)
+                    # Объединение множеств файлов
+                    for token in tokens_or_phrase:
+                        candidate_files |= self.inverted_index.get(
+                            token.lower(), set()
+                        )
 
-                if match:
-                    # Находим контекст
-                    context_lines = find_context_func(
-                        content, query, search_mode, tokens_or_phrase
-                    )
-                    context = "\n".join(context_lines)
+                # Фильтруем результаты и добавляем контекст
+                results = []
+                for rel_path in candidate_files:
+                    if len(results) >= limit:
+                        break
 
-                    # Вычисляем приоритет документа для ранжирования
-                    score = self._calculate_document_score(rel_path)
+                    full_path = directory / rel_path
+                    if not full_path.exists():
+                        continue
 
-                    results.append(
-                        {
-                            "path": rel_path,
-                            "title": full_path.name,
-                            "context": context,
-                            "score": score,
-                        }
-                    )
+                    try:
+                        content = self._get_content(full_path, directory)
+
+                        # Применяем режим поиска для точной проверки
+                        match = False
+                        if search_mode == "PHRASE":
+                            match = search_phrase_func(content, str(tokens_or_phrase))
+                        elif search_mode == "AND" and isinstance(
+                            tokens_or_phrase, list
+                        ):
+                            match = search_and_func(content, tokens_or_phrase)
+                        elif search_mode == "OR" and isinstance(
+                            tokens_or_phrase, list
+                        ):
+                            match = search_or_func(content, tokens_or_phrase)
+
+                        if match:
+                            # Находим контекст
+                            context_lines = find_context_func(
+                                content, query, search_mode, tokens_or_phrase
+                            )
+                            context = "\n".join(context_lines)
+
+                            # Вычисляем приоритет документа для ранжирования
+                            score = self._calculate_document_score(rel_path)
+
+                            results.append(
+                                {
+                                    "path": rel_path,
+                                    "title": full_path.name,
+                                    "context": context,
+                                    "score": score,
+                                }
+                            )
+                    except Exception as e:
+                        logger.warning(
+                            f"Ошибка при обработке результата поиска {rel_path}: {e}"
+                        )
+                        continue
+
+                # Сортируем результаты по score в порядке убывания
+                results.sort(key=lambda x: x.get("score", 0), reverse=True)
+
+                if results:
+                    return results
             except Exception as e:
-                logger.warning(
-                    f"Ошибка при обработке результата поиска {rel_path}: {e}"
+                logger.warning(f"Ошибка при поиске через индекс (уровень 1): {e}")
+
+        # Уровень 2: Линейный поиск по кэшу
+        if len(self.content_cache) > 0:
+            try:
+                results = self._linear_search_in_cache(
+                    directory,
+                    query,
+                    search_mode,
+                    tokens_or_phrase,
+                    limit,
+                    search_and_func,
+                    search_or_func,
+                    search_phrase_func,
+                    find_context_func,
                 )
-                continue
+                if results:
+                    logger.info("Использован fallback уровень 2 (линейный поиск)")
+                    return results
+            except Exception as e:
+                logger.warning(f"Ошибка при линейном поиске (уровень 2): {e}")
 
-        # Сортируем результаты по score в порядке убывания
-        results.sort(key=lambda x: x.get("score", 0), reverse=True)
+        # Уровень 3: Grep-поиск по файлам
+        try:
+            results = self._grep_search_in_files(
+                directory,
+                query,
+                search_mode,
+                tokens_or_phrase,
+                limit,
+                search_and_func,
+                search_or_func,
+                search_phrase_func,
+                find_context_func,
+            )
+            if results:
+                logger.info("Использован fallback уровень 3 (grep-поиск)")
+                return results
+        except Exception as e:
+            logger.warning(f"Ошибка при grep-поиске (уровень 3): {e}")
 
-        return results
+        # Если все уровни не дали результатов
+        return []

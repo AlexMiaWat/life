@@ -40,6 +40,9 @@ app = FastMCP("life-docs-server")
 # Глобальный экземпляр IndexEngine (ленивая инициализация)
 _index_engine = None
 
+# Глобальный менеджер поиска (ленивая инициализация)
+_search_manager = None
+
 
 def _get_index_engine():
     """Получает или создает экземпляр IndexEngine."""
@@ -50,6 +53,22 @@ def _get_index_engine():
         _index_engine = IndexEngine(DOCS_DIR, TODO_DIR, SRC_DIR)
         _index_engine.initialize()
     return _index_engine
+
+
+def _get_search_manager():
+    """Получает или создает SearchManager для multi-provider архитектуры."""
+    global _search_manager
+    if _search_manager is None:
+        from mcp_search_provider import SearchManager, IndexSearchProvider
+
+        engine = _get_index_engine()
+        _search_manager = SearchManager()
+        _search_manager.add_provider(IndexSearchProvider(engine))
+        # Опционально: добавить LLM провайдер в будущем
+        # if llm_client:
+        #     from mcp_search_provider import LLMSearchProvider
+        #     _search_manager.add_provider(LLMSearchProvider(llm_client))
+    return _search_manager
 
 
 def _tokenize_query(
@@ -230,9 +249,9 @@ async def search_docs(query: str, search_mode: str = "AND", limit: int = 10) -> 
     if mode == "PHRASE" and (not tokens_or_phrase or not str(tokens_or_phrase).strip()):
         return f"Ошибка: пустая фраза в запросе '{query}'."
 
-    # Используем IndexEngine для поиска
-    engine = _get_index_engine()
-    results = engine.search_in_directory(
+    # Используем SearchManager для поиска (multi-provider архитектура)
+    manager = _get_search_manager()
+    results = manager.search(
         DOCS_DIR,
         query,
         search_mode,
