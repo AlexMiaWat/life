@@ -624,6 +624,9 @@ class TestMemoryArchive:
     def temp_memory(self, tmp_path):
         """Создает Memory с временным архивом"""
         archive_file = tmp_path / "test_archive.json"
+        # Убедимся, что файл не существует
+        if archive_file.exists():
+            archive_file.unlink()
         archive = ArchiveMemory(
             archive_file=archive_file, load_existing=False, ignore_existing_file=True
         )
@@ -770,6 +773,9 @@ class TestMemoryStatistics:
     def temp_memory(self, tmp_path):
         """Создает Memory с временным архивом"""
         archive_file = tmp_path / "test_archive.json"
+        # Убедимся, что файл не существует
+        if archive_file.exists():
+            archive_file.unlink()
         archive = ArchiveMemory(
             archive_file=archive_file, load_existing=False, ignore_existing_file=True
         )

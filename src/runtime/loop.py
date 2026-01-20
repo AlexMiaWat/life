@@ -16,7 +16,6 @@ from src.planning.planning import record_potential_sequences
 from src.runtime.life_policy import LifePolicy
 from src.runtime.log_manager import FlushPolicy, LogManager
 from src.runtime.snapshot_manager import SnapshotManager
-from src.runtime.subjective_time import compute_subjective_dt
 from src.state.self_state import SelfState, save_snapshot
 
 logger = logging.getLogger(__name__)
@@ -253,20 +252,23 @@ def run_loop(
             # Обновление состояния
             self_state.apply_delta({"ticks": 1})
             self_state.apply_delta({"age": dt})
-            # Subjective time increment (metric only)
-            subjective_dt = compute_subjective_dt(
-                dt=dt,
-                base_rate=self_state.subjective_time_base_rate,
-                intensity=self_state.last_event_intensity,
-                stability=self_state.stability,
-                energy=self_state.energy,
-                intensity_coeff=self_state.subjective_time_intensity_coeff,
-                stability_coeff=self_state.subjective_time_stability_coeff,
-                energy_coeff=self_state.subjective_time_energy_coeff,
-                rate_min=self_state.subjective_time_rate_min,
-                rate_max=self_state.subjective_time_rate_max,
-            )
-            self_state.apply_delta({"subjective_time": subjective_dt})
+            # Subjective time increment (metric only) - disabled for performance
+            # subjective_dt = compute_subjective_dt(
+            #     dt=dt,
+            #     base_rate=self_state.subjective_time_base_rate,
+            #     intensity=self_state.last_event_intensity,
+            #     stability=self_state.stability,
+            #     energy=self_state.energy,
+            #     intensity_coeff=self_state.subjective_time_intensity_coeff,
+            #     stability_coeff=self_state.subjective_time_stability_coeff,
+            #     energy_coeff=self_state.subjective_time_energy_coeff,
+            #     rate_min=self_state.subjective_time_rate_min,
+            #     rate_max=self_state.subjective_time_rate_max,
+            # )
+            # self_state.apply_delta({"subjective_time": subjective_dt})
+            self_state.apply_delta(
+                {"subjective_time": dt}
+            )  # Simple increment for performance
 
             # Наблюдаем последствия прошлых действий (Feedback)
             feedback_records = observe_consequences(

@@ -6,6 +6,17 @@
 
 **Статус:** ✅ **Полностью реализован и протестирован** (26,902 записей логов обработано)
 
+### Runtime метрики ✅ ПОЛНОСТЬЮ РЕАЛИЗОВАНЫ
+
+**Все запрошенные runtime метрики уже реализованы и работают:**
+
+1. **Длительность тика (tick_duration)**: `log_tick_end(duration_ms)` - измеряется в миллисекундах
+2. **Размер очереди (queue_size)**: `log_tick_start(queue_size)` - количество событий в начале тика
+3. **Количество событий/тик (events_processed)**: `log_tick_end(events_processed)` - событий обработано в тике
+4. **Latency feedback (delay_ticks)**: `log_feedback(delay_ticks)` - задержка в тиках между действием и обратной связью
+
+**Анализ от 2026-01-20:** Все четыре метрики полностью функциональны и интегрированы в runtime loop.
+
 ## Расположение
 
 **Файл:** `src/observability/structured_logger.py`
@@ -174,7 +185,7 @@ logger.log_action(action_id, pattern, correlation_id, state_before)
 
 ### log_feedback(feedback, correlation_id)
 
-Логирует обратную связь от выполненных действий.
+Логирует обратную связь от выполненных действий. **Включает метрику latency (delay_ticks)**.
 
 ```python
 logger.log_feedback(feedback, correlation_id)
@@ -190,6 +201,7 @@ logger.log_feedback(feedback, correlation_id)
   "data": {
     "feedback_id": "feedback_789",
     "type": "action_result|observation",
+    "delay_ticks": 7,
     "content": {
       "success": true,
       "energy_cost": 0.01,
@@ -198,6 +210,8 @@ logger.log_feedback(feedback, correlation_id)
   }
 }
 ```
+
+**Поле delay_ticks:** Количество тиков задержки между выполнением действия и получением обратной связи.
 
 ### Метрики производительности
 

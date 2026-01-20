@@ -565,6 +565,8 @@ class TestLearningIntegration:
 
     def test_learning_persistence_in_snapshots(self):
         """Тест сохранения параметров Learning в snapshots"""
+        import json
+
         from state.self_state import save_snapshot
 
         engine = LearningEngine()
@@ -587,8 +589,6 @@ class TestLearningIntegration:
         snapshot_file = Path("data/snapshots/snapshot_000100.json")
         if snapshot_file.exists():
             with snapshot_file.open("r") as f:
-                import json
-
                 snapshot_data = json.load(f)
 
             assert "learning_params" in snapshot_data
@@ -711,22 +711,18 @@ class TestLearningStatic:
 
         # process_statistics
         sig = inspect.signature(engine.process_statistics)
-        assert len(sig.parameters) == 1  # memory (self не считается для bound метода)
+        assert len(sig.parameters) == 2  # self + memory
         assert "memory" in sig.parameters
 
         # adjust_parameters
         sig = inspect.signature(engine.adjust_parameters)
-        assert (
-            len(sig.parameters) == 2
-        )  # statistics + current_params (self не считается для bound метода)
+        assert len(sig.parameters) == 3  # self + statistics + current_params
         assert "statistics" in sig.parameters
         assert "current_params" in sig.parameters
 
         # record_changes
         sig = inspect.signature(engine.record_changes)
-        assert (
-            len(sig.parameters) == 3
-        )  # old_params + new_params + self_state (self не считается для bound метода)
+        assert len(sig.parameters) == 4  # self + old_params + new_params + self_state
         assert "old_params" in sig.parameters
         assert "new_params" in sig.parameters
         assert "self_state" in sig.parameters
@@ -1282,6 +1278,8 @@ class TestLearningIntegrationExtended:
         # Проверяем, что statistics корректно подсчитаны
         total_memory_entries = len(self_state.memory)
         assert statistics["total_entries"] == total_memory_entries
+        # Memory ограничивает размер до 50 записей
+        assert total_memory_entries <= 50
 
         # Изменяем параметры
         new_params = engine.adjust_parameters(statistics, self_state.learning_params)

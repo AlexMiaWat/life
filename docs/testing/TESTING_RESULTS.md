@@ -112,7 +112,6 @@
 | test_new_functionality_static.py | 45 | 100% |
 | test_new_functionality_smoke.py | 54 | 100% |
 | test_new_functionality_integration.py | 32 | 100% |
-| test_snapshot_reader.py | 17 | 100% |
 
 ## Типы тестов
 

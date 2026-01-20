@@ -52,9 +52,6 @@ class TestSelfStatePropertyBased:
     ):
         """Свойство: apply_delta всегда ограничивает значения границами"""
         state = SelfState()
-        initial_energy = state.energy
-        initial_integrity = state.integrity
-        initial_stability = state.stability
 
         state.apply_delta(
             {
@@ -153,8 +150,8 @@ class TestMemoryPropertyBased:
         significance=st.floats(min_value=0.0, max_value=1.0),
         num_appends=st.integers(min_value=1, max_value=100),
     )
-    def test_memory_append_idempotent(self, event_type, significance, num_appends):
-        """Свойство: множественные append одного элемента эквивалентны одному append"""
+    def test_memory_append_behavior(self, event_type, significance, num_appends):
+        """Свойство: проверка поведения append с учетом clamp_size"""
         memory1 = Memory()
         memory2 = Memory()
 
@@ -167,15 +164,15 @@ class TestMemoryPropertyBased:
         # Добавляем один раз
         memory1.append(entry)
 
-        # Добавляем много раз (но из-за ограничения размера результат должен быть одинаковым)
+        # Добавляем много раз
         for _ in range(num_appends):
             memory2.append(entry)
 
-        # Если память не переполнена, результаты должны быть одинаковыми
-        if num_appends <= 50:
-            assert len(memory1) == len(memory2)
-            if len(memory1) > 0:
-                assert memory1[-1].event_type == memory2[-1].event_type
+        # Проверяем корректное поведение
+        assert len(memory1) == 1
+        assert len(memory2) == min(num_appends, 50)  # ограничено clamp_size
+        if len(memory1) > 0 and len(memory2) > 0:
+            assert memory1[-1].event_type == memory2[-1].event_type
 
 
 @pytest.mark.unit

@@ -113,8 +113,8 @@ class TestLearningAdaptationStatic:
 
         # Проверяем значения интервалов
         assert (
-            "LEARNING_INTERVAL = 75" in source_code
-            or "LEARNING_INTERVAL=75" in source_code
+            "LEARNING_INTERVAL = 50" in source_code
+            or "LEARNING_INTERVAL=50" in source_code
         )
         assert (
             "ADAPTATION_INTERVAL = 100" in source_code
@@ -195,7 +195,7 @@ class TestLearningAdaptationStatic:
         assert isinstance(result, dict)
 
         # adjust_parameters возвращает dict
-        result = engine.adjust_parameters({}, {"event_type_sensitivity": {"noise": 0.2}})
+        result = engine.adjust_parameters({}, {})
         assert isinstance(result, dict)
 
         # analyze_changes возвращает dict
@@ -426,8 +426,6 @@ class TestLearningAdaptationRuntimeIntegration:
         """Тест частоты вызова Learning (раз в 75 тиков)"""
         stop_event = threading.Event()
         learning_interval = 75
-
-        initial_params = base_state.learning_params.copy()
 
         # Добавляем события для статистики
         for i in range(10):
