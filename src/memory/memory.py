@@ -300,6 +300,9 @@ class Memory(list):
 
             return len(entries_to_archive)
 
+        # Если нет записей для архивации, возвращаем 0
+        return 0
+
     def decay_weights(self, decay_factor: float = 0.99, min_weight: float = 0.0) -> int:
         """
         Применяет затухание весов ко всем записям памяти.

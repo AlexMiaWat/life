@@ -35,6 +35,7 @@ async def test_search_docs():
     assert "api" in result.lower() or "API" in result or "Найдено" in result
 
 
+@pytest.mark.asyncio
 async def test_list_docs():
     """Тест списка документов"""
     print("\n=== Тест: list_docs ===")
@@ -44,6 +45,7 @@ async def test_list_docs():
     print("[OK] list_docs работает корректно")
 
 
+@pytest.mark.asyncio
 async def test_get_doc_content():
     """Тест получения содержимого документа"""
     print("\n=== Тест: get_doc_content ===")
@@ -54,6 +56,7 @@ async def test_get_doc_content():
     print("[OK] get_doc_content работает корректно")
 
 
+@pytest.mark.asyncio
 async def test_search_todo():
     """Тест поиска в TODO"""
     print("\n=== Тест: search_todo ===")
@@ -67,6 +70,7 @@ async def test_search_todo():
     print("[OK] search_todo работает корректно")
 
 
+@pytest.mark.asyncio
 async def test_search_docs_and_mode():
     """Тест поиска в документации с режимом AND"""
     print("\n=== Тест: search_docs (AND mode) ===")
@@ -79,6 +83,7 @@ async def test_search_docs_and_mode():
     print("[OK] search_docs AND mode работает корректно")
 
 
+@pytest.mark.asyncio
 async def test_search_docs_or_mode():
     """Тест поиска в документации с режимом OR"""
     print("\n=== Тест: search_docs (OR mode) ===")
@@ -91,6 +96,7 @@ async def test_search_docs_or_mode():
     print("[OK] search_docs OR mode работает корректно")
 
 
+@pytest.mark.asyncio
 async def test_search_docs_or_mode_with_quoted_query():
     """Тест: явный OR режим имеет приоритет над кавычками"""
     print("\n=== Тест: search_docs (OR mode, quoted query) ===")
@@ -105,6 +111,7 @@ async def test_search_docs_or_mode_with_quoted_query():
     )
 
 
+@pytest.mark.asyncio
 async def test_search_docs_phrase_mode():
     """Тест поиска в документации с режимом PHRASE"""
     print("\n=== Тест: search_docs (PHRASE mode) ===")
@@ -117,6 +124,7 @@ async def test_search_docs_phrase_mode():
     print("[OK] search_docs PHRASE mode работает корректно")
 
 
+@pytest.mark.asyncio
 async def test_tokenize_query_quotes_auto_phrase():
     """Тест: кавычки автоматически включают PHRASE режим"""
     print("\n=== Тест: _tokenize_query (кавычки → PHRASE) ===")
@@ -129,6 +137,7 @@ async def test_tokenize_query_quotes_auto_phrase():
     print("[OK] Кавычки автоматически включают PHRASE режим")
 
 
+@pytest.mark.asyncio
 async def test_tokenize_query_explicit_mode_priority():
     """Тест: явный режим имеет приоритет над кавычками"""
     print("\n=== Тест: _tokenize_query (явный режим имеет приоритет) ===")
@@ -144,6 +153,7 @@ async def test_tokenize_query_explicit_mode_priority():
     print("[OK] Явный режим имеет приоритет над кавычками")
 
 
+@pytest.mark.asyncio
 async def test_tokenize_query_empty_query():
     """Тест: пустой запрос обрабатывается корректно"""
     print("\n=== Тест: _tokenize_query (пустой запрос) ===")
@@ -159,6 +169,7 @@ async def test_tokenize_query_empty_query():
     print("[OK] Пустой запрос обрабатывается корректно")
 
 
+@pytest.mark.asyncio
 async def test_search_docs_empty_query():
     """Тест: пустой запрос возвращает ошибку"""
     print("\n=== Тест: search_docs (пустой запрос) ===")
@@ -170,6 +181,7 @@ async def test_search_docs_empty_query():
     print("[OK] Пустой запрос возвращает ошибку")
 
 
+@pytest.mark.asyncio
 async def test_search_todo_and_mode():
     """Тест поиска в TODO с режимом AND"""
     print("\n=== Тест: search_todo (AND mode) ===")
@@ -183,6 +195,7 @@ async def test_search_todo_and_mode():
     print("[OK] search_todo AND mode работает корректно")
 
 
+@pytest.mark.asyncio
 async def test_search_todo_or_mode():
     """Тест поиска в TODO с режимом OR"""
     print("\n=== Тест: search_todo (OR mode) ===")
@@ -196,6 +209,7 @@ async def test_search_todo_or_mode():
     print("[OK] search_todo OR mode работает корректно")
 
 
+@pytest.mark.asyncio
 async def test_search_todo_phrase_mode():
     """Тест поиска в TODO с режимом PHRASE"""
     print("\n=== Тест: search_todo (PHRASE mode) ===")
@@ -209,6 +223,7 @@ async def test_search_todo_phrase_mode():
     print("[OK] search_todo PHRASE mode работает корректно")
 
 
+@pytest.mark.asyncio
 async def test_list_todo():
     """Тест списка TODO документов"""
     print("\n=== Тест: list_todo ===")
@@ -218,6 +233,7 @@ async def test_list_todo():
     print("[OK] list_todo работает корректно")
 
 
+@pytest.mark.asyncio
 async def test_get_todo_content():
     """Тест получения содержимого TODO документа"""
     print("\n=== Тест: get_todo_content ===")
@@ -227,6 +243,7 @@ async def test_get_todo_content():
     print("[OK] get_todo_content работает корректно")
 
 
+@pytest.mark.asyncio
 async def test_refresh_index():
     """Тест обновления индекса"""
     print("\n=== Тест: refresh_index ===")
@@ -271,6 +288,7 @@ async def test_refresh_index():
     print("[OK] refresh_index работает корректно")
 
 
+@pytest.mark.asyncio
 async def test_refresh_index_statistics():
     """Тест проверки статистики после обновления индекса"""
     print("\n=== Тест: refresh_index (проверка статистики) ===")
@@ -304,6 +322,7 @@ async def test_refresh_index_statistics():
         print(f"[WARNING] Не удалось проверить статистику из-за ошибки: {result}")
 
 
+@pytest.mark.asyncio
 async def test_refresh_index_timing():
     """Тест проверки времени выполнения переиндексации"""
     print("\n=== Тест: refresh_index (проверка времени выполнения) ===")
@@ -336,6 +355,7 @@ async def test_refresh_index_timing():
         print(f"[WARNING] Не удалось проверить время из-за ошибки: {result}")
 
 
+@pytest.mark.asyncio
 async def test_mcp_server_init():
     """Тест инициализации MCP сервера"""
     print("\n=== Тест: Инициализация MCP сервера ===")

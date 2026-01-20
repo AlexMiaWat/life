@@ -6,15 +6,12 @@ CLI для генерации событий и отправки их на API �
 """
 
 import argparse
-import os
-import sys
 import time
 
 import requests
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from .generator import EventGenerator
-from ..logging_config import get_logger, setup_logging
+from src.environment.generator import EventGenerator
+from src.logging_config import get_logger, setup_logging
 
 logger = get_logger(__name__)
 
@@ -49,7 +46,10 @@ def main():
         help="Интервал генерации событий, сек (по умолчанию 5)",
     )
     parser.add_argument(
-        "--verbose", "-v", action="store_true", help="Включить подробное логирование (debug уровень)"
+        "--verbose",
+        "-v",
+        action="store_true",
+        help="Включить подробное логирование (debug уровень)",
     )
     args = parser.parse_args()
 
