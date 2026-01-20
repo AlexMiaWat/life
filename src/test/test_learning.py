@@ -11,7 +11,6 @@ Unit-тесты для модуля Learning (Этап 14)
 import sys
 from pathlib import Path
 import inspect
-import types
 import time
 
 project_root = Path(__file__).parent.parent.parent
@@ -271,8 +270,6 @@ class TestLearningEngine:
 
     def test_no_goals_or_rewards(self):
         """Проверка отсутствия целей и reward"""
-        engine = LearningEngine()
-
         # Проверяем, что в коде нет упоминаний запрещенных терминов
         import inspect
 
@@ -558,9 +555,7 @@ class TestLearningIntegration:
 
     def test_learning_persistence_in_snapshots(self):
         """Тест сохранения параметров Learning в snapshots"""
-        from state.self_state import save_snapshot, load_snapshot
-        import json
-        from pathlib import Path
+        from state.self_state import save_snapshot
 
         engine = LearningEngine()
         self_state = SelfState()
@@ -1142,8 +1137,6 @@ class TestLearningIntegrationExtended:
     def test_learning_persistence_across_snapshots(self):
         """Интеграционный тест сохранения параметров Learning в snapshots"""
         from state.self_state import save_snapshot, load_snapshot
-        import json
-        from pathlib import Path
         
         engine = LearningEngine()
         self_state = SelfState()

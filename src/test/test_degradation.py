@@ -1021,7 +1021,6 @@ class TestDegradationWithLearningAdaptation:
         state.adaptation_params["behavior_coefficients"]["dampen"] = 0.8
         
         stop_event = threading.Event()
-        initial_energy = state.energy
         
         # Добавляем события recovery (положительные)
         for _ in range(5):

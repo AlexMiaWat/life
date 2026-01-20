@@ -680,7 +680,6 @@ class TestSelfStateLogging:
 
     def test_logging_disabled(self, temp_log_dir):
         """Тест отключения логирования"""
-        from state import self_state
         state = SelfState()
         state.disable_logging()
         
@@ -694,7 +693,6 @@ class TestSelfStateLogging:
 
     def test_get_change_history(self, temp_log_dir):
         """Тест получения истории изменений"""
-        from state import self_state
         state = SelfState()
         state.energy = 50.0
         state.integrity = 0.6
@@ -714,7 +712,6 @@ class TestSelfStateLogging:
 
     def test_get_change_history_limit(self, temp_log_dir):
         """Тест получения истории изменений с лимитом"""
-        from state import self_state
         state = SelfState()
         
         # Делаем несколько изменений

@@ -13,7 +13,6 @@
 import sys
 from pathlib import Path
 import inspect
-import ast
 import pytest
 
 project_root = Path(__file__).parent.parent.parent

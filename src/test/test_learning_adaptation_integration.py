@@ -10,7 +10,6 @@
 import sys
 from pathlib import Path
 import inspect
-import ast
 import threading
 import time
 
@@ -355,7 +354,6 @@ class TestLearningAdaptationRuntimeIntegration:
     def test_learning_called_in_runtime_loop(self, base_state, event_queue):
         """Тест вызова Learning в runtime loop"""
         stop_event = threading.Event()
-        learning_interval = 75
         
         # Запускаем цикл
         loop_thread = threading.Thread(
@@ -377,7 +375,6 @@ class TestLearningAdaptationRuntimeIntegration:
     def test_adaptation_called_in_runtime_loop(self, base_state, event_queue):
         """Тест вызова Adaptation в runtime loop"""
         stop_event = threading.Event()
-        adaptation_interval = 100
         
         # Запускаем цикл
         loop_thread = threading.Thread(
@@ -399,10 +396,8 @@ class TestLearningAdaptationRuntimeIntegration:
     def test_learning_frequency_in_runtime(self, base_state, event_queue):
         """Тест частоты вызова Learning (раз в 75 тиков)"""
         stop_event = threading.Event()
-        learning_interval = 75
         
         initial_params = base_state.learning_params.copy()
-        initial_noise = initial_params["event_type_sensitivity"]["noise"]
         
         # Добавляем события для статистики
         for i in range(10):

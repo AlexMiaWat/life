@@ -134,8 +134,6 @@ class MeaningEngine:
 
         # ИНТЕГРАЦИЯ: Используем adaptation_params.behavior_coefficients для модификации влияния
         # (коэффициенты применяются позже в response_pattern, но здесь можем учесть базовую модификацию)
-        adaptation_params = self_state.get("adaptation_params", {})
-        behavior_coefficients = adaptation_params.get("behavior_coefficients", {})
         # Коэффициенты применяются в response_pattern, здесь только базовая модификация
 
         return scaled_impact

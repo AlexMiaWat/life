@@ -21,7 +21,6 @@ import pytest
 
 from src.learning.learning import LearningEngine
 from src.adaptation.adaptation import AdaptationManager
-from src.meaning.engine import MeaningEngine
 from src.state.self_state import SelfState
 from src.memory.memory import MemoryEntry
 from src.runtime.loop import run_loop

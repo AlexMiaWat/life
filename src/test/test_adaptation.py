@@ -13,7 +13,6 @@ Unit-тесты для модуля Adaptation (Этап 15)
 import sys
 from pathlib import Path
 import inspect
-import types
 import time
 
 project_root = Path(__file__).parent.parent.parent
@@ -262,7 +261,6 @@ class TestAdaptationArchitecturalConstraints:
 
     def test_no_goals_or_rewards(self):
         """Тест отсутствия целей и reward"""
-        manager = AdaptationManager()
         source_code = inspect.getsource(AdaptationManager)
 
         forbidden_terms = [
@@ -284,7 +282,6 @@ class TestAdaptationArchitecturalConstraints:
 
     def test_no_direct_decision_action_control(self):
         """Тест отсутствия прямого управления Decision/Action"""
-        manager = AdaptationManager()
         source_code = inspect.getsource(AdaptationManager)
 
         # Проверяем, что нет прямых вызовов Decision/Action
@@ -305,7 +302,6 @@ class TestAdaptationArchitecturalConstraints:
 
     def test_forbidden_patterns(self):
         """Тест отсутствия запрещенных паттернов"""
-        manager = AdaptationManager()
         source_code = inspect.getsource(AdaptationManager)
 
         forbidden_patterns = [
@@ -402,7 +398,7 @@ class TestAdaptationIntegration:
             self_state.learning_params, getattr(self_state, "adaptation_history", [])
         )
         current_params = {}
-        new_params = manager.apply_adaptation(analysis, current_params, self_state)
+        manager.apply_adaptation(analysis, current_params, self_state)
 
         # learning_params не должны быть изменены
         assert self_state.learning_params == initial_learning_params

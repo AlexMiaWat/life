@@ -65,8 +65,8 @@ class TestGeneratorCLI:
         assert "Unexpected error" in reason or "ValueError" in reason
 
     @patch("builtins.print")
-    @patch("environment.generator_cli.send_event")
-    @patch("environment.generator_cli.EventGenerator")
+    @patch("src.environment.generator_cli.send_event")
+    @patch("src.environment.generator_cli.EventGenerator")
     @patch("time.sleep")
     @patch("builtins.input", return_value="")  # Для KeyboardInterrupt
     def test_main_function_basic(
@@ -108,8 +108,8 @@ class TestGeneratorCLI:
         assert mock_generator.generate.call_count >= 1
 
     @patch("builtins.print")
-    @patch("environment.generator_cli.send_event")
-    @patch("environment.generator_cli.EventGenerator")
+    @patch("src.environment.generator_cli.send_event")
+    @patch("src.environment.generator_cli.EventGenerator")
     @patch("time.sleep")
     def test_main_function_send_event_called(
         self, mock_sleep, mock_generator_class, mock_send, mock_print
@@ -155,8 +155,8 @@ class TestGeneratorCLI:
         assert call_args[0][2]["type"] == "noise"
 
     @patch("builtins.print")
-    @patch("environment.generator_cli.send_event")
-    @patch("environment.generator_cli.EventGenerator")
+    @patch("src.environment.generator_cli.send_event")
+    @patch("src.environment.generator_cli.EventGenerator")
     @patch("time.sleep")
     def test_main_function_send_failure(
         self, mock_sleep, mock_generator_class, mock_send, mock_print
