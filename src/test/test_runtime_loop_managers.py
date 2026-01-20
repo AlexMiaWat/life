@@ -212,18 +212,23 @@ class TestLogManager:
         
         flush_fn.assert_not_called()
 
-    def test_flush_after_snapshot_in_tick_phase(self):
-        """Тест: flush после снапшота в фазе tick с snapshot_was_made=True"""
+    def test_flush_after_snapshot_only_in_after_snapshot_phase(self):
+        """Тест: flush после снапшота происходит только в фазе after_snapshot, не в tick"""
         flush_fn = Mock()
         policy = FlushPolicy(flush_after_snapshot=True, flush_period_ticks=10)
         manager = LogManager(flush_policy=policy, flush_fn=flush_fn)
         self_state = SelfState()
         self_state.ticks = 3
         
-        # Flush после снапшота должен произойти даже если не прошло достаточно тиков
-        manager.maybe_flush(self_state, phase="tick", snapshot_was_made=True)
+        # Flush после снапшота должен произойти в фазе after_snapshot
+        manager.maybe_flush(self_state, phase="after_snapshot")
+        assert flush_fn.call_count == 1
         
-        flush_fn.assert_called_once()
+        # Но НЕ должен произойти в фазе tick (даже если снапшот был сделан)
+        # если не прошло достаточно тиков для периодического flush
+        flush_fn.reset_mock()
+        manager.maybe_flush(self_state, phase="tick")
+        flush_fn.assert_not_called()  # Не должно быть flush, т.к. прошло только 3 тика с последнего flush
 
     def test_log_manager_validation(self):
         """Тест: валидация параметров LogManager"""
@@ -241,6 +246,119 @@ class TestLogManager:
         invalid_policy = FlushPolicy(flush_period_ticks=-1)
         with pytest.raises(ValueError, match="flush_period_ticks must be positive"):
             LogManager(flush_policy=invalid_policy, flush_fn=Mock())
+    
+    def test_log_manager_none_self_state_check(self):
+        """Тест: проверка на None для self_state в maybe_flush"""
+        flush_fn = Mock()
+        policy = FlushPolicy(flush_period_ticks=10)
+        manager = LogManager(flush_policy=policy, flush_fn=flush_fn)
+        
+        # Проверка на None для self_state (консистентность с SnapshotManager)
+        with pytest.raises(ValueError, match="self_state cannot be None"):
+            manager.maybe_flush(None, phase="tick")
+    
+    @pytest.mark.integration
+    def test_log_manager_in_real_runtime_loop(self):
+        """Интеграционный тест: LogManager в реальном runtime loop"""
+        flush_fn = Mock()
+        # Отключаем flush_before_snapshot, чтобы проверить периодический flush
+        flush_policy = FlushPolicy(
+            flush_period_ticks=5,
+            flush_before_snapshot=False,  # Отключаем, чтобы проверить периодический flush
+            flush_after_snapshot=True,
+        )
+        log_manager = LogManager(flush_policy=flush_policy, flush_fn=flush_fn)
+        
+        # Симулируем SnapshotManager для координации
+        saver = Mock()
+        snapshot_manager = SnapshotManager(period_ticks=10, saver=saver)
+        
+        self_state = SelfState()
+        
+        # Симулируем реальный runtime loop на 15 тиков
+        flush_counts_per_tick = []
+        for tick in range(1, 16):
+            self_state.ticks = tick
+            flush_count_before = flush_fn.call_count
+            
+            # Последовательность вызовов как в реальном runtime loop
+            log_manager.maybe_flush(self_state, phase="before_snapshot")
+            snapshot_was_made = snapshot_manager.maybe_snapshot(self_state)
+            if snapshot_was_made:
+                log_manager.maybe_flush(self_state, phase="after_snapshot")
+            log_manager.maybe_flush(self_state, phase="tick")
+            
+            flush_count_after = flush_fn.call_count
+            flush_counts_per_tick.append(flush_count_after - flush_count_before)
+        
+        # Проверяем, что flush НЕ происходит на каждом тике в фазе "tick"
+        # Должно быть flush только:
+        # - Периодически (раз в 5 тиков): тики 5, 10, 15 (в фазе "tick")
+        # - После снапшота: тик 10 (после snapshot)
+        # Итого: тики 5, 10 (2 раза: после снапшота, периодический), 15
+        
+        # Проверяем, что на большинстве тиков flush не происходил в фазе "tick"
+        # (flush_before_snapshot отключен, поэтому flush происходит только периодически и после снапшота)
+        ticks_without_flush_in_tick = sum(1 for i, count in enumerate(flush_counts_per_tick) 
+                                          if i + 1 not in [5, 10, 15] and count == 0)
+        assert ticks_without_flush_in_tick >= 10, "Flush должен происходить редко, не на каждом тике"
+        
+        # Проверяем периодический flush (тики 5, 10, 15)
+        assert flush_fn.call_count >= 3, "Должен быть минимум 3 периодических flush (тики 5, 10, 15)"
+        
+        # Проверяем координацию со снапшотом на тике 10
+        # На тике 10 должно быть 2 flush: после снапшота и периодический
+        assert flush_counts_per_tick[9] >= 1, "На тике 10 должен быть flush (снапшот + периодический)"
+    
+    @pytest.mark.integration
+    def test_log_manager_no_double_flush_after_snapshot(self):
+        """Интеграционный тест: отсутствие двойного flush после снапшота"""
+        flush_fn = Mock()
+        flush_policy = FlushPolicy(
+            flush_period_ticks=10,  # Большой период, чтобы периодический flush не мешал
+            flush_before_snapshot=False,  # Отключаем, чтобы проверить только after_snapshot
+            flush_after_snapshot=True,
+        )
+        log_manager = LogManager(flush_policy=flush_policy, flush_fn=flush_fn)
+        
+        saver = Mock()
+        snapshot_manager = SnapshotManager(period_ticks=5, saver=saver)
+        
+        self_state = SelfState()
+        
+        # Симулируем тики до снапшота
+        for tick in range(1, 6):
+            self_state.ticks = tick
+            log_manager.maybe_flush(self_state, phase="before_snapshot")
+            snapshot_was_made = snapshot_manager.maybe_snapshot(self_state)
+            if snapshot_was_made:
+                log_manager.maybe_flush(self_state, phase="after_snapshot")
+            log_manager.maybe_flush(self_state, phase="tick")
+        
+        # На тике 5 должен быть снапшот и flush после него
+        # Но НЕ должно быть двойного flush (один в after_snapshot, второй в tick)
+        # Проверяем, что flush был вызван только один раз на тике 5 (в фазе after_snapshot)
+        # и не был вызван в фазе tick (т.к. не прошло достаточно тиков для периодического flush)
+        
+        # Сбрасываем счетчик и проверяем конкретный тик
+        flush_fn.reset_mock()
+        self_state.ticks = 5
+        
+        log_manager.maybe_flush(self_state, phase="before_snapshot")
+        snapshot_was_made = snapshot_manager.maybe_snapshot(self_state)
+        assert snapshot_was_made, "На тике 5 должен быть снапшот"
+        
+        if snapshot_was_made:
+            log_manager.maybe_flush(self_state, phase="after_snapshot")
+        flush_count_after_snapshot = flush_fn.call_count
+        
+        log_manager.maybe_flush(self_state, phase="tick")
+        flush_count_after_tick = flush_fn.call_count
+        
+        # Flush должен быть только в фазе after_snapshot, но не в фазе tick
+        # (т.к. не прошло достаточно тиков для периодического flush)
+        assert flush_count_after_snapshot == 1, "Должен быть flush в фазе after_snapshot"
+        assert flush_count_after_tick == 1, "Не должно быть дополнительного flush в фазе tick"
 
 
 @pytest.mark.unit

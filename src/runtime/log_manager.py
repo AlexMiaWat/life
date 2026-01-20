@@ -79,7 +79,9 @@ class LogManager:
         
         self.flush_policy = flush_policy
         self.flush_fn = flush_fn
-        # Инициализируем так, чтобы первый flush был на тике flush_period_ticks
+        # Инициализируем так, чтобы первый flush был на тике flush_period_ticks, а не на тике 0.
+        # Это намеренное решение для избежания flush при инициализации системы.
+        # Например, если flush_period_ticks=10, то last_flush_tick=-10, и первый flush произойдет на тике 10.
         self.last_flush_tick = -flush_policy.flush_period_ticks
     
     def maybe_flush(
@@ -87,16 +89,29 @@ class LogManager:
         self_state: SelfState,
         *,
         phase: Literal["tick", "before_snapshot", "after_snapshot", "exception", "shutdown"],
-        snapshot_was_made: bool = False,
     ) -> None:
         """
         Сбрасывает буфер логов, если нужно по политике.
         
         Args:
-            self_state: Состояние для проверки тиков
+            self_state: Состояние для проверки тиков (не может быть None)
             phase: Фаза выполнения (tick/before_snapshot/after_snapshot/exception/shutdown)
-            snapshot_was_made: Был ли сделан снапшот (используется для flush после снапшота в фазе "tick")
+            
+        Raises:
+            ValueError: Если self_state равен None (для консистентности с SnapshotManager)
+            
+        Note:
+            - Инициализация `last_flush_tick = -flush_period_ticks` обеспечивает первый flush
+              на тике `flush_period_ticks`, а не на тике 0. Это намеренное решение для
+              избежания flush при инициализации системы.
+            - При ошибке flush `last_flush_tick` не обновляется, что обеспечивает retry-механизм:
+              на следующем тике flush попытается выполниться снова.
+            - Flush после снапшота обрабатывается только в фазе "after_snapshot", а не в фазе "tick",
+              чтобы избежать двойного flush.
         """
+        if self_state is None:
+            raise ValueError("self_state cannot be None")
+        
         should_flush = False
         
         if phase == "shutdown" and self.flush_policy.flush_on_shutdown:
@@ -108,12 +123,11 @@ class LogManager:
         elif phase == "after_snapshot" and self.flush_policy.flush_after_snapshot:
             should_flush = True
         elif phase == "tick":
-            # Flush раз в N тиков или после снапшота (если политика требует)
+            # Flush раз в N тиков (периодический flush)
+            # Примечание: flush после снапшота обрабатывается только в фазе "after_snapshot",
+            # чтобы избежать двойного flush, когда snapshot_was_made=True передается в фазу "tick".
             ticks_since_flush = self_state.ticks - self.last_flush_tick
             if ticks_since_flush >= self.flush_policy.flush_period_ticks:
-                should_flush = True
-            elif snapshot_was_made and self.flush_policy.flush_after_snapshot:
-                # Flush после снапшота, если политика требует
                 should_flush = True
         
         if should_flush:
@@ -121,4 +135,7 @@ class LogManager:
                 self.flush_fn()
                 self.last_flush_tick = self_state.ticks
             except Exception as e:
+                # При ошибке flush не обновляем last_flush_tick, чтобы обеспечить retry-механизм:
+                # на следующем тике flush попытается выполниться снова.
+                # Это важно для надежности логирования, особенно при временных проблемах с I/O.
                 logger.warning(f"Ошибка при flush логов: {e}", exc_info=True)

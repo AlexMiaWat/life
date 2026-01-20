@@ -567,7 +567,9 @@ def run_loop(
                 log_manager.maybe_flush(self_state, phase="after_snapshot")
             
             # Flush логов по периодичности (редко, не на каждом тике)
-            log_manager.maybe_flush(self_state, phase="tick", snapshot_was_made=snapshot_was_made)
+            # Примечание: flush после снапшота обрабатывается только в фазе "after_snapshot" выше,
+            # чтобы избежать двойного flush.
+            log_manager.maybe_flush(self_state, phase="tick")
 
             # Поддержка постоянного интервала тиков
             tick_end = time.time()
