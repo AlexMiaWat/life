@@ -75,6 +75,12 @@ if __name__ == "__main__":
         snapshot_period=args.snapshot_period,
         event_queue=event_queue,
         stop_event=stop_event,
+        disable_weakness_penalty=False,
+        disable_structured_logging=False,
+        disable_learning=False,
+        disable_adaptation=False,
+        log_flush_period_ticks=10,
+        enable_profiling=False,
     )
     print("Жизнь завершена. Финальное состояние:")
     print(self_state)

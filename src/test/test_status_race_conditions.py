@@ -71,7 +71,20 @@ class TestStatusRaceConditions:
         # Запускаем runtime loop в отдельном потоке
         def run_runtime_with_events():
             try:
-                run_loop(state, lambda s: None, 0.01, 5, stop_event, event_queue)
+                run_loop(
+                    state,
+                    lambda s: None,
+                    0.01,
+                    5,
+                    stop_event,
+                    event_queue,
+                    False,
+                    False,
+                    False,
+                    False,
+                    10,
+                    False,
+                )
             except Exception:
                 pass  # Игнорируем для теста
 
@@ -120,7 +133,6 @@ class TestStatusRaceConditions:
         state = SelfState()
         state.energy = 80.0
         state.ticks = 5
-        stop_event = threading.Event()
 
         results = []
 
@@ -737,7 +749,7 @@ class TestEventQueueTimingStress:
 
         # Все работники должны видеть пустую очередь
         for result in results:
-            assert result["is_empty"] == True
+            assert result["is_empty"] is True
             assert result["size"] == 0
             assert result["popped_events"] == 0
 
@@ -794,7 +806,7 @@ class TestEventQueueTimingStress:
 
         # Проверяем результаты
         assert len(pop_results) >= 1, "Pop operation did not complete"
-        assert push_completed[0] == True, f"Push did not complete: {push_completed[0]}"
+        assert push_completed[0] is True, f"Push did not complete: {push_completed[0]}"
 
         # Проверяем что pop_all корректно обработал конкурентные push
         first_pop = pop_results[0]
@@ -826,7 +838,7 @@ class TestEventQueueTimingStress:
                         if hasattr(event_queue, "_queue") and hasattr(
                             event_queue._queue, "get_nowait"
                         ):
-                            event = event_queue._queue.get_nowait()
+                            event_queue._queue.get_nowait()
                             results.append({"worker": worker_id, "got_event": True})
                         else:
                             # Используем публичный API
@@ -858,7 +870,6 @@ class TestEventQueueTimingStress:
 
         # Анализируем результаты
         got_events = [r for r in results if r.get("got_event")]
-        empty_checks = [r for r in results if r.get("queue_empty")]
 
         # Должно быть не более одного успешного извлечения события
         assert (

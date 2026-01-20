@@ -363,6 +363,12 @@ def reloader_thread():  # pragma: no cover
                     config["snapshot_period"],
                     loop_stop,
                     event_queue,
+                    False,  # disable_weakness_penalty
+                    False,  # disable_structured_logging
+                    False,  # disable_learning
+                    False,  # disable_adaptation
+                    10,  # log_flush_period_ticks
+                    config["enable_profiling"],
                 ),
                 daemon=True,
             )
@@ -378,6 +384,11 @@ if __name__ == "__main__":  # pragma: no cover
     parser.add_argument(
         "--dev", action="store_true", help="Enable development mode with auto-reload"
     )
+    parser.add_argument(
+        "--profile",
+        action="store_true",
+        help="Enable runtime loop profiling with cProfile",
+    )
     args = parser.parse_args()
     dev_mode = args.dev
 
@@ -387,6 +398,7 @@ if __name__ == "__main__":  # pragma: no cover
     config = {
         "tick_interval": args.tick_interval,
         "snapshot_period": args.snapshot_period,
+        "enable_profiling": args.profile,
     }
 
     if args.clear_data.lower() == "yes":
@@ -431,6 +443,12 @@ if __name__ == "__main__":  # pragma: no cover
             config["snapshot_period"],
             loop_stop,
             event_queue,
+            False,  # disable_weakness_penalty
+            False,  # disable_structured_logging
+            False,  # disable_learning
+            False,  # disable_adaptation
+            10,  # log_flush_period_ticks
+            config["enable_profiling"],
         ),
         daemon=True,
     )

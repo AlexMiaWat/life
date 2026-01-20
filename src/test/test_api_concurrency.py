@@ -12,7 +12,7 @@ import sys
 import threading
 import time
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root / "src"))
@@ -21,8 +21,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 from api import app
-from src.state.self_state import SelfState
 from src.runtime.loop import run_loop
+from src.state.self_state import SelfState
 
 
 @pytest.mark.concurrency
@@ -34,7 +34,9 @@ class TestAPIConcurrency:
         client = TestClient(app, timeout=10.0)
 
         # Получаем токен
-        login_response = client.post("/token", data={"username": "admin", "password": "admin123"})
+        login_response = client.post(
+            "/token", data={"username": "admin", "password": "admin123"}
+        )
         assert login_response.status_code == 200
         token = login_response.json()["access_token"]
         headers = {"Authorization": f"Bearer {token}"}
@@ -47,7 +49,20 @@ class TestAPIConcurrency:
         # Запускаем runtime loop в отдельном потоке
         def run_runtime():
             try:
-                run_loop(state, lambda s: None, 0.001, 50, stop_event, event_queue)
+                run_loop(
+                    state,
+                    lambda s: None,
+                    0.001,
+                    50,
+                    stop_event,
+                    event_queue,
+                    False,
+                    False,
+                    False,
+                    False,
+                    10,
+                    False,
+                )
             except Exception:
                 pass  # Игнорируем исключения для теста
 
@@ -73,7 +88,9 @@ class TestAPIConcurrency:
         client = TestClient(app, timeout=10.0)
 
         # Получаем токен
-        login_response = client.post("/token", data={"username": "admin", "password": "admin123"})
+        login_response = client.post(
+            "/token", data={"username": "admin", "password": "admin123"}
+        )
         assert login_response.status_code == 200
         token = login_response.json()["access_token"]
         headers = {"Authorization": f"Bearer {token}"}
@@ -84,7 +101,9 @@ class TestAPIConcurrency:
             try:
                 # Делаем запрос статуса
                 response = client.get("/status", headers=headers)
-                results.append((request_id, response.status_code, response.json().get("active")))
+                results.append(
+                    (request_id, response.status_code, response.json().get("active"))
+                )
             except Exception as e:
                 results.append((request_id, "error", str(e)))
 
@@ -110,10 +129,16 @@ class TestAPIConcurrency:
         client = TestClient(app, timeout=10.0)
 
         # Регистрируем пользователя для теста
-        user_data = {"username": "concurrency_test", "email": "concurrency@example.com", "password": "test123"}
+        user_data = {
+            "username": "concurrency_test",
+            "email": "concurrency@example.com",
+            "password": "test123",
+        }
         client.post("/register", json=user_data)
 
-        login_response = client.post("/token", data={"username": "concurrency_test", "password": "test123"})
+        login_response = client.post(
+            "/token", data={"username": "concurrency_test", "password": "test123"}
+        )
         token = login_response.json()["access_token"]
         headers = {"Authorization": f"Bearer {token}"}
 
@@ -124,7 +149,7 @@ class TestAPIConcurrency:
                 event_data = {
                     "type": "noise",
                     "intensity": 0.1 + (event_id % 5) * 0.1,
-                    "metadata": {"test": "concurrency", "event_id": event_id}
+                    "metadata": {"test": "concurrency", "event_id": event_id},
                 }
                 response = client.post("/event", json=event_data, headers=headers)
                 results.append(("event", event_id, response.status_code))
@@ -193,10 +218,7 @@ class TestAPIConcurrency:
         # Каждый пользователь отправляет событие
         for username, token in tokens.items():
             headers = {"Authorization": f"Bearer {token}"}
-            event_data = {
-                "type": "noise",
-                "metadata": {"user": username}
-            }
+            event_data = {"type": "noise", "metadata": {"user": username}}
             response = client.post("/event", json=event_data, headers=headers)
             assert response.status_code == 200
 
@@ -216,14 +238,18 @@ class TestAPIConcurrency:
 
         def get_token(attempt_id):
             try:
-                response = client.post("/token", data={"username": "admin", "password": "admin123"})
+                response = client.post(
+                    "/token", data={"username": "admin", "password": "admin123"}
+                )
                 results.append((attempt_id, response.status_code))
                 if response.status_code == 200:
                     token = response.json()["access_token"]
                     # Проверяем, что токен валиден
                     headers = {"Authorization": f"Bearer {token}"}
                     status_response = client.get("/status", headers=headers)
-                    results.append((f"{attempt_id}_verify", status_response.status_code))
+                    results.append(
+                        (f"{attempt_id}_verify", status_response.status_code)
+                    )
             except Exception as e:
                 results.append((attempt_id, f"error: {e}"))
 
@@ -238,8 +264,16 @@ class TestAPIConcurrency:
             thread.join(timeout=2.0)
 
         # Проверяем результаты
-        successful_tokens = [r for r in results if len(r) >= 2 and r[1] == 200 and not str(r[0]).endswith("_verify")]
-        successful_verifications = [r for r in results if len(r) >= 2 and str(r[0]).endswith("_verify") and r[1] == 200]
+        successful_tokens = [
+            r
+            for r in results
+            if len(r) >= 2 and r[1] == 200 and not str(r[0]).endswith("_verify")
+        ]
+        successful_verifications = [
+            r
+            for r in results
+            if len(r) >= 2 and str(r[0]).endswith("_verify") and r[1] == 200
+        ]
 
         # Хотя бы некоторые токены должны быть сгенерированы успешно
         assert len(successful_tokens) >= 1
@@ -278,7 +312,6 @@ class TestStateIsolation:
         state.ticks = 0
 
         # Имитируем чтение API (создаем snapshot)
-        api_read_start = time.time()
         api_snapshot = state.__dict__.copy()
 
         # Имитируем работу runtime (модификация состояния)
@@ -317,9 +350,7 @@ class TestStateIsolation:
         # Добавляем начальные записи
         for i in range(5):
             entry = MemoryEntry(
-                event_type="noise",
-                meaning_significance=0.3,
-                timestamp=float(i)
+                event_type="noise", meaning_significance=0.3, timestamp=float(i)
             )
             memory.append(entry)
 
@@ -341,7 +372,7 @@ class TestStateIsolation:
                 entry = MemoryEntry(
                     event_type="shock",
                     meaning_significance=0.8,
-                    timestamp=100.0 + writer_id
+                    timestamp=100.0 + writer_id,
                 )
                 memory.append(entry)
                 results.append(("write", writer_id, len(memory)))
@@ -393,7 +424,9 @@ class TestAPIErrorHandling:
         client = TestClient(app, timeout=10.0)
 
         # Получаем токен
-        login_response = client.post("/token", data={"username": "admin", "password": "admin123"})
+        login_response = client.post(
+            "/token", data={"username": "admin", "password": "admin123"}
+        )
         token = login_response.json()["access_token"]
         headers = {"Authorization": f"Bearer {token}"}
 
@@ -426,7 +459,7 @@ class TestAPIErrorHandling:
             "another.invalid.token",
             "expired.token.here",
             "",
-            "malformed_token"
+            "malformed_token",
         ]
 
         results = []
@@ -459,10 +492,16 @@ class TestAPIErrorHandling:
         client = TestClient(app, timeout=10.0)
 
         # Регистрируем пользователя
-        user_data = {"username": "pool_test", "email": "pool@example.com", "password": "pool123"}
+        user_data = {
+            "username": "pool_test",
+            "email": "pool@example.com",
+            "password": "pool123",
+        }
         client.post("/register", json=user_data)
 
-        login_response = client.post("/token", data={"username": "pool_test", "password": "pool123"})
+        login_response = client.post(
+            "/token", data={"username": "pool_test", "password": "pool123"}
+        )
         token = login_response.json()["access_token"]
         headers = {"Authorization": f"Bearer {token}"}
 
@@ -472,10 +511,11 @@ class TestAPIErrorHandling:
             assert response.status_code == 200
 
             if i % 10 == 0:  # Каждые 10 запросов отправляем событие
-                event_response = client.post("/event", json={
-                    "type": "noise",
-                    "metadata": {"batch": i // 10}
-                }, headers=headers)
+                event_response = client.post(
+                    "/event",
+                    json={"type": "noise", "metadata": {"batch": i // 10}},
+                    headers=headers,
+                )
                 assert event_response.status_code == 200
 
         # Система должна выдержать нагрузку без ошибок

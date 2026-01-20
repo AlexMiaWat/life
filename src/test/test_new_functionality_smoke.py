@@ -666,8 +666,6 @@ class TestNewFunctionalitySmoke:
 
     def test_subjective_time_boundary_values_smoke(self):
         """Дымовой тест граничных значений субъективного времени"""
-        state = SelfState()
-
         # Нулевые значения
         rate_zero = compute_subjective_time_rate(
             base_rate=0.0,
@@ -862,7 +860,20 @@ class TestNewFunctionalitySmoke:
         # Запускаем runtime в отдельном потоке
         def run_runtime():
             try:
-                run_loop(state, lambda s: None, 0.001, 5, stop_event, event_queue)
+                run_loop(
+                    state,
+                    lambda s: None,
+                    0.001,
+                    5,
+                    stop_event,
+                    event_queue,
+                    False,
+                    False,
+                    False,
+                    False,
+                    10,
+                    False,
+                )
             except Exception:
                 pass  # Игнорируем для smoke теста
 
