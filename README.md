@@ -47,7 +47,7 @@ life/
 │   │   └── learning.py
 │   ├── adaptation/            # Модуль адаптации (этап 15, v1.0)
 │   │   └── adaptation.py
-│   └── test/                  # Тесты (226+ тестов, 96% покрытие)
+│   └── test/                  # Тесты (233+ тестов, 96% покрытие)
 │       ├── test_memory.py
 │       ├── test_state.py
 │       ├── test_activation.py
@@ -78,7 +78,7 @@ life/
 ### Ключевые модули
 
 - **`main_server_api.py`**: Основной сервер с HTTP API (`/status`, `/clear-data`, `/event`), потоками runtime и dev-режимом с авто-перезагрузкой.
-- **`runtime/loop.py`**: Бесконечный цикл с тиками, обработкой событий из [`EventQueue`](src/environment/event_queue.py) и интерпретацией через MeaningEngine. **v2.0:** Рефакторинг с выделением менеджеров (`SnapshotManager`, `LogManager`, `LifePolicy`).
+- **`runtime/loop.py`**: Бесконечный цикл с тиками, обработкой событий из [`EventQueue`](src/environment/event_queue.py) и интерпретацией через MeaningEngine. **v2.0:** Рефакторинг с выделением менеджеров (`SnapshotManager`, `LogManager`, `LifePolicy`), улучшенное логирование с уровнями. **Добавлены тесты делегирования и отсутствия регрессий (7 новых тестов).**
 - **`runtime/snapshot_manager.py`**: Менеджер снапшотов (v2.0) — управляет периодичностью создания снапшотов, изолирует I/O операции.
 - **`runtime/log_manager.py`**: Менеджер логирования (v2.0) — управляет буферизацией и сбросом логов, убирает регулярный I/O из hot-path.
 - **`runtime/life_policy.py`**: Политика слабости (v2.0) — инкапсулирует логику определения слабости и расчета штрафов.

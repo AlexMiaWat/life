@@ -85,6 +85,9 @@ class StatusResponse(BaseModel):
     energy: float
     stability: float
     integrity: float
+    subjective_time: float
+    fatigue: float
+    tension: float
 
 
 class ExtendedStatusResponse(BaseModel):

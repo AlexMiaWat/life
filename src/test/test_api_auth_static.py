@@ -79,8 +79,8 @@ class TestAPIAuthStatic:
 
     def test_user_model_structure(self):
         """Проверка структуры модели User"""
-        assert hasattr(User, "__fields__")
-        fields = User.__fields__
+        assert hasattr(User, "model_fields")
+        fields = User.model_fields
 
         # Обязательные поля
         assert "username" in fields
@@ -91,14 +91,16 @@ class TestAPIAuthStatic:
         assert "full_name" in fields
 
         # Проверяем типы полей
-        assert fields["username"].type_ == str
-        assert fields["email"].type_ == str  # EmailStr, но базовый тип str
-        assert fields["disabled"].type_ == bool
-        assert fields["full_name"].allow_none is True
+        assert fields["username"].annotation == str
+        from pydantic import EmailStr
+        assert fields["email"].annotation == EmailStr
+        assert fields["disabled"].annotation == bool
+        from typing import Union
+        assert fields["full_name"].annotation == Union[str, type(None)]
 
     def test_user_create_model(self):
         """Проверка модели UserCreate"""
-        fields = UserCreate.__fields__
+        fields = UserCreate.model_fields
 
         assert "username" in fields
         assert "email" in fields
@@ -113,7 +115,7 @@ class TestAPIAuthStatic:
 
     def test_user_in_db_model(self):
         """Проверка модели UserInDB"""
-        fields = UserInDB.__fields__
+        fields = UserInDB.model_fields
 
         # Должен наследовать все поля от User
         assert "username" in fields
@@ -123,38 +125,38 @@ class TestAPIAuthStatic:
 
         # И иметь дополнительное поле
         assert "hashed_password" in fields
-        assert fields["hashed_password"].type_ == str
+        assert fields["hashed_password"].annotation == str
 
     def test_token_models(self):
         """Проверка моделей токенов"""
         # Token
-        token_fields = Token.__fields__
+        token_fields = Token.model_fields
         assert "access_token" in token_fields
         assert "token_type" in token_fields
-        assert token_fields["access_token"].type_ == str
-        assert token_fields["token_type"].type_ == str
+        assert token_fields["access_token"].annotation == str
+        assert token_fields["token_type"].annotation == str
 
         # TokenData
-        token_data_fields = TokenData.__fields__
+        token_data_fields = Token.model_fields
         assert "username" in token_data_fields
-        assert not token_data_fields["username"].is_required()  # Optional
+        assert token_data_fields["username"].default is None  # Optional
 
     def test_event_models(self):
         """Проверка моделей событий"""
         # EventCreate
-        create_fields = EventCreate.__fields__
+        create_fields = EventCreate.model_fields
         assert "type" in create_fields
         assert "intensity" in create_fields
         assert "timestamp" in create_fields
         assert "metadata" in create_fields
 
-        assert create_fields["type"].type_ == str
+        assert create_fields["type"].annotation == str
         assert create_fields["intensity"].allow_none is True
         assert create_fields["timestamp"].allow_none is True
         assert create_fields["metadata"].allow_none is True
 
         # EventResponse
-        response_fields = EventResponse.__fields__
+        response_fields = EventResponse.model_fields
         assert "type" in response_fields
         assert "intensity" in response_fields
         assert "timestamp" in response_fields
@@ -164,14 +166,14 @@ class TestAPIAuthStatic:
     def test_status_response_models(self):
         """Проверка моделей ответов статуса"""
         # StatusResponse (minimal)
-        min_fields = StatusResponse.__fields__
+        min_fields = StatusResponse.model_fields
         required_fields = ["active", "ticks", "age", "energy", "stability", "integrity"]
         for field in required_fields:
             assert field in min_fields
             assert min_fields[field].is_required()
 
         # ExtendedStatusResponse
-        ext_fields = ExtendedStatusResponse.__fields__
+        ext_fields = ExtendedStatusResponse.model_fields
 
         # Основные метрики (обязательные)
         vital_fields = ["active", "energy", "integrity", "stability", "ticks", "age", "subjective_time"]
@@ -488,8 +490,8 @@ class TestAPIAuthStatic:
     def test_response_models_consistency(self):
         """Проверка консистентности моделей ответов"""
         # StatusResponse должен быть подмножеством ExtendedStatusResponse
-        min_fields = set(StatusResponse.__fields__.keys())
-        ext_fields = set(ExtendedStatusResponse.__fields__.keys())
+        min_fields = set(StatusResponse.model_fields.keys())
+        ext_fields = set(ExtendedStatusResponse.model_fields.keys())
 
         # Все поля минимального ответа должны быть в расширенном
         assert min_fields.issubset(ext_fields)
@@ -497,10 +499,10 @@ class TestAPIAuthStatic:
     def test_event_response_structure(self):
         """Проверка структуры EventResponse"""
         # EventResponse должен содержать все поля EventCreate плюс message
-        create_fields = set(EventCreate.__fields__.keys())
-        response_fields = set(EventResponse.__fields__.keys())
+        create_fields = set(EventCreate.model_fields.keys())
+        response_fields = set(EventResponse.model_fields.keys())
 
         # response должен содержать все поля create плюс message
         assert create_fields.issubset(response_fields)
         assert "message" in response_fields
-        assert EventResponse.__fields__["message"].type_ == str
+        assert EventResponse.model_fields["message"].annotation == str

@@ -1,4 +1,5 @@
 import json
+import threading
 import time
 import uuid
 from dataclasses import asdict, dataclass, field
@@ -22,6 +23,9 @@ MAX_LOG_FILE_SIZE = 10 * 1024 * 1024  # 10MB в байтах
 
 @dataclass
 class SelfState:
+    # Thread-safety lock для API доступа
+    _api_lock: threading.RLock = field(default_factory=threading.RLock, init=False, repr=False)
+
     life_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     birth_timestamp: float = field(default_factory=time.time)
     age: float = 0.0
@@ -488,6 +492,8 @@ class SelfState:
         """
         Получить безопасный словарь состояния для публичного API.
 
+        Thread-safe: использует lock для обеспечения консистентности данных.
+
         Исключает:
         - Transient поля (activated_memory, last_pattern)
         - Внутренние поля (начинающиеся с _)
@@ -516,8 +522,10 @@ class SelfState:
         """
         from dataclasses import asdict
 
-        # Получаем все поля через asdict
-        state_dict = asdict(self)
+        # Thread-safe чтение состояния
+        with self._api_lock:
+            # Получаем все поля через asdict (создает глубокую копию)
+            state_dict = asdict(self)
 
         # Исключаем transient поля
         state_dict.pop("activated_memory", None)

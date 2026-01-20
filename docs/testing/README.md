@@ -6,7 +6,7 @@
 
 ## Статистика тестирования
 
-- **Всего тестов:** 226 (см. [docs/development/STATISTICS.md](../development/STATISTICS.md) для актуальной статистики)
+- **Всего тестов:** 233 (см. [docs/development/STATISTICS.md](../development/STATISTICS.md) для актуальной статистики)
 - **Все тесты проходят:** ✅
 - **Покрытие кода:** 96%
 - **Основные модули:** 100% покрытие
@@ -60,6 +60,7 @@ pytest src/test/ -q
 - `test_monitor.py` - Тесты модуля Monitor
 - `test_runtime_loop_edge_cases.py` - Edge cases Runtime Loop
 - `test_runtime_loop_feedback_coverage.py` - Тесты обработки Feedback в Loop
+- `test_runtime_loop_managers.py` - Тесты менеджеров Runtime Loop (SnapshotManager, LogManager, LifePolicy) - **ОБНОВЛЕНО**
 - `test_event_queue_edge_cases.py` - Edge cases EventQueue
 - `test_event_queue_race_condition.py` - Race conditions в EventQueue
 - `test_generator_cli.py` - Тесты CLI генератора
@@ -174,6 +175,25 @@ pytest src/test/ -q
   - Архитектурные ограничения аутентификации
   - Маркер: `@pytest.mark.static`
 
+### Тесты делегирования и отсутствия регрессий (НОВЫЕ)
+- **Тесты делегирования** (`TestRunLoopDelegation` в `test_runtime_loop_managers.py`):
+  - Проверка делегирования вызовов из `run_loop` в менеджеры
+  - Использование моков/spy для проверки факта вызовов
+  - Проверка правильности аргументов и условий вызова
+  - Маркер: `@pytest.mark.unit`
+
+- **Тесты отсутствия регрессий** (`TestNoRegressionBehavior` в `test_runtime_loop_managers.py`):
+  - Проверка сохранения поведения после рефакторинга
+  - Тесты периодичности снапшотов и flush
+  - Тесты корректности применения weakness penalties
+  - Маркер: `@pytest.mark.unit`
+
+- **Интеграционные тесты координации** (`TestRunLoopCoordination` в `test_runtime_loop_managers.py`):
+  - Проверка координации между менеджерами в реальном `run_loop`
+  - Тесты многопоточного выполнения runtime loop
+  - Проверка последовательности операций
+  - Маркер: `@pytest.mark.integration`
+
 ## Команды для запуска
 
 ```bash
@@ -223,10 +243,11 @@ pytest src/test/ --cov=src --cov-report=term-missing
 - Бизнес-логика: 100% ✅
 - API эндпоинты: 100% ✅ (включая аутентификацию)
 - Генератор событий: 100% ✅
-- Runtime Loop: ~95-100% ✅
+- Runtime Loop: ~95-100% ✅ (включая тесты делегирования и отсутствия регрессий)
 - Monitor: 100% ✅
 - EventQueue: 93% ✅
 - API аутентификация: 100% ✅ (интеграционные, дымовые и статические тесты)
+- Менеджеры Runtime Loop: 100% ✅ (SnapshotManager, LogManager, LifePolicy)
 
 ### Прогресс покрытия
 

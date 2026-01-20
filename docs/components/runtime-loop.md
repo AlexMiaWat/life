@@ -335,10 +335,37 @@ if life_policy.is_weak(self_state):
 Все менеджеры покрыты unit-тестами в [`src/test/test_runtime_loop_managers.py`](../../src/test/test_runtime_loop_managers.py).
 
 **Покрытие:**
-- Делегирование ответственности менеджерам
-- Отсутствие регрессий поведения
+- **TestSnapshotManager:** Изолированное поведение SnapshotManager (4 теста)
+- **TestLogManager:** Изолированное поведение LogManager и интеграция (11 тестов)
+- **TestLifePolicy:** Изолированное поведение LifePolicy (6 тестов)
+- **TestRuntimeLoopDelegation:** Делегирование из `run_loop` в менеджеры (3 теста) - **НОВЫЙ**
+- **TestNoRegressionBehavior:** Отсутствие регрессий поведения (3 теста) - **НОВЫЙ**
+- **TestRunLoopCoordination:** Интеграционные тесты координации (1 тест) - **НОВЫЙ**
 - Корректность политик и расчетов
 - Обработка ошибок
+
+**Всего тестов:** 28 (добавлено 7 новых тестов)
+
+### Новые типы тестов
+
+#### Тесты делегирования (TestRunLoopDelegation)
+Проверяют, что `run_loop` правильно делегирует вызовы менеджерам с использованием моков/spy:
+
+- `test_run_loop_delegates_to_snapshot_manager` - проверка делегирования SnapshotManager
+- `test_run_loop_delegates_to_log_manager` - проверка делегирования LogManager в разных фазах
+- `test_run_loop_delegates_to_life_policy` - проверка делегирования LifePolicy
+
+#### Тесты отсутствия регрессий (TestNoRegressionBehavior)
+Проверяют сохранение поведения после рефакторинга:
+
+- `test_snapshot_periodicity_no_regression` - периодичность создания снапшотов
+- `test_flush_schedule_no_regression` - расписание flush (не на каждом тике)
+- `test_weakness_penalties_no_regression` - корректность применения штрафов
+
+#### Интеграционные тесты координации (TestRunLoopCoordination)
+Проверяют координацию между менеджерами в реальном многопоточном `run_loop`:
+
+- `test_run_loop_coordinates_snapshot_and_log_managers` - координация SnapshotManager и LogManager
 
 ## Связанные документы
 
