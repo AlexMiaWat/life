@@ -29,6 +29,14 @@ graph TD
     LogM -->|Flush| Disk
     LifeM -->|Penalties| State
 
+    %% Observability Layer
+    Loop -.->|Log| Logger[StructuredLogger]
+    Meaning -.->|Log| Logger
+    Decision -.->|Log| Logger
+    Action -.->|Log| Logger
+    Feedback -.->|Log| Logger
+    Logger -->|JSONL| LogFile[(structured_log.jsonl)]
+
     subgraph "Core System"
         Loop
         State
@@ -52,6 +60,10 @@ graph TD
     subgraph "Higher Layers"
         Planning
         Intelligence
+    end
+
+    subgraph "Observability Layer"
+        Logger
     end
 ```
 
@@ -130,6 +142,15 @@ graph TD
 *   **Роль:** Запуск, остановка, подача внешних сигналов.
 *   **Документация:** [api-server.md](../components/api-server.md)
 
+### 14. Observability Layer (Наблюдаемость)
+Система структурированного логирования и мониторинга.
+*   **Роль:** Трассировка полных цепочек event→meaning→decision→action→feedback, сбор метрик производительности.
+*   **Компоненты:**
+    - **StructuredLogger:** Единый интерфейс для JSONL логирования всех стадий
+    - **Correlation IDs:** Связывание событий в причинно-следственные цепочки
+    - **Performance Metrics:** Автоматический сбор длительности тиков, размера очереди, количества событий
+*   **Документация:** [observability/README.md](../observability/README.md)
+
 ## Потоки данных
 
 1.  **Входящий поток:** Environment -> Event Queue -> Runtime Loop -> Meaning Engine -> Activation -> Memory -> Decision -> Action -> Self-State Update.
@@ -137,6 +158,7 @@ graph TD
 3.  **Поток обратной связи:** Action -> Feedback (наблюдение через 3-10 тиков) -> Memory (запись фактов).
 4.  **Поток метрик:** Runtime Loop -> Planning / Intelligence (пассивный сбор).
 5.  **Поток наблюдения:** Self-State -> Monitor -> Logs / Console.
+6.  **Поток наблюдаемости:** Все компоненты -> StructuredLogger -> JSONL логи (корреляционные цепочки, метрики производительности).
 
 ## Принципы взаимодействия
 

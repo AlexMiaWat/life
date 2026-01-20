@@ -4,18 +4,18 @@
 API Server предоставляет HTTP интерфейс для управления системой Life и получения её состояния из внешних приложений.
 
 ## Текущий статус
-✅ **Реализован** (v1.0)
+✅ **Реализован** (v2.0 - упрощенная версия)
 *   Основной файл: [`src/main_server_api.py`](../../src/main_server_api.py)
-*   API с аутентификацией: [`api.py`](../../api.py)
+*   **Упрощенное API:** Убрана аутентификация, JWT токены и регистрация пользователей
 *   Фреймворк: FastAPI
 *   Запускается в отдельном потоке (Daemon), параллельно с Runtime Loop
-*   **Новые тесты аутентификации:** Интеграционные, дымовые и статические тесты (100% покрытие)
+*   **Текущие тесты:** Статические, дымовые и интеграционные тесты для упрощенного API
 
-## Два варианта API
+## API Server
 
-### 1. Основной API Server (`src/main_server_api.py`)
+### Основной API Server (`src/main_server_api.py`)
 
-Основной API сервер для работы с Life системой.
+Единый API сервер для работы с Life системой (упрощенная версия без аутентификации).
 
 **Endpoints:**
 
@@ -228,213 +228,6 @@ python src/main_server_api.py --tick-interval 0.5
 *   Порт по умолчанию: `8000`
 *   Документация API (Swagger): `http://localhost:8000/docs`
 
-### 2. API с аутентификацией (`api.py`)
-
-REST API с JWT токенами для аутентификации пользователей.
-
-**Особенности:**
-- JWT токены для аутентификации
-- Регистрация и авторизация пользователей
-- Защищенные endpoints
-- Использует FastAPI с OAuth2
-
-**Endpoints:**
-
-#### POST /register
-Регистрация нового пользователя.
-
-**Запрос:**
-```json
-{
-  "username": "user",
-  "email": "user@example.com",
-  "password": "password123",
-  "full_name": "User Name"
-}
-```
-
-**Пример запроса:**
-```bash
-curl -X POST "http://localhost:8001/register" \
-  -H "Content-Type: application/json" \
-  -d '{"username":"testuser","email":"test@example.com","password":"test123","full_name":"Test User"}'
-```
-
-**Ответ (успех):**
-```json
-{
-  "username": "testuser",
-  "email": "test@example.com",
-  "full_name": "Test User"
-}
-```
-
-#### POST /token
-Получение JWT токена для аутентификации.
-
-**Запрос:**
-```
-username=user&password=password123
-```
-
-**Пример запроса:**
-```bash
-curl -X POST "http://localhost:8001/token" \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "username=admin&password=admin123"
-```
-
-**Ответ:**
-```json
-{
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "token_type": "bearer"
-}
-```
-
-#### GET /users/me
-Получение информации о текущем пользователе (требует аутентификации).
-
-**Пример запроса:**
-```bash
-curl -X GET "http://localhost:8001/users/me" \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN"
-```
-
-**Ответ:**
-```json
-{
-  "username": "admin",
-  "email": "admin@example.com",
-  "full_name": "Administrator"
-}
-```
-
-#### GET /protected
-Пример защищенного endpoint (требует аутентификации).
-
-**Пример запроса:**
-```bash
-curl -X GET "http://localhost:8001/protected" \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN"
-```
-
-**Ответ:**
-```json
-{"message": "You are authenticated!"}
-```
-
-#### GET /status
-Получение статуса системы Life (требует аутентификации).
-
-**Пример запроса:**
-```bash
-curl -X GET "http://localhost:8001/status" \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN"
-```
-
-**Ответ (минимальный контракт):**
-```json
-{
-  "active": true,
-  "ticks": 150,
-  "age": 75.0,
-  "energy": 95.5,
-  "integrity": 1.0,
-  "stability": 0.98
-}
-```
-
-**Примечание:** Текущая реализация в `api.py` использует модель `StatusResponse` с ограниченным набором полей. Для расширенного контракта см. раздел "Контракт `/status` endpoint" в описании основного API сервера выше.
-
-#### POST /event
-Создание события в системе Life (требует аутентификации).
-
-**Пример запроса:**
-```bash
-curl -X POST "http://localhost:8001/event" \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"type":"recovery","intensity":0.3,"metadata":{"source":"api"}}'
-```
-
-**Ответ:**
-```json
-{"message": "Event created successfully"}
-```
-
-**Запуск:**
-```bash
-python api.py
-# или
-uvicorn api:app --host 0.0.0.0 --port 8001
-```
-
-*   Порт по умолчанию: `8001`
-*   Документация API (Swagger): `http://localhost:8001/docs`
-
-**Тестовые пользователи:**
-- `admin` / `admin123`
-- `user` / `user123`
-
-**Использование токена:**
-```bash
-# Получение токена
-curl -X POST "http://localhost:8001/token" \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "username=admin&password=admin123"
-
-# Использование токена
-curl -X GET "http://localhost:8001/protected" \
-  -H "Authorization: Bearer YOUR_TOKEN"
-```
-
-## Тестирование API с аутентификацией
-
-### Комплексное покрытие тестами
-
-API с аутентификацией имеет полное покрытие тестами (100%):
-
-#### Интеграционные тесты (`test_api_auth_integration.py`)
-- **Полный жизненный цикл пользователя:** регистрация → аутентификация → использование → изоляция
-- **Изоляция пользователей:** действия одного пользователя не влияют на других
-- **Обработка ошибок:** edge cases, валидация, сетевые прерывания
-- **Консистентность данных:** проверка состояния между запросами
-- **Маркер:** `@pytest.mark.integration`
-
-#### Дымовые тесты (`test_api_auth_smoke.py`)
-- **Базовая работоспособность:** запуск приложения, доступность эндпоинтов
-- **Аутентификация:** правильные/неправильные учетные данные
-- **Регистрация пользователей:** создание новых аккаунтов, дубликаты
-- **Валидация данных:** корректные и некорректные запросы
-- **Маркер:** `@pytest.mark.smoke`
-
-#### Статические тесты (`test_api_auth_static.py`)
-- **Модели данных:** структура Pydantic моделей (User, Token, EventCreate, etc.)
-- **Функции и сигнатуры:** валидация параметров, типов возвращаемых значений
-- **Безопасность:** JWT токены, хеширование паролей, защита от уязвимостей
-- **Архитектурные ограничения:** аутентификация, авторизация, валидация
-- **Маркер:** `@pytest.mark.static`
-
-### Запуск тестов аутентификации
-
-```bash
-# Все тесты аутентификации
-pytest src/test/test_api_auth_*.py -v
-
-# Только интеграционные тесты
-pytest src/test/test_api_auth_integration.py -v -m integration
-
-# Только дымовые тесты
-pytest src/test/test_api_auth_smoke.py -v -m smoke
-
-# Только статические тесты
-pytest src/test/test_api_auth_static.py -v -m static
-
-# С покрытием
-pytest src/test/test_api_auth_*.py --cov=api --cov-report=html
-```
-
 ## Архитектура
 
 Сервер работает в режиме "Sidecar" для Runtime Loop:
@@ -569,9 +362,9 @@ python src/main_server_api.py
 
 ## Зависимости
 
-Для API с аутентификацией требуются дополнительные зависимости:
-- `python-jose[cryptography]>=3.3.0` — для JWT токенов
-- `passlib[bcrypt]>=1.7.4` — для хеширования паролей
-- `python-multipart>=0.0.6` — для OAuth2 форм
+API сервер использует минимальный набор зависимостей FastAPI:
+- `fastapi` — веб-фреймворк
+- `uvicorn` — ASGI сервер
+- `requests` — для HTTP запросов в тестах
 
 Все зависимости указаны в `requirements.txt`.

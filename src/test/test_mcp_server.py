@@ -2,10 +2,14 @@
 Тесты для MCP сервера life-docs
 """
 
+import asyncio
 import sys
 from pathlib import Path
 
 import pytest
+
+# Проверяем наличие pytest-asyncio
+pytest.importorskip("pytest_asyncio")
 
 # Добавляем корень проекта в путь для импорта
 project_root = Path(__file__).parent.parent.parent

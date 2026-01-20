@@ -11,6 +11,7 @@ from src.intelligence.intelligence import process_information
 from src.learning.learning import LearningEngine
 from src.meaning.engine import MeaningEngine
 from src.memory.memory import MemoryEntry
+from src.observability.structured_logger import StructuredLogger
 from src.planning.planning import record_potential_sequences
 from src.runtime.life_policy import LifePolicy
 from src.runtime.log_manager import FlushPolicy, LogManager
@@ -190,6 +191,10 @@ def run_loop(
     stop_event=None,
     event_queue=None,
     disable_weakness_penalty=False,
+    disable_structured_logging=False,
+    disable_learning=False,
+    disable_adaptation=False,
+    log_flush_period_ticks=10,
 ):
     """
     Runtime Loop с интеграцией Environment (этап 07)
@@ -213,7 +218,7 @@ def run_loop(
         period_ticks=snapshot_period, saver=save_snapshot
     )
     flush_policy = FlushPolicy(
-        flush_period_ticks=10,
+        flush_period_ticks=log_flush_period_ticks,
         flush_before_snapshot=True,
         flush_on_exception=True,
         flush_on_shutdown=True,
@@ -226,6 +231,9 @@ def run_loop(
         LifePolicy()
     )  # Использует значения по умолчанию (совпадают с предыдущими константами)
 
+    # Structured logger for observability
+    structured_logger = StructuredLogger(enabled=not disable_structured_logging)
+
     # Счетчики ошибок для отслеживания проблем
     learning_errors = 0
     adaptation_errors = 0
@@ -233,9 +241,14 @@ def run_loop(
 
     while stop_event is None or not stop_event.is_set():
         try:
-            current_time = time.time()
+            tick_start_time = time.time()
+            current_time = tick_start_time
             dt = current_time - last_time
             last_time = current_time
+
+            # Log tick start
+            queue_size = event_queue.size() if event_queue else 0
+            structured_logger.log_tick_start(self_state.ticks, queue_size)
 
             # Обновление состояния
             self_state.apply_delta({"ticks": 1})
@@ -260,6 +273,14 @@ def run_loop(
                 self_state, pending_actions, event_queue
             )
 
+            # Log feedback records
+            for feedback in feedback_records:
+                # Try to find correlation ID from action (if available)
+                correlation_id = (
+                    getattr(feedback, "correlation_id", None) or "feedback_chain"
+                )
+                structured_logger.log_feedback(feedback, correlation_id)
+
             # Сохраняем Feedback в Memory
             for feedback in feedback_records:
                 feedback_entry = MemoryEntry(
@@ -282,6 +303,12 @@ def run_loop(
                 logger.debug(f"[LOOP] Queue not empty, size={event_queue.size()}")
                 events = event_queue.pop_all()
                 logger.debug(f"[LOOP] POPPED {len(events)} events")
+
+                # Log events
+                correlation_ids = []
+                for event in events:
+                    correlation_id = structured_logger.log_event(event)
+                    correlation_ids.append(correlation_id)
                 # Update intensity signal for this tick using exponential smoothing
                 try:
                     current_max_intensity = max(
@@ -297,13 +324,24 @@ def run_loop(
                     self_state.last_event_intensity = 0.0
 
                 # === ШАГ 2: Интерпретировать события ===
+                event_index = 0
                 for event in events:
+                    correlation_id = (
+                        correlation_ids[event_index]
+                        if event_index < len(correlation_ids)
+                        else None
+                    )
                     logger.debug(
                         f"[LOOP] Interpreting event: type={event.type}, intensity={event.intensity}"
                     )
                     meaning = engine.process(
                         event, self_state.get_safe_status_dict(include_optional=False)
                     )
+
+                    # Log meaning
+                    if correlation_id:
+                        structured_logger.log_meaning(event, meaning, correlation_id)
+
                     if meaning.significance > 0:
                         # Активация памяти для события
                         activated = activate_memory(event.type, self_state.memory)
@@ -315,6 +353,20 @@ def run_loop(
                         # Decision
                         pattern = decide_response(self_state, meaning)
                         self_state.last_pattern = pattern
+
+                        # Log decision
+                        if correlation_id:
+                            structured_logger.log_decision(
+                                pattern,
+                                correlation_id,
+                                {
+                                    "significance": meaning.significance,
+                                    "original_impact": meaning.impact.copy()
+                                    if meaning.impact
+                                    else {},
+                                },
+                            )
+
                         if pattern == "ignore":
                             continue  # skip apply_delta
                         elif pattern == "dampen":
@@ -333,6 +385,13 @@ def run_loop(
 
                         self_state.apply_delta(meaning.impact)
                         execute_action(pattern, self_state)
+
+                        # Log action
+                        if correlation_id:
+                            action_id = f"action_{self_state.ticks}_{pattern}_{int(time.time()*1000)}"
+                            structured_logger.log_action(
+                                action_id, pattern, correlation_id, state_before
+                            )
 
                         # Регистрируем для Feedback (после выполнения)
                         # Action не знает о Feedback - регистрация происходит в Loop
@@ -358,6 +417,7 @@ def run_loop(
                     logger.debug(
                         f"[LOOP] After interpret: energy={self_state.energy:.2f}, stability={self_state.stability:.4f}"
                     )
+                    event_index += 1
 
                 record_potential_sequences(self_state)
                 process_information(self_state)
@@ -370,7 +430,11 @@ def run_loop(
 
             # Learning (Этап 14) - медленное изменение внутренних параметров
             # Вызывается раз в LEARNING_INTERVAL тиков, после Feedback, перед Planning/Intelligence
-            if self_state.ticks > 0 and self_state.ticks % LEARNING_INTERVAL == 0:
+            if (
+                not disable_learning
+                and self_state.ticks > 0
+                and self_state.ticks % LEARNING_INTERVAL == 0
+            ):
                 try:
                     # Проверяем инициализацию параметров
                     if (
@@ -471,7 +535,11 @@ def run_loop(
 
             # Adaptation (Этап 15) - медленная перестройка поведения на основе статистики Learning
             # Вызывается раз в ADAPTATION_INTERVAL тиков, после Learning, перед Planning/Intelligence
-            if self_state.ticks > 0 and self_state.ticks % ADAPTATION_INTERVAL == 0:
+            if (
+                not disable_adaptation
+                and self_state.ticks > 0
+                and self_state.ticks % ADAPTATION_INTERVAL == 0
+            ):
                 try:
                     # Проверяем инициализацию параметров
                     if (
@@ -606,6 +674,13 @@ def run_loop(
                 monitor(self_state)
             except Exception as e:
                 logger.error(f"Ошибка в monitor: {e}", exc_info=True)
+
+            # Log tick end with performance metrics
+            tick_duration = (time.time() - tick_start_time) * 1000  # ms
+            events_processed = len(events) if "events" in locals() else 0
+            structured_logger.log_tick_end(
+                self_state.ticks, tick_duration, events_processed
+            )
 
             # Flush логов перед снапшотом (если политика требует)
             log_manager.maybe_flush(self_state, phase="before_snapshot")

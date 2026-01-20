@@ -81,6 +81,7 @@ class TestPerformanceBenchmarks:
         queue = EventQueue()
         # Увеличиваем размер очереди для performance теста
         import queue as queue_module
+
         queue._queue = queue_module.Queue(maxsize=2000)
         num_events = 1000
 
@@ -140,7 +141,19 @@ class TestPerformanceBenchmarks:
 
         loop_thread = threading.Thread(
             target=run_loop,
-            args=(state, dummy_monitor, 0.01, 100, stop_event, event_queue),
+            args=(
+                state,
+                dummy_monitor,
+                0.01,
+                1000,
+                stop_event,
+                event_queue,
+                False,
+                True,
+                True,
+                True,
+                100,
+            ),
             daemon=True,
         )
 
@@ -245,7 +258,7 @@ class TestPerformanceBenchmarks:
                     "state_delta": {
                         "energy": (i % 3 - 1) * 2.0,
                         "stability": (i % 4 - 2) * 0.1,
-                    }
+                    },
                 }
 
             entry = MemoryEntry(
@@ -265,7 +278,7 @@ class TestPerformanceBenchmarks:
         current_params = {
             "event_type_sensitivity": {"event_0": 0.5, "event_1": 0.3},
             "significance_thresholds": {"event_0": 0.2, "event_1": 0.1},
-            "response_coefficients": {"dampen": 0.5, "absorb": 1.0}
+            "response_coefficients": {"dampen": 0.5, "absorb": 1.0},
         }
 
         start_time = time.time()
@@ -273,10 +286,16 @@ class TestPerformanceBenchmarks:
         adjust_elapsed = time.time() - start_time
 
         # Проверки производительности
-        assert process_elapsed < 0.5, f"Learning process_statistics too slow: {process_elapsed:.3f}s for {num_entries} entries"
-        assert adjust_elapsed < 0.1, f"Learning adjust_parameters too slow: {adjust_elapsed:.3f}s"
+        assert (
+            process_elapsed < 0.5
+        ), f"Learning process_statistics too slow: {process_elapsed:.3f}s for {num_entries} entries"
+        assert (
+            adjust_elapsed < 0.1
+        ), f"Learning adjust_parameters too slow: {adjust_elapsed:.3f}s"
         assert new_params is not None
-        assert statistics["total_entries"] == min(num_entries, 50)  # Memory ограничена 50 записями
+        assert statistics["total_entries"] == min(
+            num_entries, 50
+        )  # Memory ограничена 50 записями
 
     def test_adaptation_manager_performance_with_frequent_calls(self):
         """Benchmark: производительность Adaptation Manager при частых вызовах"""
@@ -288,7 +307,7 @@ class TestPerformanceBenchmarks:
         learning_params = {
             "event_type_sensitivity": {"event_0": 0.5, "event_1": 0.3},
             "significance_thresholds": {"event_0": 0.2, "event_1": 0.1},
-            "response_coefficients": {"dampen": 0.5, "absorb": 1.0}
+            "response_coefficients": {"dampen": 0.5, "absorb": 1.0},
         }
 
         adaptation_history = [
@@ -302,20 +321,22 @@ class TestPerformanceBenchmarks:
         current_behavior_params = {
             "behavior_sensitivity": {"event_0": 0.4, "event_1": 0.2},
             "behavior_thresholds": {"event_0": 0.15, "event_1": 0.05},
-            "behavior_coefficients": {"dampen": 0.4, "absorb": 0.9}
+            "behavior_coefficients": {"dampen": 0.4, "absorb": 0.9},
         }
 
         # Тест производительности analyze_changes
         num_iterations = 1000
         start_time = time.time()
         for _ in range(num_iterations):
-            analysis = adaptation_manager.analyze_changes(learning_params, adaptation_history)
+            analysis = adaptation_manager.analyze_changes(
+                learning_params, adaptation_history
+            )
         analyze_elapsed = time.time() - start_time
 
         # Тест производительности apply_adaptation
         start_time = time.time()
         for _ in range(num_iterations):
-            new_params = adaptation_manager.apply_adaptation(
+            _ = adaptation_manager.apply_adaptation(
                 analysis, current_behavior_params, None
             )
         apply_elapsed = time.time() - start_time
@@ -324,8 +345,12 @@ class TestPerformanceBenchmarks:
         analyze_time_per_call = analyze_elapsed / num_iterations
         apply_time_per_call = apply_elapsed / num_iterations
 
-        assert analyze_time_per_call < 0.001, f"Adaptation analyze_changes too slow: {analyze_time_per_call:.6f}s per call"
-        assert apply_time_per_call < 0.001, f"Adaptation apply_adaptation too slow: {apply_time_per_call:.6f}s per call"
+        assert (
+            analyze_time_per_call < 0.001
+        ), f"Adaptation analyze_changes too slow: {analyze_time_per_call:.6f}s per call"
+        assert (
+            apply_time_per_call < 0.001
+        ), f"Adaptation apply_adaptation too slow: {apply_time_per_call:.6f}s per call"
 
     def test_meaning_engine_performance_with_many_events(self):
         """Benchmark: производительность Meaning Engine при обработке множества событий"""
@@ -343,7 +368,7 @@ class TestPerformanceBenchmarks:
             event = Event(
                 type=event_types[i % len(event_types)],
                 intensity=0.1 + (i % 10) * 0.09,  # intensity от 0.1 до 1.0
-                timestamp=time.time() + i
+                timestamp=time.time() + i,
             )
             events.append(event)
 
@@ -351,20 +376,28 @@ class TestPerformanceBenchmarks:
         start_time = time.time()
         meanings = []
         for event in events:
-            meaning = meaning_engine.process(event, {
-                "energy": state.energy,
-                "integrity": state.integrity,
-                "stability": state.stability,
-                "learning_params": state.learning_params,
-                "adaptation_params": state.adaptation_params,
-            })
+            meaning = meaning_engine.process(
+                event,
+                {
+                    "energy": state.energy,
+                    "integrity": state.integrity,
+                    "stability": state.stability,
+                    "learning_params": state.learning_params,
+                    "adaptation_params": state.adaptation_params,
+                },
+            )
             meanings.append(meaning)
         elapsed = time.time() - start_time
 
         # Проверки производительности и корректности
-        assert elapsed < 2.0, f"Meaning Engine too slow: {elapsed:.3f}s for {num_events} events"
+        assert (
+            elapsed < 2.0
+        ), f"Meaning Engine too slow: {elapsed:.3f}s for {num_events} events"
         assert len(meanings) == num_events
-        assert all(meaning.significance >= 0.0 and meaning.significance <= 1.0 for meaning in meanings)
+        assert all(
+            meaning.significance >= 0.0 and meaning.significance <= 1.0
+            for meaning in meanings
+        )
         assert all(isinstance(meaning.impact, dict) for meaning in meanings)
 
     def test_runtime_loop_performance_with_learning_adaptation(self):
@@ -380,7 +413,10 @@ class TestPerformanceBenchmarks:
             if i % 2 == 0:  # Каждая вторая запись - feedback
                 feedback_data = {
                     "action_pattern": f"pattern_{i % 3}",
-                    "state_delta": {"energy": (i % 5 - 2) * 5.0, "stability": (i % 3 - 1) * 0.1}
+                    "state_delta": {
+                        "energy": (i % 5 - 2) * 5.0,
+                        "stability": (i % 3 - 1) * 0.1,
+                    },
                 }
 
             entry = MemoryEntry(
@@ -399,14 +435,21 @@ class TestPerformanceBenchmarks:
             event = Event(
                 type="noise" if i % 3 == 0 else "shock",
                 intensity=0.3 + (i % 5) * 0.14,
-                timestamp=time.time() + i
+                timestamp=time.time() + i,
             )
             event_queue.push(event)
 
         initial_ticks = state.ticks
         loop_thread = threading.Thread(
             target=run_loop,
-            args=(state, dummy_monitor, 0.01, 100, stop_event, event_queue),  # 100 тиков
+            args=(
+                state,
+                dummy_monitor,
+                0.01,
+                100,
+                stop_event,
+                event_queue,
+            ),  # 100 тиков
             daemon=True,
         )
 
@@ -421,13 +464,15 @@ class TestPerformanceBenchmarks:
         ticks_done = state.ticks - initial_ticks
 
         # Проверки производительности (более мягкие лимиты для интеграционного теста)
-        assert ticks_done >= 30, f"Loop didn't complete enough ticks: {ticks_done} (expected >= 30)"
+        assert (
+            ticks_done >= 30
+        ), f"Loop didn't complete enough ticks: {ticks_done} (expected >= 30)"
         assert elapsed < 8.0, f"Loop too slow: {elapsed:.3f}s for {ticks_done} ticks"
 
         # Проверяем, что Learning и Adaptation вызывались
         # (проверяем косвенно через наличие параметров)
-        assert hasattr(state, 'learning_params')
-        assert hasattr(state, 'adaptation_params')
+        assert hasattr(state, "learning_params")
+        assert hasattr(state, "adaptation_params")
         assert isinstance(state.learning_params, dict)
         assert isinstance(state.adaptation_params, dict)
 
