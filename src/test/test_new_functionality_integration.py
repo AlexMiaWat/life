@@ -25,7 +25,10 @@ from src.environment.event import Event
 from src.environment.event_queue import EventQueue
 from src.learning.learning import LearningEngine
 from src.memory.memory import MemoryEntry
+from src.runtime.life_policy import LifePolicy
+from src.runtime.log_manager import FlushPolicy, LogManager
 from src.runtime.loop import run_loop
+from src.runtime.snapshot_manager import SnapshotManager
 from src.runtime.subjective_time import compute_subjective_dt
 from src.state.self_state import SelfState
 
@@ -684,7 +687,14 @@ class TestNewFunctionalityIntegration:
         # Запускаем loop
         thread = threading.Thread(
             target=run_loop,
-            args=(self_state, monitor_subjective_time, 0.01, 1000, stop_event, event_queue),
+            args=(
+                self_state,
+                monitor_subjective_time,
+                0.01,
+                1000,
+                stop_event,
+                event_queue,
+            ),
         )
         thread.start()
 
@@ -694,7 +704,9 @@ class TestNewFunctionalityIntegration:
 
         # Проверяем, что субъективное время изменялось
         assert len(subjective_times) > 1, "Субъективное время должно было изменяться"
-        assert all(t >= initial_subjective for t in subjective_times), "Субъективное время должно быть монотонным"
+        assert all(
+            t >= initial_subjective for t in subjective_times
+        ), "Субъективное время должно быть монотонным"
 
     def test_subjective_time_memory_persistence_integration(self):
         """Интеграционный тест сохранения субъективного времени в памяти"""
@@ -727,13 +739,20 @@ class TestNewFunctionalityIntegration:
 
         # Проверяем, что записи имеют правильную структуру
         for entry in self_state.memory:
-            assert hasattr(entry, 'timestamp'), "Запись должна иметь timestamp"
+            assert hasattr(entry, "timestamp"), "Запись должна иметь timestamp"
             assert isinstance(entry.timestamp, float), "timestamp должен быть float"
             assert entry.timestamp > 0, "timestamp должен быть положительным"
             # subjective_timestamp может быть установлен или нет
-            if hasattr(entry, 'subjective_timestamp') and entry.subjective_timestamp is not None:
-                assert isinstance(entry.subjective_timestamp, float), "subjective_timestamp должен быть float"
-                assert entry.subjective_timestamp >= 0.0, "subjective_timestamp должен быть положительным"
+            if (
+                hasattr(entry, "subjective_timestamp")
+                and entry.subjective_timestamp is not None
+            ):
+                assert isinstance(
+                    entry.subjective_timestamp, float
+                ), "subjective_timestamp должен быть float"
+                assert (
+                    entry.subjective_timestamp >= 0.0
+                ), "subjective_timestamp должен быть положительным"
 
     def test_subjective_time_feedback_integration(self):
         """Интеграционный тест субъективного времени с Feedback"""
@@ -768,16 +787,24 @@ class TestNewFunctionalityIntegration:
         thread.join(timeout=1.0)
 
         # Проверяем Feedback записи
-        feedback_entries = [entry for entry in self_state.memory if entry.event_type == "feedback"]
+        feedback_entries = [
+            entry for entry in self_state.memory if entry.event_type == "feedback"
+        ]
         if feedback_entries:
             for entry in feedback_entries:
-                assert hasattr(entry, "subjective_timestamp"), "Feedback должен иметь subjective_timestamp"
-                assert entry.subjective_timestamp is not None, "subjective_timestamp должен быть установлен"
-                assert entry.subjective_timestamp >= 0.0, "subjective_timestamp должен быть положительным"
+                assert hasattr(
+                    entry, "subjective_timestamp"
+                ), "Feedback должен иметь subjective_timestamp"
+                assert (
+                    entry.subjective_timestamp is not None
+                ), "subjective_timestamp должен быть установлен"
+                assert (
+                    entry.subjective_timestamp >= 0.0
+                ), "subjective_timestamp должен быть положительным"
 
     def test_subjective_time_state_persistence_integration(self):
         """Интеграционный тест сохранения субъективного времени в состоянии"""
-        from src.state.self_state import save_snapshot, load_snapshot
+        from src.state.self_state import load_snapshot, save_snapshot
 
         self_state = SelfState()
         event_queue = EventQueue()
@@ -807,9 +834,15 @@ class TestNewFunctionalityIntegration:
         loaded_state = load_snapshot(50)
 
         # Проверяем, что субъективное время присутствует и имеет разумное значение
-        assert hasattr(loaded_state, "subjective_time"), "Загруженное состояние должно иметь subjective_time"
-        assert isinstance(loaded_state.subjective_time, float), "subjective_time должен быть float"
-        assert loaded_state.subjective_time >= 0.0, "subjective_time должен быть положительным"
+        assert hasattr(
+            loaded_state, "subjective_time"
+        ), "Загруженное состояние должно иметь subjective_time"
+        assert isinstance(
+            loaded_state.subjective_time, float
+        ), "subjective_time должен быть float"
+        assert (
+            loaded_state.subjective_time >= 0.0
+        ), "subjective_time должен быть положительным"
         # Субъективное время сохраняется (может быть изменено системой, но должно сохраниться текущее значение)
 
     def test_subjective_time_runtime_dynamics_integration(self):
@@ -820,9 +853,9 @@ class TestNewFunctionalityIntegration:
 
         # Добавляем события с разной интенсивностью
         events = [
-            Event(type="idle", intensity=0.0, timestamp=1.0),    # Низкая интенсивность
-            Event(type="noise", intensity=0.5, timestamp=2.0),   # Средняя интенсивность
-            Event(type="shock", intensity=0.9, timestamp=3.0),   # Высокая интенсивность
+            Event(type="idle", intensity=0.0, timestamp=1.0),  # Низкая интенсивность
+            Event(type="noise", intensity=0.5, timestamp=2.0),  # Средняя интенсивность
+            Event(type="shock", intensity=0.9, timestamp=3.0),  # Высокая интенсивность
         ]
         for event in events:
             event_queue.push(event)
@@ -832,17 +865,26 @@ class TestNewFunctionalityIntegration:
         def monitor_time_dynamics(state):
             # Записываем состояние времени на каждом тике
             if hasattr(state, "subjective_time"):
-                time_points.append({
-                    "subjective_time": state.subjective_time,
-                    "energy": state.energy,
-                    "stability": state.stability,
-                    "intensity": getattr(state, "last_event_intensity", 0.0),
-                })
+                time_points.append(
+                    {
+                        "subjective_time": state.subjective_time,
+                        "energy": state.energy,
+                        "stability": state.stability,
+                        "intensity": getattr(state, "last_event_intensity", 0.0),
+                    }
+                )
 
         # Запускаем систему
         thread = threading.Thread(
             target=run_loop,
-            args=(self_state, monitor_time_dynamics, 0.01, 1000, stop_event, event_queue),
+            args=(
+                self_state,
+                monitor_time_dynamics,
+                0.01,
+                1000,
+                stop_event,
+                event_queue,
+            ),
         )
         thread.start()
 
@@ -855,7 +897,9 @@ class TestNewFunctionalityIntegration:
 
         # Проверяем монотонность субъективного времени
         subjective_times = [point["subjective_time"] for point in time_points]
-        assert subjective_times == sorted(subjective_times), "Субъективное время должно быть монотонным"
+        assert subjective_times == sorted(
+            subjective_times
+        ), "Субъективное время должно быть монотонным"
 
     # ============================================================================
     # Thread Safety Integration Tests
@@ -865,12 +909,15 @@ class TestNewFunctionalityIntegration:
     def test_thread_safety_api_runtime_concurrent_integration(self):
         """Интеграционный тест конкурентного доступа API и runtime"""
         from fastapi.testclient import TestClient
+
         from api import app
 
         client = TestClient(app, timeout=10.0)
 
         # Получаем токен
-        login_response = client.post("/token", data={"username": "admin", "password": "admin123"})
+        login_response = client.post(
+            "/token", data={"username": "admin", "password": "admin123"}
+        )
         assert login_response.status_code == 200
         token = login_response.json()["access_token"]
         headers = {"Authorization": f"Bearer {token}"}
@@ -902,21 +949,30 @@ class TestNewFunctionalityIntegration:
 
         # Все API запросы должны быть успешными
         successful_requests = [r for r in api_results if r == 200]
-        assert len(successful_requests) >= 3, f"Слишком много неудачных API запросов: {api_results}"
+        assert (
+            len(successful_requests) >= 3
+        ), f"Слишком много неудачных API запросов: {api_results}"
 
     @pytest.mark.skip(reason="API tests are outdated")
     def test_thread_safety_event_submission_during_runtime_integration(self):
         """Интеграционный тест отправки событий во время работы runtime"""
         from fastapi.testclient import TestClient
+
         from api import app
 
         client = TestClient(app, timeout=10.0)
 
         # Регистрируем пользователя
-        user_data = {"username": "thread_test", "email": "thread@example.com", "password": "test123"}
+        user_data = {
+            "username": "thread_test",
+            "email": "thread@example.com",
+            "password": "test123",
+        }
         client.post("/register", json=user_data)
 
-        login_response = client.post("/token", data={"username": "thread_test", "password": "test123"})
+        login_response = client.post(
+            "/token", data={"username": "thread_test", "password": "test123"}
+        )
         token = login_response.json()["access_token"]
         headers = {"Authorization": f"Bearer {token}"}
 
@@ -938,7 +994,7 @@ class TestNewFunctionalityIntegration:
                 event_data = {
                     "type": "noise",
                     "intensity": 0.2 + i * 0.1,
-                    "metadata": {"integration_test": True, "sequence": i}
+                    "metadata": {"integration_test": True, "sequence": i},
                 }
                 response = client.post("/event", json=event_data, headers=headers)
                 event_results.append(response.status_code)
@@ -951,7 +1007,9 @@ class TestNewFunctionalityIntegration:
 
         # Все отправки событий должны быть успешными
         successful_events = [r for r in event_results if r == 200]
-        assert len(successful_events) == 3, f"Не все события отправлены успешно: {event_results}"
+        assert (
+            len(successful_events) == 3
+        ), f"Не все события отправлены успешно: {event_results}"
 
     def test_thread_safety_state_consistency_integration(self):
         """Интеграционный тест консистентности состояния при конкурентном доступе"""
@@ -970,7 +1028,9 @@ class TestNewFunctionalityIntegration:
                 try:
                     # Имитируем get_safe_status_dict
                     snapshot = state.get_safe_status_dict()
-                    access_log.append(("read", reader_id, snapshot["ticks"], snapshot["energy"]))
+                    access_log.append(
+                        ("read", reader_id, snapshot["ticks"], snapshot["energy"])
+                    )
                     time.sleep(0.001)
                 except Exception as e:
                     access_log.append(("read_error", reader_id, str(e)))
@@ -1025,9 +1085,7 @@ class TestNewFunctionalityIntegration:
         # Добавляем начальные записи
         for i in range(3):
             entry = MemoryEntry(
-                event_type="noise",
-                meaning_significance=0.3,
-                timestamp=float(i)
+                event_type="noise", meaning_significance=0.3, timestamp=float(i)
             )
             memory.append(entry)
 
@@ -1049,9 +1107,7 @@ class TestNewFunctionalityIntegration:
             for i in range(3):
                 try:
                     entry = MemoryEntry(
-                        event_type="shock",
-                        meaning_significance=0.8,
-                        timestamp=10.0 + i
+                        event_type="shock", meaning_significance=0.8, timestamp=10.0 + i
                     )
                     memory.append(entry)
                     operations_log.append(("write", writer_id, len(memory)))
@@ -1091,12 +1147,15 @@ class TestNewFunctionalityIntegration:
     def test_subjective_time_thread_safety_combined_integration(self):
         """Интеграционный тест комбинации субъективного времени и потокобезопасности"""
         from fastapi.testclient import TestClient
+
         from api import app
 
         client = TestClient(app, timeout=10.0)
 
         # Получаем токен
-        login_response = client.post("/token", data={"username": "admin", "password": "admin123"})
+        login_response = client.post(
+            "/token", data={"username": "admin", "password": "admin123"}
+        )
         assert login_response.status_code == 200
         token = login_response.json()["access_token"]
         headers = {"Authorization": f"Bearer {token}"}
@@ -1120,7 +1179,7 @@ class TestNewFunctionalityIntegration:
             event_data = {
                 "type": ["noise", "shock", "recovery"][i],
                 "intensity": [0.3, -0.5, 0.4][i],
-                "metadata": {"combined_test": True}
+                "metadata": {"combined_test": True},
             }
             response = client.post("/event", json=event_data, headers=headers)
             assert response.status_code == 200
@@ -1143,22 +1202,31 @@ class TestNewFunctionalityIntegration:
         assert len(valid_reads) > 0, "API должен возвращать subjective_time"
 
         # Все значения должны быть положительными
-        assert all(st >= 0 for st in valid_reads), "subjective_time должен быть положительным"
+        assert all(
+            st >= 0 for st in valid_reads
+        ), "subjective_time должен быть положительным"
 
     @pytest.mark.skip(reason="API tests are outdated")
     def test_full_system_new_functionality_integration(self):
         """Полная интеграция всей новой функциональности"""
         from fastapi.testclient import TestClient
+
         from api import app
         from src.feedback import register_action
 
         client = TestClient(app, timeout=10.0)
 
         # Создаем пользователя
-        user_data = {"username": "full_test", "email": "full@example.com", "password": "test123"}
+        user_data = {
+            "username": "full_test",
+            "email": "full@example.com",
+            "password": "test123",
+        }
         client.post("/register", json=user_data)
 
-        login_response = client.post("/token", data={"username": "full_test", "password": "test123"})
+        login_response = client.post(
+            "/token", data={"username": "full_test", "password": "test123"}
+        )
         token = login_response.json()["access_token"]
         headers = {"Authorization": f"Bearer {token}"}
 
@@ -1189,11 +1257,15 @@ class TestNewFunctionalityIntegration:
         time.sleep(0.02)
 
         # 1. Отправляем событие
-        event_response = client.post("/event", json={
-            "type": "shock",
-            "intensity": -0.7,
-            "metadata": {"full_integration_test": True}
-        }, headers=headers)
+        event_response = client.post(
+            "/event",
+            json={
+                "type": "shock",
+                "intensity": -0.7,
+                "metadata": {"full_integration_test": True},
+            },
+            headers=headers,
+        )
         assert event_response.status_code == 200
 
         time.sleep(0.02)
@@ -1205,8 +1277,12 @@ class TestNewFunctionalityIntegration:
 
         # 3. Проверяем наличие новой функциональности
         assert "subjective_time" in status_data, "API должен возвращать subjective_time"
-        assert isinstance(status_data["subjective_time"], (int, float)), "subjective_time должен быть числом"
-        assert status_data["subjective_time"] >= 0, "subjective_time должен быть положительным"
+        assert isinstance(
+            status_data["subjective_time"], (int, float)
+        ), "subjective_time должен быть числом"
+        assert (
+            status_data["subjective_time"] >= 0
+        ), "subjective_time должен быть положительным"
 
         stop_event.set()
         runtime_thread.join(timeout=1.0)
@@ -1217,9 +1293,15 @@ class TestNewFunctionalityIntegration:
         assert hasattr(state, "adaptation_params"), "Adaptation должен работать"
 
         # 5. Проверяем наличие записей с субъективным временем
-        memory_with_subjective = [entry for entry in state.memory
-                                  if hasattr(entry, 'subjective_timestamp') and entry.subjective_timestamp is not None]
-        assert len(memory_with_subjective) > 0, "Должны быть записи памяти с subjective_timestamp"
+        memory_with_subjective = [
+            entry
+            for entry in state.memory
+            if hasattr(entry, "subjective_timestamp")
+            and entry.subjective_timestamp is not None
+        ]
+        assert (
+            len(memory_with_subjective) > 0
+        ), "Должны быть записи памяти с subjective_timestamp"
 
     # ============================================================================
     # MCP Index Engine Integration
@@ -1227,9 +1309,10 @@ class TestNewFunctionalityIntegration:
 
     def test_mcp_index_engine_full_integration(self):
         """Полная интеграция MCP Index Engine"""
-        from pathlib import Path
-        import tempfile
         import shutil
+        import tempfile
+        from pathlib import Path
+
         from mcp_index_engine import IndexEngine
 
         docs_dir = Path(tempfile.mkdtemp())
@@ -1239,9 +1322,18 @@ class TestNewFunctionalityIntegration:
         try:
             # Создаем тестовую документацию
             docs_content = [
-                ("api.md", "# API Documentation\nREST API with authentication using JWT tokens"),
-                ("search.md", "# Search Engine\nAdvanced search capabilities with indexing"),
-                ("architecture.md", "# System Architecture\nModular design with multiple components"),
+                (
+                    "api.md",
+                    "# API Documentation\nREST API with authentication using JWT tokens",
+                ),
+                (
+                    "search.md",
+                    "# Search Engine\nAdvanced search capabilities with indexing",
+                ),
+                (
+                    "architecture.md",
+                    "# System Architecture\nModular design with multiple components",
+                ),
             ]
 
             for filename, content in docs_content:
@@ -1249,7 +1341,10 @@ class TestNewFunctionalityIntegration:
 
             # Создаем TODO файлы
             todo_content = [
-                ("features.md", "# Planned Features\n- Advanced search\n- User authentication\n- API integration"),
+                (
+                    "features.md",
+                    "# Planned Features\n- Advanced search\n- User authentication\n- API integration",
+                ),
                 ("bugs.md", "# Known Issues\n- Search performance\n- Memory usage"),
             ]
 
@@ -1273,10 +1368,14 @@ class TestNewFunctionalityIntegration:
             assert len(results) >= 1  # документы, содержащие "search"
 
             # Тестируем разные режимы поиска
-            and_results = engine.search_in_directory(docs_dir, "api authentication", mode="AND")
+            and_results = engine.search_in_directory(
+                docs_dir, "api authentication", mode="AND"
+            )
             assert len(and_results) >= 1
 
-            or_results = engine.search_in_directory(docs_dir, "system modular", mode="OR")
+            or_results = engine.search_in_directory(
+                docs_dir, "system modular", mode="OR"
+            )
             assert len(or_results) >= 1  # architecture.md содержит оба слова
 
             # Тестируем поиск по TODO
@@ -1285,14 +1384,19 @@ class TestNewFunctionalityIntegration:
 
             # Тестируем обновление файла
             api_file = docs_dir / "api.md"
-            api_file.write_text("# API Documentation\nUpdated: REST API with JWT authentication and advanced features", encoding="utf-8")
+            api_file.write_text(
+                "# API Documentation\nUpdated: REST API with JWT authentication and advanced features",
+                encoding="utf-8",
+            )
 
             engine.update_file(api_file)
             updated_results = engine.search_in_directory(docs_dir, "advanced")
             assert len(updated_results) >= 1
 
             # Тестируем переиндексацию
-            (docs_dir / "new_doc.md").write_text("# New Document\nRecently added content", encoding="utf-8")
+            (docs_dir / "new_doc.md").write_text(
+                "# New Document\nRecently added content", encoding="utf-8"
+            )
             engine.reindex()
             assert len(engine.content_cache) == 6  # +1 новый файл
 
@@ -1303,10 +1407,11 @@ class TestNewFunctionalityIntegration:
 
     def test_mcp_index_engine_performance_integration(self):
         """Интеграционный тест производительности MCP Index Engine"""
-        from pathlib import Path
-        import tempfile
         import shutil
+        import tempfile
         import time
+        from pathlib import Path
+
         from mcp_index_engine import IndexEngine
 
         docs_dir = Path(tempfile.mkdtemp())
@@ -1317,7 +1422,9 @@ class TestNewFunctionalityIntegration:
                 content = f"# Document {i}\nThis is test content for document number {i}.\nKeywords: test, performance, search, indexing."
                 (docs_dir / f"doc_{i:03d}.md").write_text(content, encoding="utf-8")
 
-            engine = IndexEngine(docs_dir, Path(tempfile.mkdtemp()), Path(tempfile.mkdtemp()))
+            engine = IndexEngine(
+                docs_dir, Path(tempfile.mkdtemp()), Path(tempfile.mkdtemp())
+            )
 
             # Замеряем время индексации
             start_time = time.time()
@@ -1325,19 +1432,30 @@ class TestNewFunctionalityIntegration:
             index_time = time.time() - start_time
 
             # Проверяем, что индексация была reasonably быстрой (< 1 секунды для 50 файлов)
-            assert index_time < 1.0, f"Индексация заняла слишком много времени: {index_time}s"
+            assert (
+                index_time < 1.0
+            ), f"Индексация заняла слишком много времени: {index_time}s"
 
             # Замеряем время поиска
             search_start = time.time()
-            results = engine.search_in_directory(docs_dir, "performance", limit=100)  # Увеличим лимит
+            results = engine.search_in_directory(
+                docs_dir, "performance", limit=100
+            )  # Увеличим лимит
             search_time = time.time() - search_start
 
             # Поиск должен быть быстрым (< 0.1 секунды)
-            assert search_time < 0.1, f"Поиск занял слишком много времени: {search_time}s"
+            assert (
+                search_time < 0.1
+            ), f"Поиск занял слишком много времени: {search_time}s"
             assert len(results) == 50  # Все документы содержат "performance"
 
             # Тестируем LRU кэширование
-            small_engine = IndexEngine(docs_dir, Path(tempfile.mkdtemp()), Path(tempfile.mkdtemp()), cache_size_limit=10)
+            small_engine = IndexEngine(
+                docs_dir,
+                Path(tempfile.mkdtemp()),
+                Path(tempfile.mkdtemp()),
+                cache_size_limit=10,
+            )
 
             # Заполняем кэш
             for i in range(15):
@@ -1352,9 +1470,10 @@ class TestNewFunctionalityIntegration:
 
     def test_mcp_index_engine_error_handling_integration(self):
         """Интеграционный тест обработки ошибок MCP Index Engine"""
-        from pathlib import Path
-        import tempfile
         import shutil
+        import tempfile
+        from pathlib import Path
+
         from mcp_index_engine import IndexEngine
 
         docs_dir = Path(tempfile.mkdtemp())
@@ -1363,16 +1482,22 @@ class TestNewFunctionalityIntegration:
 
         try:
             # Создаем файлы с проблемами
-            (docs_dir / "valid.md").write_text("# Valid Document\nNormal content", encoding="utf-8")
+            (docs_dir / "valid.md").write_text(
+                "# Valid Document\nNormal content", encoding="utf-8"
+            )
 
             # Файл с неподдерживаемой кодировкой (имитация)
-            (docs_dir / "binary.md").write_bytes(b'\x89PNG\r\n\x1a\n' + b'x' * 1000)  # PNG header + garbage
+            (docs_dir / "binary.md").write_bytes(
+                b"\x89PNG\r\n\x1a\n" + b"x" * 1000
+            )  # PNG header + garbage
 
             # Слишком большой файл
             big_content = "x" * (10 * 1024 * 1024 + 1)  # > 10MB
             (docs_dir / "huge.md").write_text(big_content, encoding="utf-8")
 
-            engine = IndexEngine(docs_dir, todo_dir, src_dir, max_file_size=10*1024*1024)
+            engine = IndexEngine(
+                docs_dir, todo_dir, src_dir, max_file_size=10 * 1024 * 1024
+            )
 
             # Индексация должна обработать ошибки gracefully
             engine.initialize()
@@ -1402,14 +1527,23 @@ class TestNewFunctionalityIntegration:
     def test_api_auth_full_lifecycle_integration(self):
         """Полная интеграция жизненного цикла API аутентификации"""
         from fastapi.testclient import TestClient
+
         from api import app
 
         client = TestClient(app)
 
         # 1. Регистрация пользователей
         users = [
-            {"username": "testuser1", "email": "test1@example.com", "password": "pass123"},
-            {"username": "testuser2", "email": "test2@example.com", "password": "pass456"},
+            {
+                "username": "testuser1",
+                "email": "test1@example.com",
+                "password": "pass123",
+            },
+            {
+                "username": "testuser2",
+                "email": "test2@example.com",
+                "password": "pass456",
+            },
         ]
 
         tokens = {}
@@ -1419,10 +1553,10 @@ class TestNewFunctionalityIntegration:
             assert response.status_code == 201
 
             # Вход
-            login_response = client.post("/token", data={
-                "username": user["username"],
-                "password": user["password"]
-            })
+            login_response = client.post(
+                "/token",
+                data={"username": user["username"], "password": user["password"]},
+            )
             assert login_response.status_code == 200
 
             tokens[user["username"]] = login_response.json()["access_token"]
@@ -1436,10 +1570,11 @@ class TestNewFunctionalityIntegration:
             assert status_response.status_code == 200
 
             # Каждый пользователь может создать событие
-            event_response = client.post("/event", json={
-                "type": "noise",
-                "metadata": {"user": username}
-            }, headers=headers)
+            event_response = client.post(
+                "/event",
+                json={"type": "noise", "metadata": {"user": username}},
+                headers=headers,
+            )
             assert event_response.status_code == 200
             assert username in event_response.json()["message"]
 
@@ -1456,10 +1591,12 @@ class TestNewFunctionalityIntegration:
     @pytest.mark.skip(reason="API tests are outdated")
     def test_api_auth_token_expiration_integration(self):
         """Интеграционный тест истечения токенов API"""
-        from fastapi.testclient import TestClient
-        import jwt
         import time
-        from api import app, SECRET_KEY, ALGORITHM
+
+        import jwt
+        from fastapi.testclient import TestClient
+
+        from api import ALGORITHM, SECRET_KEY, app
 
         client = TestClient(app)
 
@@ -1482,7 +1619,9 @@ class TestNewFunctionalityIntegration:
         assert response.status_code == 401
 
         # Проверяем что можем получить новый токен
-        login_response = client.post("/token", data={"username": "admin", "password": "admin123"})
+        login_response = client.post(
+            "/token", data={"username": "admin", "password": "admin123"}
+        )
         assert login_response.status_code == 200
 
         new_token = login_response.json()["access_token"]
@@ -1496,6 +1635,7 @@ class TestNewFunctionalityIntegration:
     def test_api_auth_concurrent_sessions_integration(self):
         """Интеграционный тест одновременных сессий API"""
         from fastapi.testclient import TestClient
+
         from api import app
 
         client = TestClient(app)
@@ -1503,7 +1643,9 @@ class TestNewFunctionalityIntegration:
         # Создаем несколько токенов для одного пользователя
         tokens = []
         for _ in range(5):
-            login_response = client.post("/token", data={"username": "admin", "password": "admin123"})
+            login_response = client.post(
+                "/token", data={"username": "admin", "password": "admin123"}
+            )
             assert login_response.status_code == 200
             tokens.append(login_response.json()["access_token"])
 
@@ -1516,10 +1658,14 @@ class TestNewFunctionalityIntegration:
             assert status_response.status_code == 200
 
             # Создаем событие
-            event_response = client.post("/event", json={
-                "type": "noise",
-                "metadata": {"session": i, "test": "concurrent"}
-            }, headers=headers)
+            event_response = client.post(
+                "/event",
+                json={
+                    "type": "noise",
+                    "metadata": {"session": i, "test": "concurrent"},
+                },
+                headers=headers,
+            )
             assert event_response.status_code == 200
 
             # Получаем пользователей
@@ -1530,12 +1676,15 @@ class TestNewFunctionalityIntegration:
     def test_api_auth_event_processing_integration(self):
         """Интеграционный тест обработки событий через API"""
         from fastapi.testclient import TestClient
+
         from api import app
 
         client = TestClient(app)
 
         # Получаем токен
-        login_response = client.post("/token", data={"username": "admin", "password": "admin123"})
+        login_response = client.post(
+            "/token", data={"username": "admin", "password": "admin123"}
+        )
         token = login_response.json()["access_token"]
         headers = {"Authorization": f"Bearer {token}"}
 
@@ -1570,15 +1719,22 @@ class TestNewFunctionalityIntegration:
     def test_api_auth_extended_status_integration(self):
         """Интеграционный тест расширенного статуса API"""
         from fastapi.testclient import TestClient
+
         from api import app
 
         client = TestClient(app)
 
         # Регистрируем нового пользователя для тестирования
-        user_data = {"username": "status_test", "email": "status@example.com", "password": "status123"}
+        user_data = {
+            "username": "status_test",
+            "email": "status@example.com",
+            "password": "status123",
+        }
         client.post("/register", json=user_data)
 
-        login_response = client.post("/token", data={"username": "status_test", "password": "status123"})
+        login_response = client.post(
+            "/token", data={"username": "status_test", "password": "status123"}
+        )
         token = login_response.json()["access_token"]
         headers = {"Authorization": f"Bearer {token}"}
 
@@ -1589,12 +1745,25 @@ class TestNewFunctionalityIntegration:
         data = response.json()
 
         # Проверяем обязательные поля
-        required_fields = ["active", "energy", "integrity", "stability", "ticks", "age", "subjective_time"]
+        required_fields = [
+            "active",
+            "energy",
+            "integrity",
+            "stability",
+            "ticks",
+            "age",
+            "subjective_time",
+        ]
         for field in required_fields:
             assert field in data
 
         # Проверяем опциональные поля
-        optional_fields = ["life_id", "birth_timestamp", "learning_params", "adaptation_params"]
+        optional_fields = [
+            "life_id",
+            "birth_timestamp",
+            "learning_params",
+            "adaptation_params",
+        ]
         for field in optional_fields:
             assert field in data  # В данной реализации все поля присутствуют
 
@@ -1611,23 +1780,42 @@ class TestNewFunctionalityIntegration:
 
         min_data = min_response.json()
         # API возвращает расширенный статус независимо от параметра minimal
-        extended_fields = {"active", "ticks", "age", "energy", "stability", "integrity", "subjective_time", "fatigue", "tension", "learning_params", "adaptation_params", "life_id", "birth_timestamp"}
+        extended_fields = {
+            "active",
+            "ticks",
+            "age",
+            "energy",
+            "stability",
+            "integrity",
+            "subjective_time",
+            "fatigue",
+            "tension",
+            "learning_params",
+            "adaptation_params",
+            "life_id",
+            "birth_timestamp",
+        }
         assert all(field in min_data for field in extended_fields)
 
         # Тестируем статус с лимитами
-        limited_response = client.get("/status?memory_limit=5&events_limit=3", headers=headers)
+        limited_response = client.get(
+            "/status?memory_limit=5&events_limit=3", headers=headers
+        )
         assert limited_response.status_code == 200
 
     @pytest.mark.skip(reason="API tests are outdated")
     def test_api_auth_error_handling_integration(self):
         """Интеграционный тест обработки ошибок API"""
         from fastapi.testclient import TestClient
+
         from api import app
 
         client = TestClient(app)
 
         # Получаем токен
-        login_response = client.post("/token", data={"username": "admin", "password": "admin123"})
+        login_response = client.post(
+            "/token", data={"username": "admin", "password": "admin123"}
+        )
         token = login_response.json()["access_token"]
         headers = {"Authorization": f"Bearer {token}"}
 
@@ -1662,12 +1850,14 @@ class TestNewFunctionalityIntegration:
     @pytest.mark.skip(reason="API tests are outdated")
     def test_mcp_api_combined_search_integration(self):
         """Интеграционный тест комбинированного поиска MCP + API"""
-        from pathlib import Path
-        import tempfile
         import shutil
+        import tempfile
+        from pathlib import Path
+
         from fastapi.testclient import TestClient
-        from mcp_index_engine import IndexEngine
+
         from api import app
+        from mcp_index_engine import IndexEngine
 
         docs_dir = Path(tempfile.mkdtemp())
         todo_dir = Path(tempfile.mkdtemp())
@@ -1676,9 +1866,18 @@ class TestNewFunctionalityIntegration:
         try:
             # Создаем документацию для поиска
             docs_content = [
-                ("authentication.md", "# Authentication\nJWT tokens and user management in API"),
-                ("search.md", "# Search Engine\nMCP Index Engine provides fast search capabilities"),
-                ("api_endpoints.md", "# API Endpoints\n/status, /event, /users with authentication"),
+                (
+                    "authentication.md",
+                    "# Authentication\nJWT tokens and user management in API",
+                ),
+                (
+                    "search.md",
+                    "# Search Engine\nMCP Index Engine provides fast search capabilities",
+                ),
+                (
+                    "api_endpoints.md",
+                    "# API Endpoints\n/status, /event, /users with authentication",
+                ),
             ]
 
             for filename, content in docs_content:
@@ -1693,7 +1892,9 @@ class TestNewFunctionalityIntegration:
             assert len(auth_results) >= 1
             # Проверяем, что найден релевантный документ
             found_auth = any("authentication" in r["path"] for r in auth_results)
-            assert found_auth, f"Authentication document not found in results: {[r['path'] for r in auth_results]}"
+            assert (
+                found_auth
+            ), f"Authentication document not found in results: {[r['path'] for r in auth_results]}"
 
             api_results = engine.search_in_directory(docs_dir, "api")
             assert len(api_results) >= 2  # документы, содержащие "api"
@@ -1702,17 +1903,26 @@ class TestNewFunctionalityIntegration:
             client = TestClient(app)
 
             # Регистрируем пользователя
-            user_data = {"username": "search_user", "email": "search@example.com", "password": "search123"}
+            user_data = {
+                "username": "search_user",
+                "email": "search@example.com",
+                "password": "search123",
+            }
             client.post("/register", json=user_data)
 
             # Входим
-            login_response = client.post("/token", data={"username": "search_user", "password": "search123"})
+            login_response = client.post(
+                "/token", data={"username": "search_user", "password": "search123"}
+            )
             token = login_response.json()["access_token"]
             headers = {"Authorization": f"Bearer {token}"}
 
             # Создаем события через API
             events = [
-                {"type": "noise", "metadata": {"search_test": True, "topic": "authentication"}},
+                {
+                    "type": "noise",
+                    "metadata": {"search_test": True, "topic": "authentication"},
+                },
                 {"type": "noise", "metadata": {"search_test": True, "topic": "api"}},
                 {"type": "noise", "metadata": {"search_test": True, "topic": "search"}},
             ]
@@ -1764,13 +1974,21 @@ class TestNewFunctionalityIntegration:
         thread.join(timeout=1.0)
 
         # Проверяем, что в памяти есть запись с subjective_timestamp
-        memory_entries = [entry for entry in self_state.memory if entry.event_type == "shock"]
+        memory_entries = [
+            entry for entry in self_state.memory if entry.event_type == "shock"
+        ]
         assert len(memory_entries) > 0, "Должна быть запись о событии shock в памяти"
 
         entry = memory_entries[0]
-        assert entry.subjective_timestamp is not None, "subjective_timestamp должен быть установлен"
-        assert isinstance(entry.subjective_timestamp, float), "subjective_timestamp должен быть float"
-        assert entry.subjective_timestamp > 0, "subjective_timestamp должен быть положительным"
+        assert (
+            entry.subjective_timestamp is not None
+        ), "subjective_timestamp должен быть установлен"
+        assert isinstance(
+            entry.subjective_timestamp, float
+        ), "subjective_timestamp должен быть float"
+        assert (
+            entry.subjective_timestamp > 0
+        ), "subjective_timestamp должен быть положительным"
 
     def test_subjective_time_feedback_memory_integration(self):
         """Интеграционный тест записи субъективного времени в Feedback записи"""
@@ -1810,22 +2028,36 @@ class TestNewFunctionalityIntegration:
         thread.join(timeout=1.0)
 
         # Проверяем, что система работает (Feedback может создаваться или не создаваться в зависимости от условий)
-        feedback_entries = [entry for entry in self_state.memory if entry.event_type == "feedback"]
+        feedback_entries = [
+            entry for entry in self_state.memory if entry.event_type == "feedback"
+        ]
 
         # Если Feedback записи создались, проверяем их структуру
         if feedback_entries:
             entry = feedback_entries[0]
-            assert entry.subjective_timestamp is not None, "subjective_timestamp должен быть установлен в Feedback"
-            assert isinstance(entry.subjective_timestamp, float), "subjective_timestamp должен быть float"
-            assert entry.subjective_timestamp > 0, "subjective_timestamp должен быть положительным"
+            assert (
+                entry.subjective_timestamp is not None
+            ), "subjective_timestamp должен быть установлен в Feedback"
+            assert isinstance(
+                entry.subjective_timestamp, float
+            ), "subjective_timestamp должен быть float"
+            assert (
+                entry.subjective_timestamp > 0
+            ), "subjective_timestamp должен быть положительным"
 
             # Проверяем структуру feedback_data
-            assert entry.feedback_data is not None, "Feedback запись должна иметь feedback_data"
-            assert "action_id" in entry.feedback_data, "feedback_data должен содержать action_id"
+            assert (
+                entry.feedback_data is not None
+            ), "Feedback запись должна иметь feedback_data"
+            assert (
+                "action_id" in entry.feedback_data
+            ), "feedback_data должен содержать action_id"
         else:
             # Если Feedback не создался, проверяем что система все равно работает
             assert hasattr(self_state, "memory"), "Memory должна существовать"
-            assert hasattr(self_state, "learning_params"), "Learning params должны существовать"
+            assert hasattr(
+                self_state, "learning_params"
+            ), "Learning params должны существовать"
 
     def test_subjective_time_monotonic_in_memory(self):
         """Интеграционный тест монотонности субъективного времени в памяти"""
@@ -1846,14 +2078,24 @@ class TestNewFunctionalityIntegration:
         def monitor_collecting_timestamps(state):
             # Собираем все subjective_timestamp из памяти на каждом тике
             for entry in state.memory:
-                if hasattr(entry, 'subjective_timestamp') and entry.subjective_timestamp is not None:
+                if (
+                    hasattr(entry, "subjective_timestamp")
+                    and entry.subjective_timestamp is not None
+                ):
                     if entry.subjective_timestamp not in timestamps_collected:
                         timestamps_collected.append(entry.subjective_timestamp)
 
         # Запускаем loop
         thread = threading.Thread(
             target=run_loop,
-            args=(self_state, monitor_collecting_timestamps, 0.01, 1000, stop_event, event_queue),
+            args=(
+                self_state,
+                monitor_collecting_timestamps,
+                0.01,
+                1000,
+                stop_event,
+                event_queue,
+            ),
         )
         thread.start()
 
@@ -1864,8 +2106,418 @@ class TestNewFunctionalityIntegration:
 
         # Проверяем монотонность: все timestamp должны быть >= 0 и не убывать
         assert len(timestamps_collected) > 0, "Должны быть собраны subjective_timestamp"
-        assert all(ts >= 0 for ts in timestamps_collected), "Все subjective_timestamp должны быть >= 0"
+        assert all(
+            ts >= 0 for ts in timestamps_collected
+        ), "Все subjective_timestamp должны быть >= 0"
 
         # Проверяем монотонность (неубывание)
         sorted_timestamps = sorted(timestamps_collected)
-        assert timestamps_collected == sorted_timestamps, "subjective_timestamp должны быть монотонными"
+        assert (
+            timestamps_collected == sorted_timestamps
+        ), "subjective_timestamp должны быть монотонными"
+
+    # ============================================================================
+    # Runtime Managers Integration Tests
+    # ============================================================================
+
+    def test_snapshot_manager_runtime_integration(self):
+        """Интеграционный тест SnapshotManager в runtime loop"""
+        import os
+        import tempfile
+
+        self_state = SelfState()
+        event_queue = EventQueue()
+        stop_event = threading.Event()
+
+        # Создаем временную директорию для тестовых снапшотов
+        with tempfile.TemporaryDirectory() as temp_dir:
+            snapshot_file = os.path.join(temp_dir, "test_snapshot.json")
+
+            def mock_save_snapshot(state):
+                # Имитируем сохранение снапшота в файл
+                with open(snapshot_file, "w") as f:
+                    f.write("mocked")
+                return True
+
+            # Создаем SnapshotManager с коротким периодом для теста
+            snapshot_manager = SnapshotManager(period_ticks=3, saver=mock_save_snapshot)
+
+            # Модифицируем runtime loop для использования нашего менеджера
+            def modified_run_loop(
+                self_state, monitor, tick_interval, max_ticks, stop_event, event_queue
+            ):
+                ticks = 0
+                while not stop_event.is_set() and ticks < max_ticks:
+                    ticks += 1
+                    self_state.ticks = ticks
+
+                    # Имитируем обработку тика
+                    self_state.age += tick_interval
+                    self_state.subjective_time += compute_subjective_dt(
+                        dt=tick_interval,
+                        base_rate=self_state.subjective_time_base_rate,
+                        intensity=0.5,
+                        stability=self_state.stability,
+                        energy=self_state.energy,
+                        intensity_coeff=self_state.subjective_time_intensity_coeff,
+                        stability_coeff=self_state.subjective_time_stability_coeff,
+                        energy_coeff=self_state.subjective_time_energy_coeff,
+                        rate_min=self_state.subjective_time_rate_min,
+                        rate_max=self_state.subjective_time_rate_max,
+                    )
+
+                    # Используем наш SnapshotManager вместо встроенного
+                    snapshot_manager.maybe_snapshot(self_state)
+
+                    monitor(self_state)
+                    time.sleep(tick_interval)
+
+            # Запускаем модифицированный loop
+            thread = threading.Thread(
+                target=modified_run_loop,
+                args=(self_state, lambda s: None, 0.01, 10, stop_event, event_queue),
+            )
+            thread.start()
+
+            # Ждем завершения
+            time.sleep(0.15)
+            stop_event.set()
+            thread.join(timeout=1.0)
+
+            # Проверяем, что снапшоты были созданы (тики 3, 6, 9)
+            assert os.path.exists(snapshot_file), "Снапшот должен быть создан"
+
+            # Проверяем статус операций
+            assert snapshot_manager.was_last_operation_successful() is True
+
+    def test_log_manager_runtime_integration(self):
+        """Интеграционный тест LogManager в runtime loop"""
+
+        self_state = SelfState()
+        event_queue = EventQueue()
+        stop_event = threading.Event()
+
+        # Mock функция для flush
+        flush_calls = []
+
+        def mock_flush():
+            flush_calls.append(time.time())
+
+        # Создаем LogManager с коротким периодом flush
+        policy = FlushPolicy(flush_period_ticks=2)
+        log_manager = LogManager(flush_policy=policy, flush_fn=mock_flush)
+
+        # Модифицируем runtime loop для использования нашего менеджера
+        def modified_run_loop(
+            self_state, monitor, tick_interval, max_ticks, stop_event, event_queue
+        ):
+            ticks = 0
+            while not stop_event.is_set() and ticks < max_ticks:
+                ticks += 1
+                self_state.ticks = ticks
+
+                # Имитируем обработку тика
+                self_state.age += tick_interval
+
+                # Используем наш LogManager
+                log_manager.maybe_flush(self_state, phase="tick")
+
+                monitor(self_state)
+                time.sleep(tick_interval)
+
+        # Запускаем модифицированный loop
+        thread = threading.Thread(
+            target=modified_run_loop,
+            args=(self_state, lambda s: None, 0.01, 8, stop_event, event_queue),
+        )
+        thread.start()
+
+        # Ждем завершения
+        time.sleep(0.1)
+        stop_event.set()
+        thread.join(timeout=1.0)
+
+        # Проверяем, что flush вызывался (тики 2, 4, 6, 8)
+        assert (
+            len(flush_calls) >= 3
+        ), f"Flush должен вызваться несколько раз, но вызван {len(flush_calls)} раз"
+
+        # Проверяем, что flush ticks соответствуют ожидаемым
+        expected_flush_ticks = [2, 4, 6, 8]
+        assert log_manager.last_flush_tick in expected_flush_ticks
+
+    def test_life_policy_runtime_integration(self):
+        """Интеграционный тест LifePolicy в runtime loop"""
+        self_state = SelfState()
+        event_queue = EventQueue()
+        stop_event = threading.Event()
+
+        # Создаем LifePolicy с тестовыми параметрами
+        policy = LifePolicy(weakness_threshold=0.5, penalty_k=0.1)
+
+        # Устанавливаем состояние выше порога слабости
+        self_state.energy = 100.0
+        self_state.stability = 1.0
+        self_state.integrity = 1.0
+
+        penalties_applied = []
+
+        # Модифицируем runtime loop для использования нашей политики
+        def modified_run_loop(
+            self_state, monitor, tick_interval, max_ticks, stop_event, event_queue
+        ):
+            ticks = 0
+            while not stop_event.is_set() and ticks < max_ticks:
+                ticks += 1
+                self_state.ticks = ticks
+
+                # Проверяем слабость и применяем штрафы
+                if policy.is_weak(self_state):
+                    penalty = policy.weakness_penalty(tick_interval)
+                    self_state.apply_delta(penalty)
+                    penalties_applied.append(penalty.copy())
+
+                # Имитируем небольшую деградацию
+                self_state.energy -= 1.0
+                self_state.stability -= 0.01
+                self_state.integrity -= 0.01
+
+                monitor(self_state)
+                time.sleep(tick_interval)
+
+        # Запускаем модифицированный loop
+        thread = threading.Thread(
+            target=modified_run_loop,
+            args=(self_state, lambda s: None, 0.01, 20, stop_event, event_queue),
+        )
+        thread.start()
+
+        # Ждем завершения
+        time.sleep(0.25)
+        stop_event.set()
+        thread.join(timeout=1.0)
+
+        # Проверяем, что система вошла в состояние слабости
+        assert policy.is_weak(self_state), "Система должна войти в состояние слабости"
+
+        # Проверяем, что штрафы применялись
+        assert len(penalties_applied) > 0, "Штрафы должны применяться при слабости"
+
+        # Проверяем структуру штрафов
+        penalty = penalties_applied[0]
+        assert "energy" in penalty
+        assert "stability" in penalty
+        assert "integrity" in penalty
+        assert all(
+            v < 0 for v in penalty.values()
+        ), "Все штрафы должны быть отрицательными"
+
+    def test_runtime_managers_cooperation_integration(self):
+        """Интеграционный тест cooperation всех runtime managers"""
+        import os
+        import tempfile
+
+        self_state = SelfState()
+        event_queue = EventQueue()
+        stop_event = threading.Event()
+
+        # Создаем все менеджеры
+        with tempfile.TemporaryDirectory() as temp_dir:
+            snapshot_file = os.path.join(temp_dir, "test_snapshot.json")
+
+            def mock_save_snapshot(state):
+                with open(snapshot_file, "w") as f:
+                    f.write(f"snapshot_at_tick_{state.ticks}")
+                return True
+
+            snapshot_manager = SnapshotManager(period_ticks=4, saver=mock_save_snapshot)
+
+            flush_calls = []
+
+            def mock_flush():
+                flush_calls.append(f"flush_at_tick_{self_state.ticks}")
+
+            log_policy = FlushPolicy(flush_period_ticks=3, flush_before_snapshot=True)
+            log_manager = LogManager(flush_policy=log_policy, flush_fn=mock_flush)
+
+            life_policy = LifePolicy(
+                weakness_threshold=70.0, penalty_k=0.05
+            )  # Порог 70.0, чтобы система вошла в слабость
+
+            # Модифицируем runtime loop для использования всех менеджеров
+            def cooperative_run_loop(
+                self_state, monitor, tick_interval, max_ticks, stop_event, event_queue
+            ):
+                ticks = 0
+                while not stop_event.is_set() and ticks < max_ticks:
+                    ticks += 1
+                    self_state.ticks = ticks
+
+                    # Имитируем обработку тика
+                    self_state.age += tick_interval
+
+                    # Применяем политику слабости
+                    if life_policy.is_weak(self_state):
+                        penalty = life_policy.weakness_penalty(tick_interval)
+                        self_state.apply_delta(penalty)
+
+                    # Flush перед снапшотом
+                    log_manager.maybe_flush(self_state, phase="before_snapshot")
+
+                    # Создаем снапшот
+                    snapshot_manager.maybe_snapshot(self_state)
+
+                    # Flush после снапшота
+                    log_manager.maybe_flush(self_state, phase="after_snapshot")
+
+                    # Периодический flush
+                    log_manager.maybe_flush(self_state, phase="tick")
+
+                    # Небольшая деградация для активации политики слабости
+                    self_state.energy -= 2.0
+
+                    monitor(self_state)
+                    time.sleep(tick_interval)
+
+            # Запускаем кооперативный loop
+            thread = threading.Thread(
+                target=cooperative_run_loop,
+                args=(self_state, lambda s: None, 0.01, 12, stop_event, event_queue),
+            )
+            thread.start()
+
+            # Ждем завершения
+            time.sleep(0.15)
+            stop_event.set()
+            thread.join(timeout=1.0)
+
+            # Проверяем работу SnapshotManager
+            assert os.path.exists(snapshot_file), "Снапшоты должны создаваться"
+            with open(snapshot_file, "r") as f:
+                content = f.read()
+                assert (
+                    "snapshot_at_tick" in content
+                ), "Снапшот должен содержать информацию о тике"
+
+            # Проверяем работу LogManager
+            assert len(flush_calls) > 0, "Flush должен вызываться"
+
+            # Проверяем работу LifePolicy
+            assert life_policy.is_weak(
+                self_state
+            ), "Система должна войти в состояние слабости"
+
+            # Проверяем cooperation - flush перед снапшотом должен происходить
+            flush_before_snapshot = any(
+                "flush_at_tick_4" in call for call in flush_calls
+            )  # тик 4 - время снапшота
+            assert flush_before_snapshot, "Flush перед снапшотом должен происходить"
+
+    def test_runtime_managers_error_handling_integration(self):
+        """Интеграционный тест обработки ошибок runtime managers"""
+        from unittest.mock import Mock
+
+        self_state = SelfState()
+
+        # Создаем менеджеры с функциями, которые могут падать
+        error_saver = Mock(
+            side_effect=[Exception("Snapshot error"), True]
+        )  # Первый вызов падает, второй успешен
+        snapshot_manager = SnapshotManager(period_ticks=2, saver=error_saver)
+
+        error_flush = Mock(
+            side_effect=[Exception("Flush error"), None]
+        )  # Первый вызов падает, второй успешен
+        log_policy = FlushPolicy(flush_period_ticks=2)
+        log_manager = LogManager(flush_policy=log_policy, flush_fn=error_flush)
+
+        # Тестируем SnapshotManager error handling
+        self_state.ticks = 2
+        result1 = snapshot_manager.maybe_snapshot(
+            self_state
+        )  # Должен упасть и вернуть False
+        assert result1 is False
+        assert snapshot_manager.was_last_operation_successful() is False
+
+        self_state.ticks = 4
+        result2 = snapshot_manager.maybe_snapshot(self_state)  # Должен отработать
+        assert result2 is True
+        assert snapshot_manager.was_last_operation_successful() is True
+
+        # Тестируем LogManager error handling
+        self_state.ticks = 2
+        log_manager.maybe_flush(
+            self_state, phase="tick"
+        )  # Должен упасть, но не ронять систему
+
+        self_state.ticks = 4
+        log_manager.maybe_flush(self_state, phase="tick")  # Должен отработать
+
+        # Проверяем, что система продолжает работать несмотря на ошибки
+        assert self_state.ticks == 4
+        assert hasattr(self_state, "energy")
+
+    def test_runtime_managers_state_persistence_integration(self):
+        """Интеграционный тест сохранения состояния runtime managers"""
+        import json
+        import os
+        import tempfile
+        from unittest.mock import Mock
+
+        # Создаем менеджеры и сохраняем их состояние
+        saver = Mock(return_value=True)
+        snapshot_manager = SnapshotManager(period_ticks=5, saver=saver)
+
+        flush_fn = Mock()
+        log_policy = FlushPolicy(flush_period_ticks=3)
+        log_manager = LogManager(flush_policy=log_policy, flush_fn=flush_fn)
+
+        life_policy = LifePolicy(weakness_threshold=0.3, penalty_k=0.1)
+
+        # Имитируем работу
+        self_state = SelfState()
+        self_state.ticks = 5
+        snapshot_manager.maybe_snapshot(self_state)
+
+        self_state.ticks = 3
+        log_manager.maybe_flush(self_state, phase="tick")
+
+        # Сохраняем состояние менеджеров (имитируем сериализацию)
+        managers_state = {
+            "snapshot_manager": {
+                "period_ticks": snapshot_manager.period_ticks,
+                "last_operation_success": snapshot_manager.last_operation_success,
+                "last_operation_error": snapshot_manager.last_operation_error,
+            },
+            "log_manager": {
+                "flush_period_ticks": log_manager.flush_policy.flush_period_ticks,
+                "last_flush_tick": log_manager.last_flush_tick,
+            },
+            "life_policy": {
+                "weakness_threshold": life_policy.weakness_threshold,
+                "penalty_k": life_policy.penalty_k,
+            },
+        }
+
+        # Сохраняем в файл
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".json") as f:
+            json.dump(managers_state, f)
+            temp_file = f.name
+
+        try:
+            # Восстанавливаем состояние
+            with open(temp_file, "r") as f:
+                loaded_state = json.load(f)
+
+            # Проверяем, что состояние сохранилось корректно
+            assert loaded_state["snapshot_manager"]["period_ticks"] == 5
+            assert loaded_state["snapshot_manager"]["last_operation_success"] is True
+
+            assert loaded_state["log_manager"]["flush_period_ticks"] == 3
+            assert loaded_state["log_manager"]["last_flush_tick"] == 3
+
+            assert loaded_state["life_policy"]["weakness_threshold"] == 0.3
+            assert loaded_state["life_policy"]["penalty_k"] == 0.1
+
+        finally:
+            os.unlink(temp_file)

@@ -22,9 +22,19 @@ graph TD
     Loop -->|Metrics| Planning[Planning]
     Loop -->|Metrics| Intelligence[Intelligence]
 
+    Loop -->|Manage| SnapshotM[SnapshotManager]
+    Loop -->|Manage| LogM[LogManager]
+    Loop -->|Manage| LifeM[LifePolicy]
+    SnapshotM -->|Save| Disk[(Disk)]
+    LogM -->|Flush| Disk
+    LifeM -->|Penalties| State
+
     subgraph "Core System"
         Loop
         State
+        SnapshotM
+        LogM
+        LifeM
     end
 
     subgraph "Perception & Memory"
@@ -49,8 +59,16 @@ graph TD
 
 ### 1. Runtime Loop (Сердцебиение)
 Центральный цикл, который обеспечивает течение времени.
-*   **Роль:** Оркестрация всех процессов.
+*   **Роль:** Оркестрация всех процессов, управление менеджерами.
 *   **Документация:** [runtime-loop.md](../components/runtime-loop.md)
+
+### 1.1. Runtime Managers (Менеджеры исполнения)
+Специализированные компоненты для управления аспектами runtime loop.
+*   **SnapshotManager:** Управление периодическими снапшотами состояния
+*   **LogManager:** Управление буферизацией и сбросом логов
+*   **LifePolicy:** Политика слабости и штрафов для системы
+*   **Роль:** Инкапсуляция I/O операций и политик для улучшения производительности и тестируемости
+*   **Документация:** [runtime-loop.md](../components/runtime-loop.md) (раздел "Менеджеры Runtime Loop")
 
 ### 2. Self-State (Тело)
 Хранилище текущего состояния системы.

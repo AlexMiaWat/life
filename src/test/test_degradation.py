@@ -797,14 +797,6 @@ class TestDegradationLongRunning:
         initial_stability = state.stability
 
         # Отключаем weakness penalty для теста длительной работы
-        from src.runtime.life_policy import LifePolicy
-        # Создаем policy с нулевым penalty
-        life_policy = LifePolicy(penalty_k=0.0)
-        # Заменяем в run_loop (это хак для теста)
-        import src.runtime.loop
-        original_policy = src.runtime.loop.LifePolicy()
-        src.runtime.loop.LifePolicy = lambda: life_policy
-
         # Отключаем logging для теста
         state.disable_logging()
 
@@ -812,7 +804,7 @@ class TestDegradationLongRunning:
         # Увеличиваем snapshot_period до 10000, чтобы не сохранять snapshots
         loop_thread = threading.Thread(
             target=run_loop,
-            args=(state, tracking_monitor, 0.01, 10000, stop_event, event_queue),
+            args=(state, tracking_monitor, 0.01, 10000, stop_event, event_queue, True),
             daemon=True,
         )
         loop_thread.start()
@@ -822,17 +814,20 @@ class TestDegradationLongRunning:
         stop_event.set()
         loop_thread.join(timeout=2.0)
 
-        # Восстанавливаем оригинальную policy
-        src.runtime.loop.LifePolicy = original_policy
-
         # Проверяем, что система выполнила много тиков
         assert state.ticks >= 1000, f"Expected >= 1000 ticks, got {state.ticks}"
 
         # Проверяем, что система остается стабильной при длительной работе
         # Параметры не должны сильно отклоняться от начальных значений
-        assert abs(state.energy - initial_energy) < 5.0, "Energy changed significantly during long run"
-        assert abs(state.integrity - initial_integrity) < 0.1, "Integrity changed significantly during long run"
-        assert abs(state.stability - initial_stability) < 0.1, "Stability changed significantly during long run"
+        assert (
+            abs(state.energy - initial_energy) < 5.0
+        ), "Energy changed significantly during long run"
+        assert (
+            abs(state.integrity - initial_integrity) < 0.1
+        ), "Integrity changed significantly during long run"
+        assert (
+            abs(state.stability - initial_stability) < 0.1
+        ), "Stability changed significantly during long run"
 
         # Проверяем, что история деградации записана
         assert len(tracker.history) > 0, "No degradation history recorded"
@@ -856,7 +851,9 @@ class TestDegradationLongRunning:
             for i in range(10):  # Меньше событий
                 if stop_event.is_set():
                     break
-                event = Event(type="decay", intensity=-0.1, timestamp=time.time())  # Легкая деградация
+                event = Event(
+                    type="decay", intensity=-0.1, timestamp=time.time()
+                )  # Легкая деградация
                 event_queue.push(event)
                 time.sleep(0.1)  # Реже добавляем события
 
@@ -874,7 +871,7 @@ class TestDegradationLongRunning:
         time.sleep(15.0)  # Долго ждем для 1000+ тиков
         stop_event.set()
         loop_thread.join(timeout=2.0)
-        if 'event_thread' in locals():
+        if "event_thread" in locals():
             event_thread.join(timeout=1.0)
 
         # Проверяем выполнение большого количества тиков
@@ -888,9 +885,15 @@ class TestDegradationLongRunning:
             stability_values = [h["stability"] for h in tracker.history]
 
             # Параметры должны оставаться стабильными (не выходить за разумные пределы)
-            assert all(70 <= e <= 90 for e in energy_values), "Energy values out of expected range"
-            assert all(0.85 <= i <= 0.95 for i in integrity_values), "Integrity values out of expected range"
-            assert all(0.85 <= s <= 0.95 for s in stability_values), "Stability values out of expected range"
+            assert all(
+                70 <= e <= 90 for e in energy_values
+            ), "Energy values out of expected range"
+            assert all(
+                0.85 <= i <= 0.95 for i in integrity_values
+            ), "Integrity values out of expected range"
+            assert all(
+                0.85 <= s <= 0.95 for s in stability_values
+            ), "Stability values out of expected range"
 
 
 @pytest.mark.integration

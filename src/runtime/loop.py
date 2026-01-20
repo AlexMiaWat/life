@@ -1,7 +1,6 @@
 import copy
 import logging
 import time
-from dataclasses import asdict
 
 from src.action import execute_action
 from src.activation.activation import activate_memory
@@ -13,10 +12,10 @@ from src.learning.learning import LearningEngine
 from src.meaning.engine import MeaningEngine
 from src.memory.memory import MemoryEntry
 from src.planning.planning import record_potential_sequences
-from src.runtime.subjective_time import compute_subjective_dt
-from src.runtime.snapshot_manager import SnapshotManager
-from src.runtime.log_manager import LogManager, FlushPolicy
 from src.runtime.life_policy import LifePolicy
+from src.runtime.log_manager import FlushPolicy, LogManager
+from src.runtime.snapshot_manager import SnapshotManager
+from src.runtime.subjective_time import compute_subjective_dt
 from src.state.self_state import SelfState, save_snapshot
 
 logger = logging.getLogger(__name__)
@@ -30,7 +29,9 @@ DECAY_INTERVAL = 10  # Вызов затухания весов раз в 10 т�
 # Константы для работы с памятью
 MEMORY_DECAY_FACTOR = 0.99  # Фактор затухания весов памяти
 MEMORY_MIN_WEIGHT = 0.1  # Минимальный вес для архивации
-MEMORY_MAX_AGE_SECONDS = 7 * 24 * 3600  # Максимальный возраст записей (7 дней в секундах)
+MEMORY_MAX_AGE_SECONDS = (
+    7 * 24 * 3600
+)  # Максимальный возраст записей (7 дней в секундах)
 MEMORY_DECAY_MIN_WEIGHT = 0.0  # Минимальный вес при затухании (для полного забывания)
 
 # Константы для обработки ошибок
@@ -188,6 +189,7 @@ def run_loop(
     snapshot_period=10,
     stop_event=None,
     event_queue=None,
+    disable_weakness_penalty=False,
 ):
     """
     Runtime Loop с интеграцией Environment (этап 07)
@@ -205,9 +207,11 @@ def run_loop(
     adaptation_manager = AdaptationManager()  # Adaptation Manager (Этап 15)
     last_time = time.time()
     pending_actions = []  # Список ожидающих Feedback действий
-    
+
     # Менеджеры для управления снапшотами, логами и политикой
-    snapshot_manager = SnapshotManager(period_ticks=snapshot_period, saver=save_snapshot)
+    snapshot_manager = SnapshotManager(
+        period_ticks=snapshot_period, saver=save_snapshot
+    )
     flush_policy = FlushPolicy(
         flush_period_ticks=10,
         flush_before_snapshot=True,
@@ -218,13 +222,15 @@ def run_loop(
         flush_policy=flush_policy,
         flush_fn=self_state._flush_log_buffer,
     )
-    life_policy = LifePolicy()  # Использует значения по умолчанию (совпадают с предыдущими константами)
-    
+    life_policy = (
+        LifePolicy()
+    )  # Использует значения по умолчанию (совпадают с предыдущими константами)
+
     # Счетчики ошибок для отслеживания проблем
     learning_errors = 0
     adaptation_errors = 0
     max_errors_before_warning = 10  # Порог для предупреждения о частых ошибках
-    
+
     while stop_event is None or not stop_event.is_set():
         try:
             current_time = time.time()
@@ -284,8 +290,8 @@ def run_loop(
                     # Exponential smoothing: new_value = alpha * current + (1-alpha) * previous
                     alpha = self_state.subjective_time_intensity_smoothing
                     self_state.last_event_intensity = (
-                        alpha * current_max_intensity +
-                        (1 - alpha) * self_state.last_event_intensity
+                        alpha * current_max_intensity
+                        + (1 - alpha) * self_state.last_event_intensity
                     )
                 except Exception:
                     self_state.last_event_intensity = 0.0
@@ -295,7 +301,9 @@ def run_loop(
                     logger.debug(
                         f"[LOOP] Interpreting event: type={event.type}, intensity={event.intensity}"
                     )
-                    meaning = engine.process(event, self_state.get_safe_status_dict(include_optional=False))
+                    meaning = engine.process(
+                        event, self_state.get_safe_status_dict(include_optional=False)
+                    )
                     if meaning.significance > 0:
                         # Активация памяти для события
                         activated = activate_memory(event.type, self_state.memory)
@@ -311,7 +319,8 @@ def run_loop(
                             continue  # skip apply_delta
                         elif pattern == "dampen":
                             meaning.impact = {
-                                k: v * IMPACT_REDUCTION_COEFFICIENT for k, v in meaning.impact.items()
+                                k: v * IMPACT_REDUCTION_COEFFICIENT
+                                for k, v in meaning.impact.items()
                             }
                         # else "absorb" — no change
 
@@ -355,7 +364,9 @@ def run_loop(
             else:
                 # No events this tick -> gradually decay intensity signal using smoothing
                 alpha = self_state.subjective_time_intensity_smoothing
-                self_state.last_event_intensity = (1 - alpha) * self_state.last_event_intensity
+                self_state.last_event_intensity = (
+                    1 - alpha
+                ) * self_state.last_event_intensity
 
             # Learning (Этап 14) - медленное изменение внутренних параметров
             # Вызывается раз в LEARNING_INTERVAL тиков, после Feedback, перед Planning/Intelligence
@@ -372,7 +383,9 @@ def run_loop(
                         )
                         # Используем метод из SelfState для получения значений по умолчанию
                         if hasattr(self_state, "_get_default_learning_params"):
-                            self_state.learning_params = self_state._get_default_learning_params()
+                            self_state.learning_params = (
+                                self_state._get_default_learning_params()
+                            )
                         else:
                             # Fallback: используем вспомогательную функцию без создания временного объекта
                             self_state.learning_params = _get_default_learning_params()
@@ -384,7 +397,9 @@ def run_loop(
                         )
                         # Исправляем некорректную структуру значениями по умолчанию
                         if hasattr(self_state, "_get_default_learning_params"):
-                            self_state.learning_params = self_state._get_default_learning_params()
+                            self_state.learning_params = (
+                                self_state._get_default_learning_params()
+                            )
                         else:
                             # Fallback: используем вспомогательную функцию без создания временного объекта
                             self_state.learning_params = _get_default_learning_params()
@@ -407,7 +422,9 @@ def run_loop(
                         )
                 except (TypeError, ValueError) as e:
                     learning_errors += 1
-                    logger.error(f"Критическая ошибка в Learning (параметры): {e}", exc_info=True)
+                    logger.error(
+                        f"Критическая ошибка в Learning (параметры): {e}", exc_info=True
+                    )
                     # При критичных ошибках валидации пропускаем только блок Learning,
                     # но продолжаем выполнение остальных частей итерации
                     if learning_errors >= max_errors_before_warning:
@@ -430,7 +447,10 @@ def run_loop(
             # Вызывается раз в DECAY_INTERVAL тиков
             if self_state.ticks > 0 and self_state.ticks % DECAY_INTERVAL == 0:
                 try:
-                    self_state.memory.decay_weights(decay_factor=MEMORY_DECAY_FACTOR, min_weight=MEMORY_DECAY_MIN_WEIGHT)
+                    self_state.memory.decay_weights(
+                        decay_factor=MEMORY_DECAY_FACTOR,
+                        min_weight=MEMORY_DECAY_MIN_WEIGHT,
+                    )
                 except Exception as e:
                     logger.error(f"Ошибка в decay_weights: {e}", exc_info=True)
 
@@ -443,7 +463,9 @@ def run_loop(
                         max_age=MEMORY_MAX_AGE_SECONDS, min_weight=MEMORY_MIN_WEIGHT
                     )
                     if archived_count > 0:
-                        logger.info(f"[LOOP] Заархивировано {archived_count} записей памяти")
+                        logger.info(
+                            f"[LOOP] Заархивировано {archived_count} записей памяти"
+                        )
                 except Exception as e:
                     logger.error(f"Ошибка в archive_old_entries: {e}", exc_info=True)
 
@@ -461,21 +483,30 @@ def run_loop(
                             "learning_params не инициализирован, инициализируем значениями по умолчанию"
                         )
                         if hasattr(self_state, "_get_default_learning_params"):
-                            self_state.learning_params = self_state._get_default_learning_params()
+                            self_state.learning_params = (
+                                self_state._get_default_learning_params()
+                            )
                         else:
                             # Используем вспомогательную функцию без создания временного объекта
                             self_state.learning_params = _get_default_learning_params()
 
-                    if not hasattr(self_state, "adaptation_params") or not self_state.adaptation_params:
+                    if (
+                        not hasattr(self_state, "adaptation_params")
+                        or not self_state.adaptation_params
+                    ):
                         # Автоматическая инициализация при первом запуске
                         logger.info(
                             "adaptation_params не инициализирован, инициализируем значениями по умолчанию"
                         )
                         if hasattr(self_state, "_get_default_adaptation_params"):
-                            self_state.adaptation_params = self_state._get_default_adaptation_params()
+                            self_state.adaptation_params = (
+                                self_state._get_default_adaptation_params()
+                            )
                         else:
                             # Fallback: используем вспомогательную функцию без создания временного объекта
-                            self_state.adaptation_params = _get_default_adaptation_params()
+                            self_state.adaptation_params = (
+                                _get_default_adaptation_params()
+                            )
 
                     # Валидируем структуру параметров
                     if not _validate_learning_params(self_state.learning_params):
@@ -483,7 +514,9 @@ def run_loop(
                             "learning_params имеет некорректную структуру, исправляем значениями по умолчанию"
                         )
                         if hasattr(self_state, "_get_default_learning_params"):
-                            self_state.learning_params = self_state._get_default_learning_params()
+                            self_state.learning_params = (
+                                self_state._get_default_learning_params()
+                            )
                         else:
                             # Используем вспомогательную функцию без создания временного объекта
                             self_state.learning_params = _get_default_learning_params()
@@ -493,10 +526,14 @@ def run_loop(
                             "adaptation_params имеет некорректную структуру, исправляем значениями по умолчанию"
                         )
                         if hasattr(self_state, "_get_default_adaptation_params"):
-                            self_state.adaptation_params = self_state._get_default_adaptation_params()
+                            self_state.adaptation_params = (
+                                self_state._get_default_adaptation_params()
+                            )
                         else:
                             # Fallback: используем вспомогательную функцию без создания временного объекта
-                            self_state.adaptation_params = _get_default_adaptation_params()
+                            self_state.adaptation_params = (
+                                _get_default_adaptation_params()
+                            )
 
                     # Анализируем изменения от Learning
                     analysis = adaptation_manager.analyze_changes(
@@ -542,7 +579,10 @@ def run_loop(
                             self_state,
                         )
                 except (TypeError, ValueError) as e:
-                    logger.error(f"Критическая ошибка в Adaptation (параметры): {e}", exc_info=True)
+                    logger.error(
+                        f"Критическая ошибка в Adaptation (параметры): {e}",
+                        exc_info=True,
+                    )
                     # При критичных ошибках валидации пропускаем только блок Adaptation,
                     # но продолжаем выполнение остальных частей итерации
                     pass
@@ -553,7 +593,7 @@ def run_loop(
                     pass
 
             # Логика слабости: когда параметры низкие, добавляем штрафы за немощность
-            if life_policy.is_weak(self_state):
+            if not disable_weakness_penalty and life_policy.is_weak(self_state):
                 penalty_deltas = life_policy.weakness_penalty(dt)
                 self_state.apply_delta(penalty_deltas)
                 penalty = abs(penalty_deltas["energy"])
@@ -569,14 +609,14 @@ def run_loop(
 
             # Flush логов перед снапшотом (если политика требует)
             log_manager.maybe_flush(self_state, phase="before_snapshot")
-            
+
             # Snapshot через SnapshotManager
             snapshot_was_made = snapshot_manager.maybe_snapshot(self_state)
-            
+
             # Flush логов после снапшота (если политика требует)
             if snapshot_was_made:
                 log_manager.maybe_flush(self_state, phase="after_snapshot")
-            
+
             # Flush логов по периодичности (редко, не на каждом тике)
             # Примечание: flush после снапшота обрабатывается только в фазе "after_snapshot" выше,
             # чтобы избежать двойного flush.

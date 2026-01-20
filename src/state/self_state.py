@@ -41,7 +41,7 @@ class SelfState:
     stability: float = 1.0
     fatigue: float = 0.0
     tension: float = 0.0
-    active: bool = True
+    _active: bool = True  # Внутреннее поле для active
     recent_events: list = field(default_factory=list)
     last_significance: float = 0.0
     energy_history: list = field(default_factory=list)
@@ -284,10 +284,8 @@ class SelfState:
                 if old_value is not None and old_value != value:
                     self._log_change(name, old_value, value)
 
-                # Автоматически обновляем active при изменении vital параметров (только после инициализации)
-                # Всегда обновляем active на основе текущей жизнеспособности
-                if name in ["energy", "integrity", "stability"]:
-                    object.__setattr__(self, "active", self.is_viable())
+                # Active обновляется только при явном изменении или в специальных случаях
+                # Не автоматически при изменении vital параметров
         else:
             # Для неинициализированного состояния или специальных полей - без блокировки
             # Защита неизменяемых полей (только после инициализации и не при загрузке snapshot)
@@ -336,15 +334,28 @@ class SelfState:
             if is_initialized and old_value is not None and old_value != value:
                 self._log_change(name, old_value, value)
 
-            # Автоматически обновляем active при изменении vital параметров (только после инициализации)
-            # Всегда обновляем active на основе текущей жизнеспособности
-            if is_initialized and name in ["energy", "integrity", "stability"]:
-                object.__setattr__(self, "active", self.is_viable())
+            # Active обновляется только при явном изменении или в специальных случаях
+            # Не автоматически при изменении vital параметров
 
     activated_memory: list = field(
         default_factory=list
     )  # Transient, не сохраняется в snapshot
     last_pattern: str = ""  # Transient, последний выбранный паттерн decision
+
+    @property
+    def active(self) -> bool:
+        """Active status - can be manually overridden or computed from viability"""
+        # Если _active установлено вручную в False, возвращаем False
+        # Иначе возвращаем is_viable()
+        if hasattr(self, "_active") and self._active is False:
+            return False
+        return self.is_viable()
+
+    @active.setter
+    def active(self, value: bool) -> None:
+        """Setter for active - allows manual override"""
+        self._active = value
+
     learning_params: dict = field(
         default_factory=lambda: {
             "event_type_sensitivity": {
@@ -1069,6 +1080,7 @@ class SelfState:
         # Mapping для совместимости
         field_mapping = {
             "alive": "active",
+            "active": "_active",  # active теперь property, сохраняем как _active
         }
         mapped_data = {}
         for k, v in data.items():

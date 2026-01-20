@@ -17,7 +17,9 @@
   - Субъективное время: полное покрытие ✅
   - Потокобезопасность: полное покрытие ✅
   - MCP Index Engine: полное покрытие ✅
-- **API тесты:** Требуют обновления (устаревшие после изменений API)
+  - **Runtime Managers:** 28 тестов (SnapshotManager, LogManager, LifePolicy) ✅
+  - **Dev-mode E2E Smoke Test:** Полный цикл старт→изменение→рестарт→восстановление ✅
+- **API тесты:** Восстановлены (работают через immutable snapshots)
 
 ## Быстрый старт
 
@@ -70,6 +72,10 @@ pytest src/test/ -q
 - `test_runtime_loop_edge_cases.py` - Edge cases Runtime Loop
 - `test_runtime_loop_feedback_coverage.py` - Тесты обработки Feedback в Loop
 - `test_runtime_loop_managers.py` - Тесты менеджеров Runtime Loop (SnapshotManager, LogManager, LifePolicy) - **ОБНОВЛЕНО**
+- `test_new_functionality_static.py` - Статические тесты новой функциональности (runtime managers) - **НОВЫЙ**
+- `test_new_functionality_smoke.py` - Дымовые тесты новой функциональности (runtime managers) - **НОВЫЙ**
+- `test_new_functionality_integration.py` - Интеграционные тесты новой функциональности (runtime managers) - **НОВЫЙ**
+- `test_dev_mode_smoke_e2e.py` - End-to-end smoke-тест dev-mode (полный цикл перезапуска) - **НОВЫЙ**
 - `test_event_queue_edge_cases.py` - Edge cases EventQueue
 - `test_event_queue_race_condition.py` - Race conditions в EventQueue
 - `test_status_race_conditions.py` - Race conditions для чтения /status API во время тиков **НОВЫЙ**
@@ -238,6 +244,40 @@ pytest src/test/ -q
   - Безопасность JWT токенов и хеширования паролей
   - Архитектурные ограничения аутентификации
   - Маркер: `@pytest.mark.static`
+
+### End-to-End Smoke-тесты dev-mode (НОВЫЕ)
+- **Полный цикл dev-mode** (`test_dev_mode_smoke_e2e.py`):
+  - Запуск процесса Life в dev-mode с безопасным перезапуском
+  - Симуляция изменений отслеживаемых файлов
+  - Автоматический перезапуск процесса
+  - Сохранение и восстановление состояния через immutable snapshots
+  - Валидация корректности восстановления через API /status
+  - **Маркеры:** `@pytest.mark.smoke`, `@pytest.mark.e2e`, `@pytest.mark.dev_mode`
+  - **Особенности:** Требует ручного запуска, использует порт 8000, изменяет файлы проекта
+  - **Время выполнения:** ~7-8 секунд
+  - **Изоляция:** Полная изоляция через subprocess и tempfile
+
+### Новые маркеры pytest (2026-01-20)
+
+Добавлены новые маркеры для категоризации тестов в `pytest.ini`:
+
+- **`@pytest.mark.e2e`** - End-to-end тесты (интеграция компонентов в реальных условиях)
+- **`@pytest.mark.dev_mode`** - Тесты функциональности dev-mode (перезапуск процесса, отслеживание файлов)
+
+**Использование маркеров:**
+```bash
+# Запуск только E2E тестов
+pytest -m "e2e"
+
+# Запуск только dev-mode тестов
+pytest -m "dev_mode"
+
+# Комбинация маркеров
+pytest -m "smoke and e2e"
+
+# Исключение dev-mode тестов (для CI/CD)
+pytest -m "not dev_mode"
+```
 
 ### Тесты делегирования и отсутствия регрессий (НОВЫЕ)
 - **Тесты делегирования** (`TestRunLoopDelegation` в `test_runtime_loop_managers.py`):

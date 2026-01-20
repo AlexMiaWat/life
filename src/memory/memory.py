@@ -17,7 +17,9 @@ class MemoryEntry:
     feedback_data: Optional[
         Dict
     ] = None  # Для Feedback записей (сериализованный FeedbackRecord)
-    subjective_timestamp: Optional[float] = None  # Субъективное время в момент создания записи
+    subjective_timestamp: Optional[
+        float
+    ] = None  # Субъективное время в момент создания записи
 
 
 class ArchiveMemory:
@@ -26,19 +28,25 @@ class ArchiveMemory:
     Хранит записи, которые были перенесены из активной памяти.
     """
 
-    def __init__(self, archive_file: Optional[Path] = None, load_existing: bool = False):
+    def __init__(
+        self,
+        archive_file: Optional[Path] = None,
+        load_existing: bool = False,
+        ignore_existing_file: bool = False,
+    ):
         """
         Инициализация архивной памяти.
 
         Args:
             archive_file: Путь к файлу архива. Если None, используется дефолтный.
             load_existing: Загружать ли существующие данные из файла. По умолчанию False.
+            ignore_existing_file: Игнорировать существующий файл, даже если load_existing=True. По умолчанию False.
         """
         if archive_file is None:
             archive_file = ARCHIVE_DIR / "memory_archive.json"
         self.archive_file = archive_file
         self._entries: List[MemoryEntry] = []
-        if load_existing:
+        if load_existing and not ignore_existing_file:
             self._load_archive()
 
     def _load_archive(self):
@@ -131,17 +139,26 @@ class Memory(list):
     Активная память с поддержкой архивации.
     """
 
-    def __init__(self, archive: Optional[ArchiveMemory] = None, load_existing_archive: bool = False):
+    def __init__(
+        self,
+        archive: Optional[ArchiveMemory] = None,
+        load_existing_archive: bool = False,
+        ignore_existing_archive_file: bool = False,
+    ):
         """
         Инициализация памяти.
 
         Args:
             archive: Экземпляр ArchiveMemory для архивации. Если None, создается новый.
             load_existing_archive: Загружать ли существующие данные архива. По умолчанию False.
+            ignore_existing_archive_file: Игнорировать существующий файл архива. По умолчанию False.
         """
         super().__init__()
         if archive is None:
-            archive = ArchiveMemory(load_existing=load_existing_archive)
+            archive = ArchiveMemory(
+                load_existing=load_existing_archive,
+                ignore_existing_file=ignore_existing_archive_file,
+            )
         self.archive = archive
         self._max_size = 50  # Максимальный размер активной памяти
         self._min_weight_threshold = 0.1  # Порог веса для автоматического удаления

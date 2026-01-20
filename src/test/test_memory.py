@@ -452,11 +452,14 @@ class TestArchiveMemory:
     def temp_archive(self, tmp_path):
         """Создает временный архив для тестов"""
         import uuid
+
         archive_file = tmp_path / f"test_archive_{uuid.uuid4()}.json"
         # Убедимся, что файл не существует
         if archive_file.exists():
             archive_file.unlink()
-        archive = ArchiveMemory(archive_file=archive_file, load_existing=False)
+        archive = ArchiveMemory(
+            archive_file=archive_file, load_existing=False, ignore_existing_file=True
+        )
         return archive
 
     def test_archive_memory_initialization(self, temp_archive):
@@ -560,7 +563,7 @@ class TestArchiveMemory:
                         "meaning_significance": 0.7,
                         "timestamp": time.time(),
                         "weight": 1.0,
-                        "feedback_data": None
+                        "feedback_data": None,
                     }
                 ]
             }
@@ -621,8 +624,14 @@ class TestMemoryArchive:
     def temp_memory(self, tmp_path):
         """Создает Memory с временным архивом"""
         archive_file = tmp_path / "test_archive.json"
-        archive = ArchiveMemory(archive_file=archive_file, load_existing=False)
-        memory = Memory(archive=archive, load_existing_archive=False)
+        archive = ArchiveMemory(
+            archive_file=archive_file, load_existing=False, ignore_existing_file=True
+        )
+        memory = Memory(
+            archive=archive,
+            load_existing_archive=False,
+            ignore_existing_archive_file=True,
+        )
         return memory
 
     def test_archive_old_entries_by_age(self, temp_memory):
@@ -761,8 +770,14 @@ class TestMemoryStatistics:
     def temp_memory(self, tmp_path):
         """Создает Memory с временным архивом"""
         archive_file = tmp_path / "test_archive.json"
-        archive = ArchiveMemory(archive_file=archive_file, load_existing=False)
-        memory = Memory(archive=archive, load_existing_archive=False)
+        archive = ArchiveMemory(
+            archive_file=archive_file, load_existing=False, ignore_existing_file=True
+        )
+        memory = Memory(
+            archive=archive,
+            load_existing_archive=False,
+            ignore_existing_archive_file=True,
+        )
         return memory
 
     def test_get_statistics_empty(self, temp_memory):

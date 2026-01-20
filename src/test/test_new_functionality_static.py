@@ -13,7 +13,6 @@
 
 import inspect
 import sys
-import threading
 from pathlib import Path
 
 import pytest
@@ -26,7 +25,13 @@ from src.environment.event import Event
 from src.learning.learning import LearningEngine
 from src.meaning.engine import MeaningEngine
 from src.meaning.meaning import Meaning
-from src.runtime.subjective_time import compute_subjective_dt, compute_subjective_time_rate
+from src.runtime.life_policy import LifePolicy
+from src.runtime.log_manager import FlushPolicy, LogManager
+from src.runtime.snapshot_manager import SnapshotManager
+from src.runtime.subjective_time import (
+    compute_subjective_dt,
+    compute_subjective_time_rate,
+)
 from src.state.self_state import SelfState
 
 
@@ -815,7 +820,7 @@ class TestNewFunctionalityStatic:
             event_type="noise",
             meaning_significance=0.5,
             timestamp=100.0,
-            subjective_timestamp=50.0
+            subjective_timestamp=50.0,
         )
 
         assert hasattr(entry, "subjective_timestamp")
@@ -824,9 +829,7 @@ class TestNewFunctionalityStatic:
 
         # Проверяем обратную совместимость (None значение)
         entry_compat = MemoryEntry(
-            event_type="noise",
-            meaning_significance=0.5,
-            timestamp=100.0
+            event_type="noise", meaning_significance=0.5, timestamp=100.0
         )
         assert entry_compat.subjective_timestamp is None
 
@@ -843,8 +846,8 @@ class TestNewFunctionalityStatic:
         assert hasattr(state, "__setattr__")
 
         # Проверяем, что _api_lock является RLock
-        assert hasattr(state._api_lock, 'acquire')
-        assert hasattr(state._api_lock, 'release')
+        assert hasattr(state._api_lock, "acquire")
+        assert hasattr(state._api_lock, "release")
 
     def test_thread_safety_excluded_fields(self):
         """Проверка исключенных полей из блокировки"""
@@ -919,19 +922,21 @@ class TestNewFunctionalityStatic:
         # Тестируем различные состояния
         test_cases = [
             # (energy, stability, integrity, expected)
-            (100.0, 1.0, 1.0, True),    # Все параметры выше порогов
-            (50.0, 0.8, 0.8, True),     # Все параметры выше порогов
-            (15.0, 0.2, 0.2, True),     # Параметры на границе порогов
-            (10.0, 0.1, 0.1, False),    # Параметры на порогах (=, а не >)
-            (5.0, 0.05, 0.05, False),   # Параметры ниже порогов
-            (0.0, 0.0, 0.0, False),     # Нулевые параметры
+            (100.0, 1.0, 1.0, True),  # Все параметры выше порогов
+            (50.0, 0.8, 0.8, True),  # Все параметры выше порогов
+            (15.0, 0.2, 0.2, True),  # Параметры на границе порогов
+            (10.0, 0.1, 0.1, False),  # Параметры на порогах (=, а не >)
+            (5.0, 0.05, 0.05, False),  # Параметры ниже порогов
+            (0.0, 0.0, 0.0, False),  # Нулевые параметры
         ]
 
         for energy, stability, integrity, expected in test_cases:
             state.energy = energy
             state.stability = stability
             state.integrity = integrity
-            assert state.is_active() == expected, f"is_active failed for {energy}, {stability}, {integrity}"
+            assert (
+                state.is_active() == expected
+            ), f"is_active failed for {energy}, {stability}, {integrity}"
 
     # ============================================================================
     # Integration Architecture Tests
@@ -949,7 +954,9 @@ class TestNewFunctionalityStatic:
         # (субъективное время - это метрика, не инструмент управления)
         forbidden_terms = ["subjective_time", "subjective_timestamp"]
         for term in forbidden_terms:
-            assert term not in learning_source.lower(), f"LearningEngine не должен работать с {term}"
+            assert (
+                term not in learning_source.lower()
+            ), f"LearningEngine не должен работать с {term}"
 
     def test_subjective_time_adaptation_integration_architecture(self):
         """Проверка архитектурной интеграции субъективного времени с Adaptation"""
@@ -961,7 +968,9 @@ class TestNewFunctionalityStatic:
         # Adaptation работает только с learning_params
         forbidden_terms = ["subjective_time", "subjective_timestamp"]
         for term in forbidden_terms:
-            assert term not in adaptation_source.lower(), f"AdaptationManager не должен работать с {term}"
+            assert (
+                term not in adaptation_source.lower()
+            ), f"AdaptationManager не должен работать с {term}"
 
     def test_thread_safety_architecture_compliance(self):
         """Проверка соответствия архитектуре потокобезопасности"""
@@ -1001,3 +1010,323 @@ class TestNewFunctionalityStatic:
         # Проверяем, что чтение статуса работает
         status = state.get_safe_status_dict()
         assert isinstance(status, dict)
+
+    # ============================================================================
+    # Runtime Managers Static Tests
+    # ============================================================================
+
+    def test_snapshot_manager_structure(self):
+        """Проверка структуры SnapshotManager"""
+        from unittest.mock import Mock
+
+        manager = SnapshotManager(period_ticks=10, saver=Mock())
+
+        assert hasattr(manager, "__init__")
+        assert hasattr(manager, "should_snapshot")
+        assert hasattr(manager, "maybe_snapshot")
+        assert hasattr(manager, "get_last_operation_status")
+        assert hasattr(manager, "was_last_operation_successful")
+
+        # Проверяем атрибуты статуса операции
+        assert hasattr(manager, "last_operation_success")
+        assert hasattr(manager, "last_operation_error")
+        assert hasattr(manager, "last_operation_timestamp")
+
+    def test_snapshot_manager_constants_and_defaults(self):
+        """Проверка констант и значений по умолчанию SnapshotManager"""
+        from unittest.mock import Mock
+
+        manager = SnapshotManager(period_ticks=15, saver=Mock())
+
+        # Проверяем установку периода
+        assert manager.period_ticks == 15
+        assert manager.saver is not None
+
+        # Проверяем начальные значения статуса
+        assert manager.last_operation_success is None
+        assert manager.last_operation_error is None
+        assert manager.last_operation_timestamp is None
+
+    def test_snapshot_manager_method_signatures(self):
+        """Проверка сигнатур методов SnapshotManager"""
+        from unittest.mock import Mock
+
+        manager = SnapshotManager(period_ticks=10, saver=Mock())
+        state = SelfState()
+
+        # should_snapshot
+        sig = inspect.signature(manager.should_snapshot)
+        assert len(sig.parameters) == 2  # self + ticks
+        assert "ticks" in sig.parameters
+        assert sig.return_annotation == bool
+
+        # maybe_snapshot
+        sig = inspect.signature(manager.maybe_snapshot)
+        assert len(sig.parameters) == 2  # self + self_state
+        assert "self_state" in sig.parameters
+        assert sig.return_annotation == bool
+
+        # get_last_operation_status
+        sig = inspect.signature(manager.get_last_operation_status)
+        assert len(sig.parameters) == 1  # self
+        assert "Optional" in str(sig.return_annotation) or sig.return_annotation == dict
+
+    def test_snapshot_manager_return_types(self):
+        """Проверка типов возвращаемых значений SnapshotManager"""
+        from unittest.mock import Mock
+
+        manager = SnapshotManager(period_ticks=10, saver=Mock())
+        state = SelfState()
+        state.ticks = 5
+
+        # should_snapshot возвращает bool
+        result = manager.should_snapshot(10)
+        assert isinstance(result, bool)
+
+        # maybe_snapshot возвращает bool
+        result = manager.maybe_snapshot(state)
+        assert isinstance(result, bool)
+
+        # get_last_operation_status возвращает dict
+        result = manager.get_last_operation_status()
+        assert isinstance(result, dict)
+        assert "success" in result
+        assert "error" in result
+        assert "timestamp" in result
+
+    def test_log_manager_structure(self):
+        """Проверка структуры LogManager"""
+        from unittest.mock import Mock
+
+        policy = FlushPolicy()
+        manager = LogManager(flush_policy=policy, flush_fn=Mock())
+
+        assert hasattr(manager, "__init__")
+        assert hasattr(manager, "maybe_flush")
+        assert hasattr(manager, "flush_policy")
+        assert hasattr(manager, "flush_fn")
+        assert hasattr(manager, "last_flush_tick")
+
+    def test_log_manager_constants_and_defaults(self):
+        """Проверка констант и значений по умолчанию LogManager"""
+        from unittest.mock import Mock
+
+        policy = FlushPolicy(flush_period_ticks=20)
+        manager = LogManager(flush_policy=policy, flush_fn=Mock())
+
+        assert manager.flush_policy.flush_period_ticks == 20
+        # last_flush_tick инициализируется как -flush_period_ticks для правильного первого flush
+        assert manager.last_flush_tick == -20
+
+    def test_log_manager_method_signatures(self):
+        """Проверка сигнатур методов LogManager"""
+        from unittest.mock import Mock
+
+        policy = FlushPolicy()
+        manager = LogManager(flush_policy=policy, flush_fn=Mock())
+        state = SelfState()
+
+        # maybe_flush
+        sig = inspect.signature(manager.maybe_flush)
+        assert len(sig.parameters) == 3  # self + self_state + phase
+        assert "self_state" in sig.parameters
+        assert "phase" in sig.parameters
+        # phase должен иметь литеральный тип
+        assert "Literal" in str(sig.parameters["phase"].annotation)
+
+    def test_log_manager_return_types(self):
+        """Проверка типов возвращаемых значений LogManager"""
+        from unittest.mock import Mock
+
+        policy = FlushPolicy()
+        manager = LogManager(flush_policy=policy, flush_fn=Mock())
+        state = SelfState()
+        state.ticks = 5
+
+        # maybe_flush ничего не возвращает (None)
+        result = manager.maybe_flush(state, phase="tick")
+        assert result is None
+
+    def test_flush_policy_structure(self):
+        """Проверка структуры FlushPolicy"""
+        policy = FlushPolicy()
+
+        assert hasattr(policy, "__init__")
+        assert hasattr(policy, "flush_period_ticks")
+        assert hasattr(policy, "flush_before_snapshot")
+        assert hasattr(policy, "flush_after_snapshot")
+        assert hasattr(policy, "flush_on_exception")
+        assert hasattr(policy, "flush_on_shutdown")
+
+    def test_flush_policy_constants_and_defaults(self):
+        """Проверка констант и значений по умолчанию FlushPolicy"""
+        policy = FlushPolicy()
+
+        assert policy.flush_period_ticks == 10
+        assert policy.flush_before_snapshot is True
+        assert policy.flush_after_snapshot is False
+        assert policy.flush_on_exception is True
+        assert policy.flush_on_shutdown is True
+
+        # Проверяем пользовательские значения
+        custom_policy = FlushPolicy(
+            flush_period_ticks=20,
+            flush_before_snapshot=False,
+            flush_after_snapshot=True,
+            flush_on_exception=False,
+            flush_on_shutdown=False,
+        )
+        assert custom_policy.flush_period_ticks == 20
+        assert custom_policy.flush_before_snapshot is False
+        assert custom_policy.flush_after_snapshot is True
+        assert custom_policy.flush_on_exception is False
+        assert custom_policy.flush_on_shutdown is False
+
+    def test_life_policy_structure(self):
+        """Проверка структуры LifePolicy"""
+        policy = LifePolicy()
+
+        assert hasattr(policy, "__init__")
+        assert hasattr(policy, "is_weak")
+        assert hasattr(policy, "weakness_penalty")
+        assert hasattr(policy, "weakness_threshold")
+        assert hasattr(policy, "penalty_k")
+        assert hasattr(policy, "stability_multiplier")
+        assert hasattr(policy, "integrity_multiplier")
+
+    def test_life_policy_constants_and_defaults(self):
+        """Проверка констант и значений по умолчанию LifePolicy"""
+        policy = LifePolicy()
+
+        assert policy.weakness_threshold == 0.05
+        assert policy.penalty_k == 0.02
+        assert policy.stability_multiplier == 2.0
+        assert policy.integrity_multiplier == 2.0
+
+        # Проверяем пользовательские значения
+        custom_policy = LifePolicy(
+            weakness_threshold=0.1,
+            penalty_k=0.05,
+            stability_multiplier=3.0,
+            integrity_multiplier=1.5,
+        )
+        assert custom_policy.weakness_threshold == 0.1
+        assert custom_policy.penalty_k == 0.05
+        assert custom_policy.stability_multiplier == 3.0
+        assert custom_policy.integrity_multiplier == 1.5
+
+    def test_life_policy_method_signatures(self):
+        """Проверка сигнатур методов LifePolicy"""
+        policy = LifePolicy()
+        state = SelfState()
+
+        # is_weak
+        sig = inspect.signature(policy.is_weak)
+        assert len(sig.parameters) == 2  # self + self_state
+        assert "self_state" in sig.parameters
+        assert sig.return_annotation == bool
+
+        # weakness_penalty
+        sig = inspect.signature(policy.weakness_penalty)
+        assert len(sig.parameters) == 2  # self + dt
+        assert "dt" in sig.parameters
+        assert sig.return_annotation == dict
+
+    def test_life_policy_return_types(self):
+        """Проверка типов возвращаемых значений LifePolicy"""
+        policy = LifePolicy()
+        state = SelfState()
+        state.energy = 100.0
+        state.stability = 1.0
+        state.integrity = 1.0
+
+        # is_weak возвращает bool
+        result = policy.is_weak(state)
+        assert isinstance(result, bool)
+
+        # weakness_penalty возвращает dict
+        result = policy.weakness_penalty(1.0)
+        assert isinstance(result, dict)
+        assert "energy" in result
+        assert "stability" in result
+        assert "integrity" in result
+        # Все значения должны быть отрицательными (штрафы)
+        assert all(v <= 0 for v in result.values())
+
+    def test_runtime_managers_no_forbidden_patterns(self):
+        """Проверка отсутствия запрещенных паттернов в runtime managers"""
+        from src.runtime.life_policy import LifePolicy
+        from src.runtime.log_manager import FlushPolicy, LogManager
+        from src.runtime.snapshot_manager import SnapshotManager
+
+        managers = [SnapshotManager, LogManager, FlushPolicy, LifePolicy]
+
+        forbidden_terms = [
+            "reload",
+            "hot_reload",
+            "importlib",
+            "eval",
+            "exec",
+            "subprocess",
+            "os.system",
+            "shell",
+            "dangerous",
+        ]
+
+        for manager_cls in managers:
+            source_code = inspect.getsource(manager_cls)
+            for term in forbidden_terms:
+                assert (
+                    term.lower() not in source_code.lower()
+                ), f"Запрещенный термин '{term}' найден в {manager_cls.__name__}"
+
+    def test_runtime_managers_docstrings(self):
+        """Проверка наличия docstrings в runtime managers"""
+        from unittest.mock import Mock
+
+        # SnapshotManager
+        manager = SnapshotManager(period_ticks=10, saver=Mock())
+        assert manager.__class__.__doc__ is not None
+        assert manager.should_snapshot.__doc__ is not None
+        assert manager.maybe_snapshot.__doc__ is not None
+
+        # LogManager
+        policy = FlushPolicy()
+        log_manager = LogManager(flush_policy=policy, flush_fn=Mock())
+        assert log_manager.__class__.__doc__ is not None
+        assert log_manager.maybe_flush.__doc__ is not None
+
+        # FlushPolicy
+        assert policy.__class__.__doc__ is not None
+
+        # LifePolicy
+        life_policy = LifePolicy()
+        assert life_policy.__class__.__doc__ is not None
+        assert life_policy.is_weak.__doc__ is not None
+        assert life_policy.weakness_penalty.__doc__ is not None
+
+    def test_runtime_managers_imports_structure(self):
+        """Проверка структуры импортов runtime managers"""
+        import src.runtime.life_policy as lp_module
+        import src.runtime.log_manager as lm_module
+        import src.runtime.snapshot_manager as sm_module
+
+        # Проверяем что модули экспортируют основные классы
+        assert hasattr(sm_module, "SnapshotManager")
+        assert hasattr(lm_module, "LogManager")
+        assert hasattr(lm_module, "FlushPolicy")
+        assert hasattr(lp_module, "LifePolicy")
+
+        # Проверяем соответствие
+        assert sm_module.SnapshotManager == SnapshotManager
+        assert lm_module.LogManager == LogManager
+        assert lm_module.FlushPolicy == FlushPolicy
+        assert lp_module.LifePolicy == LifePolicy
+
+    def test_runtime_managers_class_inheritance(self):
+        """Проверка наследования классов runtime managers"""
+
+        assert SnapshotManager.__bases__ == (object,)
+        assert LogManager.__bases__ == (object,)
+        assert FlushPolicy.__bases__ == (object,)
+        assert LifePolicy.__bases__ == (object,)

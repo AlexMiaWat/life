@@ -26,7 +26,13 @@ from src.learning.learning import LearningEngine
 from src.meaning.engine import MeaningEngine
 from src.meaning.meaning import Meaning
 from src.memory.memory import MemoryEntry
-from src.runtime.subjective_time import compute_subjective_dt, compute_subjective_time_rate
+from src.runtime.life_policy import LifePolicy
+from src.runtime.log_manager import FlushPolicy, LogManager
+from src.runtime.snapshot_manager import SnapshotManager
+from src.runtime.subjective_time import (
+    compute_subjective_dt,
+    compute_subjective_time_rate,
+)
 from src.state.self_state import SelfState
 
 
@@ -648,15 +654,13 @@ class TestNewFunctionalitySmoke:
             event_type="noise",
             meaning_significance=0.5,
             timestamp=100.0,
-            subjective_timestamp=50.0
+            subjective_timestamp=50.0,
         )
         assert entry.subjective_timestamp == 50.0
 
         # Создаем запись без субъективного времени (обратная совместимость)
         entry_compat = MemoryEntry(
-            event_type="noise",
-            meaning_significance=0.5,
-            timestamp=100.0
+            event_type="noise", meaning_significance=0.5, timestamp=100.0
         )
         assert entry_compat.subjective_timestamp is None
 
@@ -757,7 +761,9 @@ class TestNewFunctionalitySmoke:
         state.stability = 0.0
         state.integrity = 0.0
         result_zero = state.is_active()
-        assert result_zero is False  # Нулевые значения не валидны (нужны energy > 10.0, integrity > 0.1, stability > 0.1)
+        assert (
+            result_zero is False
+        )  # Нулевые значения не валидны (нужны energy > 10.0, integrity > 0.1, stability > 0.1)
 
         # Восстанавливаем
         state.energy = old_energy
@@ -815,7 +821,7 @@ class TestNewFunctionalitySmoke:
                 event_type="noise",
                 meaning_significance=0.4,
                 timestamp=1.0,
-                subjective_timestamp=0.5
+                subjective_timestamp=0.5,
             )
         )
 
@@ -823,7 +829,9 @@ class TestNewFunctionalitySmoke:
         statistics = learning_engine.process_statistics(state.memory)
         assert statistics["total_entries"] == 1
 
-        new_params = learning_engine.adjust_parameters(statistics, state.learning_params)
+        new_params = learning_engine.adjust_parameters(
+            statistics, state.learning_params
+        )
         assert isinstance(new_params, dict)
 
     def test_subjective_time_with_adaptation_smoke(self):
@@ -840,8 +848,8 @@ class TestNewFunctionalitySmoke:
 
     def test_thread_safety_with_runtime_smoke(self):
         """Дымовой тест потокобезопасности с runtime"""
-        from src.runtime.loop import run_loop
         from src.environment.event_queue import EventQueue
+        from src.runtime.loop import run_loop
 
         state = SelfState()
         event_queue = EventQueue()
@@ -875,9 +883,9 @@ class TestNewFunctionalitySmoke:
 
     def test_new_functionality_integration_smoke(self):
         """Дымовой тест создания IndexEngine"""
-        from pathlib import Path
-        import tempfile
         import shutil
+        import tempfile
+        from pathlib import Path
 
         # Создаем временные директории
         docs_dir = Path(tempfile.mkdtemp())
@@ -886,6 +894,7 @@ class TestNewFunctionalitySmoke:
 
         try:
             from mcp_index_engine import IndexEngine
+
             engine = IndexEngine(docs_dir, todo_dir, src_dir)
             assert engine is not None
             assert isinstance(engine, IndexEngine)
@@ -900,9 +909,9 @@ class TestNewFunctionalitySmoke:
 
     def test_mcp_index_engine_tokenization(self):
         """Дымовой тест токенизации IndexEngine"""
-        from pathlib import Path
-        import tempfile
         import shutil
+        import tempfile
+        from pathlib import Path
 
         docs_dir = Path(tempfile.mkdtemp())
         todo_dir = Path(tempfile.mkdtemp())
@@ -910,6 +919,7 @@ class TestNewFunctionalitySmoke:
 
         try:
             from mcp_index_engine import IndexEngine
+
             engine = IndexEngine(docs_dir, todo_dir, src_dir)
 
             # Тест токенизации
@@ -932,9 +942,9 @@ class TestNewFunctionalitySmoke:
 
     def test_mcp_index_engine_file_operations(self):
         """Дымовой тест операций с файлами IndexEngine"""
-        from pathlib import Path
-        import tempfile
         import shutil
+        import tempfile
+        from pathlib import Path
 
         docs_dir = Path(tempfile.mkdtemp())
         todo_dir = Path(tempfile.mkdtemp())
@@ -942,6 +952,7 @@ class TestNewFunctionalitySmoke:
 
         try:
             from mcp_index_engine import IndexEngine
+
             engine = IndexEngine(docs_dir, todo_dir, src_dir)
 
             # Создаем тестовый файл
@@ -966,9 +977,9 @@ class TestNewFunctionalitySmoke:
 
     def test_mcp_index_engine_indexing(self):
         """Дымовой тест индексации IndexEngine"""
-        from pathlib import Path
-        import tempfile
         import shutil
+        import tempfile
+        from pathlib import Path
 
         docs_dir = Path(tempfile.mkdtemp())
         todo_dir = Path(tempfile.mkdtemp())
@@ -976,6 +987,7 @@ class TestNewFunctionalitySmoke:
 
         try:
             from mcp_index_engine import IndexEngine
+
             engine = IndexEngine(docs_dir, todo_dir, src_dir)
 
             # Создаем тестовые файлы
@@ -1001,9 +1013,9 @@ class TestNewFunctionalitySmoke:
 
     def test_mcp_index_engine_initialization(self):
         """Дымовой тест инициализации IndexEngine"""
-        from pathlib import Path
-        import tempfile
         import shutil
+        import tempfile
+        from pathlib import Path
 
         docs_dir = Path(tempfile.mkdtemp())
         todo_dir = Path(tempfile.mkdtemp())
@@ -1011,6 +1023,7 @@ class TestNewFunctionalitySmoke:
 
         try:
             from mcp_index_engine import IndexEngine
+
             engine = IndexEngine(docs_dir, todo_dir, src_dir)
 
             # Создаем файлы для индексации
@@ -1030,9 +1043,9 @@ class TestNewFunctionalitySmoke:
 
     def test_mcp_index_engine_reindex(self):
         """Дымовой тест переиндексации IndexEngine"""
-        from pathlib import Path
-        import tempfile
         import shutil
+        import tempfile
+        from pathlib import Path
 
         docs_dir = Path(tempfile.mkdtemp())
         todo_dir = Path(tempfile.mkdtemp())
@@ -1040,6 +1053,7 @@ class TestNewFunctionalitySmoke:
 
         try:
             from mcp_index_engine import IndexEngine
+
             engine = IndexEngine(docs_dir, todo_dir, src_dir)
 
             # Создаем начальные файлы
@@ -1080,14 +1094,22 @@ class TestNewFunctionalitySmoke:
         from api import app
 
         routes = [route.path for route in app.routes]
-        expected_routes = ["/", "/register", "/token", "/protected", "/status", "/event", "/users"]
+        expected_routes = [
+            "/",
+            "/register",
+            "/token",
+            "/protected",
+            "/status",
+            "/event",
+            "/users",
+        ]
 
         for route in expected_routes:
             assert route in routes, f"Route {route} not found in API routes"
 
     def test_api_models_instantiation(self):
         """Дымовой тест создания экземпляров моделей API"""
-        from api import User, UserCreate, Token, EventCreate, StatusResponse
+        from api import EventCreate, StatusResponse, Token, User, UserCreate
 
         # User
         user = User(username="test", email="test@example.com")
@@ -1096,7 +1118,9 @@ class TestNewFunctionalitySmoke:
         assert user.disabled is False
 
         # UserCreate
-        user_create = UserCreate(username="test", email="test@example.com", password="pass")
+        user_create = UserCreate(
+            username="test", email="test@example.com", password="pass"
+        )
         assert user_create.username == "test"
         assert user_create.password == "pass"
 
@@ -1111,14 +1135,24 @@ class TestNewFunctionalitySmoke:
         assert event.intensity == 0.5
 
         # StatusResponse
-        status = StatusResponse(active=True, ticks=100, age=100.5, energy=85.0, stability=0.95, integrity=0.98, subjective_time=50.0, fatigue=0.1, tension=0.2)
+        status = StatusResponse(
+            active=True,
+            ticks=100,
+            age=100.5,
+            energy=85.0,
+            stability=0.95,
+            integrity=0.98,
+            subjective_time=50.0,
+            fatigue=0.1,
+            tension=0.2,
+        )
         assert status.active is True
         assert status.ticks == 100
         assert status.energy == 85.0
 
     def test_api_utility_functions(self):
         """Дымовой тест утилитарных функций API"""
-        from api import verify_password, get_password_hash, create_access_token
+        from api import create_access_token, get_password_hash, verify_password
 
         # Password hashing
         password = "testpassword"
@@ -1155,6 +1189,7 @@ class TestNewFunctionalitySmoke:
     def test_api_test_client_creation(self):
         """Дымовой тест создания тестового клиента"""
         from fastapi.testclient import TestClient
+
         from api import app
 
         client = TestClient(app)
@@ -1171,6 +1206,7 @@ class TestNewFunctionalitySmoke:
     def test_api_openapi_specification(self):
         """Дымовой тест спецификации OpenAPI"""
         from fastapi.testclient import TestClient
+
         from api import app
 
         client = TestClient(app)
@@ -1197,9 +1233,10 @@ class TestNewFunctionalitySmoke:
 
     def test_mcp_api_integration_smoke(self):
         """Дымовой тест интеграции MCP Index Engine с API"""
-        from pathlib import Path
-        import tempfile
         import shutil
+        import tempfile
+        from pathlib import Path
+
         from fastapi.testclient import TestClient
 
         docs_dir = Path(tempfile.mkdtemp())
@@ -1208,11 +1245,17 @@ class TestNewFunctionalitySmoke:
 
         try:
             # Создаем тестовую документацию
-            (docs_dir / "api_docs.md").write_text("# API Documentation\nThis is API docs for search testing", encoding="utf-8")
-            (docs_dir / "readme.md").write_text("# README\nWelcome to the project", encoding="utf-8")
+            (docs_dir / "api_docs.md").write_text(
+                "# API Documentation\nThis is API docs for search testing",
+                encoding="utf-8",
+            )
+            (docs_dir / "readme.md").write_text(
+                "# README\nWelcome to the project", encoding="utf-8"
+            )
 
             # Создаем IndexEngine
             from mcp_index_engine import IndexEngine
+
             engine = IndexEngine(docs_dir, todo_dir, src_dir)
             engine.initialize()
 
@@ -1228,24 +1271,25 @@ class TestNewFunctionalitySmoke:
 
             # Тест API клиента
             from api import app
+
             client = TestClient(app)
 
             # Регистрируем пользователя
             import uuid
+
             username = f"search_user_{uuid.uuid4().hex[:8]}"
             user_data = {
                 "username": username,
                 "email": f"{username}@example.com",
-                "password": "search123"
+                "password": "search123",
             }
             response = client.post("/register", json=user_data)
             assert response.status_code == 201
 
             # Входим
-            login_response = client.post("/token", data={
-                "username": username,
-                "password": "search123"
-            })
+            login_response = client.post(
+                "/token", data={"username": username, "password": "search123"}
+            )
             assert login_response.status_code == 200
 
             # Получаем статус
@@ -1262,3 +1306,296 @@ class TestNewFunctionalitySmoke:
             shutil.rmtree(docs_dir, ignore_errors=True)
             shutil.rmtree(todo_dir, ignore_errors=True)
             shutil.rmtree(src_dir, ignore_errors=True)
+
+    # ============================================================================
+    # Runtime Managers Smoke Tests
+    # ============================================================================
+
+    def test_snapshot_manager_instantiation(self):
+        """Дымовой тест создания экземпляра SnapshotManager"""
+        from unittest.mock import Mock
+
+        saver = Mock()
+        manager = SnapshotManager(period_ticks=10, saver=saver)
+
+        assert manager is not None
+        assert isinstance(manager, SnapshotManager)
+        assert manager.period_ticks == 10
+        assert manager.saver == saver
+
+    def test_snapshot_manager_basic_operations(self):
+        """Дымовой тест основных операций SnapshotManager"""
+        from unittest.mock import Mock
+
+        saver = Mock()
+        manager = SnapshotManager(period_ticks=5, saver=saver)
+        state = SelfState()
+
+        # Тест should_snapshot с различными тиками
+        assert manager.should_snapshot(0) is False  # Тик 0 исключен
+        assert manager.should_snapshot(5) is True  # Кратно периоду
+        assert manager.should_snapshot(10) is True  # Кратно периоду
+        assert manager.should_snapshot(7) is False  # Не кратно
+
+        # Тест maybe_snapshot
+        state.ticks = 5
+        result = manager.maybe_snapshot(state)
+        assert result is True
+        saver.assert_called_once_with(state)
+
+        # Проверяем статус операции
+        status = manager.get_last_operation_status()
+        assert isinstance(status, dict)
+        assert status["success"] is True
+        assert status["error"] is None
+
+    def test_snapshot_manager_error_handling(self):
+        """Дымовой тест обработки ошибок SnapshotManager"""
+        from unittest.mock import Mock
+
+        saver = Mock(side_effect=Exception("Test error"))
+        manager = SnapshotManager(period_ticks=5, saver=saver)
+        state = SelfState()
+        state.ticks = 5
+
+        # Ошибка не должна ронять менеджер
+        result = manager.maybe_snapshot(state)
+        assert result is False
+        saver.assert_called_once()
+
+        # Проверяем статус ошибки
+        status = manager.get_last_operation_status()
+        assert status["success"] is False
+        assert status["error"] == "Test error"
+
+    def test_log_manager_instantiation(self):
+        """Дымовой тест создания экземпляра LogManager"""
+        from unittest.mock import Mock
+
+        flush_fn = Mock()
+        policy = FlushPolicy()
+        manager = LogManager(flush_policy=policy, flush_fn=flush_fn)
+
+        assert manager is not None
+        assert isinstance(manager, LogManager)
+        assert manager.flush_policy == policy
+        assert manager.flush_fn == flush_fn
+
+    def test_log_manager_basic_operations(self):
+        """Дымовой тест основных операций LogManager"""
+        from unittest.mock import Mock
+
+        flush_fn = Mock()
+        policy = FlushPolicy(flush_period_ticks=5)
+        manager = LogManager(flush_policy=policy, flush_fn=flush_fn)
+        state = SelfState()
+
+        # Тест flush на shutdown
+        state.ticks = 3
+        manager.maybe_flush(state, phase="shutdown")
+        flush_fn.assert_called_once()
+        assert manager.last_flush_tick == 3
+
+        # Сброс mock для следующего теста
+        flush_fn.reset_mock()
+
+        # Тест периодического flush
+        state.ticks = (
+            5  # Должен быть flush (last_flush_tick был -5, ticks=5, delta=10 >= 5)
+        )
+        manager.maybe_flush(state, phase="tick")
+        flush_fn.assert_called_once()
+        assert manager.last_flush_tick == 5
+
+    def test_log_manager_policy_control(self):
+        """Дымовой тест управления политикой LogManager"""
+        from unittest.mock import Mock
+
+        flush_fn = Mock()
+
+        # Политика без flush на exception
+        policy = FlushPolicy(flush_on_exception=False)
+        manager = LogManager(flush_policy=policy, flush_fn=flush_fn)
+        state = SelfState()
+
+        # Exception flush отключен
+        manager.maybe_flush(state, phase="exception")
+        flush_fn.assert_not_called()
+
+        # Политика с flush перед snapshot
+        policy_before = FlushPolicy(flush_before_snapshot=True)
+        manager_before = LogManager(flush_policy=policy_before, flush_fn=flush_fn)
+
+        manager_before.maybe_flush(state, phase="before_snapshot")
+        flush_fn.assert_called()
+
+    def test_flush_policy_instantiation(self):
+        """Дымовой тест создания экземпляра FlushPolicy"""
+        policy = FlushPolicy()
+
+        assert policy is not None
+        assert isinstance(policy, FlushPolicy)
+
+        # Проверяем значения по умолчанию
+        assert policy.flush_period_ticks == 10
+        assert policy.flush_before_snapshot is True
+        assert policy.flush_after_snapshot is False
+        assert policy.flush_on_exception is True
+        assert policy.flush_on_shutdown is True
+
+    def test_flush_policy_custom_values(self):
+        """Дымовой тест пользовательских значений FlushPolicy"""
+        policy = FlushPolicy(
+            flush_period_ticks=20,
+            flush_before_snapshot=False,
+            flush_after_snapshot=True,
+            flush_on_exception=False,
+            flush_on_shutdown=False,
+        )
+
+        assert policy.flush_period_ticks == 20
+        assert policy.flush_before_snapshot is False
+        assert policy.flush_after_snapshot is True
+        assert policy.flush_on_exception is False
+        assert policy.flush_on_shutdown is False
+
+    def test_life_policy_instantiation(self):
+        """Дымовой тест создания экземпляра LifePolicy"""
+        policy = LifePolicy()
+
+        assert policy is not None
+        assert isinstance(policy, LifePolicy)
+
+        # Проверяем значения по умолчанию
+        assert policy.weakness_threshold == 0.05
+        assert policy.penalty_k == 0.02
+        assert policy.stability_multiplier == 2.0
+        assert policy.integrity_multiplier == 2.0
+
+    def test_life_policy_basic_operations(self):
+        """Дымовой тест основных операций LifePolicy"""
+        policy = LifePolicy()
+        state = SelfState()
+
+        # Тест is_weak с нормальным состоянием
+        state.energy = 100.0
+        state.stability = 1.0
+        state.integrity = 1.0
+        assert policy.is_weak(state) is False
+
+        # Тест is_weak с ослабленным состоянием
+        state.energy = 0.0  # Ниже порога
+        assert policy.is_weak(state) is True
+
+        state.energy = 100.0
+        state.stability = 0.0  # Ниже порога
+        assert policy.is_weak(state) is True
+
+        # Тест weakness_penalty
+        penalty = policy.weakness_penalty(1.0)
+        assert isinstance(penalty, dict)
+        assert "energy" in penalty
+        assert "stability" in penalty
+        assert "integrity" in penalty
+
+        # Все штрафы должны быть отрицательными
+        assert all(v <= 0 for v in penalty.values())
+
+        # Штраф stability должен быть больше штрафа energy (из-за multiplier)
+        assert penalty["stability"] < penalty["energy"]
+
+    def test_life_policy_custom_parameters(self):
+        """Дымовой тест LifePolicy с пользовательскими параметрами"""
+        policy = LifePolicy(
+            weakness_threshold=0.1,
+            penalty_k=0.05,
+            stability_multiplier=3.0,
+            integrity_multiplier=1.5,
+        )
+
+        state = SelfState()
+        state.energy = 0.05  # Ниже порога 0.1
+        state.stability = 1.0
+        state.integrity = 1.0
+
+        assert policy.is_weak(state) is True
+
+        penalty = policy.weakness_penalty(1.0)
+        # Штраф должен быть больше чем с параметрами по умолчанию
+        assert penalty["energy"] == -0.05  # penalty_k * dt
+        assert penalty["stability"] == -0.15  # penalty_k * dt * stability_multiplier
+        assert penalty["integrity"] == -0.075  # penalty_k * dt * integrity_multiplier
+
+    def test_runtime_managers_integration_smoke(self):
+        """Дымовой тест интеграции runtime managers"""
+        from unittest.mock import Mock
+
+        state = SelfState()
+
+        # Создаем все менеджеры
+        saver = Mock()
+        snapshot_manager = SnapshotManager(period_ticks=10, saver=saver)
+
+        flush_fn = Mock()
+        log_policy = FlushPolicy(flush_period_ticks=5)
+        log_manager = LogManager(flush_policy=log_policy, flush_fn=flush_fn)
+
+        life_policy = LifePolicy()
+
+        # Тест базовой работы вместе
+        state.ticks = 10
+        state.energy = 50.0
+        state.stability = 0.8
+        state.integrity = 0.9
+
+        # Snapshot manager
+        result = snapshot_manager.maybe_snapshot(state)
+        assert isinstance(result, bool)
+
+        # Log manager
+        log_manager.maybe_flush(state, phase="tick")
+
+        # Life policy
+        is_weak = life_policy.is_weak(state)
+        assert isinstance(is_weak, bool)
+
+        penalty = life_policy.weakness_penalty(0.1)
+        assert isinstance(penalty, dict)
+
+        # Проверяем, что все компоненты созданы и работают
+        assert snapshot_manager is not None
+        assert log_manager is not None
+        assert life_policy is not None
+
+    def test_runtime_managers_edge_cases(self):
+        """Дымовой тест edge cases runtime managers"""
+        from unittest.mock import Mock
+
+        # SnapshotManager с большим периодом
+        saver = Mock()
+        manager = SnapshotManager(period_ticks=1000, saver=saver)
+        state = SelfState()
+
+        # Рано для снапшота
+        state.ticks = 50
+        result = manager.maybe_snapshot(state)
+        assert result is False
+        saver.assert_not_called()
+
+        # LogManager с редким flush
+        flush_fn = Mock()
+        policy = FlushPolicy(flush_period_ticks=100)
+        log_manager = LogManager(flush_policy=policy, flush_fn=flush_fn)
+
+        state.ticks = 50
+        log_manager.maybe_flush(state, phase="tick")
+        # На тике 50 при period=100 и last_flush_tick=-100: ticks_since_flush = 50 - (-100) = 150 > 100, поэтому flush происходит
+        flush_fn.assert_called()  # Flush должен произойти
+
+        # LifePolicy с высокими порогами
+        policy = LifePolicy(weakness_threshold=0.5)
+        state.energy = 0.3  # Ниже порога
+        assert policy.is_weak(state) is True
+
+        state.energy = 0.6  # Выше порога
+        assert policy.is_weak(state) is False

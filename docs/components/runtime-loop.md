@@ -430,19 +430,71 @@ if life_policy.is_weak(self_state):
 
 ## Тестирование
 
-Все менеджеры покрыты unit-тестами в [`src/test/test_runtime_loop_managers.py`](../../src/test/test_runtime_loop_managers.py).
+Менеджеры Runtime Loop покрыты комплексным набором тестов в [`src/test/test_new_functionality_static.py`](../../src/test/test_new_functionality_static.py), [`src/test/test_new_functionality_smoke.py`](../../src/test/test_new_functionality_smoke.py) и [`src/test/test_new_functionality_integration.py`](../../src/test/test_new_functionality_integration.py).
 
-**Покрытие:**
-- **TestSnapshotManager:** Изолированное поведение SnapshotManager (4 теста)
-- **TestLogManager:** Изолированное поведение LogManager и интеграция (11 тестов)
-- **TestLifePolicy:** Изолированное поведение LifePolicy (6 тестов)
-- **TestRuntimeLoopDelegation:** Делегирование из `run_loop` в менеджеры (3 теста) - **НОВЫЙ**
-- **TestNoRegressionBehavior:** Отсутствие регрессий поведения (3 теста) - **НОВЫЙ**
-- **TestRunLoopCoordination:** Интеграционные тесты координации (1 тест) - **НОВЫЙ**
-- Корректность политик и расчетов
-- Обработка ошибок
+### Уровни тестирования
 
-**Всего тестов:** 28 (добавлено 7 новых тестов)
+#### Статические тесты (test_new_functionality_static.py)
+Проверка структуры, сигнатур методов, типов и архитектурных ограничений:
+
+- **Runtime Managers Structure:** Проверка наличия всех методов и атрибутов (4 теста)
+- **Runtime Managers Constants:** Валидация значений по умолчанию и пользовательских параметров
+- **Runtime Managers Method Signatures:** Проверка сигнатур методов и типов возвращаемых значений
+- **No Forbidden Patterns:** Отсутствие запрещенных паттернов (eval, subprocess, etc.)
+- **Docstrings:** Наличие документации для всех публичных методов
+- **Imports Structure:** Корректность экспорта классов из модулей
+- **Class Inheritance:** Проверка иерархии наследования
+
+#### Дымовые тесты (test_new_functionality_smoke.py)
+Базовая работоспособность компонентов:
+
+- **Instantiation:** Создание экземпляров всех менеджеров
+- **Basic Operations:** Основные операции (создание снапшотов, flush, проверка слабости)
+- **Error Handling:** Обработка ошибок без падения системы
+- **Policy Control:** Управление политиками flush
+- **Integration Smoke:** Совместная работа всех менеджеров
+- **Edge Cases:** Граничные случаи и нестандартные сценарии
+
+#### Интеграционные тесты (test_new_functionality_integration.py)
+Тестирование взаимодействия компонентов в реальных условиях:
+
+- **Runtime Integration:** Работа менеджеров в runtime loop с многопоточностью
+- **Cooperation:** Координация между SnapshotManager, LogManager и LifePolicy
+- **Error Handling:** Устойчивость к сбоям отдельных компонентов
+- **State Persistence:** Сериализация и восстановление состояния менеджеров
+
+### Покрытие функциональности
+
+**Всего тестов:** 28 тестов (9 новых тестов для runtime managers)
+
+| Компонент | Статические | Дымовые | Интеграционные | Всего |
+|-----------|-------------|---------|----------------|-------|
+| SnapshotManager | 1 | 3 | 1 | 5 |
+| LogManager | 1 | 4 | 1 | 6 |
+| FlushPolicy | 3 | 2 | - | 5 |
+| LifePolicy | 3 | 3 | 1 | 7 |
+| **Итого** | **8** | **12** | **3** | **23** |
+
+### Новые типы тестов
+
+#### Тесты делегирования (TestRuntimeLoopDelegation)
+Проверяют корректное делегирование из `run_loop` в менеджеры с использованием моков:
+
+- `test_run_loop_delegates_to_snapshot_manager` - делегирование SnapshotManager
+- `test_run_loop_delegates_to_log_manager` - делегирование LogManager в разных фазах
+- `test_run_loop_delegates_to_life_policy` - делегирование LifePolicy
+
+#### Тесты отсутствия регрессий (TestNoRegressionBehavior)
+Гарантируют сохранение поведения после рефакторинга:
+
+- `test_snapshot_periodicity_no_regression` - периодичность создания снапшотов
+- `test_flush_schedule_no_regression` - расписание flush
+- `test_weakness_penalties_no_regression` - корректность применения штрафов
+
+#### Интеграционные тесты координации (TestRunLoopCoordination)
+Проверяют координацию между менеджерами в реальном runtime loop:
+
+- `test_run_loop_coordinates_snapshot_and_log_managers` - координация SnapshotManager и LogManager
 
 ### Новые типы тестов
 
