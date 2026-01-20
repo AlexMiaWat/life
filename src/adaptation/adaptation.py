@@ -183,9 +183,6 @@ class AdaptationManager:
                 if isinstance(value, dict):
                     _check_forbidden_keys(value, current_path)
 
-        # Проверяем actual_params, который фактически используется
-        _check_forbidden_keys(actual_params)
-
         new_params = {}
 
         # Получаем learning_params из анализа
@@ -199,6 +196,9 @@ class AdaptationManager:
             # Если adaptation_params действительно пустой, используем current_behavior_params
             # (для обратной совместимости со старыми snapshots)
             actual_params = current_behavior_params
+
+        # Проверяем actual_params, который фактически используется
+        _check_forbidden_keys(actual_params)
 
         # 1. Адаптация чувствительности к типам событий
         if (

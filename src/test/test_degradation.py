@@ -805,26 +805,25 @@ class TestDegradationLongRunning:
         original_policy = src.runtime.loop.LifePolicy()
         src.runtime.loop.LifePolicy = lambda: life_policy
 
-        try:
-            # Отключаем logging для теста
-            state.disable_logging()
+        # Отключаем logging для теста
+        state.disable_logging()
 
-            # Запускаем loop без событий для проверки базовой работоспособности
-            # Увеличиваем snapshot_period до 10000, чтобы не сохранять snapshots
-            loop_thread = threading.Thread(
-                target=run_loop,
-                args=(state, tracking_monitor, 0.01, 10000, stop_event, event_queue),
-                daemon=True,
-            )
-            loop_thread.start()
+        # Запускаем loop без событий для проверки базовой работоспособности
+        # Увеличиваем snapshot_period до 10000, чтобы не сохранять snapshots
+        loop_thread = threading.Thread(
+            target=run_loop,
+            args=(state, tracking_monitor, 0.01, 10000, stop_event, event_queue),
+            daemon=True,
+        )
+        loop_thread.start()
 
-            # Ждем достаточно долго для выполнения 1000+ тиков
-            time.sleep(15.0)  # Увеличиваем время ожидания
-            stop_event.set()
-            loop_thread.join(timeout=2.0)
-        finally:
-            # Восстанавливаем оригинальную policy
-            src.runtime.loop.LifePolicy = original_policy
+        # Ждем достаточно долго для выполнения 1000+ тиков
+        time.sleep(15.0)  # Увеличиваем время ожидания
+        stop_event.set()
+        loop_thread.join(timeout=2.0)
+
+        # Восстанавливаем оригинальную policy
+        src.runtime.loop.LifePolicy = original_policy
 
         # Проверяем, что система выполнила много тиков
         assert state.ticks >= 1000, f"Expected >= 1000 ticks, got {state.ticks}"

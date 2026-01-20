@@ -16,7 +16,8 @@ LOG_FILE.parent.mkdir(exist_ok=True)
 
 
 def log(message):
-    logger.info(f"[RELOAD] {message}")
+    print(f"[RELOAD] {message}")
+    print("TEST CHANGE")
 
 
 def monitor(state: SelfState, log_file_path: Path = None):

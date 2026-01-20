@@ -276,7 +276,7 @@ class SelfState:
             pass
 
     def __setattr__(self, name: str, value) -> None:
-        """Переопределение setattr для валидации и защиты полей"""
+        """Переопределение setattr для валидации и защиты полей с потокобезопасностью"""
         # Разрешаем установку внутренних полей без валидации
         if name.startswith("_"):
             object.__setattr__(self, name, value)
@@ -285,52 +285,104 @@ class SelfState:
         # Проверяем, инициализирован ли объект (безопасно через hasattr)
         is_initialized = hasattr(self, "_initialized") and self._initialized
 
-        # Защита неизменяемых полей (только после инициализации и не при загрузке snapshot)
-        if is_initialized and name in ["life_id", "birth_timestamp"] and not getattr(self, '_loading_from_snapshot', False):
-            raise AttributeError(
-                f"Cannot modify immutable field '{name}' after initialization"
-            )
+        # Для потокобезопасности используем блокировку при изменении состояния
+        # Исключаем внутренние поля и поля, которые не влияют на консистентность
+        if is_initialized and name not in ["activated_memory", "last_pattern"]:
+            # Используем RLock для потокобезопасности изменений состояния
+            with self._api_lock:
+                # Защита неизменяемых полей (только после инициализации и не при загрузке snapshot)
+                if name in ["life_id", "birth_timestamp"] and not getattr(self, '_loading_from_snapshot', False):
+                    raise AttributeError(
+                        f"Cannot modify immutable field '{name}' after initialization"
+                    )
 
-        # Получаем старое значение для логирования (безопасно)
-        old_value = None
-        if is_initialized:
-            try:
-                old_value = object.__getattribute__(self, name)
-            except AttributeError:
+                # Получаем старое значение для логирования (безопасно)
                 old_value = None
+                try:
+                    old_value = object.__getattribute__(self, name)
+                except AttributeError:
+                    old_value = None
 
-        # Валидация числовых полей
-        if isinstance(value, (int, float)) and name in [
-            "energy",
-            "integrity",
-            "stability",
-            "fatigue",
-            "tension",
-            "age",
-            "subjective_time",
-            "subjective_time_base_rate",
-            "subjective_time_rate_min",
-            "subjective_time_rate_max",
-            "subjective_time_intensity_coeff",
-            "subjective_time_stability_coeff",
-            "subjective_time_energy_coeff",
-            "subjective_time_intensity_smoothing",
-            "last_event_intensity",
-            "ticks",
-        ]:
-            value = self._validate_field(name, value, clamp=False)
+                # Валидация числовых полей
+                if isinstance(value, (int, float)) and name in [
+                    "energy",
+                    "integrity",
+                    "stability",
+                    "fatigue",
+                    "tension",
+                    "age",
+                    "subjective_time",
+                    "subjective_time_base_rate",
+                    "subjective_time_rate_min",
+                    "subjective_time_rate_max",
+                    "subjective_time_intensity_coeff",
+                    "subjective_time_stability_coeff",
+                    "subjective_time_energy_coeff",
+                    "subjective_time_intensity_smoothing",
+                    "last_event_intensity",
+                    "ticks",
+                ]:
+                    value = self._validate_field(name, value, clamp=False)
 
-        # Устанавливаем значение
-        object.__setattr__(self, name, value)
+                # Устанавливаем значение
+                object.__setattr__(self, name, value)
 
-        # Логируем изменение (только после инициализации и если значение изменилось)
-        if is_initialized and old_value is not None and old_value != value:
-            self._log_change(name, old_value, value)
+                # Логируем изменение (только после инициализации и если значение изменилось)
+                if old_value is not None and old_value != value:
+                    self._log_change(name, old_value, value)
 
-        # Автоматически обновляем active при изменении vital параметров (только после инициализации)
-        # Обновляем только если active был True (не восстанавливаем deactivated систему)
-        if is_initialized and name in ["energy", "integrity", "stability"] and self.active:
-            object.__setattr__(self, "active", self.is_active())
+                # Автоматически обновляем active при изменении vital параметров (только после инициализации)
+                # Всегда обновляем active на основе текущей жизнеспособности
+                if name in ["energy", "integrity", "stability"]:
+                    object.__setattr__(self, "active", self.is_viable())
+        else:
+            # Для неинициализированного состояния или специальных полей - без блокировки
+            # Защита неизменяемых полей (только после инициализации и не при загрузке snapshot)
+            if is_initialized and name in ["life_id", "birth_timestamp"] and not getattr(self, '_loading_from_snapshot', False):
+                raise AttributeError(
+                    f"Cannot modify immutable field '{name}' after initialization"
+                )
+
+            # Получаем старое значение для логирования (безопасно)
+            old_value = None
+            if is_initialized:
+                try:
+                    old_value = object.__getattribute__(self, name)
+                except AttributeError:
+                    old_value = None
+
+            # Валидация числовых полей
+            if isinstance(value, (int, float)) and name in [
+                "energy",
+                "integrity",
+                "stability",
+                "fatigue",
+                "tension",
+                "age",
+                "subjective_time",
+                "subjective_time_base_rate",
+                "subjective_time_rate_min",
+                "subjective_time_rate_max",
+                "subjective_time_intensity_coeff",
+                "subjective_time_stability_coeff",
+                "subjective_time_energy_coeff",
+                "subjective_time_intensity_smoothing",
+                "last_event_intensity",
+                "ticks",
+            ]:
+                value = self._validate_field(name, value, clamp=False)
+
+            # Устанавливаем значение
+            object.__setattr__(self, name, value)
+
+            # Логируем изменение (только после инициализации и если значение изменилось)
+            if is_initialized and old_value is not None and old_value != value:
+                self._log_change(name, old_value, value)
+
+            # Автоматически обновляем active при изменении vital параметров (только после инициализации)
+            # Всегда обновляем active на основе текущей жизнеспособности
+            if is_initialized and name in ["energy", "integrity", "stability"]:
+                object.__setattr__(self, "active", self.is_viable())
 
     activated_memory: list = field(
         default_factory=list
@@ -410,10 +462,9 @@ class SelfState:
     def is_active(self) -> bool:
         """
         Проверка жизнеспособности состояния.
-        Согласно философии Life, система всегда "активна" (работает), даже в degraded состоянии.
-        Возвращает True всегда - система продолжает функционировать при любых параметрах.
+        Возвращает True если система жизнеспособна (vital параметры выше порогов).
         """
-        return True
+        return self.is_viable()
 
     def is_viable(self) -> bool:
         """
@@ -478,27 +529,29 @@ class SelfState:
         # Память не сбрасываем, так как это история жизни
 
     def apply_delta(self, deltas: dict[str, float]) -> None:
-        """Применение дельт к полям с обрезанием значений до допустимых границ"""
-        for key, delta in deltas.items():
-            if hasattr(self, key):
-                current = getattr(self, key)
-                if isinstance(current, (int, float)):
-                    new_value = current + delta
-                    # Обрезаем значение до границ вместо выбрасывания ошибки
-                    clamped_value = self._validate_field(key, new_value, clamp=True)
-                    # Устанавливаем без дополнительной валидации
-                    object.__setattr__(self, key, clamped_value)
+        """Применение дельт к полям с обрезанием значений до допустимых границ с потокобезопасностью"""
+        # Используем блокировку для обеспечения консистентности изменений
+        with self._api_lock:
+            for key, delta in deltas.items():
+                if hasattr(self, key):
+                    current = getattr(self, key)
+                    if isinstance(current, (int, float)):
+                        new_value = current + delta
+                        # Обрезаем значение до границ вместо выбрасывания ошибки
+                        clamped_value = self._validate_field(key, new_value, clamp=True)
+                        # Устанавливаем без дополнительной валидации
+                        object.__setattr__(self, key, clamped_value)
 
-                    # Логируем изменение вручную, так как обошли __setattr__
-                    if self._initialized and current != clamped_value:
-                        self._log_change(key, current, clamped_value)
-                else:
-                    # Для нечисловых полей операция сложения не поддерживается
-                    raise TypeError(
-                        f"Cannot apply delta to field '{key}': "
-                        f"field type '{type(current).__name__}' does not support addition. "
-                        f"Only numeric fields (int, float) support delta operations."
-                    )
+                        # Логируем изменение вручную, так как обошли __setattr__
+                        if self._initialized and current != clamped_value:
+                            self._log_change(key, current, clamped_value)
+                    else:
+                        # Для нечисловых полей операция сложения не поддерживается
+                        raise TypeError(
+                            f"Cannot apply delta to field '{key}': "
+                            f"field type '{type(current).__name__}' does not support addition. "
+                            f"Only numeric fields (int, float) support delta operations."
+                        )
 
     def enable_logging(self) -> None:
         """Включить логирование изменений"""

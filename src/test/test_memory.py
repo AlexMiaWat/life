@@ -542,7 +542,7 @@ class TestArchiveMemory:
             archive.save_archive()
 
             # Создаем новый архив и загружаем
-            new_archive = ArchiveMemory(archive_file=archive_file)
+            new_archive = ArchiveMemory(archive_file=archive_file, load_existing=True)
             assert new_archive.size() == 3
             loaded_entries = new_archive.get_all_entries()
             assert len(loaded_entries) == 3
@@ -570,7 +570,7 @@ class TestArchiveMemory:
                 json.dump(legacy_data, f, indent=2)
 
             # Загружаем в новый ArchiveMemory
-            archive = ArchiveMemory(archive_file=archive_file)
+            archive = ArchiveMemory(archive_file=archive_file, load_existing=True)
 
             # Проверяем, что запись загрузилась
             assert archive.size() == 1
@@ -602,7 +602,7 @@ class TestArchiveMemory:
             archive.save_archive()
 
             # Загружаем заново
-            new_archive = ArchiveMemory(archive_file=archive_file)
+            new_archive = ArchiveMemory(archive_file=archive_file, load_existing=True)
             assert new_archive.size() == 1
 
             loaded_entry = new_archive.get_all_entries()[0]
@@ -657,7 +657,7 @@ class TestMemoryArchive:
             event_type="low_weight",
             meaning_significance=0.5,
             timestamp=time.time(),
-            weight=0.05,  # Ниже порога 0.1 для clamp_size, но тест проверяет архивацию
+            weight=0.15,  # Выше порога clamp_size (0.1), но ниже порога архивации (0.2)
         )
         high_weight_entry = MemoryEntry(
             event_type="high_weight",

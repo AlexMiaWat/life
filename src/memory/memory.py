@@ -26,7 +26,7 @@ class ArchiveMemory:
     Хранит записи, которые были перенесены из активной памяти.
     """
 
-    def __init__(self, archive_file: Optional[Path] = None, load_existing: bool = True):
+    def __init__(self, archive_file: Optional[Path] = None, load_existing: bool = False):
         """
         Инициализация архивной памяти.
 
