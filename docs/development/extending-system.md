@@ -43,18 +43,18 @@ from state.self_state import SelfState
 
 class NewModule:
     """Описание назначения модуля."""
-    
+
     def __init__(self):
         """Инициализация модуля."""
         pass
-    
+
     def process(self, self_state: SelfState) -> Dict[str, Any]:
         """
         Основной метод обработки.
-        
+
         Args:
             self_state: Текущее состояние системы
-            
+
         Returns:
             Словарь с результатами обработки
         """

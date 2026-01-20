@@ -183,13 +183,13 @@ if self_state.ticks > 0 and self_state.ticks % learning_interval == 0:
     try:
         # Обрабатываем статистику из Memory
         statistics = learning_engine.process_statistics(self_state.memory)
-        
+
         # Получаем текущие параметры
         current_params = self_state.learning_params
-        
+
         # Медленно изменяем параметры (без оптимизации, без целей)
         new_params = learning_engine.adjust_parameters(statistics, current_params)
-        
+
         # Фиксируем изменения в SelfState
         if new_params:
             learning_engine.record_changes(current_params, new_params, self_state)

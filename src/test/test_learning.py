@@ -8,10 +8,10 @@ Unit-тесты для модуля Learning (Этап 14)
 - Интеграция с Memory и Feedback
 """
 
-import sys
-from pathlib import Path
 import inspect
+import sys
 import time
+from pathlib import Path
 
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root / "src"))
@@ -41,15 +41,9 @@ class TestLearningEngine:
         """Тест извлечения статистики по типам событий"""
         engine = LearningEngine()
         memory = [
-            MemoryEntry(
-                event_type="noise", meaning_significance=0.3, timestamp=1.0
-            ),
-            MemoryEntry(
-                event_type="noise", meaning_significance=0.5, timestamp=2.0
-            ),
-            MemoryEntry(
-                event_type="shock", meaning_significance=0.8, timestamp=3.0
-            ),
+            MemoryEntry(event_type="noise", meaning_significance=0.3, timestamp=1.0),
+            MemoryEntry(event_type="noise", meaning_significance=0.5, timestamp=2.0),
+            MemoryEntry(event_type="shock", meaning_significance=0.8, timestamp=3.0),
         ]
 
         statistics = engine.process_statistics(memory)
@@ -71,7 +65,11 @@ class TestLearningEngine:
                 feedback_data={
                     "action_id": "action_1",
                     "action_pattern": "dampen",
-                    "state_delta": {"energy": -0.1, "stability": -0.05, "integrity": 0.0},
+                    "state_delta": {
+                        "energy": -0.1,
+                        "stability": -0.05,
+                        "integrity": 0.0,
+                    },
                     "delay_ticks": 5,
                     "associated_events": [],
                 },
@@ -324,7 +322,11 @@ class TestLearningEngine:
                 feedback_data={
                     "action_id": "action_1",
                     "action_pattern": "dampen",
-                    "state_delta": {"energy": -0.1, "stability": -0.05, "integrity": 0.0},
+                    "state_delta": {
+                        "energy": -0.1,
+                        "stability": -0.05,
+                        "integrity": 0.0,
+                    },
                     "delay_ticks": 5,
                     "associated_events": [],
                 },
@@ -383,7 +385,9 @@ class TestLearningEngine:
                 learning_calls += 1
 
         # Проверяем, что Learning вызывался примерно 2-3 раза за 200 тиков
-        assert 2 <= learning_calls <= 3, f"Learning должен вызываться 2-3 раза, вызван {learning_calls} раз"
+        assert (
+            2 <= learning_calls <= 3
+        ), f"Learning должен вызываться 2-3 раза, вызван {learning_calls} раз"
 
     def test_learning_no_side_effects(self):
         """Проверка, что Learning не влияет на другие модули"""
@@ -519,7 +523,11 @@ class TestLearningIntegration:
                         feedback_data={
                             "action_id": f"action_{tick}",
                             "action_pattern": "dampen",
-                            "state_delta": {"energy": -0.1, "stability": -0.05, "integrity": 0.0},
+                            "state_delta": {
+                                "energy": -0.1,
+                                "stability": -0.05,
+                                "integrity": 0.0,
+                            },
                             "delay_ticks": 5,
                             "associated_events": [],
                         },
@@ -539,7 +547,9 @@ class TestLearningIntegration:
                 learning_call_count += 1
 
         # Проверяем, что Learning вызывался несколько раз
-        assert learning_call_count >= 3, f"Learning должен вызываться минимум 3 раза за 300 тиков, вызван {learning_call_count} раз"
+        assert (
+            learning_call_count >= 3
+        ), f"Learning должен вызываться минимум 3 раза за 300 тиков, вызван {learning_call_count} раз"
 
         # Проверяем, что параметры изменились медленно
         for key in initial_params:
@@ -672,6 +682,7 @@ class TestLearningIntegration:
 # СТАТИЧЕСКИЕ ТЕСТЫ
 # ============================================================================
 
+
 @pytest.mark.static
 class TestLearningStatic:
     """Статические тесты для Learning - проверка структуры, типов, отсутствия запрещенных методов"""
@@ -695,18 +706,18 @@ class TestLearningStatic:
     def test_method_signatures(self):
         """Проверка сигнатур методов"""
         engine = LearningEngine()
-        
+
         # process_statistics
         sig = inspect.signature(engine.process_statistics)
         assert len(sig.parameters) == 2  # self + memory
         assert "memory" in sig.parameters
-        
+
         # adjust_parameters
         sig = inspect.signature(engine.adjust_parameters)
         assert len(sig.parameters) == 3  # self + statistics + current_params
         assert "statistics" in sig.parameters
         assert "current_params" in sig.parameters
-        
+
         # record_changes
         sig = inspect.signature(engine.record_changes)
         assert len(sig.parameters) == 4  # self + old_params + new_params + self_state
@@ -717,15 +728,15 @@ class TestLearningStatic:
     def test_method_return_types(self):
         """Проверка типов возвращаемых значений"""
         engine = LearningEngine()
-        
+
         # process_statistics возвращает dict
         result = engine.process_statistics([])
         assert isinstance(result, dict)
-        
+
         # adjust_parameters возвращает dict
         result = engine.adjust_parameters({}, {})
         assert isinstance(result, dict)
-        
+
         # record_changes возвращает None
         self_state = SelfState()
         result = engine.record_changes({}, {}, self_state)
@@ -734,52 +745,79 @@ class TestLearningStatic:
     def test_forbidden_methods_comprehensive(self):
         """Комплексная проверка отсутствия запрещенных методов"""
         engine = LearningEngine()
-        
+
         # Список всех запрещенных методов
         forbidden_methods = [
-            "optimize", "optimization", "optimizer",
-            "improve", "improvement",
-            "maximize", "minimize",
-            "evaluate", "evaluation",
-            "score", "scoring", "scorer",
-            "rate", "rating",
-            "judge", "judgment",
-            "train", "training", "trainer",
-            "fit", "fitting",
-            "learn", "learning_model",  # "learning" разрешен как часть названия модуля
-            "reward", "punishment",
-            "goal", "target", "objective",
-            "utility", "value_function",
-            "gradient", "backprop",
-            "loss", "cost", "error",
+            "optimize",
+            "optimization",
+            "optimizer",
+            "improve",
+            "improvement",
+            "maximize",
+            "minimize",
+            "evaluate",
+            "evaluation",
+            "score",
+            "scoring",
+            "scorer",
+            "rate",
+            "rating",
+            "judge",
+            "judgment",
+            "train",
+            "training",
+            "trainer",
+            "fit",
+            "fitting",
+            "learn",
+            "learning_model",  # "learning" разрешен как часть названия модуля
+            "reward",
+            "punishment",
+            "goal",
+            "target",
+            "objective",
+            "utility",
+            "value_function",
+            "gradient",
+            "backprop",
+            "loss",
+            "cost",
+            "error",
         ]
-        
+
         for method_name in forbidden_methods:
-            assert not hasattr(engine, method_name), \
-                f"LearningEngine не должен иметь метод {method_name}"
+            assert not hasattr(
+                engine, method_name
+            ), f"LearningEngine не должен иметь метод {method_name}"
 
     def test_forbidden_attributes(self):
         """Проверка отсутствия запрещенных атрибутов"""
         engine = LearningEngine()
-        
+
         forbidden_attrs = [
-            "optimizer", "loss_function", "reward_function",
-            "goal", "target", "objective",
-            "training_data", "test_data",
+            "optimizer",
+            "loss_function",
+            "reward_function",
+            "goal",
+            "target",
+            "objective",
+            "training_data",
+            "test_data",
         ]
-        
+
         for attr_name in forbidden_attrs:
-            assert not hasattr(engine, attr_name), \
-                f"LearningEngine не должен иметь атрибут {attr_name}"
+            assert not hasattr(
+                engine, attr_name
+            ), f"LearningEngine не должен иметь атрибут {attr_name}"
 
     def test_private_methods_exist(self):
         """Проверка наличия приватных методов для внутренней логики"""
         engine = LearningEngine()
-        
+
         assert hasattr(engine, "_adjust_event_sensitivity")
         assert hasattr(engine, "_adjust_significance_thresholds")
         assert hasattr(engine, "_adjust_response_coefficients")
-        
+
         # Проверяем, что они приватные (начинаются с _)
         assert engine._adjust_event_sensitivity.__name__.startswith("_")
         assert engine._adjust_significance_thresholds.__name__.startswith("_")
@@ -788,20 +826,28 @@ class TestLearningStatic:
     def test_source_code_analysis(self):
         """Анализ исходного кода на наличие запрещенных паттернов"""
         import ast
-        
+
         source_file = Path(__file__).parent.parent / "learning" / "learning.py"
         with source_file.open("r", encoding="utf-8") as f:
             source_code = f.read()
-        
+
         # Парсим AST
         tree = ast.parse(source_code)
-        
+
         # Запрещенные имена функций/переменных
         forbidden_names = {
-            "optimize", "maximize", "minimize", "evaluate", "score",
-            "reward", "goal", "target", "objective", "utility"
+            "optimize",
+            "maximize",
+            "minimize",
+            "evaluate",
+            "score",
+            "reward",
+            "goal",
+            "target",
+            "objective",
+            "utility",
         }
-        
+
         # Собираем все имена в коде
         names = set()
         for node in ast.walk(tree):
@@ -811,45 +857,52 @@ class TestLearningStatic:
                 names.add(node.name)
             elif isinstance(node, ast.Attribute):
                 names.add(node.attr)
-        
+
         # Проверяем, что запрещенные имена не используются
         # (кроме случаев в комментариях/docstrings, которые мы уже проверили)
-        code_lines = [line for line in source_code.split("\n") 
-                     if not line.strip().startswith("#") 
-                     and not line.strip().startswith('"""')
-                     and not line.strip().startswith("'''")]
+        code_lines = [
+            line
+            for line in source_code.split("\n")
+            if not line.strip().startswith("#")
+            and not line.strip().startswith('"""')
+            and not line.strip().startswith("'''")
+        ]
         code_text = "\n".join(code_lines)
-        
+
         for forbidden in forbidden_names:
             # Проверяем, что запрещенное имя не используется в коде
             # (разрешаем только в комментариях/docstrings)
             if forbidden in code_text.lower():
                 # Проверяем контекст - возможно это часть документации ограничений
-                lines_with_forbidden = [line for line in code_lines 
-                                       if forbidden.lower() in line.lower()]
+                lines_with_forbidden = [
+                    line for line in code_lines if forbidden.lower() in line.lower()
+                ]
                 for line in lines_with_forbidden:
-                    assert any(keyword in line.lower() for keyword in 
-                              ["запрещено", "forbidden", "not", "no", "never"]), \
-                        f"Запрещенный термин '{forbidden}' найден в коде: {line}"
+                    assert any(
+                        keyword in line.lower()
+                        for keyword in ["запрещено", "forbidden", "not", "no", "never"]
+                    ), f"Запрещенный термин '{forbidden}' найден в коде: {line}"
 
     def test_imports_structure(self):
         """Проверка структуры импортов"""
         import learning.learning as learning_module
-        
+
         # Проверяем, что модуль экспортирует LearningEngine
         assert hasattr(learning_module, "LearningEngine")
         assert learning_module.LearningEngine == LearningEngine
 
     def test_class_inheritance(self):
         """Проверка наследования класса"""
-        assert LearningEngine.__bases__ == (object,), \
-            "LearningEngine должен наследоваться только от object"
+        assert LearningEngine.__bases__ == (
+            object,
+        ), "LearningEngine должен наследоваться только от object"
 
     def test_docstrings_presence(self):
         """Проверка наличия docstrings"""
-        assert LearningEngine.__doc__ is not None, \
-            "LearningEngine должен иметь docstring"
-        
+        assert (
+            LearningEngine.__doc__ is not None
+        ), "LearningEngine должен иметь docstring"
+
         engine = LearningEngine()
         assert engine.process_statistics.__doc__ is not None
         assert engine.adjust_parameters.__doc__ is not None
@@ -859,6 +912,7 @@ class TestLearningStatic:
 # ============================================================================
 # ДЫМОВЫЕ ТЕСТЫ
 # ============================================================================
+
 
 @pytest.mark.smoke
 class TestLearningSmoke:
@@ -874,7 +928,7 @@ class TestLearningSmoke:
         """Дымовой тест process_statistics с минимальными данными"""
         engine = LearningEngine()
         result = engine.process_statistics([])
-        
+
         assert isinstance(result, dict)
         assert "total_entries" in result
         assert "feedback_entries" in result
@@ -897,7 +951,7 @@ class TestLearningSmoke:
             "significance_thresholds": {},
             "response_coefficients": {},
         }
-        
+
         result = engine.adjust_parameters(statistics, current_params)
         assert isinstance(result, dict)
 
@@ -907,7 +961,7 @@ class TestLearningSmoke:
         self_state = SelfState()
         old_params = self_state.learning_params.copy()
         new_params = {}
-        
+
         # Не должно вызывать исключений
         engine.record_changes(old_params, new_params, self_state)
         assert True  # Если дошли сюда, значит исключений не было
@@ -916,18 +970,18 @@ class TestLearningSmoke:
         """Дымовой тест полного цикла: statistics -> adjust -> record"""
         engine = LearningEngine()
         self_state = SelfState()
-        
+
         # Добавляем минимальные данные
         self_state.memory.append(
             MemoryEntry(event_type="noise", meaning_significance=0.3, timestamp=1.0)
         )
-        
+
         # Полный цикл
         statistics = engine.process_statistics(self_state.memory)
         new_params = engine.adjust_parameters(statistics, self_state.learning_params)
         if new_params:
             engine.record_changes(self_state.learning_params, new_params, self_state)
-        
+
         # Проверяем, что все прошло без ошибок
         assert "learning_params" in self_state.learning_params
 
@@ -935,11 +989,11 @@ class TestLearningSmoke:
         """Дымовой тест обработки пустой памяти"""
         engine = LearningEngine()
         self_state = SelfState()
-        
+
         # Пустая память не должна вызывать ошибок
         statistics = engine.process_statistics(self_state.memory)
         assert statistics["total_entries"] == 0
-        
+
         new_params = engine.adjust_parameters(statistics, self_state.learning_params)
         # new_params может быть пустым dict или содержать пустые подструктуры
         assert isinstance(new_params, dict)
@@ -958,7 +1012,7 @@ class TestLearningSmoke:
         current_params = {
             "event_type_sensitivity": {"noise": 0.2},
         }
-        
+
         result = engine.adjust_parameters(statistics, current_params)
         assert isinstance(result, dict)
 
@@ -966,11 +1020,11 @@ class TestLearningSmoke:
         """Дымовой тест граничных значений"""
         engine = LearningEngine()
         self_state = SelfState()
-        
+
         # Параметры на границах
         self_state.learning_params["event_type_sensitivity"]["noise"] = 0.0
         self_state.learning_params["event_type_sensitivity"]["decay"] = 1.0
-        
+
         statistics = {
             "event_type_counts": {"noise": 100, "decay": 1},
             "event_type_total_significance": {"noise": 50.0, "decay": 0.1},
@@ -979,10 +1033,10 @@ class TestLearningSmoke:
             "total_entries": 101,
             "feedback_entries": 0,
         }
-        
+
         new_params = engine.adjust_parameters(statistics, self_state.learning_params)
         assert isinstance(new_params, dict)
-        
+
         # Проверяем, что значения остались в границах
         if "event_type_sensitivity" in new_params:
             for key, value in new_params["event_type_sensitivity"].items():
@@ -993,28 +1047,29 @@ class TestLearningSmoke:
 # ДОПОЛНИТЕЛЬНЫЕ ИНТЕГРАЦИОННЫЕ ТЕСТЫ
 # ============================================================================
 
+
 @pytest.mark.integration
 class TestLearningIntegrationExtended:
     """Расширенные интеграционные тесты Learning"""
 
     def test_learning_with_runtime_loop_simulation(self):
         """Интеграционный тест симуляции работы в runtime loop"""
-        from environment.event_queue import EventQueue
         from environment.event import Event
-        
+        from environment.event_queue import EventQueue
+
         engine = LearningEngine()
         self_state = SelfState()
         event_queue = EventQueue()
-        
+
         # Симулируем несколько тиков runtime loop
         for tick in range(1, 151):  # 150 тиков
             self_state.ticks = tick
-            
+
             # Добавляем события
             if tick % 10 == 0:
                 event = Event(type="noise", intensity=0.1, timestamp=float(tick))
                 event_queue.push(event)
-            
+
             # Обрабатываем события (упрощенная версия)
             if not event_queue.is_empty():
                 events = event_queue.pop_all()
@@ -1026,7 +1081,7 @@ class TestLearningIntegrationExtended:
                             timestamp=event.timestamp,
                         )
                     )
-            
+
             # Learning вызывается раз в 75 тиков
             if tick % 75 == 0:
                 statistics = engine.process_statistics(self_state.memory)
@@ -1037,7 +1092,7 @@ class TestLearningIntegrationExtended:
                     engine.record_changes(
                         self_state.learning_params, new_params, self_state
                     )
-        
+
         # Проверяем, что Learning работал
         assert self_state.ticks == 150
         assert len(self_state.memory) > 0
@@ -1045,20 +1100,20 @@ class TestLearningIntegrationExtended:
 
     def test_learning_with_meaning_engine_integration(self):
         """Интеграционный тест с MeaningEngine"""
-        from meaning.engine import MeaningEngine
         from environment.event import Event
-        
+        from meaning.engine import MeaningEngine
+
         meaning_engine = MeaningEngine()
         learning_engine = LearningEngine()
         self_state = SelfState()
-        
+
         # Обрабатываем события через MeaningEngine
         events = [
             Event(type="noise", intensity=0.2, timestamp=1.0),
             Event(type="shock", intensity=-0.5, timestamp=2.0),
             Event(type="recovery", intensity=0.3, timestamp=3.0),
         ]
-        
+
         for event in events:
             meaning = meaning_engine.process(event, self_state.__dict__)
             if meaning.significance > 0:
@@ -1069,7 +1124,7 @@ class TestLearningIntegrationExtended:
                         timestamp=event.timestamp,
                     )
                 )
-        
+
         # Применяем Learning
         statistics = learning_engine.process_statistics(self_state.memory)
         new_params = learning_engine.adjust_parameters(
@@ -1079,19 +1134,19 @@ class TestLearningIntegrationExtended:
             learning_engine.record_changes(
                 self_state.learning_params, new_params, self_state
             )
-        
+
         # Проверяем результат
         assert len(self_state.memory) == 3
         assert "event_type_sensitivity" in self_state.learning_params
 
     def test_learning_with_feedback_loop(self):
         """Интеграционный тест с полным циклом Feedback"""
-        from feedback import register_action, observe_consequences
-        
+        from feedback import observe_consequences, register_action
+
         engine = LearningEngine()
         self_state = SelfState()
         pending_actions = []
-        
+
         # Регистрируем действие
         action_id = "test_action_1"
         register_action(
@@ -1101,13 +1156,13 @@ class TestLearningIntegrationExtended:
             time.time(),
             pending_actions,
         )
-        
+
         # Симулируем прохождение времени
         time.sleep(0.1)
-        
+
         # Наблюдаем последствия
         feedback_records = observe_consequences(self_state, pending_actions, None)
-        
+
         # Сохраняем Feedback в Memory
         for feedback in feedback_records:
             feedback_entry = MemoryEntry(
@@ -1123,24 +1178,24 @@ class TestLearningIntegrationExtended:
                 },
             )
             self_state.memory.append(feedback_entry)
-        
+
         # Применяем Learning
         statistics = engine.process_statistics(self_state.memory)
         new_params = engine.adjust_parameters(statistics, self_state.learning_params)
         if new_params:
             engine.record_changes(self_state.learning_params, new_params, self_state)
-        
+
         # Проверяем, что Feedback обработан
         assert statistics["feedback_entries"] >= 0  # Может быть 0 если delay не прошел
         assert "response_coefficients" in self_state.learning_params
 
     def test_learning_persistence_across_snapshots(self):
         """Интеграционный тест сохранения параметров Learning в snapshots"""
-        from state.self_state import save_snapshot, load_snapshot
-        
+        from state.self_state import load_snapshot, save_snapshot
+
         engine = LearningEngine()
         self_state = SelfState()
-        
+
         # Изменяем параметры
         initial_noise = self_state.learning_params["event_type_sensitivity"]["noise"]
         new_params = {
@@ -1149,14 +1204,14 @@ class TestLearningIntegrationExtended:
             }
         }
         engine.record_changes(self_state.learning_params, new_params, self_state)
-        
+
         # Сохраняем snapshot
         self_state.ticks = 200
         save_snapshot(self_state)
-        
+
         # Загружаем snapshot
         loaded_state = load_snapshot(200)
-        
+
         # Проверяем, что learning_params восстановлены
         assert "learning_params" in loaded_state.learning_params
         assert (
@@ -1168,7 +1223,7 @@ class TestLearningIntegrationExtended:
         """Интеграционный тест с большим объемом памяти"""
         engine = LearningEngine()
         self_state = SelfState()
-        
+
         # Создаем большое количество записей
         for i in range(100):
             self_state.memory.append(
@@ -1178,7 +1233,7 @@ class TestLearningIntegrationExtended:
                     timestamp=float(i),
                 )
             )
-        
+
         # Добавляем Feedback записи
         for i in range(20):
             self_state.memory.append(
@@ -1199,17 +1254,17 @@ class TestLearningIntegrationExtended:
                     },
                 )
             )
-        
+
         # Обрабатываем статистику
         statistics = engine.process_statistics(self_state.memory)
-        
+
         assert statistics["total_entries"] == 120
         assert statistics["feedback_entries"] == 20
-        
+
         # Изменяем параметры
         new_params = engine.adjust_parameters(statistics, self_state.learning_params)
         if new_params:
             engine.record_changes(self_state.learning_params, new_params, self_state)
-        
+
         # Проверяем, что все работает с большим объемом данных
         assert "event_type_sensitivity" in self_state.learning_params

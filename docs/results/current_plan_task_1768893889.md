@@ -1,8 +1,8 @@
 # План выполнения: Реализация search_mode (AND/OR/PHRASE) для search_docs/search_todo
 
-> **Задача:** Реализовать `search_mode` (AND/OR/PHRASE) для `search_docs`/`search_todo`  
-> **Источник:** План `mcp_engine_redesign_ab76d85d`, подзадача #1 из задачи #1  
-> **Дата создания:** 2026-01-20  
+> **Задача:** Реализовать `search_mode` (AND/OR/PHRASE) для `search_docs`/`search_todo`
+> **Источник:** План `mcp_engine_redesign_ab76d85d`, подзадача #1 из задачи #1
+> **Дата создания:** 2026-01-20
 > **ID задачи:** task_1768893889
 
 ## 1. Обзор задачи
@@ -100,23 +100,23 @@
 def _tokenize_query(query: str, default_mode: str = "AND") -> tuple[str, list[str] | str]:
     """
     Токенизирует запрос и определяет режим поиска.
-    
+
     Args:
         query: Поисковый запрос
         default_mode: Режим по умолчанию (AND/OR)
-    
+
     Returns:
         Tuple (mode, tokens_or_phrase):
         - mode: "AND", "OR", или "PHRASE"
         - tokens_or_phrase: список токенов для AND/OR или строка для PHRASE
     """
     query = query.strip()
-    
+
     # Проверка на PHRASE mode (кавычки)
     if query.startswith('"') and query.endswith('"') and len(query) > 2:
         phrase = query[1:-1].strip()
         return ("PHRASE", phrase)
-    
+
     # Токенизация для AND/OR
     import re
     # Разбиваем на слова, удаляем пунктуацию
@@ -147,7 +147,7 @@ def _search_phrase(content: str, phrase: str) -> bool:
 ```python
 async def search_docs(query: str, search_mode: str = "AND", limit: int = 10) -> str:
     """Поиск по ключевым словам в документации проекта Life.
-    
+
     Args:
         query: Ключевые слова для поиска
         search_mode: Режим поиска ("AND", "OR", "PHRASE")
@@ -155,17 +155,17 @@ async def search_docs(query: str, search_mode: str = "AND", limit: int = 10) -> 
     """
     mode, tokens_or_phrase = _tokenize_query(query, search_mode)
     results = []
-    
+
     for root, dirs, files in os.walk(DOCS_DIR):
         for file in files:
             if file.endswith(".md"):
                 file_path = Path(root) / file
                 rel_path = file_path.relative_to(DOCS_DIR)
-                
+
                 try:
                     with open(file_path, "r", encoding="utf-8") as f:
                         content = f.read()
-                    
+
                     # Применяем соответствующий режим поиска
                     match = False
                     if mode == "PHRASE":
@@ -174,7 +174,7 @@ async def search_docs(query: str, search_mode: str = "AND", limit: int = 10) -> 
                         match = _search_and(content, tokens_or_phrase)
                     elif mode == "OR":
                         match = _search_or(content, tokens_or_phrase)
-                    
+
                     if match:
                         # Найти контекст вокруг найденного текста
                         # ... существующая логика ...
@@ -182,22 +182,22 @@ async def search_docs(query: str, search_mode: str = "AND", limit: int = 10) -> 
 
 ## 6. Критерии приемки
 
-✅ **FC1:** Реализованы все три режима поиска (AND/OR/PHRASE)  
-✅ **FC2:** Параметр `search_mode` добавлен в `search_docs` и `search_todo`  
-✅ **FC3:** PHRASE mode определяется автоматически по кавычкам  
-✅ **FC4:** Обратная совместимость сохранена (по умолчанию AND mode)  
-✅ **FC5:** Тесты для всех режимов проходят  
+✅ **FC1:** Реализованы все три режима поиска (AND/OR/PHRASE)
+✅ **FC2:** Параметр `search_mode` добавлен в `search_docs` и `search_todo`
+✅ **FC3:** PHRASE mode определяется автоматически по кавычкам
+✅ **FC4:** Обратная совместимость сохранена (по умолчанию AND mode)
+✅ **FC5:** Тесты для всех режимов проходят
 ✅ **FC6:** Документация обновлена (docstrings)
 
 ## 7. Риски и митигация
 
-**Риск 1:** Регрессии в существующем функционале  
+**Риск 1:** Регрессии в существующем функционале
 **Митигация:** Сохранение обратной совместимости, обновление существующих тестов
 
-**Риск 2:** Неправильная обработка кавычек  
+**Риск 2:** Неправильная обработка кавычек
 **Митигация:** Тесты для различных вариантов кавычек
 
-**Риск 3:** Производительность при большом количестве токенов  
+**Риск 3:** Производительность при большом количестве токенов
 **Митигация:** Текущая реализация достаточно эффективна для типичных запросов
 
 ## 8. Оценка времени
@@ -211,5 +211,5 @@ async def search_docs(query: str, search_mode: str = "AND", limit: int = 10) -> 
 
 ---
 
-**Автор плана:** AI Agent (Project Executor)  
+**Автор плана:** AI Agent (Project Executor)
 **Дата:** 2026-01-20

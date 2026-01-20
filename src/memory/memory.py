@@ -149,7 +149,9 @@ class Memory(list):
     def clamp_size(self):
         """Ограничивает размер памяти, удаляя записи с наименьшим весом и ниже порога."""
         # Сначала удаляем записи с весом ниже порога
-        self[:] = [entry for entry in self if entry.weight >= self._min_weight_threshold]
+        self[:] = [
+            entry for entry in self if entry.weight >= self._min_weight_threshold
+        ]
 
         # Затем ограничиваем размер, удаляя записи с наименьшим весом
         while len(self) > self._max_size:
@@ -175,7 +177,7 @@ class Memory(list):
 
         Returns:
             Количество заархивированных записей
-            
+
         Raises:
             ValueError: При некорректных параметрах
             RuntimeError: При ошибке сохранения архива
@@ -238,39 +240,44 @@ class Memory(list):
     def decay_weights(self, decay_factor: float = 0.99, min_weight: float = 0.0) -> int:
         """
         Применяет затухание весов ко всем записям памяти.
-        
+
         Args:
             decay_factor: Коэффициент затухания (0.0-1.0). Вес умножается на этот коэффициент.
             min_weight: Минимальный вес после затухания. Веса ниже этого значения устанавливаются в min_weight.
-        
+
         Returns:
             Количество записей, вес которых достиг минимума
         """
         if not self:
             return 0
-        
+
         import time
+
         current_time = time.time()
         min_weight_count = 0
-        
+
         for entry in self:
             # Базовое затухание
             entry.weight *= decay_factor
-            
+
             # Учитываем возраст записи (старые записи забываются быстрее)
             age = current_time - entry.timestamp
-            age_factor = 1.0 / (1.0 + age / 86400.0)  # Дополнительное затухание для записей старше дня
+            age_factor = 1.0 / (
+                1.0 + age / 86400.0
+            )  # Дополнительное затухание для записей старше дня
             entry.weight *= age_factor
-            
+
             # Учитываем значимость (более значимые записи забываются медленнее)
-            significance_factor = 0.5 + 0.5 * entry.meaning_significance  # От 0.5 до 1.0
+            significance_factor = (
+                0.5 + 0.5 * entry.meaning_significance
+            )  # От 0.5 до 1.0
             entry.weight *= significance_factor
-            
+
             # Ограничиваем минимальным весом
             if entry.weight < min_weight:
                 entry.weight = min_weight
                 min_weight_count += 1
-        
+
         return min_weight_count
 
     def get_statistics(self) -> Dict:

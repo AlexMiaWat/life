@@ -10,22 +10,22 @@
 """
 
 import sys
-from pathlib import Path
 import threading
 import time
+from pathlib import Path
 
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root / "src"))
 
 import pytest
 
-from src.learning.learning import LearningEngine
 from src.adaptation.adaptation import AdaptationManager
-from src.state.self_state import SelfState
-from src.memory.memory import MemoryEntry
-from src.runtime.loop import run_loop
 from src.environment.event import Event
 from src.environment.event_queue import EventQueue
+from src.learning.learning import LearningEngine
+from src.memory.memory import MemoryEntry
+from src.runtime.loop import run_loop
+from src.state.self_state import SelfState
 
 
 @pytest.mark.integration
@@ -89,10 +89,13 @@ class TestNewFunctionalityIntegration:
         def monitor_with_checks(state):
             # Проверяем, что Meaning создает записи в Memory
             if hasattr(state, "memory") and state.memory:
-                memory_entries = [entry for entry in state.memory
-                                if entry.event_type != "feedback"]
+                memory_entries = [
+                    entry for entry in state.memory if entry.event_type != "feedback"
+                ]
                 if memory_entries:
-                    assert all(entry.meaning_significance >= 0 for entry in memory_entries)
+                    assert all(
+                        entry.meaning_significance >= 0 for entry in memory_entries
+                    )
 
         # Запускаем loop
         thread = threading.Thread(
@@ -131,7 +134,14 @@ class TestNewFunctionalityIntegration:
         # Запускаем loop
         thread = threading.Thread(
             target=run_loop,
-            args=(self_state, monitor_event_processing, 0.01, 1000, stop_event, event_queue),
+            args=(
+                self_state,
+                monitor_event_processing,
+                0.01,
+                1000,
+                stop_event,
+                event_queue,
+            ),
         )
         thread.start()
 
@@ -170,7 +180,9 @@ class TestNewFunctionalityIntegration:
         )
         thread.start()
 
-        time.sleep(0.3)  # 300 тиков, должно быть несколько вызовов Learning (каждые 75 тиков)
+        time.sleep(
+            0.3
+        )  # 300 тиков, должно быть несколько вызовов Learning (каждые 75 тиков)
         stop_event.set()
         thread.join(timeout=1.0)
 
@@ -196,7 +208,14 @@ class TestNewFunctionalityIntegration:
         # Запускаем loop на время, достаточное для работы Adaptation
         thread = threading.Thread(
             target=run_loop,
-            args=(self_state, monitor_adaptation_reaction, 0.001, 1000, stop_event, None),
+            args=(
+                self_state,
+                monitor_adaptation_reaction,
+                0.001,
+                1000,
+                stop_event,
+                None,
+            ),
         )
         thread.start()
 
@@ -228,15 +247,23 @@ class TestNewFunctionalityIntegration:
         def monitor_feedback_creation(state):
             nonlocal feedback_created
             if hasattr(state, "memory"):
-                feedback_entries = [entry for entry in state.memory
-                                  if entry.event_type == "feedback"]
+                feedback_entries = [
+                    entry for entry in state.memory if entry.event_type == "feedback"
+                ]
                 if feedback_entries:
                     feedback_created = True
 
         # Запускаем loop
         thread = threading.Thread(
             target=run_loop,
-            args=(self_state, monitor_feedback_creation, 0.01, 1000, stop_event, event_queue),
+            args=(
+                self_state,
+                monitor_feedback_creation,
+                0.01,
+                1000,
+                stop_event,
+                event_queue,
+            ),
         )
         thread.start()
 
@@ -347,7 +374,7 @@ class TestNewFunctionalityIntegration:
 
     def test_state_persistence_with_new_modules(self):
         """Тест сохранения состояния с новыми модулями"""
-        from src.state.self_state import save_snapshot, load_snapshot
+        from src.state.self_state import load_snapshot, save_snapshot
 
         self_state = SelfState()
         stop_event = threading.Event()
@@ -380,7 +407,7 @@ class TestNewFunctionalityIntegration:
 
     def test_snapshot_recovery_integration(self):
         """Тест восстановления из snapshot с новыми модулями"""
-        from src.state.self_state import save_snapshot, load_snapshot
+        from src.state.self_state import load_snapshot, save_snapshot
 
         # Создаем состояние с данными
         self_state = SelfState()
@@ -394,7 +421,11 @@ class TestNewFunctionalityIntegration:
                 "tick": 100,
                 "old_params": {},
                 "new_params": {"behavior_sensitivity": {"noise": 0.5}},
-                "changes": {"behavior_sensitivity": {"noise": {"old": 0.4, "new": 0.5, "delta": 0.1}}},
+                "changes": {
+                    "behavior_sensitivity": {
+                        "noise": {"old": 0.4, "new": 0.5, "delta": 0.1}
+                    }
+                },
                 "learning_params_snapshot": self_state.learning_params.copy(),
             }
         ]
@@ -406,7 +437,9 @@ class TestNewFunctionalityIntegration:
         # Проверяем восстановление
         assert loaded_state.learning_params["event_type_sensitivity"]["noise"] == 0.7
         assert len(loaded_state.adaptation_history) == 1
-        assert "behavior_sensitivity" in loaded_state.adaptation_history[0]["new_params"]
+        assert (
+            "behavior_sensitivity" in loaded_state.adaptation_history[0]["new_params"]
+        )
 
     # ============================================================================
     # Multithreading and Concurrency
@@ -429,8 +462,9 @@ class TestNewFunctionalityIntegration:
         def monitor_processing(state):
             nonlocal processed_count
             if hasattr(state, "memory"):
-                processed_count = len([entry for entry in state.memory
-                                     if entry.event_type != "feedback"])
+                processed_count = len(
+                    [entry for entry in state.memory if entry.event_type != "feedback"]
+                )
 
         # Запускаем loop
         thread = threading.Thread(
@@ -498,15 +532,23 @@ class TestNewFunctionalityIntegration:
             nonlocal response_recorded
             # Проверяем, что система отреагировала на шок
             if hasattr(state, "memory"):
-                shock_entries = [entry for entry in state.memory
-                               if entry.event_type == "shock"]
+                shock_entries = [
+                    entry for entry in state.memory if entry.event_type == "shock"
+                ]
                 if shock_entries:
                     response_recorded = True
 
         # Запускаем полный цикл
         thread = threading.Thread(
             target=run_loop,
-            args=(self_state, monitor_response_cycle, 0.01, 1000, stop_event, event_queue),
+            args=(
+                self_state,
+                monitor_response_cycle,
+                0.01,
+                1000,
+                stop_event,
+                event_queue,
+            ),
         )
         thread.start()
 
@@ -515,7 +557,9 @@ class TestNewFunctionalityIntegration:
         thread.join(timeout=1.0)
 
         # Проверяем полный цикл обработки
-        assert response_recorded or len(self_state.memory) >= 0  # Событие могло быть обработано
+        assert (
+            response_recorded or len(self_state.memory) >= 0
+        )  # Событие могло быть обработано
 
     def test_system_adaptation_over_time(self):
         """Тест адаптации системы со временем"""
@@ -523,7 +567,9 @@ class TestNewFunctionalityIntegration:
         stop_event = threading.Event()
 
         initial_energy = self_state.energy
-        initial_learning_noise = self_state.learning_params["event_type_sensitivity"]["noise"]
+        initial_learning_noise = self_state.learning_params["event_type_sensitivity"][
+            "noise"
+        ]
 
         # Запускаем систему на продолжительное время
         thread = threading.Thread(
@@ -541,7 +587,9 @@ class TestNewFunctionalityIntegration:
         assert hasattr(self_state, "adaptation_params")
 
         # Параметры могли измениться (или остаться теми же - зависит от данных)
-        final_learning_noise = self_state.learning_params["event_type_sensitivity"]["noise"]
+        final_learning_noise = self_state.learning_params["event_type_sensitivity"][
+            "noise"
+        ]
         # Не проверяем конкретные изменения, только что система функционирует
 
     def test_recovery_and_learning_from_experience(self):
@@ -552,9 +600,9 @@ class TestNewFunctionalityIntegration:
 
         # Сценарий: повреждение -> восстановление -> повторное повреждение
         events = [
-            Event(type="shock", intensity=-0.7, timestamp=1.0),   # Повреждение
-            Event(type="recovery", intensity=0.5, timestamp=2.0), # Восстановление
-            Event(type="shock", intensity=-0.6, timestamp=3.0),   # Повторное повреждение
+            Event(type="shock", intensity=-0.7, timestamp=1.0),  # Повреждение
+            Event(type="recovery", intensity=0.5, timestamp=2.0),  # Восстановление
+            Event(type="shock", intensity=-0.6, timestamp=3.0),  # Повторное повреждение
         ]
 
         for event in events:
@@ -566,15 +614,29 @@ class TestNewFunctionalityIntegration:
             nonlocal learning_adapted
             # Проверяем, что Learning отреагировал на паттерны
             if hasattr(state, "learning_params"):
-                noise_sensitivity = state.learning_params["event_type_sensitivity"]["noise"]
-                shock_sensitivity = state.learning_params["event_type_sensitivity"]["shock"]
-                if abs(noise_sensitivity - 0.2) > 0.001 or abs(shock_sensitivity - 0.2) > 0.001:
+                noise_sensitivity = state.learning_params["event_type_sensitivity"][
+                    "noise"
+                ]
+                shock_sensitivity = state.learning_params["event_type_sensitivity"][
+                    "shock"
+                ]
+                if (
+                    abs(noise_sensitivity - 0.2) > 0.001
+                    or abs(shock_sensitivity - 0.2) > 0.001
+                ):
                     learning_adapted = True
 
         # Запускаем цикл
         thread = threading.Thread(
             target=run_loop,
-            args=(self_state, monitor_learning_adaptation, 0.01, 1000, stop_event, event_queue),
+            args=(
+                self_state,
+                monitor_learning_adaptation,
+                0.01,
+                1000,
+                stop_event,
+                event_queue,
+            ),
         )
         thread.start()
 

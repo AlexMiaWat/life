@@ -249,14 +249,14 @@ if self_state.ticks > 0 and self_state.ticks % adaptation_interval == 0:
         self_state.learning_params,
         getattr(self_state, "adaptation_history", []),
     )
-    
+
     # Применяем адаптацию
     new_behavior_params = adaptation_manager.apply_adaptation(
         analysis,
         getattr(self_state, "adaptation_params", {}),
         self_state
     )
-    
+
     # Сохраняем историю
     if new_behavior_params:
         adaptation_manager.store_history(
@@ -360,9 +360,9 @@ Adaptation обновляет `self_state.adaptation_params` и `self_state.adap
 
 → развитие слоя Adaptation **немедленно останавливается**.
 
-Adaptation — не воля.  
-Adaptation — не оптимизация.  
-Adaptation — не контроль.  
+Adaptation — не воля.
+Adaptation — не оптимизация.
+Adaptation — не контроль.
 Adaptation — медленное внутреннее изменение без цели.
 
 ## Документация ограничений

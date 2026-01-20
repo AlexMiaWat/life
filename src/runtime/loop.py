@@ -6,6 +6,7 @@ from dataclasses import asdict
 
 from src.action import execute_action
 from src.activation.activation import activate_memory
+from src.adaptation.adaptation import AdaptationManager
 from src.decision.decision import decide_response
 from src.feedback import observe_consequences, register_action
 from src.intelligence.intelligence import process_information
@@ -13,50 +14,71 @@ from src.learning.learning import LearningEngine
 from src.meaning.engine import MeaningEngine
 from src.memory.memory import MemoryEntry
 from src.planning.planning import record_potential_sequences
+from src.runtime.subjective_time import compute_subjective_dt
 from src.state.self_state import SelfState, save_snapshot
-from src.adaptation.adaptation import AdaptationManager
 
 logger = logging.getLogger(__name__)
+
+# Константы для интервалов вызова компонентов (в тиках)
+LEARNING_INTERVAL = 75  # Вызов Learning раз в 75 тиков (между 50-100)
+ADAPTATION_INTERVAL = 100  # Вызов Adaptation раз в 100 тиков (реже чем Learning)
+ARCHIVE_INTERVAL = 50  # Вызов архивации раз в 50 тиков
+DECAY_INTERVAL = 10  # Вызов затухания весов раз в 10 тиков
+
+# Константы для работы с памятью
+MEMORY_DECAY_FACTOR = 0.99  # Фактор затухания весов памяти
+MEMORY_MIN_WEIGHT = 0.1  # Минимальный вес для архивации
+MEMORY_MAX_AGE_SECONDS = 7 * 24 * 3600  # Максимальный возраст записей (7 дней в секундах)
 
 
 def _validate_learning_params(learning_params: dict) -> bool:
     """
     Валидирует структуру learning_params.
-    
+
     Returns:
         True если параметры валидны, False иначе
     """
     if not isinstance(learning_params, dict):
         return False
-    
-    required_keys = ["event_type_sensitivity", "significance_thresholds", "response_coefficients"]
+
+    required_keys = [
+        "event_type_sensitivity",
+        "significance_thresholds",
+        "response_coefficients",
+    ]
     for key in required_keys:
         if key not in learning_params:
             return False
         if not isinstance(learning_params[key], dict):
             return False
-    
+
     return True
 
 
 def _validate_adaptation_params(adaptation_params: dict) -> bool:
     """
     Валидирует структуру adaptation_params.
-    
+
     Returns:
         True если параметры валидны, False иначе
     """
     if not isinstance(adaptation_params, dict):
         return False
-    
+
     # adaptation_params может быть пустым при первой инициализации
     # Проверяем только если есть ключи
     if adaptation_params:
-        expected_keys = ["behavior_sensitivity", "behavior_thresholds", "behavior_coefficients"]
+        expected_keys = [
+            "behavior_sensitivity",
+            "behavior_thresholds",
+            "behavior_coefficients",
+        ]
         for key in expected_keys:
-            if key in adaptation_params and not isinstance(adaptation_params[key], dict):
+            if key in adaptation_params and not isinstance(
+                adaptation_params[key], dict
+            ):
                 return False
-    
+
     return True
 
 
@@ -68,7 +90,7 @@ def _safe_copy_dict(d: dict) -> dict:
     """
     if not d:
         return {}
-    
+
     # Проверяем, нужна ли глубокая копия
     # Если все значения - простые типы (числа, строки), используем поверхностное копирование
     needs_deepcopy = False
@@ -81,7 +103,7 @@ def _safe_copy_dict(d: dict) -> dict:
                     break
             if needs_deepcopy:
                 break
-    
+
     if needs_deepcopy:
         return copy.deepcopy(d)
     else:
@@ -109,11 +131,7 @@ def run_loop(
     """
     engine = MeaningEngine()
     learning_engine = LearningEngine()  # Learning Engine (Этап 14)
-    learning_interval = 75  # Вызов Learning раз в 75 тиков (между 50-100)
     adaptation_manager = AdaptationManager()  # Adaptation Manager (Этап 15)
-    adaptation_interval = 100  # Вызов Adaptation раз в 100 тиков (реже чем Learning)
-    archive_interval = 50  # Вызов архивации раз в 50 тиков
-    decay_interval = 10  # Вызов затухания весов раз в 10 тиков
     last_time = time.time()
     pending_actions = []  # Список ожидающих Feedback действий
     while stop_event is None or not stop_event.is_set():
@@ -125,6 +143,18 @@ def run_loop(
             # Обновление состояния
             self_state.apply_delta({"ticks": 1})
             self_state.apply_delta({"age": dt})
+            # Subjective time increment (metric only)
+            subjective_dt = compute_subjective_dt(
+                dt=dt,
+                base_rate=self_state.subjective_time_base_rate,
+                intensity=self_state.last_event_intensity,
+                stability=self_state.stability,
+                intensity_coeff=self_state.subjective_time_intensity_coeff,
+                stability_coeff=self_state.subjective_time_stability_coeff,
+                rate_min=self_state.subjective_time_rate_min,
+                rate_max=self_state.subjective_time_rate_max,
+            )
+            self_state.apply_delta({"subjective_time": subjective_dt})
 
             # Наблюдаем последствия прошлых действий (Feedback)
             feedback_records = observe_consequences(
@@ -152,6 +182,13 @@ def run_loop(
                 print(f"[LOOP] Queue not empty, size={event_queue.size()}")
                 events = event_queue.pop_all()
                 print(f"[LOOP] POPPED {len(events)} events")
+                # Update intensity signal for this tick (max intensity of batch).
+                try:
+                    self_state.last_event_intensity = max(
+                        [float(e.intensity) for e in events] + [0.0]
+                    )
+                except Exception:
+                    self_state.last_event_intensity = 0.0
 
                 # === ШАГ 2: Интерпретировать события ===
                 for event in events:
@@ -214,21 +251,31 @@ def run_loop(
 
                 record_potential_sequences(self_state)
                 process_information(self_state)
+            else:
+                # No events this tick -> decay intensity signal to 0 deterministically.
+                self_state.last_event_intensity = 0.0
 
             # Learning (Этап 14) - медленное изменение внутренних параметров
-            # Вызывается раз в learning_interval тиков, после Feedback, перед Planning/Intelligence
-            if self_state.ticks > 0 and self_state.ticks % learning_interval == 0:
+            # Вызывается раз в LEARNING_INTERVAL тиков, после Feedback, перед Planning/Intelligence
+            if self_state.ticks > 0 and self_state.ticks % LEARNING_INTERVAL == 0:
                 try:
                     # Проверяем инициализацию параметров
-                    if not hasattr(self_state, "learning_params") or not self_state.learning_params:
-                        logger.warning("learning_params не инициализирован, пропускаем Learning")
+                    if (
+                        not hasattr(self_state, "learning_params")
+                        or not self_state.learning_params
+                    ):
+                        logger.warning(
+                            "learning_params не инициализирован, пропускаем Learning"
+                        )
                         continue
-                    
+
                     # Валидируем структуру параметров
                     if not _validate_learning_params(self_state.learning_params):
-                        logger.error("learning_params имеет некорректную структуру, пропускаем Learning")
+                        logger.error(
+                            "learning_params имеет некорректную структуру, пропускаем Learning"
+                        )
                         continue
-                    
+
                     # Обрабатываем статистику из Memory
                     statistics = learning_engine.process_statistics(self_state.memory)
 
@@ -240,30 +287,34 @@ def run_loop(
                         statistics, current_params
                     )
 
-                    # Фиксируем изменения в SelfState
+                    # Фиксируем изменения в SelfState (пустой словарь означает отсутствие изменений)
                     if new_params:
                         learning_engine.record_changes(
                             current_params, new_params, self_state
                         )
+                except (TypeError, ValueError) as e:
+                    logger.error(f"Критическая ошибка в Learning (параметры): {e}", exc_info=True)
+                    # При критичных ошибках валидации пропускаем итерацию
+                    continue
                 except Exception as e:
-                    logger.error(f"Ошибка в Learning: {e}", exc_info=True)
+                    logger.error(f"Неожиданная ошибка в Learning: {e}", exc_info=True)
+                    # При неожиданных ошибках тоже пропускаем итерацию для безопасности
 
             # Затухание весов памяти (Memory v2.0) - механизм забывания
-            # Вызывается раз в decay_interval тиков
-            if self_state.ticks > 0 and self_state.ticks % decay_interval == 0:
+            # Вызывается раз в DECAY_INTERVAL тиков
+            if self_state.ticks > 0 and self_state.ticks % DECAY_INTERVAL == 0:
                 try:
-                    self_state.memory.decay_weights(decay_factor=0.99, min_weight=0.0)
+                    self_state.memory.decay_weights(decay_factor=MEMORY_DECAY_FACTOR, min_weight=0.0)
                 except Exception as e:
                     logger.error(f"Ошибка в decay_weights: {e}", exc_info=True)
 
             # Архивация старых записей памяти (Memory v2.0)
-            # Вызывается раз в archive_interval тиков
-            if self_state.ticks > 0 and self_state.ticks % archive_interval == 0:
+            # Вызывается раз в ARCHIVE_INTERVAL тиков
+            if self_state.ticks > 0 and self_state.ticks % ARCHIVE_INTERVAL == 0:
                 try:
-                    # Архивируем записи старше 7 дней или с весом < 0.1
+                    # Архивируем записи старше MEMORY_MAX_AGE_SECONDS или с весом < MEMORY_MIN_WEIGHT
                     archived_count = self_state.memory.archive_old_entries(
-                        max_age=7 * 24 * 3600,  # 7 дней в секундах
-                        min_weight=0.1
+                        max_age=MEMORY_MAX_AGE_SECONDS, min_weight=MEMORY_MIN_WEIGHT
                     )
                     if archived_count > 0:
                         print(f"[LOOP] Заархивировано {archived_count} записей памяти")
@@ -271,27 +322,38 @@ def run_loop(
                     logger.error(f"Ошибка в archive_old_entries: {e}", exc_info=True)
 
             # Adaptation (Этап 15) - медленная перестройка поведения на основе статистики Learning
-            # Вызывается раз в adaptation_interval тиков, после Learning, перед Planning/Intelligence
-            if self_state.ticks > 0 and self_state.ticks % adaptation_interval == 0:
+            # Вызывается раз в ADAPTATION_INTERVAL тиков, после Learning, перед Planning/Intelligence
+            if self_state.ticks > 0 and self_state.ticks % ADAPTATION_INTERVAL == 0:
                 try:
                     # Проверяем инициализацию параметров
-                    if not hasattr(self_state, "learning_params") or not self_state.learning_params:
-                        logger.warning("learning_params не инициализирован, пропускаем Adaptation")
+                    if (
+                        not hasattr(self_state, "learning_params")
+                        or not self_state.learning_params
+                    ):
+                        logger.warning(
+                            "learning_params не инициализирован, пропускаем Adaptation"
+                        )
                         continue
-                    
+
                     if not hasattr(self_state, "adaptation_params"):
-                        logger.warning("adaptation_params не инициализирован, пропускаем Adaptation")
+                        logger.warning(
+                            "adaptation_params не инициализирован, пропускаем Adaptation"
+                        )
                         continue
-                    
+
                     # Валидируем структуру параметров
                     if not _validate_learning_params(self_state.learning_params):
-                        logger.error("learning_params имеет некорректную структуру, пропускаем Adaptation")
+                        logger.error(
+                            "learning_params имеет некорректную структуру, пропускаем Adaptation"
+                        )
                         continue
-                    
+
                     if not _validate_adaptation_params(self_state.adaptation_params):
-                        logger.error("adaptation_params имеет некорректную структуру, пропускаем Adaptation")
+                        logger.error(
+                            "adaptation_params имеет некорректную структуру, пропускаем Adaptation"
+                        )
                         continue
-                    
+
                     # Анализируем изменения от Learning
                     analysis = adaptation_manager.analyze_changes(
                         self_state.learning_params,
@@ -314,7 +376,9 @@ def run_loop(
                         for key, new_value_dict in new_behavior_params.items():
                             if key not in self_state.adaptation_params:
                                 # Новый параметр - копируем безопасно
-                                self_state.adaptation_params[key] = _safe_copy_dict(new_value_dict)
+                                self_state.adaptation_params[key] = _safe_copy_dict(
+                                    new_value_dict
+                                )
                             else:
                                 # Существующий параметр - объединение
                                 current_value_dict = self_state.adaptation_params[key]
@@ -333,8 +397,13 @@ def run_loop(
                             new_behavior_params,
                             self_state,
                         )
+                except (TypeError, ValueError) as e:
+                    logger.error(f"Критическая ошибка в Adaptation (параметры): {e}", exc_info=True)
+                    # При критичных ошибках валидации пропускаем итерацию
+                    continue
                 except Exception as e:
-                    logger.error(f"Ошибка в Adaptation: {e}", exc_info=True)
+                    logger.error(f"Неожиданная ошибка в Adaptation: {e}", exc_info=True)
+                    # При неожиданных ошибках тоже пропускаем итерацию для безопасности
 
             # Логика слабости: когда параметры низкие, добавляем штрафы за немощность
             weakness_threshold = 0.05
@@ -386,7 +455,7 @@ def run_loop(
             except Exception:
                 # Игнорируем ошибки при сбросе буфера, чтобы не нарушить завершение работы
                 pass
-            
+
             if (
                 self_state.energy <= 0
                 or self_state.integrity <= 0

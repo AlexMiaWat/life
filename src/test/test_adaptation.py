@@ -10,10 +10,10 @@ Unit-тесты для модуля Adaptation (Этап 15)
 - Интеграция с Learning и Memory
 """
 
-import sys
-from pathlib import Path
 import inspect
+import sys
 import time
+from pathlib import Path
 
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root / "src"))
@@ -148,7 +148,9 @@ class TestAdaptationManager:
 
         analysis = {"learning_params_snapshot": {}}
 
-        with pytest.raises(ValueError, match="не может напрямую изменять Decision/Action"):
+        with pytest.raises(
+            ValueError, match="не может напрямую изменять Decision/Action"
+        ):
             manager.apply_adaptation(analysis, current_params, self_state)
 
     def test_store_history(self):
@@ -202,7 +204,10 @@ class TestAdaptationManager:
         }
 
         new_params = {
-            "behavior_sensitivity": {"noise": 0.21, "shock": 0.3},  # Изменен только noise
+            "behavior_sensitivity": {
+                "noise": 0.21,
+                "shock": 0.3,
+            },  # Изменен только noise
         }
 
         manager.store_history(old_params, new_params, self_state)
@@ -276,9 +281,9 @@ class TestAdaptationArchitecturalConstraints:
         ]
 
         for term in forbidden_terms:
-            assert term.lower() not in source_code.lower(), (
-                f"Запрещенный термин '{term}' найден в коде"
-            )
+            assert (
+                term.lower() not in source_code.lower()
+            ), f"Запрещенный термин '{term}' найден в коде"
 
     def test_no_direct_decision_action_control(self):
         """Тест отсутствия прямого управления Decision/Action"""
@@ -314,9 +319,9 @@ class TestAdaptationArchitecturalConstraints:
         ]
 
         for pattern in forbidden_patterns:
-            assert pattern.lower() not in source_code.lower(), (
-                f"Запрещенный паттерн '{pattern}' найден в коде"
-            )
+            assert (
+                pattern.lower() not in source_code.lower()
+            ), f"Запрещенный паттерн '{pattern}' найден в коде"
 
 
 @pytest.mark.unit
@@ -365,9 +370,7 @@ class TestAdaptationIntegration:
         analysis2 = manager.analyze_changes(
             self_state.learning_params, self_state.adaptation_history
         )
-        new_params2 = manager.apply_adaptation(
-            analysis2, new_params1, self_state
-        )
+        new_params2 = manager.apply_adaptation(analysis2, new_params1, self_state)
 
         # Параметры должны медленно изменяться в сторону нового значения Learning
         value1 = new_params1["behavior_sensitivity"]["noise"]
@@ -447,6 +450,7 @@ class TestAdaptationRuntimeLoop:
     def test_adaptation_frequency_in_runtime(self):
         """Тест частоты вызова Adaptation в runtime loop"""
         import threading
+
         from src.runtime.loop import run_loop
         from src.state.self_state import SelfState
 
@@ -475,6 +479,7 @@ class TestAdaptationRuntimeLoop:
     def test_adaptation_order_with_learning(self):
         """Тест порядка вызова Adaptation после Learning"""
         import threading
+
         from src.runtime.loop import run_loop
         from src.state.self_state import SelfState
 
@@ -511,6 +516,7 @@ class TestAdaptationRuntimeLoop:
     def test_adaptation_with_long_runtime(self):
         """Тест работы Adaptation при длительной работе (1000+ тиков)"""
         import threading
+
         from src.runtime.loop import run_loop
         from src.state.self_state import SelfState
 
@@ -538,11 +544,14 @@ class TestAdaptationRuntimeLoop:
 
         # Если было достаточно тиков, должна быть история
         if state.ticks >= 100:
-            assert len(state.adaptation_history) >= 0  # Может быть 0, если не было изменений
+            assert (
+                len(state.adaptation_history) >= 0
+            )  # Может быть 0, если не было изменений
 
     def test_adaptation_persistence_in_snapshots(self):
         """Тест сохранения параметров Adaptation в snapshots"""
         import threading
+
         from src.runtime.loop import run_loop
         from src.state.self_state import SelfState, load_snapshot, save_snapshot
 
@@ -579,27 +588,27 @@ class TestAdaptationRuntimeLoop:
         """Тест частичного обновления параметров - существующие параметры сохраняются"""
         manager = AdaptationManager()
         self_state = SelfState()
-        
+
         # Устанавливаем начальные параметры с несколькими ключами
         self_state.adaptation_params = {
             "behavior_sensitivity": {"noise": 0.2, "shock": 0.3, "decay": 0.25},
             "behavior_thresholds": {"noise": 0.1, "shock": 0.2},
             "behavior_coefficients": {"dampen": 0.5, "absorb": 1.0},
         }
-        
+
         # Устанавливаем learning_params так, чтобы изменился только один параметр
         self_state.learning_params = {
             "event_type_sensitivity": {"noise": 0.21, "shock": 0.3, "decay": 0.25},
             "significance_thresholds": {"noise": 0.1, "shock": 0.2},
             "response_coefficients": {"dampen": 0.5, "absorb": 1.0},
         }
-        
+
         analysis = manager.analyze_changes(
             self_state.learning_params, self_state.adaptation_history
         )
         current_params = self_state.adaptation_params.copy()
         new_params = manager.apply_adaptation(analysis, current_params, self_state)
-        
+
         # Проверяем, что new_params содержит только измененные параметры
         # Но при обновлении в loop.py все существующие параметры должны сохраниться
         assert "behavior_sensitivity" in new_params
@@ -612,74 +621,78 @@ class TestAdaptationRuntimeLoop:
         """Тест корректности истории адаптаций - старые параметры должны быть до обновления"""
         manager = AdaptationManager()
         self_state = SelfState()
-        
+
         # Устанавливаем начальные параметры
         initial_params = {
             "behavior_sensitivity": {"noise": 0.2, "shock": 0.3},
             "behavior_thresholds": {"noise": 0.1},
         }
         self_state.adaptation_params = initial_params.copy()
-        
+
         # Устанавливаем learning_params для изменения
         self_state.learning_params = {
             "event_type_sensitivity": {"noise": 0.21, "shock": 0.3},
             "significance_thresholds": {"noise": 0.1},
         }
-        
+
         analysis = manager.analyze_changes(
             self_state.learning_params, self_state.adaptation_history
         )
         old_params = self_state.adaptation_params.copy()
         new_params = manager.apply_adaptation(analysis, old_params, self_state)
-        
+
         # Сохраняем историю
         manager.store_history(old_params, new_params, self_state)
-        
+
         # Проверяем, что история содержит правильные старые параметры
         assert len(self_state.adaptation_history) == 1
         history_entry = self_state.adaptation_history[0]
-        
+
         # Старые параметры должны соответствовать initial_params
         assert history_entry["old_params"]["behavior_sensitivity"]["noise"] == 0.2
         assert history_entry["old_params"]["behavior_sensitivity"]["shock"] == 0.3
         assert history_entry["old_params"]["behavior_thresholds"]["noise"] == 0.1
-        
+
         # Новые параметры должны быть изменены
         assert "new_params" in history_entry
         assert "changes" in history_entry
-        
+
         # Проверяем, что changes содержат только измененные параметры
         if "behavior_sensitivity" in history_entry["changes"]:
             # noise должен быть изменен (0.2 -> ~0.21)
             assert "noise" in history_entry["changes"]["behavior_sensitivity"]
             # shock не должен быть изменен (0.3 == 0.3)
-            assert "shock" not in history_entry["changes"].get("behavior_sensitivity", {})
+            assert "shock" not in history_entry["changes"].get(
+                "behavior_sensitivity", {}
+            )
 
     def test_deep_merge_preserves_all_keys(self):
         """Тест глубокого объединения - все ключи сохраняются при частичном обновлении"""
         import copy
-        
+
         # Симулируем логику обновления из loop.py
         existing_params = {
             "behavior_sensitivity": {"noise": 0.2, "shock": 0.3, "decay": 0.25},
             "behavior_thresholds": {"noise": 0.1, "shock": 0.2},
         }
-        
+
         # Новые параметры содержат только часть ключей
         new_params = {
             "behavior_sensitivity": {"noise": 0.21},  # Только noise изменен
         }
-        
+
         # Глубокое объединение (как в loop.py)
         for key, new_value_dict in new_params.items():
             if key not in existing_params:
                 existing_params[key] = copy.deepcopy(new_value_dict)
             else:
                 current_value_dict = existing_params[key]
-                if isinstance(new_value_dict, dict) and isinstance(current_value_dict, dict):
+                if isinstance(new_value_dict, dict) and isinstance(
+                    current_value_dict, dict
+                ):
                     for param_name, new_value in new_value_dict.items():
                         current_value_dict[param_name] = new_value
-        
+
         # Проверяем, что все ключи сохранились
         assert "noise" in existing_params["behavior_sensitivity"]
         assert "shock" in existing_params["behavior_sensitivity"]

@@ -17,13 +17,13 @@ sys.path.insert(0, str(project_root / "src"))
 
 import pytest
 
-from src.learning.learning import LearningEngine
 from src.adaptation.adaptation import AdaptationManager
+from src.environment.event import Event
+from src.learning.learning import LearningEngine
 from src.meaning.engine import MeaningEngine
 from src.meaning.meaning import Meaning
-from src.state.self_state import SelfState
 from src.memory.memory import MemoryEntry
-from src.environment.event import Event
+from src.state.self_state import SelfState
 
 
 @pytest.mark.smoke
@@ -154,7 +154,11 @@ class TestNewFunctionalitySmoke:
                 feedback_data={
                     "action_id": "action_1",
                     "action_pattern": "dampen",
-                    "state_delta": {"energy": -0.1, "stability": -0.05, "integrity": 0.0},
+                    "state_delta": {
+                        "energy": -0.1,
+                        "stability": -0.05,
+                        "integrity": 0.0,
+                    },
                     "delay_ticks": 5,
                     "associated_events": [],
                 },
@@ -420,7 +424,9 @@ class TestNewFunctionalitySmoke:
     def test_meaning_engine_low_significance_ignore(self):
         """Дымовой тест игнорирования событий с низкой значимостью"""
         engine = MeaningEngine()
-        event = Event(type="idle", intensity=0.01, timestamp=1.0)  # Низкая интенсивность
+        event = Event(
+            type="idle", intensity=0.01, timestamp=1.0
+        )  # Низкая интенсивность
         self_state = {"energy": 100.0, "stability": 1.0, "integrity": 1.0}
 
         meaning = engine.process(event, self_state)
@@ -564,7 +570,9 @@ class TestNewFunctionalitySmoke:
         statistics = learning_engine.process_statistics(self_state.memory)
         assert statistics["total_entries"] == 0
 
-        new_params = learning_engine.adjust_parameters(statistics, self_state.learning_params)
+        new_params = learning_engine.adjust_parameters(
+            statistics, self_state.learning_params
+        )
         assert isinstance(new_params, dict)
 
         analysis = adaptation_manager.analyze_changes(
@@ -572,7 +580,5 @@ class TestNewFunctionalitySmoke:
         )
         assert isinstance(analysis, dict)
 
-        behavior_params = adaptation_manager.apply_adaptation(
-            analysis, {}, self_state
-        )
+        behavior_params = adaptation_manager.apply_adaptation(analysis, {}, self_state)
         assert isinstance(behavior_params, dict)

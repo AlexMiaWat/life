@@ -1,7 +1,7 @@
 # Отчет о выполнении задачи: Реализация Adaptation (Этап 15)
 
-**Дата выполнения:** 2026-01-26  
-**ID задачи:** 1768836478  
+**Дата выполнения:** 2026-01-26
+**ID задачи:** 1768836478
 
 ---
 
@@ -213,14 +213,14 @@ if self_state.ticks > 0 and self_state.ticks % adaptation_interval == 0:
             self_state.learning_params,
             getattr(self_state, "adaptation_history", []),
         )
-        
+
         # Применяем адаптацию
         new_behavior_params = adaptation_manager.apply_adaptation(
             analysis,
             getattr(self_state, "adaptation_params", {}),
             self_state
         )
-        
+
         # Сохраняем историю
         if new_behavior_params:
             # Обновляем параметры в SelfState

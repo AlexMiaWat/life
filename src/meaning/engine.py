@@ -57,33 +57,33 @@ class MeaningEngine:
         event_sensitivity = learning_params.get("event_type_sensitivity", {})
         adaptation_params = self_state.get("adaptation_params", {})
         behavior_sensitivity = adaptation_params.get("behavior_sensitivity", {})
-        
+
         # Вычисляем модификаторы чувствительности
         learning_modifier = 1.0
         adaptation_modifier = 1.0
-        
+
         if event.type in event_sensitivity:
             # Модифицируем значимость на основе обученной чувствительности
             # Используем линейную интерполяцию вместо умножения для мягкого эффекта
             sensitivity = event_sensitivity[event.type]
             learning_modifier = 0.5 + sensitivity * 0.5  # Диапазон [0.5, 1.0]
-        
+
         if event.type in behavior_sensitivity:
             # Дополнительная модификация на основе адаптированной чувствительности
             behavior_sens = behavior_sensitivity[event.type]
             adaptation_modifier = 0.5 + behavior_sens * 0.5  # Диапазон [0.5, 1.0]
-        
+
         # Используем среднее значение модификаторов вместо умножения
         # Это предотвращает квадратичный эффект и соблюдает принцип медленного изменения
         # Максимальное изменение: (1.0 + 1.0) / 2 = 1.0 (без изменения)
         # Минимальное изменение: (0.5 + 0.5) / 2 = 0.5 (уменьшение в 2 раза)
         combined_modifier = (learning_modifier + adaptation_modifier) / 2.0
-        
+
         # Ограничиваем максимальное изменение значимости для соблюдения принципа медленного изменения
         # Максимальное изменение не должно превышать 1.5x от исходной значимости
         max_modifier = 1.5
         combined_modifier = min(combined_modifier, max_modifier)
-        
+
         significance *= combined_modifier
 
         # Контекстуальная модификация на основе состояния
@@ -166,9 +166,7 @@ class MeaningEngine:
         # ИНТЕГРАЦИЯ: Используем adaptation_params.behavior_thresholds
         adaptation_params = self_state.get("adaptation_params", {})
         behavior_thresholds = adaptation_params.get("behavior_thresholds", {})
-        behavior_threshold = behavior_thresholds.get(
-            event.type, event_threshold
-        )
+        behavior_threshold = behavior_thresholds.get(event.type, event_threshold)
 
         # Используем адаптированный порог
         effective_threshold = behavior_threshold

@@ -73,9 +73,7 @@ class AdaptationManager:
         # Если есть история, сравниваем с последней адаптацией
         if adaptation_history:
             last_adaptation = adaptation_history[-1]
-            last_learning_snapshot = last_adaptation.get(
-                "learning_params_snapshot", {}
-            )
+            last_learning_snapshot = last_adaptation.get("learning_params_snapshot", {})
 
             # Сравниваем текущие learning_params с последним снимком
             for key, current_value_dict in learning_params.items():
@@ -147,13 +145,13 @@ class AdaptationManager:
         """
         # ВАЛИДАЦИЯ: Проверяем входные параметры
         if not isinstance(analysis, dict):
-            logger.error(f"analysis должен быть словарем, получен {type(analysis)}")
-            return {}
-        
+            raise TypeError(f"analysis должен быть словарем, получен {type(analysis)}")
+
         if not isinstance(current_behavior_params, dict):
-            logger.error(f"current_behavior_params должен быть словарем, получен {type(current_behavior_params)}")
-            return {}
-        
+            raise TypeError(
+                f"current_behavior_params должен быть словарем, получен {type(current_behavior_params)}"
+            )
+
         # ПРОВЕРКА: Adaptation не должен напрямую изменять Decision/Action
         # Проверяем ключи словаря рекурсивно с точным совпадением
         def _check_forbidden_keys(params_dict: Dict, path: str = "") -> None:
@@ -190,7 +188,10 @@ class AdaptationManager:
             actual_params = current_behavior_params
 
         # 1. Адаптация чувствительности к типам событий
-        if "behavior_sensitivity" in actual_params and actual_params["behavior_sensitivity"]:
+        if (
+            "behavior_sensitivity" in actual_params
+            and actual_params["behavior_sensitivity"]
+        ):
             new_params["behavior_sensitivity"] = self._adapt_behavior_sensitivity(
                 learning_params, actual_params["behavior_sensitivity"]
             )
@@ -201,7 +202,10 @@ class AdaptationManager:
             )
 
         # 2. Адаптация порогов для реакций
-        if "behavior_thresholds" in actual_params and actual_params["behavior_thresholds"]:
+        if (
+            "behavior_thresholds" in actual_params
+            and actual_params["behavior_thresholds"]
+        ):
             new_params["behavior_thresholds"] = self._adapt_behavior_thresholds(
                 learning_params, actual_params["behavior_thresholds"]
             )
@@ -212,16 +216,17 @@ class AdaptationManager:
             )
 
         # 3. Адаптация коэффициентов для паттернов
-        if "behavior_coefficients" in actual_params and actual_params["behavior_coefficients"]:
-            new_params["behavior_coefficients"] = (
-                self._adapt_behavior_coefficients(
-                    learning_params, actual_params["behavior_coefficients"]
-                )
+        if (
+            "behavior_coefficients" in actual_params
+            and actual_params["behavior_coefficients"]
+        ):
+            new_params["behavior_coefficients"] = self._adapt_behavior_coefficients(
+                learning_params, actual_params["behavior_coefficients"]
             )
         else:
             # Инициализация, если параметр действительно отсутствует
-            new_params["behavior_coefficients"] = (
-                self._init_behavior_coefficients(learning_params)
+            new_params["behavior_coefficients"] = self._init_behavior_coefficients(
+                learning_params
             )
 
         # ПРОВЕРКА: Убеждаемся, что изменения медленные (<= 0.01)
@@ -355,9 +360,7 @@ class AdaptationManager:
         learning_coefficients = learning_params.get("response_coefficients", {})
         return learning_coefficients.copy()
 
-    def store_history(
-        self, old_params: Dict, new_params: Dict, self_state
-    ) -> None:
+    def store_history(self, old_params: Dict, new_params: Dict, self_state) -> None:
         """
         Хранит историю адаптаций для обратимости.
 
@@ -421,3 +424,54 @@ class AdaptationManager:
 
         # ВАЖНО: Не интерпретируем историю, не используем для оптимизации
         # Просто храним факты для возможной обратимости
+
+    def _init_behavior_params_from_learning(self, learning_params: Dict) -> Dict:
+        """
+        Инициализирует параметры поведения на основе параметров Learning.
+
+        Args:
+            learning_params: Параметры Learning для копирования
+
+        Returns:
+            Инициализированные параметры поведения
+        """
+        behavior_params = {}
+
+        # Копируем event_type_sensitivity -> behavior_sensitivity
+        if "event_type_sensitivity" in learning_params:
+            behavior_params["behavior_sensitivity"] = learning_params["event_type_sensitivity"].copy()
+        else:
+            # Fallback на значения по умолчанию
+            behavior_params["behavior_sensitivity"] = {
+                "noise": 0.2,
+                "decay": 0.2,
+                "recovery": 0.2,
+                "shock": 0.2,
+                "idle": 0.2,
+            }
+
+        # Копируем significance_thresholds -> behavior_thresholds
+        if "significance_thresholds" in learning_params:
+            behavior_params["behavior_thresholds"] = learning_params["significance_thresholds"].copy()
+        else:
+            # Fallback на значения по умолчанию
+            behavior_params["behavior_thresholds"] = {
+                "noise": 0.1,
+                "decay": 0.1,
+                "recovery": 0.1,
+                "shock": 0.1,
+                "idle": 0.1,
+            }
+
+        # Копируем response_coefficients -> behavior_coefficients
+        if "response_coefficients" in learning_params:
+            behavior_params["behavior_coefficients"] = learning_params["response_coefficients"].copy()
+        else:
+            # Fallback на значения по умолчанию
+            behavior_params["behavior_coefficients"] = {
+                "dampen": 0.5,
+                "absorb": 1.0,
+                "ignore": 0.0,
+            }
+
+        return behavior_params

@@ -1,4 +1,4 @@
-# Проект Life
+This README has been intentionally removed.
 
 ## Краткое описание
 

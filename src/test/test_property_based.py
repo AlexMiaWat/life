@@ -13,7 +13,8 @@ sys.path.insert(0, str(project_root / "src"))
 import time
 
 import pytest
-from hypothesis import given, strategies as st
+from hypothesis import given
+from hypothesis import strategies as st
 
 from src.memory.memory import Memory, MemoryEntry
 from src.state.self_state import SelfState
@@ -46,18 +47,22 @@ class TestSelfStatePropertyBased:
         integrity_delta=st.floats(min_value=-2.0, max_value=2.0),
         stability_delta=st.floats(min_value=-2.0, max_value=2.0),
     )
-    def test_apply_delta_always_clamps(self, energy_delta, integrity_delta, stability_delta):
+    def test_apply_delta_always_clamps(
+        self, energy_delta, integrity_delta, stability_delta
+    ):
         """Свойство: apply_delta всегда ограничивает значения границами"""
         state = SelfState()
         initial_energy = state.energy
         initial_integrity = state.integrity
         initial_stability = state.stability
 
-        state.apply_delta({
-            "energy": energy_delta,
-            "integrity": integrity_delta,
-            "stability": stability_delta,
-        })
+        state.apply_delta(
+            {
+                "energy": energy_delta,
+                "integrity": integrity_delta,
+                "stability": stability_delta,
+            }
+        )
 
         # Проверяем, что значения остались в границах
         assert 0.0 <= state.energy <= 100.0
@@ -101,7 +106,7 @@ class TestMemoryPropertyBased:
             entry = MemoryEntry(
                 event_type=event_type,
                 meaning_significance=significance,
-                timestamp=time.time() + i
+                timestamp=time.time() + i,
             )
             memory.append(entry)
 
@@ -125,7 +130,7 @@ class TestMemoryPropertyBased:
             entry = MemoryEntry(
                 event_type=event_type,
                 meaning_significance=significance,
-                timestamp=time.time()
+                timestamp=time.time(),
             )
             memory.append(entry)
 
@@ -136,9 +141,12 @@ class TestMemoryPropertyBased:
             expected_entries = entries[-last_n:]
             actual_entries = list(memory)[-last_n:]
 
-            for i, (expected, actual) in enumerate(zip(expected_entries, actual_entries)):
-                assert actual.event_type == expected[0], \
-                    f"Order mismatch at position {i}: expected {expected[0]}, got {actual.event_type}"
+            for i, (expected, actual) in enumerate(
+                zip(expected_entries, actual_entries)
+            ):
+                assert (
+                    actual.event_type == expected[0]
+                ), f"Order mismatch at position {i}: expected {expected[0]}, got {actual.event_type}"
 
     @given(
         event_type=st.text(min_size=1, max_size=20),
@@ -153,7 +161,7 @@ class TestMemoryPropertyBased:
         entry = MemoryEntry(
             event_type=event_type,
             meaning_significance=significance,
-            timestamp=time.time()
+            timestamp=time.time(),
         )
 
         # Добавляем один раз
@@ -185,7 +193,7 @@ class TestMemoryEntryPropertyBased:
         entry = MemoryEntry(
             event_type=event_type,
             meaning_significance=significance,
-            timestamp=timestamp
+            timestamp=timestamp,
         )
 
         assert entry.event_type == event_type
@@ -214,7 +222,7 @@ class TestMemoryEntryPropertyBased:
             event_type=event_type,
             meaning_significance=significance,
             timestamp=time.time(),
-            feedback_data=feedback_data if feedback_data else None
+            feedback_data=feedback_data if feedback_data else None,
         )
 
         assert entry.event_type == event_type

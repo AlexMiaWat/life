@@ -40,13 +40,15 @@ class DegradationTracker:
 
     def track(self, state):
         """Записывает текущее состояние"""
-        self.history.append({
-            "energy": state.energy,
-            "integrity": state.integrity,
-            "stability": state.stability,
-            "active": state.active,
-            "ticks": state.ticks,
-        })
+        self.history.append(
+            {
+                "energy": state.energy,
+                "integrity": state.integrity,
+                "stability": state.stability,
+                "active": state.active,
+                "ticks": state.ticks,
+            }
+        )
 
 
 @pytest.mark.unit
@@ -105,11 +107,7 @@ class TestDegradationUnit:
 
         # Одновременное уменьшение
         for _ in range(5):
-            state.apply_delta({
-                "energy": -5.0,
-                "integrity": -0.05,
-                "stability": -0.05
-            })
+            state.apply_delta({"energy": -5.0, "integrity": -0.05, "stability": -0.05})
 
         assert state.energy == 0.0
         assert state.integrity <= 0.0001
@@ -287,9 +285,9 @@ class TestDegradationIntegration:
             last = tracker.history[-1]
             # Хотя бы один параметр должен уменьшиться
             assert (
-                last["energy"] <= first["energy"] or
-                last["integrity"] <= first["integrity"] or
-                last["stability"] <= first["stability"]
+                last["energy"] <= first["energy"]
+                or last["integrity"] <= first["integrity"]
+                or last["stability"] <= first["stability"]
             )
 
     def test_deactivation_on_energy_zero(self, event_queue):
@@ -469,16 +467,16 @@ class TestDegradationEdgeCases:
 
         # Выше порога - штрафы не применяются
         assert not (
-            state_above.energy <= weakness_threshold or
-            state_above.integrity <= weakness_threshold or
-            state_above.stability <= weakness_threshold
+            state_above.energy <= weakness_threshold
+            or state_above.integrity <= weakness_threshold
+            or state_above.stability <= weakness_threshold
         )
 
         # Ниже порога - штрафы применяются
         assert (
-            state_below.energy <= weakness_threshold or
-            state_below.integrity <= weakness_threshold or
-            state_below.stability <= weakness_threshold
+            state_below.energy <= weakness_threshold
+            or state_below.integrity <= weakness_threshold
+            or state_below.stability <= weakness_threshold
         )
 
     def test_rapid_degradation_many_events(self, event_queue):
@@ -523,7 +521,7 @@ class TestDegradationEdgeCases:
             entry = MemoryEntry(
                 event_type=f"test_event_{i}",
                 meaning_significance=0.5,
-                timestamp=time.time()
+                timestamp=time.time(),
             )
             state.memory.append(entry)
 
@@ -647,11 +645,7 @@ class TestDegradationRecovery:
         state.stability = 0.01
 
         # Восстанавливаем все параметры
-        state.apply_delta({
-            "energy": 99.0,
-            "integrity": 0.9,
-            "stability": 0.9
-        })
+        state.apply_delta({"energy": 99.0, "integrity": 0.9, "stability": 0.9})
 
         # Проверяем восстановление
         assert state.energy > 90.0
@@ -673,28 +667,28 @@ class TestDegradationRecovery:
 
     def test_learning_params_recovery_from_snapshot(self):
         """Тест: восстановление learning_params из snapshot"""
-        from state.self_state import save_snapshot, load_snapshot
-        
+        from state.self_state import load_snapshot, save_snapshot
+
         state = SelfState()
         state.energy = 50.0
-        
+
         # Модифицируем learning_params
         state.learning_params["event_type_sensitivity"]["noise"] = 0.8
         state.learning_params["event_type_sensitivity"]["shock"] = 0.9
         state.learning_params["significance_thresholds"]["noise"] = 0.15
         state.learning_params["response_coefficients"]["dampen"] = 0.7
-        
+
         # Сохраняем snapshot
         save_snapshot(state)
         tick = state.ticks
-        
+
         # Изменяем параметры
         state.learning_params["event_type_sensitivity"]["noise"] = 0.2
         state.learning_params["significance_thresholds"]["noise"] = 0.05
-        
+
         # Загружаем snapshot
         loaded_state = load_snapshot(tick)
-        
+
         # Проверяем восстановление параметров
         assert loaded_state.learning_params["event_type_sensitivity"]["noise"] == 0.8
         assert loaded_state.learning_params["event_type_sensitivity"]["shock"] == 0.9
@@ -703,28 +697,28 @@ class TestDegradationRecovery:
 
     def test_adaptation_params_recovery_from_snapshot(self):
         """Тест: восстановление adaptation_params из snapshot"""
-        from state.self_state import save_snapshot, load_snapshot
-        
+        from state.self_state import load_snapshot, save_snapshot
+
         state = SelfState()
         state.energy = 50.0
-        
+
         # Модифицируем adaptation_params
         state.adaptation_params["behavior_sensitivity"]["noise"] = 0.8
         state.adaptation_params["behavior_sensitivity"]["shock"] = 0.9
         state.adaptation_params["behavior_thresholds"]["noise"] = 0.15
         state.adaptation_params["behavior_coefficients"]["dampen"] = 0.7
-        
+
         # Сохраняем snapshot
         save_snapshot(state)
         tick = state.ticks
-        
+
         # Изменяем параметры
         state.adaptation_params["behavior_sensitivity"]["noise"] = 0.2
         state.adaptation_params["behavior_thresholds"]["noise"] = 0.05
-        
+
         # Загружаем snapshot
         loaded_state = load_snapshot(tick)
-        
+
         # Проверяем восстановление параметров
         assert loaded_state.adaptation_params["behavior_sensitivity"]["noise"] == 0.8
         assert loaded_state.adaptation_params["behavior_sensitivity"]["shock"] == 0.9
@@ -733,33 +727,33 @@ class TestDegradationRecovery:
 
     def test_learning_adaptation_params_recovery_together(self):
         """Тест: совместное восстановление learning_params и adaptation_params из snapshot"""
-        from state.self_state import save_snapshot, load_snapshot
-        
+        from state.self_state import load_snapshot, save_snapshot
+
         state = SelfState()
         state.energy = 50.0
-        
+
         # Модифицируем оба набора параметров
         state.learning_params["event_type_sensitivity"]["noise"] = 0.75
         state.adaptation_params["behavior_sensitivity"]["noise"] = 0.85
         state.adaptation_params["behavior_coefficients"]["absorb"] = 0.6
-        
+
         # Сохраняем snapshot
         save_snapshot(state)
         tick = state.ticks
-        
+
         # Изменяем параметры
         state.learning_params["event_type_sensitivity"]["noise"] = 0.1
         state.adaptation_params["behavior_sensitivity"]["noise"] = 0.1
         state.adaptation_params["behavior_coefficients"]["absorb"] = 1.0
-        
+
         # Загружаем snapshot
         loaded_state = load_snapshot(tick)
-        
+
         # Проверяем восстановление обоих наборов параметров
         assert loaded_state.learning_params["event_type_sensitivity"]["noise"] == 0.75
         assert loaded_state.adaptation_params["behavior_sensitivity"]["noise"] == 0.85
         assert loaded_state.adaptation_params["behavior_coefficients"]["absorb"] == 0.6
-        
+
         # Проверяем, что структура параметров сохранена
         assert "event_type_sensitivity" in loaded_state.learning_params
         assert "significance_thresholds" in loaded_state.learning_params
@@ -822,9 +816,9 @@ class TestDegradationLongRunning:
         # Проверяем, что деградация произошла
         # Хотя бы один параметр должен уменьшиться
         assert (
-            state.energy < initial_energy or
-            state.integrity < initial_integrity or
-            state.stability < initial_stability
+            state.energy < initial_energy
+            or state.integrity < initial_integrity
+            or state.stability < initial_stability
         ), "No degradation occurred during long run"
 
         # Проверяем, что история деградации записана
@@ -863,8 +857,9 @@ class TestDegradationLongRunning:
             energy_values = [h["energy"] for h in tracker.history]
             # Энергия должна в целом убывать (не обязательно строго монотонно)
             # Проверяем, что последнее значение не больше первого более чем на 10%
-            assert energy_values[-1] <= energy_values[0] * 1.1, \
-                "Energy increased significantly during degradation test"
+            assert (
+                energy_values[-1] <= energy_values[0] * 1.1
+            ), "Energy increased significantly during degradation test"
 
 
 @pytest.mark.integration
@@ -883,37 +878,37 @@ class TestDegradationWithLearningAdaptation:
         state.energy = 50.0
         state.integrity = 0.8
         state.stability = 0.8
-        
+
         # Устанавливаем высокую чувствительность к noise в learning_params
         state.learning_params["event_type_sensitivity"]["noise"] = 0.9
         state.learning_params["event_type_sensitivity"]["shock"] = 0.9
-        
+
         # Устанавливаем низкие пороги значимости
         state.learning_params["significance_thresholds"]["noise"] = 0.05
         state.learning_params["significance_thresholds"]["shock"] = 0.05
-        
+
         stop_event = threading.Event()
         initial_energy = state.energy
-        
+
         # Добавляем события noise
         for _ in range(10):
             event = Event(type="noise", intensity=0.3, timestamp=time.time())
             event_queue.push(event)
-        
+
         loop_thread = threading.Thread(
             target=run_loop,
             args=(state, dummy_monitor, 0.05, 100, stop_event, event_queue),
             daemon=True,
         )
         loop_thread.start()
-        
+
         time.sleep(0.5)
         stop_event.set()
         loop_thread.join(timeout=1.0)
-        
+
         # С высокой чувствительностью деградация должна быть более заметной
         assert state.energy < initial_energy
-        
+
         # Проверяем, что learning_params сохранились
         assert "event_type_sensitivity" in state.learning_params
         assert state.learning_params["event_type_sensitivity"]["noise"] == 0.9
@@ -924,42 +919,42 @@ class TestDegradationWithLearningAdaptation:
         state.energy = 50.0
         state.integrity = 0.8
         state.stability = 0.8
-        
+
         # Устанавливаем высокую чувствительность поведения
         state.adaptation_params["behavior_sensitivity"]["noise"] = 0.9
         state.adaptation_params["behavior_sensitivity"]["shock"] = 0.9
-        
+
         # Устанавливаем низкие пороги поведения
         state.adaptation_params["behavior_thresholds"]["noise"] = 0.05
         state.adaptation_params["behavior_thresholds"]["shock"] = 0.05
-        
+
         # Устанавливаем низкие коэффициенты реакции (меньше поглощение)
         state.adaptation_params["behavior_coefficients"]["absorb"] = 0.5
         state.adaptation_params["behavior_coefficients"]["dampen"] = 0.3
-        
+
         stop_event = threading.Event()
         initial_energy = state.energy
-        
+
         # Добавляем события shock
         for _ in range(5):
             event = Event(type="shock", intensity=0.5, timestamp=time.time())
             event_queue.push(event)
-        
+
         loop_thread = threading.Thread(
             target=run_loop,
             args=(state, dummy_monitor, 0.05, 100, stop_event, event_queue),
             daemon=True,
         )
         loop_thread.start()
-        
+
         time.sleep(0.5)
         stop_event.set()
         loop_thread.join(timeout=1.0)
-        
+
         # С низкими коэффициентами деградация должна быть меньше
         # (меньше поглощение = меньше влияние)
         assert state.energy < initial_energy
-        
+
         # Проверяем, что adaptation_params сохранились
         assert "behavior_sensitivity" in state.adaptation_params
         assert state.adaptation_params["behavior_sensitivity"]["noise"] == 0.9
@@ -970,38 +965,38 @@ class TestDegradationWithLearningAdaptation:
         state.energy = 30.0
         state.integrity = 0.5
         state.stability = 0.5
-        
+
         # Запоминаем начальные параметры
         initial_learning_params = state.learning_params.copy()
         initial_adaptation_params = state.adaptation_params.copy()
-        
+
         stop_event = threading.Event()
-        
+
         # Добавляем события, вызывающие деградацию
         for _ in range(10):
             event = Event(type="shock", intensity=0.7, timestamp=time.time())
             event_queue.push(event)
-        
+
         loop_thread = threading.Thread(
             target=run_loop,
             args=(state, dummy_monitor, 0.05, 100, stop_event, event_queue),
             daemon=True,
         )
         loop_thread.start()
-        
+
         time.sleep(0.8)
         stop_event.set()
         loop_thread.join(timeout=1.0)
-        
+
         # Проверяем, что параметры сохранились (структура)
         assert "event_type_sensitivity" in state.learning_params
         assert "significance_thresholds" in state.learning_params
         assert "response_coefficients" in state.learning_params
-        
+
         assert "behavior_sensitivity" in state.adaptation_params
         assert "behavior_thresholds" in state.adaptation_params
         assert "behavior_coefficients" in state.adaptation_params
-        
+
         # Параметры могут измениться из-за работы Learning/Adaptation,
         # но структура должна сохраниться
         assert len(state.learning_params) == len(initial_learning_params)
@@ -1011,33 +1006,33 @@ class TestDegradationWithLearningAdaptation:
         """Тест: деградация с модифицированными коэффициентами реакции"""
         state = SelfState()
         state.energy = 50.0
-        
+
         # Устанавливаем очень низкие коэффициенты для absorb (меньше поглощение)
         state.learning_params["response_coefficients"]["absorb"] = 0.2
         state.adaptation_params["behavior_coefficients"]["absorb"] = 0.2
-        
+
         # Устанавливаем высокие коэффициенты для dampen (больше ослабление)
         state.learning_params["response_coefficients"]["dampen"] = 0.8
         state.adaptation_params["behavior_coefficients"]["dampen"] = 0.8
-        
+
         stop_event = threading.Event()
-        
+
         # Добавляем события recovery (положительные)
         for _ in range(5):
             event = Event(type="recovery", intensity=0.5, timestamp=time.time())
             event_queue.push(event)
-        
+
         loop_thread = threading.Thread(
             target=run_loop,
             args=(state, dummy_monitor, 0.05, 100, stop_event, event_queue),
             daemon=True,
         )
         loop_thread.start()
-        
+
         time.sleep(0.5)
         stop_event.set()
         loop_thread.join(timeout=1.0)
-        
+
         # С низкими коэффициентами для absorb, восстановление должно быть меньше
         # (но все равно должно быть положительным для recovery)
         # Проверяем, что параметры использовались

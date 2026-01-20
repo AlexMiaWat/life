@@ -70,7 +70,9 @@ async def test_search_docs_and_mode():
     result = await search_docs("test query", search_mode="AND", limit=3)
     print(f"Результат (первые 200 символов):\n{result[:200]}...")
     # Строгая проверка: должен быть именно AND режим
-    assert "режим: AND" in result, f"Ожидался режим AND, но получен результат: {result[:200]}"
+    assert (
+        "режим: AND" in result
+    ), f"Ожидался режим AND, но получен результат: {result[:200]}"
     print("[OK] search_docs AND mode работает корректно")
 
 
@@ -80,7 +82,9 @@ async def test_search_docs_or_mode():
     result = await search_docs("test query", search_mode="OR", limit=3)
     print(f"Результат (первые 200 символов):\n{result[:200]}...")
     # Строгая проверка: должен быть именно OR режим
-    assert "режим: OR" in result, f"Ожидался режим OR, но получен результат: {result[:200]}"
+    assert (
+        "режим: OR" in result
+    ), f"Ожидался режим OR, но получен результат: {result[:200]}"
     print("[OK] search_docs OR mode работает корректно")
 
 
@@ -90,8 +94,12 @@ async def test_search_docs_or_mode_with_quoted_query():
     result = await search_docs('"test query"', search_mode="OR", limit=3)
     print(f"Результат (первые 200 символов):\n{result[:200]}...")
     # Строгая проверка: должен быть именно OR режим (явный режим имеет приоритет)
-    assert "режим: OR" in result, f"Ожидался режим OR при явном указании, но получен результат: {result[:200]}"
-    print("[OK] search_docs OR mode с quoted query работает корректно (явный режим имеет приоритет)")
+    assert (
+        "режим: OR" in result
+    ), f"Ожидался режим OR при явном указании, но получен результат: {result[:200]}"
+    print(
+        "[OK] search_docs OR mode с quoted query работает корректно (явный режим имеет приоритет)"
+    )
 
 
 async def test_search_docs_phrase_mode():
@@ -100,7 +108,9 @@ async def test_search_docs_phrase_mode():
     result = await search_docs('"test query"', limit=3)
     print(f"Результат (первые 200 символов):\n{result[:200]}...")
     # Строгая проверка: должен быть именно PHRASE режим
-    assert "режим: PHRASE" in result, f"Ожидался режим PHRASE, но получен результат: {result[:200]}"
+    assert (
+        "режим: PHRASE" in result
+    ), f"Ожидался режим PHRASE, но получен результат: {result[:200]}"
     print("[OK] search_docs PHRASE mode работает корректно")
 
 
@@ -110,7 +120,9 @@ async def test_tokenize_query_quotes_auto_phrase():
     # Кавычки без явного режима должны давать PHRASE
     mode, tokens_or_phrase = _tokenize_query('"test query"', "AND", explicit_mode=False)
     assert mode == "PHRASE", f"Ожидался режим PHRASE, получен {mode}"
-    assert tokens_or_phrase == "test query", f"Ожидалась фраза 'test query', получено {tokens_or_phrase}"
+    assert (
+        tokens_or_phrase == "test query"
+    ), f"Ожидалась фраза 'test query', получено {tokens_or_phrase}"
     print("[OK] Кавычки автоматически включают PHRASE режим")
 
 
@@ -120,8 +132,12 @@ async def test_tokenize_query_explicit_mode_priority():
     # Явный OR режим должен иметь приоритет над кавычками
     mode, tokens_or_phrase = _tokenize_query('"test query"', "OR", explicit_mode=True)
     assert mode == "OR", f"Ожидался режим OR, получен {mode}"
-    assert isinstance(tokens_or_phrase, list), f"Ожидался список токенов, получено {type(tokens_or_phrase)}"
-    assert "test" in tokens_or_phrase and "query" in tokens_or_phrase, f"Ожидались токены ['test', 'query'], получено {tokens_or_phrase}"
+    assert isinstance(
+        tokens_or_phrase, list
+    ), f"Ожидался список токенов, получено {type(tokens_or_phrase)}"
+    assert (
+        "test" in tokens_or_phrase and "query" in tokens_or_phrase
+    ), f"Ожидались токены ['test', 'query'], получено {tokens_or_phrase}"
     print("[OK] Явный режим имеет приоритет над кавычками")
 
 
@@ -131,8 +147,12 @@ async def test_tokenize_query_empty_query():
     # Пустой запрос должен давать пустой список токенов
     mode, tokens_or_phrase = _tokenize_query("   ", "AND", explicit_mode=False)
     assert mode == "AND", f"Ожидался режим AND, получен {mode}"
-    assert isinstance(tokens_or_phrase, list), f"Ожидался список токенов, получено {type(tokens_or_phrase)}"
-    assert len(tokens_or_phrase) == 0, f"Ожидался пустой список токенов, получено {tokens_or_phrase}"
+    assert isinstance(
+        tokens_or_phrase, list
+    ), f"Ожидался список токенов, получено {type(tokens_or_phrase)}"
+    assert (
+        len(tokens_or_phrase) == 0
+    ), f"Ожидался пустой список токенов, получено {tokens_or_phrase}"
     print("[OK] Пустой запрос обрабатывается корректно")
 
 
@@ -141,7 +161,9 @@ async def test_search_docs_empty_query():
     print("\n=== Тест: search_docs (пустой запрос) ===")
     result = await search_docs("   ", limit=3)
     print(f"Результат: {result}")
-    assert "Ошибка" in result or "пустой запрос" in result.lower(), f"Ожидалась ошибка для пустого запроса, получено: {result}"
+    assert (
+        "Ошибка" in result or "пустой запрос" in result.lower()
+    ), f"Ожидалась ошибка для пустого запроса, получено: {result}"
     print("[OK] Пустой запрос возвращает ошибку")
 
 
@@ -150,7 +172,11 @@ async def test_search_todo_and_mode():
     print("\n=== Тест: search_todo (AND mode) ===")
     result = await search_todo("test query", search_mode="AND", limit=2)
     print(f"Результат (первые 200 символов):\n{result[:200]}...")
-    assert "режим: AND" in result or "Найдено" in result or "ничего не найдено" in result.lower()
+    assert (
+        "режим: AND" in result
+        or "Найдено" in result
+        or "ничего не найдено" in result.lower()
+    )
     print("[OK] search_todo AND mode работает корректно")
 
 
@@ -159,7 +185,11 @@ async def test_search_todo_or_mode():
     print("\n=== Тест: search_todo (OR mode) ===")
     result = await search_todo("test query", search_mode="OR", limit=2)
     print(f"Результат (первые 200 символов):\n{result[:200]}...")
-    assert "режим: OR" in result or "Найдено" in result or "ничего не найдено" in result.lower()
+    assert (
+        "режим: OR" in result
+        or "Найдено" in result
+        or "ничего не найдено" in result.lower()
+    )
     print("[OK] search_todo OR mode работает корректно")
 
 
@@ -168,7 +198,11 @@ async def test_search_todo_phrase_mode():
     print("\n=== Тест: search_todo (PHRASE mode) ===")
     result = await search_todo('"test query"', limit=2)
     print(f"Результат (первые 200 символов):\n{result[:200]}...")
-    assert "режим: PHRASE" in result or "Найдено" in result or "ничего не найдено" in result.lower()
+    assert (
+        "режим: PHRASE" in result
+        or "Найдено" in result
+        or "ничего не найдено" in result.lower()
+    )
     print("[OK] search_todo PHRASE mode работает корректно")
 
 

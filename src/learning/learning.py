@@ -139,36 +139,47 @@ class LearningEngine:
 
         Returns:
             Новые параметры (словарь с измененными значениями)
+
+        Raises:
+            ValueError: При некорректных входных параметрах
+            TypeError: При некорректных типах данных
         """
         # ВАЛИДАЦИЯ: Проверяем входные параметры
         if not isinstance(current_params, dict):
-            logger.error(f"current_params должен быть словарем, получен {type(current_params)}")
-            return {}
-        
+            raise TypeError(
+                f"current_params должен быть словарем, получен {type(current_params)}"
+            )
+
         if not isinstance(statistics, dict):
-            logger.error(f"statistics должен быть словарем, получен {type(statistics)}")
-            return {}
-        
+            raise TypeError(f"statistics должен быть словарем, получен {type(statistics)}")
+
+        if not current_params:
+            raise ValueError("current_params не может быть пустым")
+
         # Валидация и нормализация значений в current_params
         validated_params = {}
         for key, value_dict in current_params.items():
             if not isinstance(value_dict, dict):
                 logger.warning(f"Параметр {key} должен быть словарем, пропускаем")
                 continue
-            
+
             validated_params[key] = {}
             for param_name, param_value in value_dict.items():
                 # Проверяем границы значений [0.0, 1.0]
                 if not isinstance(param_value, (int, float)):
-                    logger.warning(f"Параметр {key}.{param_name} должен быть числом, пропускаем")
+                    logger.warning(
+                        f"Параметр {key}.{param_name} должен быть числом, пропускаем"
+                    )
                     continue
-                
+
                 # Нормализуем значение до диапазона [0.0, 1.0]
                 normalized_value = max(0.0, min(1.0, float(param_value)))
                 if normalized_value != param_value:
-                    logger.debug(f"Нормализован параметр {key}.{param_name}: {param_value} -> {normalized_value}")
+                    logger.debug(
+                        f"Нормализован параметр {key}.{param_name}: {param_value} -> {normalized_value}"
+                    )
                 validated_params[key][param_name] = normalized_value
-        
+
         # Используем валидированные параметры
         current_params = validated_params
         new_params = {}
@@ -185,10 +196,10 @@ class LearningEngine:
 
         # 2. Изменение порогов значимости
         if "significance_thresholds" in current_params:
-            new_params["significance_thresholds"] = (
-                self._adjust_significance_thresholds(
-                    statistics, current_params["significance_thresholds"]
-                )
+            new_params[
+                "significance_thresholds"
+            ] = self._adjust_significance_thresholds(
+                statistics, current_params["significance_thresholds"]
             )
         else:
             logger.warning(
@@ -332,9 +343,7 @@ class LearningEngine:
 
         return new_coefficients
 
-    def record_changes(
-        self, old_params: Dict, new_params: Dict, self_state
-    ) -> None:
+    def record_changes(self, old_params: Dict, new_params: Dict, self_state) -> None:
         """
         Фиксирует изменения параметров без интерпретации.
 

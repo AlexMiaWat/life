@@ -34,7 +34,7 @@ class TestExecuteAction:
         """Тест выполнения действия dampen"""
         initial_energy = base_state.energy
         initial_memory_size = len(base_state.memory)
-        
+
         # Получаем коэффициент для dampen (по умолчанию 0.5)
         learning_params = getattr(base_state, "learning_params", {})
         response_coefficients = learning_params.get("response_coefficients", {})
@@ -122,7 +122,7 @@ class TestExecuteAction:
     def test_execute_action_dampen_multiple_times(self, base_state):
         """Тест выполнения dampen несколько раз"""
         initial_energy = base_state.energy
-        
+
         # Получаем коэффициент для dampen
         learning_params = getattr(base_state, "learning_params", {})
         response_coefficients = learning_params.get("response_coefficients", {})

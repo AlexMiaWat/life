@@ -73,7 +73,7 @@ class TestDecideResponse:
         if behavior_thresholds:
             avg_threshold = sum(behavior_thresholds.values()) / len(behavior_thresholds)
             dampen_threshold = 0.5 - (0.5 - avg_threshold) * 0.3
-        
+
         base_state.activated_memory = [
             MemoryEntry("event", dampen_threshold, time.time())  # Ровно на пороге
         ]
@@ -116,10 +116,12 @@ class TestDecideResponse:
         if behavior_thresholds:
             avg_threshold = sum(behavior_thresholds.values()) / len(behavior_thresholds)
             dampen_threshold = 0.5 - (0.5 - avg_threshold) * 0.3
-        
+
         meaning = Meaning(significance=0.8, impact={"energy": -1.0})
         # Используем значение ниже порога
-        base_state.activated_memory = [MemoryEntry("event", dampen_threshold - 0.1, time.time())]
+        base_state.activated_memory = [
+            MemoryEntry("event", dampen_threshold - 0.1, time.time())
+        ]
 
         pattern = decide_response(base_state, meaning)
         assert pattern == "absorb"
@@ -154,7 +156,7 @@ class TestDecideResponse:
         if behavior_thresholds:
             avg_threshold = sum(behavior_thresholds.values()) / len(behavior_thresholds)
             dampen_threshold = 0.5 - (0.5 - avg_threshold) * 0.3
-        
+
         base_state.activated_memory = [
             MemoryEntry("event", dampen_threshold - 0.1, time.time()),
             MemoryEntry("event", dampen_threshold - 0.2, time.time()),
@@ -174,8 +176,10 @@ class TestDecideResponse:
         if behavior_thresholds:
             avg_threshold = sum(behavior_thresholds.values()) / len(behavior_thresholds)
             dampen_threshold = 0.5 - (0.5 - avg_threshold) * 0.3
-        
-        base_state.activated_memory = [MemoryEntry("event", dampen_threshold, time.time())]
+
+        base_state.activated_memory = [
+            MemoryEntry("event", dampen_threshold, time.time())
+        ]
         meaning = Meaning(significance=0.6, impact={"energy": -1.0})
 
         pattern = decide_response(base_state, meaning)

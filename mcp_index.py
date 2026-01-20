@@ -28,14 +28,30 @@ DATA_DIR = Path(__file__).parent / "data"
 # Создание FastMCP сервера
 app = FastMCP("life-docs-server")
 
+# Глобальный экземпляр IndexEngine (ленивая инициализация)
+_index_engine = None
 
-def _tokenize_query(query: str, default_mode: str = "AND", explicit_mode: bool = False) -> tuple[str, list[str] | str]:
+
+def _get_index_engine():
+    """Получает или создает экземпляр IndexEngine."""
+    global _index_engine
+    if _index_engine is None:
+        from mcp_index_engine import IndexEngine
+
+        _index_engine = IndexEngine(DOCS_DIR, TODO_DIR, SRC_DIR)
+        _index_engine.initialize()
+    return _index_engine
+
+
+def _tokenize_query(
+    query: str, default_mode: str = "AND", explicit_mode: bool = False
+) -> tuple[str, list[str] | str]:
     """
     Токенизирует запрос и определяет режим поиска.
 
     Args:
         query: Поисковый запрос
-        default_mode: Режим по умолчанию (AND/OR/PHRASE). 
+        default_mode: Режим по умолчанию (AND/OR/PHRASE).
         explicit_mode: True, если режим был указан явно пользователем (не default).
 
     Returns:
@@ -46,7 +62,7 @@ def _tokenize_query(query: str, default_mode: str = "AND", explicit_mode: bool =
     import re
 
     query = query.strip()
-    
+
     # Валидация и нормализация режима
     mode = (default_mode or "AND").strip().upper()
     if mode not in {"AND", "OR", "PHRASE"}:
@@ -77,12 +93,12 @@ def _tokenize_query(query: str, default_mode: str = "AND", explicit_mode: bool =
 
     # Токенизация для AND/OR: разбиваем на слова, удаляем пунктуацию
     tokens = re.findall(r"\b\w+\b", query.lower())
-    
+
     # Валидация: пустой список токенов означает пустой/невалидный запрос
     if not tokens:
         # Возвращаем пустой список, вызывающий код должен обработать это
         return (mode, tokens)
-    
+
     return (mode, tokens)
 
 
@@ -186,68 +202,45 @@ async def search_docs(query: str, search_mode: str = "AND", limit: int = 10) -> 
     # Валидация пустого запроса
     if not query or not query.strip():
         return "Ошибка: пустой запрос. Укажите хотя бы одно ключевое слово."
-    
+
     # Определяем, был ли режим указан явно (проверяем, был ли передан не-default параметр)
     # В FastMCP мы не можем различить это напрямую, поэтому используем эвристику:
     # если search_mode != "AND", считаем что он указан явно
-    explicit_mode = (search_mode != "AND")
-    
+    explicit_mode = search_mode != "AND"
+
     # Определяем режим и токенизируем запрос
     mode, tokens_or_phrase = _tokenize_query(query, search_mode, explicit_mode)
-    
+
     # Валидация результата токенизации
-    if mode in {"AND", "OR"} and isinstance(tokens_or_phrase, list) and not tokens_or_phrase:
+    if (
+        mode in {"AND", "OR"}
+        and isinstance(tokens_or_phrase, list)
+        and not tokens_or_phrase
+    ):
         return f"Ошибка: запрос '{query}' не содержит валидных слов для поиска."
     if mode == "PHRASE" and (not tokens_or_phrase or not str(tokens_or_phrase).strip()):
         return f"Ошибка: пустая фраза в запросе '{query}'."
-    
-    results = []
-    skipped_files = 0
 
-    for root, dirs, files in os.walk(DOCS_DIR):
-        for file in files:
-            if file.endswith(".md"):
-                file_path = Path(root) / file
-                rel_path = file_path.relative_to(DOCS_DIR)
-
-                try:
-                    with open(file_path, "r", encoding="utf-8") as f:
-                        content = f.read()
-
-                    # Применяем соответствующий режим поиска
-                    match = False
-                    if mode == "PHRASE":
-                        match = _search_phrase(content, tokens_or_phrase)
-                    elif mode == "AND":
-                        if isinstance(tokens_or_phrase, list):
-                            match = _search_and(content, tokens_or_phrase)
-                    elif mode == "OR":
-                        if isinstance(tokens_or_phrase, list):
-                            match = _search_or(content, tokens_or_phrase)
-
-                    if match:
-                        # Найти контекст вокруг найденного текста
-                        context_lines = _find_context_lines(
-                            content, query, mode, tokens_or_phrase
-                        )
-                        context = "\n".join(context_lines)
-
-                        results.append(
-                            {"path": str(rel_path), "title": file, "context": context}
-                        )
-
-                        if len(results) >= limit:
-                            break
-                except Exception:
-                    continue
-
-        if len(results) >= limit:
-            break
+    # Используем IndexEngine для поиска
+    engine = _get_index_engine()
+    results = engine.search_in_directory(
+        DOCS_DIR,
+        query,
+        search_mode,
+        limit,
+        tokenize_query_func=_tokenize_query,
+        search_and_func=_search_and,
+        search_or_func=_search_or,
+        search_phrase_func=_search_phrase,
+        find_context_func=_find_context_lines,
+    )
 
     if not results:
         return f"По запросу '{query}' ничего не найдено."
 
-    text = f"Найдено {len(results)} результатов по запросу '{query}' (режим: {mode}):\n\n"
+    text = (
+        f"Найдено {len(results)} результатов по запросу '{query}' (режим: {mode}):\n\n"
+    )
     for result in results:
         text += f"**{result['path']}**\n{result['context']}\n\n---\n\n"
 
@@ -268,77 +261,45 @@ async def search_todo(query: str, search_mode: str = "AND", limit: int = 10) -> 
     # Валидация пустого запроса
     if not query or not query.strip():
         return "Ошибка: пустой запрос. Укажите хотя бы одно ключевое слово."
-    
+
     # Определяем, был ли режим указан явно (проверяем, был ли передан не-default параметр)
     # В FastMCP мы не можем различить это напрямую, поэтому используем эвристику:
     # если search_mode != "AND", считаем что он указан явно
-    explicit_mode = (search_mode != "AND")
-    
+    explicit_mode = search_mode != "AND"
+
     # Определяем режим и токенизируем запрос
     mode, tokens_or_phrase = _tokenize_query(query, search_mode, explicit_mode)
-    
+
     # Валидация результата токенизации
-    if mode in {"AND", "OR"} and isinstance(tokens_or_phrase, list) and not tokens_or_phrase:
+    if (
+        mode in {"AND", "OR"}
+        and isinstance(tokens_or_phrase, list)
+        and not tokens_or_phrase
+    ):
         return f"Ошибка: запрос '{query}' не содержит валидных слов для поиска."
     if mode == "PHRASE" and (not tokens_or_phrase or not str(tokens_or_phrase).strip()):
         return f"Ошибка: пустая фраза в запросе '{query}'."
-    
-    results = []
-    skipped_files = 0
 
-    for root, dirs, files in os.walk(TODO_DIR):
-        for file in files:
-            if file.endswith(".md"):
-                file_path = Path(root) / file
-                rel_path = file_path.relative_to(TODO_DIR)
-
-                try:
-                    with open(file_path, "r", encoding="utf-8") as f:
-                        content = f.read()
-
-                    # Применяем соответствующий режим поиска
-                    match = False
-                    if mode == "PHRASE":
-                        match = _search_phrase(content, tokens_or_phrase)
-                    elif mode == "AND":
-                        if isinstance(tokens_or_phrase, list):
-                            match = _search_and(content, tokens_or_phrase)
-                    elif mode == "OR":
-                        if isinstance(tokens_or_phrase, list):
-                            match = _search_or(content, tokens_or_phrase)
-
-                    if match:
-                        # Найти контекст вокруг найденного текста
-                        context_lines = _find_context_lines(
-                            content, query, mode, tokens_or_phrase
-                        )
-                        context = "\n".join(context_lines)
-
-                        results.append(
-                            {"path": str(rel_path), "title": file, "context": context}
-                        )
-
-                        if len(results) >= limit:
-                            break
-                except Exception as e:
-                    skipped_files += 1
-                    # Логируем только если пропущено много файлов (для диагностики)
-                    if skipped_files <= 3:
-                        import sys
-                        print(f"Предупреждение: не удалось прочитать файл {rel_path}: {e}", file=sys.stderr)
-                    continue
-
-        if len(results) >= limit:
-            break
-
-    if skipped_files > 0:
-        import sys
-        print(f"Информация: пропущено файлов из-за ошибок: {skipped_files}", file=sys.stderr)
+    # Используем IndexEngine для поиска
+    engine = _get_index_engine()
+    results = engine.search_in_directory(
+        TODO_DIR,
+        query,
+        search_mode,
+        limit,
+        tokenize_query_func=_tokenize_query,
+        search_and_func=_search_and,
+        search_or_func=_search_or,
+        search_phrase_func=_search_phrase,
+        find_context_func=_find_context_lines,
+    )
 
     if not results:
         return f"По запросу '{query}' ничего не найдено."
 
-    text = f"Найдено {len(results)} результатов по запросу '{query}' (режим: {mode}):\n\n"
+    text = (
+        f"Найдено {len(results)} результатов по запросу '{query}' (режим: {mode}):\n\n"
+    )
     for result in results:
         text += f"**{result['path']}**\n{result['context']}\n\n---\n\n"
 
@@ -358,8 +319,16 @@ async def get_doc_content(path: str) -> str:
         return f"Файл не найден: {path}"
 
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
-            content = f.read()
+        # Используем IndexEngine для получения содержимого из кэша
+        engine = _get_index_engine()
+        content = engine.get_file_content(file_path, DOCS_DIR)
+
+        # Если файл не в кэше, загружаем его
+        if content is None:
+            with open(file_path, "r", encoding="utf-8") as f:
+                content = f.read()
+            # Обновляем кэш
+            engine.update_file(file_path)
 
         return f"# {path}\n\n{content}"
     except Exception as e:
@@ -379,8 +348,16 @@ async def get_todo_content(path: str) -> str:
         return f"Файл не найден: {path}"
 
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
-            content = f.read()
+        # Используем IndexEngine для получения содержимого из кэша
+        engine = _get_index_engine()
+        content = engine.get_file_content(file_path, TODO_DIR)
+
+        # Если файл не в кэше, загружаем его
+        if content is None:
+            with open(file_path, "r", encoding="utf-8") as f:
+                content = f.read()
+            # Обновляем кэш
+            engine.update_file(file_path)
 
         return f"# {path}\n\n{content}"
     except Exception as e:
@@ -646,6 +623,33 @@ async def get_snapshot(filename: str) -> str:
         return f"# Snapshot: {filename}\n\n```json\n{formatted}\n```"
     except Exception as e:
         return f"Ошибка чтения snapshot {filename}: {str(e)}"
+
+
+@app.tool()
+async def refresh_index() -> str:
+    """Обновить индекс документации и TODO файлов.
+
+    Выполняет полную переиндексацию всех директорий (docs/, todo/).
+    Полезно использовать после массового изменения файлов или если индекс устарел.
+
+    Returns:
+        Сообщение о статусе обновления индекса
+    """
+    try:
+        engine = _get_index_engine()
+        engine.reindex()
+
+        # Подсчитываем статистику
+        cache_size = len(engine.content_cache)
+        index_size = len(engine.inverted_index)
+
+        return (
+            f"Индекс успешно обновлен.\n\n"
+            f"- Проиндексировано файлов: {cache_size}\n"
+            f"- Уникальных токенов в индексе: {index_size}"
+        )
+    except Exception as e:
+        return f"Ошибка при обновлении индекса: {str(e)}"
 
 
 if __name__ == "__main__":

@@ -49,7 +49,7 @@ state.stability_history = [1.0, 0.99, 0.98]
 record_potential_sequences(state)
 
 print(state.planning)
-# {'potential_sequences': [['decay', 'recovery']], 
+# {'potential_sequences': [['decay', 'recovery']],
 #  'sources_used': {'memory_proxy': 3, 'learning_proxy': 3, 'adaptation_proxy': 3}}
 ```
 

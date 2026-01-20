@@ -1,7 +1,7 @@
 # Промежуточный отчет: Реализация `search_mode` (AND/OR/PHRASE) для `search_docs`/`search_todo`
 
-> **Дата:** 2026-01-20  
-> **Пункт плана:** 2 из `current_plan_task_1768894189.md` (в репозитории найден план-эквивалент: `docs/results/current_plan_task_1768893889.md`)  
+> **Дата:** 2026-01-20
+> **Пункт плана:** 2 из `current_plan_task_1768894189.md` (в репозитории найден план-эквивалент: `docs/results/current_plan_task_1768893889.md`)
 > **Источник:** План `mcp_engine_redesign_ab76d85d`
 
 ## Что сделано
