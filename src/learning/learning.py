@@ -164,10 +164,13 @@ class LearningEngine:
             )
 
         if not isinstance(statistics, dict):
-            raise TypeError(f"statistics должен быть словарем, получен {type(statistics)}")
+            raise TypeError(
+                f"statistics должен быть словарем, получен {type(statistics)}"
+            )
 
+        # Для edge case с пустым словарем - возвращаем пустые изменения
         if not current_params:
-            raise ValueError("current_params не может быть пустым")
+            return {}
 
         # Валидация и нормализация значений в current_params
         validated_params = {}
@@ -395,7 +398,10 @@ class LearningEngine:
                             delta = abs(new_value - old_value)
                             # Проверка: изменения не должны превышать MAX_PARAMETER_DELTA
                             # Используем константу для допуска проверки
-                            if delta > self.MAX_PARAMETER_DELTA + self._VALIDATION_TOLERANCE:
+                            if (
+                                delta
+                                > self.MAX_PARAMETER_DELTA + self._VALIDATION_TOLERANCE
+                            ):
                                 raise ValueError(
                                     f"Изменение параметра {key}.{param_name} слишком большое: "
                                     f"{delta} > {self.MAX_PARAMETER_DELTA}"
