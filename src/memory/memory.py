@@ -220,6 +220,11 @@ class Memory(list):
                 if entry.weight < min_weight:
                     should_archive = True
 
+            # Проверка по значимости
+            if min_significance is not None:
+                if entry.meaning_significance < min_significance:
+                    should_archive = True
+
             if should_archive:
                 entries_to_archive.append(entry)
                 self.remove(entry)

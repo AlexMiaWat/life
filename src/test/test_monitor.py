@@ -25,10 +25,9 @@ class TestMonitor:
     """Тесты для функций monitor и log"""
 
     @pytest.fixture
-    def temp_log_file(self, monkeypatch, tmp_path):
+    def temp_log_file(self, tmp_path):
         """Создает временный файл для логов"""
         log_file = tmp_path / "tick_log.jsonl"
-        monkeypatch.setattr("monitor.console.LOG_FILE", log_file)
         return log_file
 
     def test_log_function(self, capsys):
@@ -48,7 +47,7 @@ class TestMonitor:
         state.stability = 0.7
         state.last_significance = 0.5
 
-        monitor(state)
+        monitor(state, temp_log_file)
 
         # Проверяем, что что-то выведено в консоль
         captured = capsys.readouterr()
@@ -74,7 +73,7 @@ class TestMonitor:
         ]
         state.last_pattern = "dampen"
 
-        monitor(state)
+        monitor(state, temp_log_file)
 
         # Проверяем лог файл
         assert temp_log_file.exists()
@@ -89,7 +88,7 @@ class TestMonitor:
         state.activated_memory = []
         state.last_pattern = ""
 
-        monitor(state)
+        monitor(state, temp_log_file)
 
         # Проверяем лог файл
         assert temp_log_file.exists()
@@ -104,7 +103,7 @@ class TestMonitor:
         for i in range(5):
             state.ticks = i
             state.energy = 100.0 - i
-            monitor(state)
+            monitor(state, temp_log_file)
 
         # Проверяем, что все записи добавлены
         assert temp_log_file.exists()
@@ -123,11 +122,11 @@ class TestMonitor:
 
         # Первая запись
         state.ticks = 1
-        monitor(state)
+        monitor(state, temp_log_file)
 
         # Вторая запись
         state.ticks = 2
-        monitor(state)
+        monitor(state, temp_log_file)
 
         # Проверяем, что обе записи в файле
         with temp_log_file.open("r") as f:
@@ -146,7 +145,7 @@ class TestMonitor:
         state.stability = 0.4
         state.last_significance = 0.7
 
-        monitor(state)
+        monitor(state, temp_log_file)
 
         with temp_log_file.open("r") as f:
             lines = f.readlines()

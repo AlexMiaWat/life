@@ -208,22 +208,17 @@ class TestSnapshots:
     """Тесты для функций сохранения и загрузки снимков"""
 
     @pytest.fixture
-    def temp_snapshot_dir(self):
+    def temp_snapshot_dir(self, monkeypatch):
         """Создает временную директорию для снимков"""
         temp_dir = Path(tempfile.mkdtemp())
-        Path("data/snapshots")
 
         # Временно заменяем SNAPSHOT_DIR
-        from state import self_state
-
-        original_snapshot_dir = self_state.SNAPSHOT_DIR
-        self_state.SNAPSHOT_DIR = temp_dir
+        monkeypatch.setattr("src.state.self_state.SNAPSHOT_DIR", temp_dir)
 
         yield temp_dir
 
-        # Восстанавливаем
-        self_state.SNAPSHOT_DIR = original_snapshot_dir
-        shutil.rmtree(temp_dir)
+        # Очищаем
+        shutil.rmtree(temp_dir, ignore_errors=True)
 
     def test_save_snapshot(self, temp_snapshot_dir):
         """Тест сохранения снимка"""
@@ -263,12 +258,11 @@ class TestSnapshots:
     def test_load_snapshot(self, temp_snapshot_dir):
         """Тест загрузки снимка"""
         # Создаем снимок
-        state = SelfState()
+        state = SelfState(life_id="test_life_id")
         state.ticks = 200
         state.energy = 50.0
         state.integrity = 0.6
         state.stability = 0.7
-        state.life_id = "test_life_id"
 
         entry = MemoryEntry(
             event_type="loaded_event", meaning_significance=0.7, timestamp=time.time()
@@ -650,29 +644,32 @@ class TestSelfStateLogging:
     """Тесты для логирования изменений SelfState (SS.6)"""
 
     @pytest.fixture
-    def temp_log_dir(self):
+    def temp_log_dir(self, monkeypatch):
         """Создает временную директорию для логов"""
         temp_dir = Path(tempfile.mkdtemp())
-        from state import self_state
+        log_file = temp_dir / "state_changes.jsonl"
 
-        original_log_dir = self_state.STATE_CHANGES_LOG_DIR
-        original_log_file = self_state.STATE_CHANGES_LOG_FILE
-        self_state.STATE_CHANGES_LOG_DIR = temp_dir
-        self_state.STATE_CHANGES_LOG_FILE = temp_dir / "state_changes.jsonl"
+        monkeypatch.setattr("src.state.self_state.STATE_CHANGES_LOG_DIR", temp_dir)
+        monkeypatch.setattr("src.state.self_state.STATE_CHANGES_LOG_FILE", log_file)
 
         yield temp_dir
 
-        self_state.STATE_CHANGES_LOG_DIR = original_log_dir
-        self_state.STATE_CHANGES_LOG_FILE = original_log_file
-        shutil.rmtree(temp_dir)
+        shutil.rmtree(temp_dir, ignore_errors=True)
 
     def test_logging_enabled(self, temp_log_dir):
         """Тест логирования изменений (логирование включено)"""
-        from state import self_state
+        from src.state import self_state
 
         state = SelfState()
+        # Убеждаемся, что объект инициализирован
+        assert state._initialized
+
+        # Меняем значения
         state.energy = 50.0
         state.integrity = 0.6
+
+        # Принудительно сбрасываем буфер
+        state._flush_log_buffer()
 
         # Проверяем, что лог создан
         assert self_state.STATE_CHANGES_LOG_FILE.exists()

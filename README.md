@@ -14,16 +14,20 @@ life/
 │   ├── main_server_api.py    # Основной файл с API сервером и точкой входа
 │   ├── main.py                # Устаревший файл, используется только для тестирования работоспособности кода
 │   ├── runtime/
-│   │   └── loop.py            # Runtime-цикл с обновлением состояния и обработкой событий
+│   │   ├── loop.py            # Runtime-цикл с обновлением состояния и обработкой событий
+│   │   ├── snapshot_manager.py # Менеджер снапшотов (v2.0)
+│   │   ├── log_manager.py     # Менеджер логирования (v2.0)
+│   │   ├── life_policy.py     # Политика слабости и штрафов (v2.0)
+│   │   └── subjective_time.py # Вычисление субъективного времени
 │   ├── state/
 │   │   └── self_state.py      # Управление состоянием и snapshots
 │   ├── monitor/
 │   │   └── console.py         # Мониторинг и логирование
 │   ├── environment/
 │   │   ├── event.py           # [`Event`](src/environment/event.py) - структура события
-│   │   ├── event_queue.py     # [`EventQueue`](src/environment/event_queue.py) - очередь событий (max 100)
-│   │   ├── generator.py       # [`EventGenerator`](src/environment/generator.py) - генератор событий
-│   │   └── generator_cli.py   # CLI для отправки событий на API
+│   │   ├── event_queue.py    # [`EventQueue`](src/environment/event_queue.py) - очередь событий (max 100)
+│   │   ├── generator.py      # [`EventGenerator`](src/environment/generator.py) - генератор событий
+│   │   └── generator_cli.py # CLI для отправки событий на API
 │   ├── meaning/
 │   │   ├── meaning.py         # Структура интерпретации (Meaning)
 │   │   └── engine.py          # Движок интерпретации (MeaningEngine)
@@ -37,9 +41,13 @@ life/
 │   │   └── intelligence.py
 │   ├── planning/              # Модуль планирования (этап 17, v1.0)
 │   │   └── planning.py
-│   ├── memory/                # Модуль памяти (этап 09, v1.0)
+│   ├── memory/                # Модуль памяти (этап 09, v2.0)
 │   │   └── memory.py
-│   └── test/                  # Тесты (226 тестов, 96% покрытие)
+│   ├── learning/              # Модуль обучения (этап 14, v1.0)
+│   │   └── learning.py
+│   ├── adaptation/            # Модуль адаптации (этап 15, v1.0)
+│   │   └── adaptation.py
+│   └── test/                  # Тесты (226+ тестов, 96% покрытие)
 │       ├── test_memory.py
 │       ├── test_state.py
 │       ├── test_activation.py
@@ -51,12 +59,16 @@ life/
 │       ├── test_planning.py
 │       ├── test_intelligence.py
 │       ├── test_runtime_integration.py
+│       ├── test_runtime_loop_managers.py # Тесты менеджеров (v2.0)
 │       ├── test_api_integration.py
 │       ├── test_generator.py
 │       ├── test_generator_integration.py
 │       ├── test_monitor.py
 │       └── ... (другие тесты)
 ├── docs/                      # Документация проекта
+│   ├── components/            # Документация компонентов
+│   ├── adr/                   # Архитектурные решения (ADR)
+│   ├── results/               # Отчеты о выполнении задач
 │   └── test/                  # Документация по тестированию
 ├── data/                      # Директория для данных (логи, snapshots)
 ├── .venv/                     # Виртуальное окружение Python
@@ -66,15 +78,18 @@ life/
 ### Ключевые модули
 
 - **`main_server_api.py`**: Основной сервер с HTTP API (`/status`, `/clear-data`, `/event`), потоками runtime и dev-режимом с авто-перезагрузкой.
-- **`runtime/loop.py`**: Бесконечный цикл с тиками, обработкой событий из [`EventQueue`](src/environment/event_queue.py) и простой интерпретацией `_interpret_event`.
-- **`state/self_state.py`**: Управление состоянием и snapshots (этап 03, описан в docs, реализация как dataclass планируется).
+- **`runtime/loop.py`**: Бесконечный цикл с тиками, обработкой событий из [`EventQueue`](src/environment/event_queue.py) и интерпретацией через MeaningEngine. **v2.0:** Рефакторинг с выделением менеджеров (`SnapshotManager`, `LogManager`, `LifePolicy`).
+- **`runtime/snapshot_manager.py`**: Менеджер снапшотов (v2.0) — управляет периодичностью создания снапшотов, изолирует I/O операции.
+- **`runtime/log_manager.py`**: Менеджер логирования (v2.0) — управляет буферизацией и сбросом логов, убирает регулярный I/O из hot-path.
+- **`runtime/life_policy.py`**: Политика слабости (v2.0) — инкапсулирует логику определения слабости и расчета штрафов.
+- **`state/self_state.py`**: Управление состоянием и snapshots (v2.1 с валидацией).
 - **`monitor/console.py`**: Цветной консольный мониторинг и логи в `data/tick_log.jsonl`.
 - **`environment/`** (этап 07, интегрирован):
   - [`event.py`](src/environment/event.py): [`Event`](src/environment/event.py) - `type`, `intensity:[-1..1]`, `timestamp`, `metadata`.
   - [`event_queue.py`](src/environment/event_queue.py): [`EventQueue`](src/environment/event_queue.py) - thread-safe очередь с `push/pop/pop_all`, maxsize=100.
   - [`generator.py`](src/environment/generator.py): [`EventGenerator`](src/environment/generator.py) - `generate()` с типами `noise/decay/recovery/shock/idle` (weights [0.4,0.3,0.2,0.05,0.05]), intensity ranges.
   - [`generator_cli.py`](src/environment/generator_cli.py): CLI `python -m environment.generator_cli --interval 5 --host localhost --port 8000`.
-- **`meaning/`** (этап 08, реализован но не интегрирован):
+- **`meaning/`** (этап 08, интегрирован):
   - [`meaning.py`](src/meaning/meaning.py): [`Meaning`](src/meaning/meaning.py) - `significance:[0..1]`, `impact:{energy/stability/integrity: delta}`.
   - [`engine.py`](src/meaning/engine.py): [`MeaningEngine`](src/meaning/engine.py) - `process(event, self_state) -> Meaning` через `appraisal/significance`, `impact_model`, `response_pattern` (ignore/absorb/dampen/amplify).
 - **`activation/`** (этап 10.1, v1.0): Активация релевантных воспоминаний на основе типа текущего события.
@@ -99,7 +114,63 @@ life/
 - **Этапы 17–18**: Planning и Intelligence v1.0 реализованы и интегрированы.
 - **Этап 14**: Learning v1.0 реализован и интегрирован (медленное обучение на статистике).
 - **Этап 15**: Adaptation v1.0 реализован и интегрирован (медленная адаптация поведения).
-- **Архитектурные улучшения**: Lifecycle, Subjective Time, SelfState улучшения, Runtime Loop рефакторинг.
+- **Архитектурные улучшения**: 
+  - Lifecycle, Subjective Time, SelfState улучшения
+  - **Runtime Loop рефакторинг (v2.0)**: Выделены менеджеры (`SnapshotManager`, `LogManager`, `LifePolicy`) для улучшения производительности, тестируемости и конфигурируемости.
+
+## Runtime Loop Managers (v2.0)
+
+Runtime Loop был рефакторен для улучшения производительности и тестируемости. Выделены три специализированных менеджера:
+
+### SnapshotManager
+
+Управляет периодическим сохранением снапшотов состояния Life.
+
+**Файл:** [`src/runtime/snapshot_manager.py`](src/runtime/snapshot_manager.py)
+
+**Основные методы:**
+- `should_snapshot(ticks: int) -> bool` — проверяет, нужно ли делать снапшот на текущем тике
+- `maybe_snapshot(self_state: SelfState) -> bool` — делает снапшот, если нужно по периодичности
+
+**Преимущества:**
+- Изоляция I/O операций от основного цикла
+- Обработка ошибок без падения цикла
+- Явная периодичность через `period_ticks`
+
+### LogManager
+
+Управляет буферизацией и сбросом логов, убирая регулярный I/O из hot-path runtime loop.
+
+**Файл:** [`src/runtime/log_manager.py`](src/runtime/log_manager.py)
+
+**Основные компоненты:**
+- `FlushPolicy` — политика сброса буфера логов (периодичность, перед/после снапшота, при исключениях)
+- `LogManager` — менеджер логирования с методом `maybe_flush()`
+
+**Преимущества:**
+- Flush происходит по расписанию, а не на каждом тике
+- Улучшенная производительность (нет регулярного I/O в hot-path)
+- Конфигурируемая политика через `FlushPolicy`
+
+**Разделение ответственности:** `LogManager` управляет **политическими flush** (по расписанию), в то время как `SelfState` выполняет **защитные flush** (при переполнении буфера, изменении конфигурации).
+
+### LifePolicy
+
+Политика "слабости" и штрафов для Life. Определяет пороги слабости и коэффициенты штрафов.
+
+**Файл:** [`src/runtime/life_policy.py`](src/runtime/life_policy.py)
+
+**Основные методы:**
+- `is_weak(self_state: SelfState) -> bool` — проверяет, находится ли система в состоянии слабости
+- `weakness_penalty(dt: float) -> dict[str, float]` — вычисляет штрафы за слабость
+
+**Преимущества:**
+- Чистая функция без side effects
+- Конфигурируемые параметры вместо констант
+- Легко тестировать отдельно
+- Значения по умолчанию совпадают с предыдущими константами
+
+**Подробнее:** См. [docs/adr/005-runtime-loop-managers.md](docs/adr/005-runtime-loop-managers.md) и [docs/components/runtime-loop.md](docs/components/runtime-loop.md).
 
 ## Тестирование
 
@@ -137,6 +208,9 @@ pytest src/test/ -v -m performance
 
 # Property-based тесты
 pytest src/test/test_property_based.py -v
+
+# Тесты Runtime Loop Managers
+pytest src/test/test_runtime_loop_managers.py -v
 ```
 
 ### Новые тесты
@@ -145,6 +219,7 @@ pytest src/test/test_property_based.py -v
 - **`test_property_based.py`** - Property-based тесты для проверки инвариантов системы
 - **`test_performance.py`** - Тесты производительности (benchmarks) критических операций
 - **`test_memory.py`** - Расширен нагрузочными тестами для больших объемов данных
+- **`test_runtime_loop_managers.py`** - Тесты менеджеров Runtime Loop (SnapshotManager, LogManager, LifePolicy)
 
 ### Покрытие модулей
 
@@ -154,6 +229,7 @@ pytest src/test/test_property_based.py -v
 - Генератор событий (EventGenerator)
 - Monitor (console.py)
 - Environment (Event, EventQueue, Generator)
+- Runtime Loop Managers (SnapshotManager, LogManager, LifePolicy)
 
 **Подробная документация:** [docs/testing/README.md](docs/testing/README.md)
 
@@ -308,6 +384,8 @@ curl -X POST http://localhost:8000/event \
 
 Все тики логируются в `data/tick_log.jsonl` в формате JSON Lines. Каждый тик - отдельная строка с полным состоянием.
 
+**v2.0:** Логирование управляется через `LogManager`, который выполняет flush по расписанию (периодически, перед/после снапшота, при исключениях, при завершении), а не на каждом тике.
+
 ## Особенности
 
 ### Горячая очистка данных
@@ -325,6 +403,7 @@ curl -X POST http://localhost:8000/event \
 - Исключения в runtime-цикле уменьшают integrity системы
 - Ошибки логируются с полным traceback
 - Система продолжает работу даже при сбоях в отдельных компонентах
+- **v2.0:** Ошибки менеджеров (SnapshotManager, LogManager) не роняют основной цикл
 
 ### Состояние системы
 
@@ -359,9 +438,9 @@ Life взаимодействует с [`EventQueue`](src/environment/event_queu
 - `shock` (5%): `[-1.0, 1.0]` → integrity/stability
 - `idle` (5%): `0.0` → ничего
 
-**Обработка** в [`loop.py`](src/runtime/loop.py): `pop_all()` → `_interpret_event` (простая логика, без MeaningEngine).
+**Обработка** в [`loop.py`](src/runtime/loop.py): `pop_all()` → `MeaningEngine.process()` → интерпретация и обновление состояния.
 
-### MeaningEngine (этап 08, реализован но не интегрирован)
+### MeaningEngine (этап 08, интегрирован)
 
 [`MeaningEngine`](src/meaning/engine.py).`process(event, self_state) -> [`Meaning`](src/meaning/meaning.py)`:
 
@@ -370,7 +449,7 @@ Life взаимодействует с [`EventQueue`](src/environment/event_queu
 3. **response_pattern()**: "ignore" (<0.1), "dampen" (>stab0.8), "amplify" (<stab0.3), "absorb"
 4. Применить паттерн к impact.
 
-Готов к интеграции в loop.py вместо _interpret_event.
+Интегрирован в loop.py для обработки всех событий.
 
 ### Activation (этап 10.1, интегрирован)
 
@@ -426,6 +505,9 @@ pytest src/test/ -m integration --cov=src --cov-report=html
 
 # Конкретный модуль
 pytest src/test/test_memory.py -v
+
+# Тесты Runtime Loop Managers
+pytest src/test/test_runtime_loop_managers.py -v
 ```
 
 ### Тестирование с реальным сервером
@@ -472,19 +554,18 @@ pytest src/test/ --real-server --server-port 8000 --cov=src --cov-report=html -W
 - `-W default` - **обязательно** для просмотра warnings (переопределяет `--disable-warnings` из `pytest.ini`)
 - `-v` - подробный вывод
 
-**Примечание:** Warnings выводятся **во время выполнения тестов**, а не в конце. Skipped тесты выводятся в конце с опцией `-rs`.
+**Примечание:** Warnings выводятся **во время выполнения тестов**, а причины skipped — в конце.
 
-### Результаты тестирования
+## Документация
 
-- **Всего тестов:** 226
-- **Все проходят:** ✅
-- **Покрытие кода:** 96%
-- **Основные модули:** 100% покрытие
+Подробная документация находится в директории [`docs/`](docs/):
 
-### Документация по тестированию
+- **[INDEX.md](docs/INDEX.md)** — единая точка входа в документацию
+- **[components/](docs/components/)** — документация компонентов
+- **[adr/](docs/adr/)** — архитектурные решения (ADR)
+- **[development/](docs/development/)** — документация для разработчиков
+- **[testing/](docs/testing/)** — документация по тестированию
 
-Подробная документация находится в [docs/testing/README.md](docs/testing/README.md):
-- Инструкции по запуску тестов
-- Описание всех тестовых файлов
-- Руководство по написанию новых тестов
-- Отчеты о покрытии кода
+## Лицензия
+
+[Укажите лицензию проекта]

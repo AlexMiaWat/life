@@ -6,7 +6,6 @@ __pycache__/
 .Python
 .venv/
 venv/
-ENV/
 env/
 *.egg-info/
 dist/
@@ -20,6 +19,7 @@ htmlcov/
 .tox/
 .hypothesis/
 *.cover
+*.xml
 .hypothesis/
 .pytest_cache/
 test-results/
@@ -67,3 +67,4 @@ htmlcov/
 *.swp
 codeAgentProjectStatus.md
 todo/CURRENT.md
+test_results_full.xml

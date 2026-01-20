@@ -17,7 +17,17 @@ def log(message):
     print("TEST CHANGE")
 
 
-def monitor(state: SelfState):
+def monitor(state: SelfState, log_file_path: Path = None):
+    """
+    Мониторинг состояния системы Life
+
+    Args:
+        state: Текущее состояние системы
+        log_file_path: Путь к файлу логов (если None, используется LOG_FILE)
+    """
+    if log_file_path is None:
+        log_file_path = LOG_FILE
+
     ticks = state.ticks
     age = state.age
     energy = state.energy
@@ -57,5 +67,5 @@ def monitor(state: SelfState):
         "last_significance": last_significance,
     }
 
-    with LOG_FILE.open("a") as f:
+    with log_file_path.open("a") as f:
         f.write(json.dumps(tick_data) + "\n")

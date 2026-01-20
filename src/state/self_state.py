@@ -70,21 +70,48 @@ class SelfState:
         # Помечаем объект как инициализированный после __post_init__
         object.__setattr__(self, "_initialized", True)
 
-    def _validate_field(self, field_name: str, value: float) -> float:
-        """Валидация значения поля с учетом его границ (обрезает значения до границ)"""
+    def _validate_field(self, field_name: str, value: float, clamp: bool = False) -> float:
+        """
+        Валидация значения поля с учетом его границ.
+
+        Args:
+            field_name: Имя поля
+            value: Значение для валидации
+            clamp: Если True, обрезать значение до границ вместо выбрасывания ошибки
+
+        Returns:
+            Валидированное значение
+        """
         if field_name == "energy":
-            # Обрезаем значение до допустимого диапазона
-            return max(0.0, min(100.0, value))
+            if clamp:
+                return max(0.0, min(100.0, value))
+            if not (0.0 <= value <= 100.0):
+                raise ValueError(f"energy must be between 0.0 and 100.0, got {value}")
+            return value
         elif field_name in ["integrity", "stability"]:
-            # Обрезаем значение до допустимого диапазона
-            return max(0.0, min(1.0, value))
+            if clamp:
+                return max(0.0, min(1.0, value))
+            if not (0.0 <= value <= 1.0):
+                raise ValueError(f"{field_name} must be between 0.0 and 1.0, got {value}")
+            return value
         elif field_name == "last_event_intensity":
-            return max(0.0, min(1.0, value))
+            if clamp:
+                return max(0.0, min(1.0, value))
+            if not (0.0 <= value <= 1.0):
+                raise ValueError(f"last_event_intensity must be between 0.0 and 1.0, got {value}")
+            return value
         elif field_name in ["fatigue", "tension", "age"]:
-            # Обрезаем значение до минимума (не может быть отрицательным)
-            return max(0.0, value)
+            if clamp:
+                return max(0.0, value)
+            if value < 0.0:
+                raise ValueError(f"{field_name} must be >= 0.0, got {value}")
+            return value
         elif field_name == "subjective_time":
-            return max(0.0, value)
+            if clamp:
+                return max(0.0, value)
+            if value < 0.0:
+                raise ValueError(f"subjective_time must be >= 0.0, got {value}")
+            return value
         elif field_name == "ticks":
             if value < 0:
                 raise ValueError(f"ticks must be >= 0, got {value}")
@@ -257,7 +284,7 @@ class SelfState:
             "last_event_intensity",
             "ticks",
         ]:
-            value = self._validate_field(name, value)
+            value = self._validate_field(name, value, clamp=False)
 
         # Устанавливаем значение
         object.__setattr__(self, name, value)
@@ -394,14 +421,20 @@ class SelfState:
         # Память не сбрасываем, так как это история жизни
 
     def apply_delta(self, deltas: dict[str, float]) -> None:
-        """Применение дельт к полям с валидацией"""
+        """Применение дельт к полям с обрезанием значений до допустимых границ"""
         for key, delta in deltas.items():
             if hasattr(self, key):
                 current = getattr(self, key)
                 if isinstance(current, (int, float)):
                     new_value = current + delta
-                    # Валидация происходит автоматически через __setattr__
-                    setattr(self, key, new_value)
+                    # Обрезаем значение до границ вместо выбрасывания ошибки
+                    clamped_value = self._validate_field(key, new_value, clamp=True)
+                    # Устанавливаем без дополнительной валидации
+                    object.__setattr__(self, key, clamped_value)
+
+                    # Логируем изменение вручную, так как обошли __setattr__
+                    if self._initialized and current != clamped_value:
+                        self._log_change(key, current, clamped_value)
                 else:
                     # Для нечисловых полей операция сложения не поддерживается
                     raise TypeError(
@@ -790,6 +823,9 @@ class SelfState:
         Returns:
             Список записей истории изменений (от старых к новым)
         """
+        # Сбрасываем буфер перед чтением, чтобы включить последние изменения
+        self._flush_log_buffer()
+
         if not STATE_CHANGES_LOG_FILE.exists():
             return []
 
@@ -891,7 +927,9 @@ class SelfState:
         latest = snapshots[-1]
         with latest.open("r") as f:
             data = json.load(f)
-        return self._load_snapshot_from_data(data)
+        # Создаем новый экземпляр для загрузки данных
+        temp_state = SelfState()
+        return temp_state._load_snapshot_from_data(data)
 
     def _load_snapshot_from_data(self, data: dict) -> "SelfState":
         """

@@ -592,6 +592,12 @@ def run_loop(
                 or self_state.integrity <= 0
                 or self_state.stability <= 0
             ):
+                # Логируем причину остановки
+                logger.warning(
+                    f"[LOOP] System stopping due to vital parameters: "
+                    f"energy={self_state.energy:.2f}, integrity={self_state.integrity:.4f}, "
+                    f"stability={self_state.stability:.4f} at tick {self_state.ticks}"
+                )
                 # Используем метод set_active для консистентности
                 # (хотя прямое присваивание тоже работает, так как active не vital параметр)
                 self_state.set_active(False)
