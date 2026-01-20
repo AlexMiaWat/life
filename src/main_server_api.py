@@ -275,7 +275,9 @@ def reloader_thread():  # pragma: no cover
             if server:
                 server.shutdown()
                 if api_thread:
-                    api_thread.join()
+                    api_thread.join(timeout=5.0)
+                    if api_thread.is_alive():
+                        log("[RELOAD] WARNING: api_thread не завершился за 5 секунд, продолжается перезагрузка")
 
             # Перезагрузка модулей
             import environment.event as event_module

@@ -1,6 +1,7 @@
-from typing import Dict
+from typing import Dict, Union
 
 from src.environment.event import Event
+from src.state.self_state import SelfState
 
 from .meaning import Meaning
 
@@ -21,7 +22,7 @@ class MeaningEngine:
         """Инициализация движка с базовыми настройками"""
         self.base_significance_threshold = 0.1
 
-    def appraisal(self, event: Event, self_state: Dict) -> float:
+    def appraisal(self, event: Event, self_state: Union[SelfState, Dict]) -> float:
         """
         Первичная оценка: насколько это событие важно?
 
@@ -53,10 +54,16 @@ class MeaningEngine:
         # ИНТЕГРАЦИЯ: Используем learning_params.event_type_sensitivity
         # ВАЖНО: Используем среднее значение для избежания квадратичного эффекта
         # и соблюдения принципа медленного изменения
-        learning_params = self_state.get("learning_params", {})
-        event_sensitivity = learning_params.get("event_type_sensitivity", {})
-        adaptation_params = self_state.get("adaptation_params", {})
-        behavior_sensitivity = adaptation_params.get("behavior_sensitivity", {})
+        # Поддержка как объекта SelfState, так и словаря (для обратной совместимости)
+        if isinstance(self_state, SelfState):
+            learning_params = getattr(self_state, "learning_params", {})
+            adaptation_params = getattr(self_state, "adaptation_params", {})
+        else:
+            learning_params = self_state.get("learning_params", {})
+            adaptation_params = self_state.get("adaptation_params", {})
+        
+        event_sensitivity = learning_params.get("event_type_sensitivity", {}) if isinstance(learning_params, dict) else {}
+        behavior_sensitivity = adaptation_params.get("behavior_sensitivity", {}) if isinstance(adaptation_params, dict) else {}
 
         # Вычисляем модификаторы чувствительности
         learning_modifier = 1.0
@@ -88,18 +95,20 @@ class MeaningEngine:
 
         # Контекстуальная модификация на основе состояния
         # Если integrity низкая — даже малые события становятся важнее
-        if self_state["integrity"] < 0.3:
+        integrity = getattr(self_state, "integrity", self_state.get("integrity", 1.0)) if isinstance(self_state, SelfState) else self_state.get("integrity", 1.0)
+        if integrity < 0.3:
             significance *= 1.5
 
         # Если stability низкая — события ощущаются сильнее
-        if self_state["stability"] < 0.5:
+        stability = getattr(self_state, "stability", self_state.get("stability", 1.0)) if isinstance(self_state, SelfState) else self_state.get("stability", 1.0)
+        if stability < 0.5:
             significance *= 1.2
 
         # Ограничение диапазона
         return max(0.0, min(1.0, significance))
 
     def impact_model(
-        self, event: Event, self_state: Dict, significance: float
+        self, event: Event, self_state: Union[SelfState, Dict], significance: float
     ) -> Dict[str, float]:
         """
         Расчёт влияния: как это событие изменит состояние?
@@ -139,7 +148,7 @@ class MeaningEngine:
         return scaled_impact
 
     def response_pattern(
-        self, event: Event, self_state: Dict, significance: float
+        self, event: Event, self_state: Union[SelfState, Dict], significance: float
     ) -> str:
         """
         Определение паттерна реакции.
@@ -157,15 +166,20 @@ class MeaningEngine:
             pattern (str): название паттерна
         """
         # ИНТЕГРАЦИЯ: Используем learning_params.significance_thresholds
-        learning_params = self_state.get("learning_params", {})
-        significance_thresholds = learning_params.get("significance_thresholds", {})
+        if isinstance(self_state, SelfState):
+            learning_params = getattr(self_state, "learning_params", {})
+            adaptation_params = getattr(self_state, "adaptation_params", {})
+        else:
+            learning_params = self_state.get("learning_params", {})
+            adaptation_params = self_state.get("adaptation_params", {})
+        
+        significance_thresholds = learning_params.get("significance_thresholds", {}) if isinstance(learning_params, dict) else {}
         event_threshold = significance_thresholds.get(
             event.type, self.base_significance_threshold
         )
 
         # ИНТЕГРАЦИЯ: Используем adaptation_params.behavior_thresholds
-        adaptation_params = self_state.get("adaptation_params", {})
-        behavior_thresholds = adaptation_params.get("behavior_thresholds", {})
+        behavior_thresholds = adaptation_params.get("behavior_thresholds", {}) if isinstance(adaptation_params, dict) else {}
         behavior_threshold = behavior_thresholds.get(event.type, event_threshold)
 
         # Используем адаптированный порог
@@ -175,17 +189,18 @@ class MeaningEngine:
             return "ignore"
 
         # При высокой стабильности — ослабление эффектов
-        if self_state["stability"] > 0.8:
+        stability = getattr(self_state, "stability", self_state.get("stability", 1.0)) if isinstance(self_state, SelfState) else self_state.get("stability", 1.0)
+        if stability > 0.8:
             return "dampen"
 
         # При низкой стабильности — усиление эффектов
-        if self_state["stability"] < 0.3:
+        if stability < 0.3:
             return "amplify"
 
         # По умолчанию — нормальное поглощение
         return "absorb"
 
-    def process(self, event: Event, self_state: Dict) -> Meaning:
+    def process(self, event: Event, self_state: Union[SelfState, Dict]) -> Meaning:
         """
         Основной метод обработки события.
 
@@ -213,10 +228,15 @@ class MeaningEngine:
 
         # 4. Модификация impact на основе паттерна
         # ИНТЕГРАЦИЯ: Используем learning_params.response_coefficients и adaptation_params.behavior_coefficients
-        learning_params = self_state.get("learning_params", {})
-        response_coefficients = learning_params.get("response_coefficients", {})
-        adaptation_params = self_state.get("adaptation_params", {})
-        behavior_coefficients = adaptation_params.get("behavior_coefficients", {})
+        if isinstance(self_state, SelfState):
+            learning_params = getattr(self_state, "learning_params", {})
+            adaptation_params = getattr(self_state, "adaptation_params", {})
+        else:
+            learning_params = self_state.get("learning_params", {})
+            adaptation_params = self_state.get("adaptation_params", {})
+        
+        response_coefficients = learning_params.get("response_coefficients", {}) if isinstance(learning_params, dict) else {}
+        behavior_coefficients = adaptation_params.get("behavior_coefficients", {}) if isinstance(adaptation_params, dict) else {}
 
         final_impact = base_impact.copy()
         if pattern == "ignore":

@@ -15,6 +15,7 @@ Adaptation только медленно перестраивает поведе
 """
 
 import logging
+import threading
 import time
 from typing import Dict, List
 
@@ -44,6 +45,10 @@ class AdaptationManager:
 
     # Максимальный размер истории адаптаций
     MAX_HISTORY_SIZE = 50
+
+    def __init__(self):
+        """Инициализация AdaptationManager с блокировкой для защиты от параллельных вызовов."""
+        self._lock = threading.Lock()
 
     def analyze_changes(
         self, learning_params: Dict, adaptation_history: List[Dict]
@@ -368,62 +373,65 @@ class AdaptationManager:
         Фиксирует timestamp и изменения без интерпретации.
 
         ВАЖНО: Только хранение фактов, без интерпретации и оптимизации.
+        Защищено блокировкой от параллельных вызовов.
 
         Args:
             old_params: Старые параметры поведения
             new_params: Новые параметры поведения
             self_state: SelfState для обновления adaptation_history
         """
-        # Вычисляем только измененные параметры
-        changes = {}
-        for key, new_value_dict in new_params.items():
-            if key in old_params:
-                old_value_dict = old_params[key]
-                if isinstance(new_value_dict, dict) and isinstance(
-                    old_value_dict, dict
-                ):
-                    param_changes = {}
-                    for param_name, new_value in new_value_dict.items():
-                        if param_name in old_value_dict:
-                            old_value = old_value_dict[param_name]
-                            if abs(new_value - old_value) >= self.MIN_ADAPTATION_DELTA:
-                                param_changes[param_name] = {
-                                    "old": old_value,
-                                    "new": new_value,
-                                    "delta": new_value - old_value,
-                                }
-                    if param_changes:
-                        changes[key] = param_changes
-            else:
-                # Новый параметр
-                changes[key] = new_value_dict
+        # Защита от параллельных вызовов
+        with self._lock:
+            # Вычисляем только измененные параметры
+            changes = {}
+            for key, new_value_dict in new_params.items():
+                if key in old_params:
+                    old_value_dict = old_params[key]
+                    if isinstance(new_value_dict, dict) and isinstance(
+                        old_value_dict, dict
+                    ):
+                        param_changes = {}
+                        for param_name, new_value in new_value_dict.items():
+                            if param_name in old_value_dict:
+                                old_value = old_value_dict[param_name]
+                                if abs(new_value - old_value) >= self.MIN_ADAPTATION_DELTA:
+                                    param_changes[param_name] = {
+                                        "old": old_value,
+                                        "new": new_value,
+                                        "delta": new_value - old_value,
+                                    }
+                        if param_changes:
+                            changes[key] = param_changes
+                else:
+                    # Новый параметр
+                    changes[key] = new_value_dict
 
-        # Создаем запись истории
-        history_entry = {
-            "timestamp": time.time(),
-            "tick": getattr(self_state, "ticks", 0),
-            "old_params": old_params.copy(),
-            "new_params": new_params.copy(),
-            "changes": changes,
-            "learning_params_snapshot": getattr(
-                self_state, "learning_params", {}
-            ).copy(),
-        }
+            # Создаем запись истории
+            history_entry = {
+                "timestamp": time.time(),
+                "tick": getattr(self_state, "ticks", 0),
+                "old_params": old_params.copy(),
+                "new_params": new_params.copy(),
+                "changes": changes,
+                "learning_params_snapshot": getattr(
+                    self_state, "learning_params", {}
+                ).copy(),
+            }
 
-        # Добавляем в историю
-        if not hasattr(self_state, "adaptation_history"):
-            self_state.adaptation_history = []
+            # Добавляем в историю
+            if not hasattr(self_state, "adaptation_history"):
+                self_state.adaptation_history = []
 
-        self_state.adaptation_history.append(history_entry)
+            self_state.adaptation_history.append(history_entry)
 
-        # Ограничиваем размер истории
-        if len(self_state.adaptation_history) > self.MAX_HISTORY_SIZE:
-            self_state.adaptation_history = self_state.adaptation_history[
-                -self.MAX_HISTORY_SIZE :
-            ]
+            # Ограничиваем размер истории
+            if len(self_state.adaptation_history) > self.MAX_HISTORY_SIZE:
+                self_state.adaptation_history = self_state.adaptation_history[
+                    -self.MAX_HISTORY_SIZE :
+                ]
 
-        # ВАЖНО: Не интерпретируем историю, не используем для оптимизации
-        # Просто храним факты для возможной обратимости
+            # ВАЖНО: Не интерпретируем историю, не используем для оптимизации
+            # Просто храним факты для возможной обратимости
 
     def _init_behavior_params_from_learning(self, learning_params: Dict) -> Dict:
         """

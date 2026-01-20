@@ -14,6 +14,7 @@ Learning только медленно изменяет внутренние п�
 """
 
 import logging
+import threading
 from typing import Dict, List
 
 from src.memory.memory import MemoryEntry
@@ -58,6 +59,10 @@ class LearningEngine:
     # Если паттерн используется < LOW_PATTERN_FREQUENCY_THRESHOLD, уменьшаем коэффициент
     HIGH_PATTERN_FREQUENCY_THRESHOLD = 0.3  # 30% всех паттернов
     LOW_PATTERN_FREQUENCY_THRESHOLD = 0.1  # 10% всех паттернов
+
+    def __init__(self):
+        """Инициализация LearningEngine с блокировкой для защиты от параллельных вызовов."""
+        self._lock = threading.Lock()
 
     def process_statistics(self, memory: List[MemoryEntry]) -> Dict:
         """
@@ -348,6 +353,7 @@ class LearningEngine:
         Фиксирует изменения параметров без интерпретации.
 
         ВАЖНО: Только фиксация, без оценки правильности изменений.
+        Защищено блокировкой от параллельных вызовов.
 
         Args:
             old_params: Старые параметры
@@ -357,20 +363,22 @@ class LearningEngine:
         Примечание: Метод выполняет глубокое объединение (merge) параметров,
         чтобы сохранить существующие значения, которые не были обновлены.
         """
-        # ПРОВЕРКА: Убеждаемся, что изменения медленные (<= 0.01)
-        for key, new_value_dict in new_params.items():
-            if key in old_params:
-                old_value_dict = old_params[key]
-                for param_name, new_value in new_value_dict.items():
-                    if param_name in old_value_dict:
-                        old_value = old_value_dict[param_name]
-                        delta = abs(new_value - old_value)
-                        # Проверка: изменения не должны превышать MAX_PARAMETER_DELTA
-                        if delta > self.MAX_PARAMETER_DELTA + 0.001:
-                            raise ValueError(
-                                f"Изменение параметра {key}.{param_name} слишком большое: "
-                                f"{delta} > {self.MAX_PARAMETER_DELTA}"
-                            )
+        # Защита от параллельных вызовов
+        with self._lock:
+            # ПРОВЕРКА: Убеждаемся, что изменения медленные (<= 0.01)
+            for key, new_value_dict in new_params.items():
+                if key in old_params:
+                    old_value_dict = old_params[key]
+                    for param_name, new_value in new_value_dict.items():
+                        if param_name in old_value_dict:
+                            old_value = old_value_dict[param_name]
+                            delta = abs(new_value - old_value)
+                            # Проверка: изменения не должны превышать MAX_PARAMETER_DELTA
+                            if delta > self.MAX_PARAMETER_DELTA + 0.001:
+                                raise ValueError(
+                                    f"Изменение параметра {key}.{param_name} слишком большое: "
+                                    f"{delta} > {self.MAX_PARAMETER_DELTA}"
+                                )
 
         # Обновляем параметры в SelfState
         # ВАЖНО: Выполняем глубокое объединение (merge), а не полную перезапись

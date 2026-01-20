@@ -264,17 +264,31 @@ def run_loop(
                         not hasattr(self_state, "learning_params")
                         or not self_state.learning_params
                     ):
-                        logger.warning(
-                            "learning_params не инициализирован, пропускаем Learning"
+                        # Автоматическая инициализация при первом запуске
+                        logger.info(
+                            "learning_params не инициализирован, инициализируем значениями по умолчанию"
                         )
-                        continue
+                        # Используем метод из SelfState для получения значений по умолчанию
+                        if hasattr(self_state, "_get_default_learning_params"):
+                            self_state.learning_params = self_state._get_default_learning_params()
+                        else:
+                            # Fallback: используем значения из dataclass field default_factory
+                            from src.state.self_state import SelfState
+                            temp_state = SelfState()
+                            self_state.learning_params = temp_state._get_default_learning_params()
 
                     # Валидируем структуру параметров
                     if not _validate_learning_params(self_state.learning_params):
                         logger.error(
-                            "learning_params имеет некорректную структуру, пропускаем Learning"
+                            "learning_params имеет некорректную структуру, исправляем значениями по умолчанию"
                         )
-                        continue
+                        # Исправляем некорректную структуру значениями по умолчанию
+                        if hasattr(self_state, "_get_default_learning_params"):
+                            self_state.learning_params = self_state._get_default_learning_params()
+                        else:
+                            from src.state.self_state import SelfState
+                            temp_state = SelfState()
+                            self_state.learning_params = temp_state._get_default_learning_params()
 
                     # Обрабатываем статистику из Memory
                     statistics = learning_engine.process_statistics(self_state.memory)
@@ -330,29 +344,51 @@ def run_loop(
                         not hasattr(self_state, "learning_params")
                         or not self_state.learning_params
                     ):
-                        logger.warning(
-                            "learning_params не инициализирован, пропускаем Adaptation"
+                        # Автоматическая инициализация при первом запуске
+                        logger.info(
+                            "learning_params не инициализирован, инициализируем значениями по умолчанию"
                         )
-                        continue
+                        if hasattr(self_state, "_get_default_learning_params"):
+                            self_state.learning_params = self_state._get_default_learning_params()
+                        else:
+                            from src.state.self_state import SelfState
+                            temp_state = SelfState()
+                            self_state.learning_params = temp_state._get_default_learning_params()
 
-                    if not hasattr(self_state, "adaptation_params"):
-                        logger.warning(
-                            "adaptation_params не инициализирован, пропускаем Adaptation"
+                    if not hasattr(self_state, "adaptation_params") or not self_state.adaptation_params:
+                        # Автоматическая инициализация при первом запуске
+                        logger.info(
+                            "adaptation_params не инициализирован, инициализируем значениями по умолчанию"
                         )
-                        continue
+                        if hasattr(self_state, "_get_default_adaptation_params"):
+                            self_state.adaptation_params = self_state._get_default_adaptation_params()
+                        else:
+                            from src.state.self_state import SelfState
+                            temp_state = SelfState()
+                            self_state.adaptation_params = temp_state._get_default_adaptation_params()
 
                     # Валидируем структуру параметров
                     if not _validate_learning_params(self_state.learning_params):
                         logger.error(
-                            "learning_params имеет некорректную структуру, пропускаем Adaptation"
+                            "learning_params имеет некорректную структуру, исправляем значениями по умолчанию"
                         )
-                        continue
+                        if hasattr(self_state, "_get_default_learning_params"):
+                            self_state.learning_params = self_state._get_default_learning_params()
+                        else:
+                            from src.state.self_state import SelfState
+                            temp_state = SelfState()
+                            self_state.learning_params = temp_state._get_default_learning_params()
 
                     if not _validate_adaptation_params(self_state.adaptation_params):
                         logger.error(
-                            "adaptation_params имеет некорректную структуру, пропускаем Adaptation"
+                            "adaptation_params имеет некорректную структуру, исправляем значениями по умолчанию"
                         )
-                        continue
+                        if hasattr(self_state, "_get_default_adaptation_params"):
+                            self_state.adaptation_params = self_state._get_default_adaptation_params()
+                        else:
+                            from src.state.self_state import SelfState
+                            temp_state = SelfState()
+                            self_state.adaptation_params = temp_state._get_default_adaptation_params()
 
                     # Анализируем изменения от Learning
                     analysis = adaptation_manager.analyze_changes(
