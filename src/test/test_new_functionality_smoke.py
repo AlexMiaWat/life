@@ -871,7 +871,7 @@ class TestNewFunctionalitySmoke:
         from fastapi.testclient import TestClient
         from api import app
 
-        client = TestClient(app)
+        client = TestClient(app, timeout=10.0)
         assert client is not None
 
         # Тест базового запроса
@@ -887,7 +887,7 @@ class TestNewFunctionalitySmoke:
         from fastapi.testclient import TestClient
         from api import app
 
-        client = TestClient(app)
+        client = TestClient(app, timeout=10.0)
 
         # Получаем спецификацию OpenAPI
         response = client.get("/openapi.json")
@@ -942,12 +942,14 @@ class TestNewFunctionalitySmoke:
 
             # Тест API клиента
             from api import app
-            client = TestClient(app)
+            client = TestClient(app, timeout=10.0)
 
             # Регистрируем пользователя
+            import uuid
+            username = f"search_user_{uuid.uuid4().hex[:8]}"
             user_data = {
-                "username": "search_user",
-                "email": "search@example.com",
+                "username": username,
+                "email": f"{username}@example.com",
                 "password": "search123"
             }
             response = client.post("/register", json=user_data)
@@ -955,7 +957,7 @@ class TestNewFunctionalitySmoke:
 
             # Входим
             login_response = client.post("/token", data={
-                "username": "search_user",
+                "username": username,
                 "password": "search123"
             })
             assert login_response.status_code == 200

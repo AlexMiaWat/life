@@ -145,7 +145,7 @@ class TestAdaptationManager:
 
         # Попытка передать параметры с "decision" или "action" должна вызвать ошибку
         current_params = {
-            "decision_params": {"pattern": "dampen"},  # Запрещенный параметр
+            "decision": {"pattern": "dampen"},  # Запрещенный параметр
         }
 
         analysis = {"learning_params_snapshot": {}}

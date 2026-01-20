@@ -12,7 +12,7 @@ from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.security import HTTPBearer, OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr
 
 # Конфигурация
 SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-in-production")
@@ -137,9 +137,10 @@ class ExtendedStatusResponse(BaseModel):
     stability_history: Optional[list] = None
     adaptation_history: Optional[list] = None
     
-    class Config:
+    model_config = ConfigDict(
         # Позволяет использовать модель с дополнительными полями
-        extra = "allow"
+        extra="allow"
+    )
 
 
 # База данных пользователей (в продакшене использовать реальную БД)
@@ -177,7 +178,7 @@ def get_user(db: dict, username: str) -> Optional[UserInDB]:
     """Получение пользователя из базы данных."""
     if username in db:
         user_dict = db[username]
-        return UserInDB(**user_dict.dict())
+        return UserInDB(**user_dict.model_dump())
     return None
 
 
@@ -223,7 +224,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     user = get_user(fake_users_db, username=token_data.username)
     if user is None:
         raise credentials_exception
-    return User(**user.dict())
+    return User(**user.model_dump())
 
 
 async def get_current_active_user(
@@ -272,7 +273,7 @@ async def register(user_data: UserCreate):
     )
     fake_users_db[user_data.username] = user_in_db
 
-    return User(**user_in_db.dict())
+    return User(**user_in_db.model_dump())
 
 
 @app.post("/token", response_model=Token)
@@ -463,7 +464,7 @@ async def create_event(
 @app.get("/users", response_model=List[User])
 async def list_users(current_user: User = Depends(get_current_active_user)):
     """Список всех пользователей (только для аутентифицированных)."""
-    return [User(**user.dict()) for user in fake_users_db.values()]
+    return [User(**user.model_dump()) for user in fake_users_db.values()]
 
 
 if __name__ == "__main__":

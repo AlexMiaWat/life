@@ -49,6 +49,8 @@ API Server предоставляет HTTP интерфейс для управ�
   "subjective_time_rate_max": 3.0,
   "subjective_time_intensity_coeff": 1.0,
   "subjective_time_stability_coeff": 0.5,
+  "subjective_time_energy_coeff": 0.5,
+  "subjective_time_intensity_smoothing": 0.3,
   "memory": [...],
   "recent_events": [...],
   "energy_history": [...],
@@ -108,7 +110,8 @@ Endpoint `/status` должен возвращать только безопас
 
 **Параметры субъективного времени:**
 - `subjective_time_base_rate`, `subjective_time_rate_min`, `subjective_time_rate_max`
-- `subjective_time_intensity_coeff`, `subjective_time_stability_coeff`
+- `subjective_time_intensity_coeff`, `subjective_time_stability_coeff`, `subjective_time_energy_coeff`
+- `subjective_time_intensity_smoothing`
 
 **Опциональные поля** (можно добавить с ограничениями):
 - `memory` - ограничить последние N записей (например, 10)

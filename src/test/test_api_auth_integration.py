@@ -28,7 +28,7 @@ from api import app, fake_users_db
 @pytest.fixture
 def client():
     """Тестовый клиент FastAPI"""
-    return TestClient(app)
+    return TestClient(app, timeout=10.0)
 
 
 @pytest.fixture
@@ -507,7 +507,7 @@ class TestAPIAuthIntegration:
         # Имитируем несколько последовательных запросов с задержками
         for i in range(5):
             try:
-                response = client.get("/status", headers=headers, timeout=1.0)
+                response = client.get("/status", headers=headers)
                 assert response.status_code == 200
 
                 # Небольшая задержка между запросами

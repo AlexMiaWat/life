@@ -240,8 +240,10 @@ def run_loop(
                 base_rate=self_state.subjective_time_base_rate,
                 intensity=self_state.last_event_intensity,
                 stability=self_state.stability,
+                energy=self_state.energy,
                 intensity_coeff=self_state.subjective_time_intensity_coeff,
                 stability_coeff=self_state.subjective_time_stability_coeff,
+                energy_coeff=self_state.subjective_time_energy_coeff,
                 rate_min=self_state.subjective_time_rate_min,
                 rate_max=self_state.subjective_time_rate_max,
             )
@@ -274,10 +276,16 @@ def run_loop(
                 logger.debug(f"[LOOP] Queue not empty, size={event_queue.size()}")
                 events = event_queue.pop_all()
                 logger.debug(f"[LOOP] POPPED {len(events)} events")
-                # Update intensity signal for this tick (max intensity of batch).
+                # Update intensity signal for this tick using exponential smoothing
                 try:
-                    self_state.last_event_intensity = max(
+                    current_max_intensity = max(
                         [float(e.intensity) for e in events] + [0.0]
+                    )
+                    # Exponential smoothing: new_value = alpha * current + (1-alpha) * previous
+                    alpha = self_state.subjective_time_intensity_smoothing
+                    self_state.last_event_intensity = (
+                        alpha * current_max_intensity +
+                        (1 - alpha) * self_state.last_event_intensity
                     )
                 except Exception:
                     self_state.last_event_intensity = 0.0
@@ -345,8 +353,9 @@ def run_loop(
                 record_potential_sequences(self_state)
                 process_information(self_state)
             else:
-                # No events this tick -> decay intensity signal to 0 deterministically.
-                self_state.last_event_intensity = 0.0
+                # No events this tick -> gradually decay intensity signal using smoothing
+                alpha = self_state.subjective_time_intensity_smoothing
+                self_state.last_event_intensity = (1 - alpha) * self_state.last_event_intensity
 
             # Learning (Этап 14) - медленное изменение внутренних параметров
             # Вызывается раз в LEARNING_INTERVAL тиков, после Feedback, перед Planning/Intelligence

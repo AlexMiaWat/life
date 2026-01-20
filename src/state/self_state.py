@@ -64,6 +64,8 @@ class SelfState:
     subjective_time_rate_max: float = 3.0
     subjective_time_intensity_coeff: float = 1.0
     subjective_time_stability_coeff: float = 0.5
+    subjective_time_energy_coeff: float = 0.5
+    subjective_time_intensity_smoothing: float = 0.3  # Коэффициент экспоненциального сглаживания для интенсивности
 
     # Last perceived event intensity (signal for subjective time), in [0..1].
     last_event_intensity: float = 0.0
@@ -138,6 +140,12 @@ class SelfState:
                 return max(0.0, value)
             if value < 0.0:
                 raise ValueError(f"subjective_time_rate_max must be >= 0.0, got {value}")
+            return value
+        elif field_name == "subjective_time_intensity_smoothing":
+            if clamp:
+                return max(0.0, min(1.0, value))
+            if not (0.0 <= value <= 1.0):
+                raise ValueError(f"subjective_time_intensity_smoothing must be between 0.0 and 1.0, got {value}")
             return value
         return value
 
@@ -304,6 +312,8 @@ class SelfState:
             "subjective_time_rate_max",
             "subjective_time_intensity_coeff",
             "subjective_time_stability_coeff",
+            "subjective_time_energy_coeff",
+            "subjective_time_intensity_smoothing",
             "last_event_intensity",
             "ticks",
         ]:
@@ -671,6 +681,7 @@ class SelfState:
                 "subjective_time_rate_max",
                 "subjective_time_intensity_coeff",
                 "subjective_time_stability_coeff",
+                "subjective_time_energy_coeff",
             ]
             for field_name in optional_fields:
                 state_dict.pop(field_name, None)
