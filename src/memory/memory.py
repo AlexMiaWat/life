@@ -32,7 +32,7 @@ class ArchiveMemory:
 
         Args:
             archive_file: Путь к файлу архива. Если None, используется дефолтный.
-            load_existing: Загружать ли существующие данные из файла. По умолчанию True.
+            load_existing: Загружать ли существующие данные из файла. По умолчанию False.
         """
         if archive_file is None:
             archive_file = ARCHIVE_DIR / "memory_archive.json"
@@ -131,13 +131,13 @@ class Memory(list):
     Активная память с поддержкой архивации.
     """
 
-    def __init__(self, archive: Optional[ArchiveMemory] = None, load_existing_archive: bool = True):
+    def __init__(self, archive: Optional[ArchiveMemory] = None, load_existing_archive: bool = False):
         """
         Инициализация памяти.
 
         Args:
             archive: Экземпляр ArchiveMemory для архивации. Если None, создается новый.
-            load_existing_archive: Загружать ли существующие данные архива. По умолчанию True.
+            load_existing_archive: Загружать ли существующие данные архива. По умолчанию False.
         """
         super().__init__()
         if archive is None:

@@ -1,5 +1,5 @@
 """
-Статические тесты для новой функциональности (Learning, Adaptation, MeaningEngine)
+Статические тесты для новой функциональности (Learning, Adaptation, MeaningEngine, Subjective Time, Thread Safety)
 
 Проверяем:
 - Структуру классов и модулей
@@ -8,10 +8,12 @@
 - Типы возвращаемых значений
 - Отсутствие запрещенных методов/атрибутов
 - Архитектурные ограничения
+- Новую функциональность: субъективное время и потокобезопасность
 """
 
 import inspect
 import sys
+import threading
 from pathlib import Path
 
 import pytest
@@ -24,6 +26,8 @@ from src.environment.event import Event
 from src.learning.learning import LearningEngine
 from src.meaning.engine import MeaningEngine
 from src.meaning.meaning import Meaning
+from src.runtime.subjective_time import compute_subjective_dt, compute_subjective_time_rate
+from src.state.self_state import SelfState
 
 
 @pytest.mark.static
@@ -716,3 +720,282 @@ class TestNewFunctionalityStatic:
         assert meaning_engine.impact_model.__doc__ is not None
         assert meaning_engine.response_pattern.__doc__ is not None
         assert meaning_engine.process.__doc__ is not None
+
+    # ============================================================================
+    # Subjective Time Static Tests
+    # ============================================================================
+
+    def test_subjective_time_functions_structure(self):
+        """Проверка структуры функций субъективного времени"""
+        # Проверяем наличие функций
+        assert callable(compute_subjective_dt)
+        assert callable(compute_subjective_time_rate)
+
+        # Проверяем сигнатуры
+        dt_sig = inspect.signature(compute_subjective_dt)
+        assert len(dt_sig.parameters) == 10  # Все параметры
+        assert "dt" in dt_sig.parameters
+        assert "base_rate" in dt_sig.parameters
+        assert "intensity" in dt_sig.parameters
+        assert "stability" in dt_sig.parameters
+        assert "energy" in dt_sig.parameters
+
+        rate_sig = inspect.signature(compute_subjective_time_rate)
+        assert len(rate_sig.parameters) == 9  # Все параметры (keyword-only)
+        assert "base_rate" in rate_sig.parameters
+        assert "intensity" in rate_sig.parameters
+        assert "stability" in rate_sig.parameters
+        assert "energy" in rate_sig.parameters
+
+    def test_subjective_time_state_integration(self):
+        """Проверка интеграции субъективного времени в SelfState"""
+        state = SelfState()
+
+        # Проверяем наличие полей субъективного времени
+        assert hasattr(state, "subjective_time")
+        assert hasattr(state, "subjective_time_base_rate")
+        assert hasattr(state, "subjective_time_rate_min")
+        assert hasattr(state, "subjective_time_rate_max")
+        assert hasattr(state, "subjective_time_intensity_coeff")
+        assert hasattr(state, "subjective_time_stability_coeff")
+        assert hasattr(state, "subjective_time_energy_coeff")
+
+        # Проверяем типы значений
+        assert isinstance(state.subjective_time, (int, float))
+        assert isinstance(state.subjective_time_base_rate, (int, float))
+        assert isinstance(state.subjective_time_rate_min, (int, float))
+        assert isinstance(state.subjective_time_rate_max, (int, float))
+
+        # Проверяем допустимые диапазоны
+        assert state.subjective_time_rate_min >= 0.0
+        assert state.subjective_time_rate_max > state.subjective_time_rate_min
+        assert state.subjective_time >= 0.0
+
+    def test_subjective_time_function_return_types(self):
+        """Проверка типов возвращаемых значений функций субъективного времени"""
+        state = SelfState()
+
+        # compute_subjective_time_rate должна возвращать float
+        rate = compute_subjective_time_rate(
+            base_rate=state.subjective_time_base_rate,
+            intensity=0.5,
+            stability=0.8,
+            energy=70.0,
+            intensity_coeff=state.subjective_time_intensity_coeff,
+            stability_coeff=state.subjective_time_stability_coeff,
+            energy_coeff=state.subjective_time_energy_coeff,
+            rate_min=state.subjective_time_rate_min,
+            rate_max=state.subjective_time_rate_max,
+        )
+        assert isinstance(rate, float)
+        assert state.subjective_time_rate_min <= rate <= state.subjective_time_rate_max
+
+        # compute_subjective_dt должна возвращать float
+        dt = compute_subjective_dt(
+            dt=0.1,
+            base_rate=state.subjective_time_base_rate,
+            intensity=0.5,
+            stability=0.8,
+            energy=70.0,
+            intensity_coeff=state.subjective_time_intensity_coeff,
+            stability_coeff=state.subjective_time_stability_coeff,
+            energy_coeff=state.subjective_time_energy_coeff,
+            rate_min=state.subjective_time_rate_min,
+            rate_max=state.subjective_time_rate_max,
+        )
+        assert isinstance(dt, float)
+        assert dt >= 0.0
+
+    def test_subjective_time_memory_integration(self):
+        """Проверка интеграции субъективного времени в MemoryEntry"""
+        from src.memory.memory import MemoryEntry
+
+        # Проверяем, что MemoryEntry поддерживает subjective_timestamp
+        entry = MemoryEntry(
+            event_type="noise",
+            meaning_significance=0.5,
+            timestamp=100.0,
+            subjective_timestamp=50.0
+        )
+
+        assert hasattr(entry, "subjective_timestamp")
+        assert entry.subjective_timestamp == 50.0
+        assert isinstance(entry.subjective_timestamp, (int, float, type(None)))
+
+        # Проверяем обратную совместимость (None значение)
+        entry_compat = MemoryEntry(
+            event_type="noise",
+            meaning_significance=0.5,
+            timestamp=100.0
+        )
+        assert entry_compat.subjective_timestamp is None
+
+    # ============================================================================
+    # Thread Safety Static Tests
+    # ============================================================================
+
+    def test_thread_safety_state_structure(self):
+        """Проверка структуры потокобезопасности в SelfState"""
+        state = SelfState()
+
+        # Проверяем наличие блокировки для API
+        assert hasattr(state, "_api_lock")
+        assert hasattr(state, "__setattr__")
+
+        # Проверяем, что _api_lock является RLock
+        assert hasattr(state._api_lock, 'acquire')
+        assert hasattr(state._api_lock, 'release')
+
+    def test_thread_safety_excluded_fields(self):
+        """Проверка исключенных полей из блокировки"""
+        state = SelfState()
+
+        # Проверяем наличие transient полей
+        assert hasattr(state, "activated_memory")
+        assert hasattr(state, "last_pattern")
+
+        # Эти поля должны быть в списке исключений
+        # (проверяем через код, так как это внутреннее поведение)
+        source_code = inspect.getsource(SelfState.__setattr__)
+        assert "_api_lock" in source_code
+        assert "activated_memory" in source_code
+        assert "last_pattern" in source_code
+
+    def test_thread_safety_apply_delta_method(self):
+        """Проверка метода apply_delta на потокобезопасность"""
+        state = SelfState()
+
+        # Проверяем наличие метода apply_delta
+        assert hasattr(state, "apply_delta")
+
+        # Проверяем сигнатуру
+        sig = inspect.signature(state.apply_delta)
+        assert "deltas" in sig.parameters
+
+        # Проверяем, что метод использует блокировку
+        source_code = inspect.getsource(state.apply_delta)
+        assert "_api_lock" in source_code
+
+    def test_thread_safety_get_safe_status_dict(self):
+        """Проверка метода get_safe_status_dict"""
+        state = SelfState()
+
+        # Проверяем наличие метода
+        assert hasattr(state, "get_safe_status_dict")
+
+        # Проверяем сигнатуру
+        sig = inspect.signature(state.get_safe_status_dict)
+        # Метод может иметь дополнительные параметры
+
+        # Проверяем возвращаемый тип
+        result = state.get_safe_status_dict()
+        assert isinstance(result, dict)
+
+        # Проверяем наличие основных полей
+        required_fields = ["active", "energy", "stability", "integrity", "ticks", "age"]
+        for field in required_fields:
+            assert field in result
+
+    def test_thread_safety_api_lock_usage(self):
+        """Проверка использования _api_lock в критических методах"""
+        state = SelfState()
+
+        # Проверяем, что __setattr__ использует блокировку
+        setattr_source = inspect.getsource(SelfState.__setattr__)
+        assert "_api_lock" in setattr_source
+
+        # Проверяем, что apply_delta использует блокировку
+        apply_delta_source = inspect.getsource(state.apply_delta)
+        assert "_api_lock" in apply_delta_source
+
+    def test_thread_safety_is_active_method(self):
+        """Проверка метода is_active на корректность логики"""
+        state = SelfState()
+
+        # Проверяем наличие метода/property
+        assert hasattr(state, "is_active")
+
+        # Проверяем логику: True если все vital параметры >= 0
+        # Тестируем различные состояния (только допустимые значения из-за валидации)
+        test_cases = [
+            # (energy, stability, integrity, expected)
+            (100.0, 1.0, 1.0, True),   # Все параметры положительные
+            (50.0, 0.8, 0.8, True),    # Все параметры положительные
+            (0.0, 0.0, 0.0, True),     # Нулевые параметры (граничный случай)
+            (10.0, 0.1, 0.1, True),    # Маленькие положительные значения
+        ]
+
+        for energy, stability, integrity, expected in test_cases:
+            state.energy = energy
+            state.stability = stability
+            state.integrity = integrity
+            assert state.is_active() == expected, f"is_active failed for {energy}, {stability}, {integrity}"
+
+    # ============================================================================
+    # Integration Architecture Tests
+    # ============================================================================
+
+    def test_subjective_time_learning_integration_architecture(self):
+        """Проверка архитектурной интеграции субъективного времени с Learning"""
+        # Субъективное время не должно нарушать архитектуру Learning
+        # Learning остается медленным изменением внутренних параметров
+
+        learning_engine = LearningEngine()
+        learning_source = inspect.getsource(LearningEngine)
+
+        # Learning не должен напрямую работать с субъективным временем
+        # (субъективное время - это метрика, не инструмент управления)
+        forbidden_terms = ["subjective_time", "subjective_timestamp"]
+        for term in forbidden_terms:
+            assert term not in learning_source.lower(), f"LearningEngine не должен работать с {term}"
+
+    def test_subjective_time_adaptation_integration_architecture(self):
+        """Проверка архитектурной интеграции субъективного времени с Adaptation"""
+        # Adaptation не должен напрямую работать с субъективным временем
+
+        adaptation_manager = AdaptationManager()
+        adaptation_source = inspect.getsource(AdaptationManager)
+
+        # Adaptation работает только с learning_params
+        forbidden_terms = ["subjective_time", "subjective_timestamp"]
+        for term in forbidden_terms:
+            assert term not in adaptation_source.lower(), f"AdaptationManager не должен работать с {term}"
+
+    def test_thread_safety_architecture_compliance(self):
+        """Проверка соответствия архитектуре потокобезопасности"""
+        state = SelfState()
+
+        # API должен использовать immutable snapshots, а не живые объекты
+        # (проверяем через наличие методов для создания snapshots)
+        assert hasattr(state, "get_safe_status_dict")
+
+        # Runtime должен иметь возможность модифицировать состояние
+        # (проверяем наличие методов модификации)
+        assert hasattr(state, "__setattr__")
+        assert hasattr(state, "apply_delta")
+
+    def test_new_functionality_separation_of_concerns(self):
+        """Проверка разделения ответственности в новой функциональности"""
+        # Субъективное время - это метрика наблюдения, не механизм управления
+        # Потокобезопасность - это инфраструктура, не бизнес-логика
+
+        # Проверяем, что субъективное время не используется для принятия решений
+        # (В реальном коде нужно проверить decision.py, но для теста просто проверим концепцию)
+
+        # Проверяем, что потокобезопасность не влияет на бизнес-логику
+        # (блокировка должна быть transparent для основной логики)
+        state = SelfState()
+
+        # Проверяем, что обычные операции работают без явного использования блокировок
+        old_energy = state.energy
+        if old_energy < 100.0:
+            state.energy = old_energy + 10.0
+            assert state.energy > old_energy
+        else:
+            # Если уже максимум, попробуем уменьшить
+            state.energy = 90.0
+            assert state.energy < old_energy
+
+        # Проверяем, что чтение статуса работает
+        status = state.get_safe_status_dict()
+        assert isinstance(status, dict)

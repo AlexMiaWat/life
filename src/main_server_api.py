@@ -102,6 +102,20 @@ class LifeHandler(BaseHTTPRequestHandler):
                 self.wfile.write(b'{"error": "Life system snapshot not available"}')
                 return
             self.wfile.write(json.dumps(safe_status).encode())
+        elif self.path == "/refresh-cache":
+            # Принудительное обновление кэша снапшотов (для тестирования)
+            from src.runtime.snapshot_reader import get_snapshot_reader
+            reader = get_snapshot_reader()
+            refreshed_data = reader.force_refresh()
+            if refreshed_data is None:
+                self.send_response(503)
+                self.end_headers()
+                self.wfile.write(b'{"error": "Could not refresh snapshot cache"}')
+                return
+            self.send_response(200)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"status": "cache_refreshed", "snapshot_ticks": refreshed_data.get("ticks")}).encode())
         elif self.path == "/clear-data":
             os.makedirs("data/snapshots", exist_ok=True)
             log_file = "data/tick_log.jsonl"

@@ -470,9 +470,8 @@ class SelfState:
         """
         Проверка жизнеспособности с более строгими критериями.
         Возвращает True если все vital параметры выше пороговых значений.
-        В философии Life система может продолжать работать даже с нулевыми параметрами.
         """
-        return self.energy >= 0.0 and self.integrity >= 0.0 and self.stability >= 0.0
+        return self.energy > 10.0 and self.integrity > 0.1 and self.stability > 0.1
 
     def update_energy(self, value: float) -> None:
         """Безопасное обновление energy с валидацией"""
@@ -1187,9 +1186,16 @@ def save_snapshot(state: SelfState):
         tick = snapshot["ticks"]
         filename = SNAPSHOT_DIR / f"snapshot_{tick:06d}.json"
 
+        # Атомарная замена: сначала пишем во временный файл, затем переименовываем
+        # Это гарантирует, что читатели никогда не увидят частично записанный файл
+        temp_filename = SNAPSHOT_DIR / f"snapshot_{tick:06d}.tmp"
+
         # Оптимизированная запись без лишних отступов (меньше размер файла)
-        with filename.open("w") as f:
+        with temp_filename.open("w") as f:
             json.dump(snapshot, f, separators=(",", ":"), default=str)
+
+        # Атомарное переименование - это гарантирует консистентность для читателей
+        temp_filename.replace(filename)
     finally:
         # Восстанавливаем логирование
         if logging_was_enabled:

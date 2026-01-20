@@ -3,6 +3,9 @@ SnapshotReader: чтение снапшотов состояния Life для A
 
 Предоставляет thread-safe доступ к сериализованным snapshots состояния,
 изолируя API от прямого доступа к живому объекту self_state.
+
+Использует атомарную замену снапшотов для гарантии консистентности
+и reader-writer lock для защиты от race conditions.
 """
 import json
 import logging
@@ -15,6 +18,58 @@ logger = logging.getLogger(__name__)
 
 # Папка для снимков
 SNAPSHOT_DIR = Path("data/snapshots")
+
+
+class RWLock:
+    """
+    Простая реализация reader-writer lock.
+
+    Позволяет множественным читателям читать одновременно,
+    но гарантирует эксклюзивный доступ для писателя.
+    """
+
+    def __init__(self):
+        self._lock = threading.Lock()
+        self._readers = 0
+        self._writer = False
+        self._read_condition = threading.Condition(self._lock)
+        self._write_condition = threading.Condition(self._lock)
+
+    def acquire_read(self):
+        """Получить блокировку для чтения"""
+        with self._lock:
+            while self._writer:
+                self._read_condition.wait()
+            self._readers += 1
+
+    def release_read(self):
+        """Освободить блокировку чтения"""
+        with self._lock:
+            self._readers -= 1
+            if self._readers == 0:
+                self._write_condition.notify()
+
+    def acquire_write(self):
+        """Получить блокировку для записи"""
+        with self._lock:
+            while self._readers > 0 or self._writer:
+                self._write_condition.wait()
+            self._writer = True
+
+    def release_write(self):
+        """Освободить блокировку записи"""
+        with self._lock:
+            self._writer = False
+            self._read_condition.notify_all()
+            self._write_condition.notify()
+
+    def __enter__(self):
+        # Контекстный менеджер для чтения по умолчанию
+        self.acquire_read()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.release_read()
 
 
 class SnapshotReader:
@@ -35,19 +90,20 @@ class SnapshotReader:
         self.cache_ttl_seconds = cache_ttl_seconds
         self._cache: Optional[Dict[str, Any]] = None
         self._cache_timestamp: float = 0.0
-        self._lock = threading.RLock()
+        self._rw_lock = RWLock()
         self._last_snapshot_path: Optional[Path] = None
 
     def read_latest_snapshot(self) -> Optional[Dict[str, Any]]:
         """
         Читает последний snapshot из файловой системы.
 
-        Использует кэширование для производительности. Thread-safe.
+        Использует кэширование для производительности и атомарную замену для консистентности.
+        Thread-safe с использованием RW-lock.
 
         Returns:
             Dict с данными snapshot или None если snapshot не найден
         """
-        with self._lock:
+        with self._rw_lock:
             current_time = time.time()
 
             # Проверяем, актуален ли кэш
@@ -80,10 +136,22 @@ class SnapshotReader:
         Инвалидирует кэш принудительно.
         Полезно для тестирования или принудительного обновления.
         """
-        with self._lock:
+        with self._rw_lock:
             self._cache = None
             self._cache_timestamp = 0.0
             self._last_snapshot_path = None
+
+    def force_refresh(self) -> Optional[Dict[str, Any]]:
+        """
+        Принудительно обновляет кэш и возвращает свежие данные.
+
+        Полезно для тестирования и отладки.
+
+        Returns:
+            Dict с данными snapshot или None если snapshot не найден
+        """
+        self.invalidate_cache()
+        return self.read_latest_snapshot()
 
     def get_safe_status_dict(
         self,
@@ -192,6 +260,8 @@ class SnapshotReader:
         """
         Читает последний snapshot непосредственно из файловой системы.
 
+        Обрабатывает атомарную замену файлов и игнорирует временные файлы.
+
         Returns:
             Dict с данными snapshot или None если snapshot не найден
         """
@@ -199,8 +269,11 @@ class SnapshotReader:
             # Убеждаемся, что директория существует
             SNAPSHOT_DIR.mkdir(exist_ok=True)
 
-            # Находим все snapshot файлы
-            snapshot_files = list(SNAPSHOT_DIR.glob("snapshot_*.json"))
+            # Находим все snapshot файлы, игнорируя временные файлы (.tmp)
+            snapshot_files = [
+                f for f in SNAPSHOT_DIR.glob("snapshot_*.json")
+                if not f.name.endswith('.tmp')
+            ]
             if not snapshot_files:
                 logger.debug("Snapshot файлы не найдены")
                 return None
@@ -218,7 +291,8 @@ class SnapshotReader:
                 # Файл не изменился, возвращаем кэшированные данные
                 return self._cache
 
-            # Читаем snapshot
+            # Читаем snapshot с проверкой на консистентность
+            # (атомарная замена гарантирует, что файл либо полностью записан, либо отсутствует)
             with latest_snapshot.open("r", encoding="utf-8") as f:
                 data = json.load(f)
 

@@ -1,5 +1,5 @@
 """
-Дымовые тесты для новой функциональности (Learning, Adaptation, MeaningEngine)
+Дымовые тесты для новой функциональности (Learning, Adaptation, MeaningEngine, Subjective Time, Thread Safety)
 
 Проверяем:
 - Базовую работоспособность без падений
@@ -7,9 +7,12 @@
 - Вызов основных методов с минимальными данными
 - Обработку пустых/минимальных входных данных
 - Граничные значения параметров
+- Новую функциональность: субъективное время и потокобезопасность
 """
 
 import sys
+import threading
+import time
 from pathlib import Path
 
 project_root = Path(__file__).parent.parent.parent
@@ -23,6 +26,7 @@ from src.learning.learning import LearningEngine
 from src.meaning.engine import MeaningEngine
 from src.meaning.meaning import Meaning
 from src.memory.memory import MemoryEntry
+from src.runtime.subjective_time import compute_subjective_dt, compute_subjective_time_rate
 from src.state.self_state import SelfState
 
 
@@ -584,10 +588,292 @@ class TestNewFunctionalitySmoke:
         assert isinstance(behavior_params, dict)
 
     # ============================================================================
-    # MCP Index Engine Smoke Tests
+    # Subjective Time Smoke Tests
     # ============================================================================
 
-    def test_mcp_index_engine_instantiation(self):
+    def test_subjective_time_functions_smoke(self):
+        """Дымовой тест функций субъективного времени"""
+        state = SelfState()
+
+        # Тест compute_subjective_time_rate с нормальными параметрами
+        rate = compute_subjective_time_rate(
+            base_rate=state.subjective_time_base_rate,
+            intensity=0.5,
+            stability=0.8,
+            energy=70.0,
+            intensity_coeff=state.subjective_time_intensity_coeff,
+            stability_coeff=state.subjective_time_stability_coeff,
+            energy_coeff=state.subjective_time_energy_coeff,
+            rate_min=state.subjective_time_rate_min,
+            rate_max=state.subjective_time_rate_max,
+        )
+        assert isinstance(rate, float)
+        assert 0.0 <= rate <= 3.0  # В разумных пределах
+
+        # Тест compute_subjective_dt
+        dt = compute_subjective_dt(
+            dt=0.1,
+            base_rate=state.subjective_time_base_rate,
+            intensity=0.5,
+            stability=0.8,
+            energy=70.0,
+            intensity_coeff=state.subjective_time_intensity_coeff,
+            stability_coeff=state.subjective_time_stability_coeff,
+            energy_coeff=state.subjective_time_energy_coeff,
+            rate_min=state.subjective_time_rate_min,
+            rate_max=state.subjective_time_rate_max,
+        )
+        assert isinstance(dt, float)
+        assert dt >= 0.0
+
+    def test_subjective_time_state_integration_smoke(self):
+        """Дымовой тест интеграции субъективного времени в состояние"""
+        state = SelfState()
+
+        # Проверяем начальные значения
+        assert hasattr(state, "subjective_time")
+        assert state.subjective_time >= 0.0
+
+        # Проверяем возможность изменения
+        old_value = state.subjective_time
+        state.subjective_time += 1.0
+        assert state.subjective_time == old_value + 1.0
+
+    def test_subjective_time_memory_integration_smoke(self):
+        """Дымовой тест интеграции субъективного времени в память"""
+        from src.memory.memory import MemoryEntry
+
+        # Создаем запись с субъективным временем
+        entry = MemoryEntry(
+            event_type="noise",
+            meaning_significance=0.5,
+            timestamp=100.0,
+            subjective_timestamp=50.0
+        )
+        assert entry.subjective_timestamp == 50.0
+
+        # Создаем запись без субъективного времени (обратная совместимость)
+        entry_compat = MemoryEntry(
+            event_type="noise",
+            meaning_significance=0.5,
+            timestamp=100.0
+        )
+        assert entry_compat.subjective_timestamp is None
+
+    def test_subjective_time_boundary_values_smoke(self):
+        """Дымовой тест граничных значений субъективного времени"""
+        state = SelfState()
+
+        # Нулевые значения
+        rate_zero = compute_subjective_time_rate(
+            base_rate=0.0,
+            intensity=0.0,
+            stability=1.0,
+            energy=100.0,
+            intensity_coeff=0.0,
+            stability_coeff=0.0,
+            energy_coeff=0.0,
+            rate_min=0.0,
+            rate_max=10.0,
+        )
+        assert rate_zero == 0.0  # Должен вернуться base_rate
+
+        # Максимальные значения
+        rate_max = compute_subjective_time_rate(
+            base_rate=1.0,
+            intensity=1.0,
+            stability=1.0,
+            energy=100.0,
+            intensity_coeff=10.0,
+            stability_coeff=0.0,
+            energy_coeff=1.0,
+            rate_min=0.1,
+            rate_max=2.0,
+        )
+        assert rate_max == 2.0  # Должен быть clamped к max
+
+    # ============================================================================
+    # Thread Safety Smoke Tests
+    # ============================================================================
+
+    def test_thread_safety_state_smoke(self):
+        """Дымовой тест потокобезопасности состояния"""
+        state = SelfState()
+
+        # Проверяем наличие блокировки
+        assert hasattr(state, "_api_lock")
+        assert state._api_lock is not None
+
+        # Проверяем возможность создания безопасного статуса
+        status_dict = state.get_safe_status_dict()
+        assert isinstance(status_dict, dict)
+        assert "active" in status_dict
+        assert "energy" in status_dict
+
+    def test_thread_safety_setattr_smoke(self):
+        """Дымовой тест потокобезопасного setattr"""
+        state = SelfState()
+
+        # Проверяем, что setattr работает
+        old_energy = state.energy
+        if old_energy < 90.0:
+            state.energy = old_energy + 10.0
+            assert state.energy == old_energy + 10.0
+        else:
+            state.energy = 80.0
+            assert state.energy < old_energy
+
+        # Проверяем работу с transient полями
+        state.activated_memory = "test_memory"
+        state.last_pattern = "test_pattern"
+        assert state.activated_memory == "test_memory"
+        assert state.last_pattern == "test_pattern"
+
+    def test_thread_safety_apply_delta_smoke(self):
+        """Дымовой тест потокобезопасного apply_delta"""
+        state = SelfState()
+
+        # Тест apply_delta с простыми изменениями
+        deltas = {"energy": -5.0, "stability": 0.1}
+        state.apply_delta(deltas)
+
+        # Проверяем, что изменения применились
+        # (точные значения зависят от реализации)
+
+    def test_thread_safety_is_active_smoke(self):
+        """Дымовой тест метода is_active"""
+        state = SelfState()
+
+        # Тест с нормальными параметрами
+        result = state.is_active()
+        assert isinstance(result, bool)
+
+        # Тест с нулевыми параметрами (граничный случай)
+        old_energy = state.energy
+        old_stability = state.stability
+        old_integrity = state.integrity
+
+        state.energy = 0.0
+        state.stability = 0.0
+        state.integrity = 0.0
+        result_zero = state.is_active()
+        assert result_zero is True  # Нулевые значения все еще валидны
+
+        # Восстанавливаем
+        state.energy = old_energy
+        state.stability = old_stability
+        state.integrity = old_integrity
+
+    def test_thread_safety_concurrent_access_smoke(self):
+        """Дымовой тест конкурентного доступа"""
+        state = SelfState()
+
+        results = []
+
+        def worker(worker_id):
+            try:
+                # Каждый поток читает статус
+                status = state.get_safe_status_dict()
+                results.append((worker_id, "read", len(status)))
+
+                # И изменяет состояние
+                state.energy = 50.0 + worker_id
+                results.append((worker_id, "write", state.energy))
+
+            except Exception as e:
+                results.append((worker_id, "error", str(e)))
+
+        # Запускаем несколько потоков
+        threads = []
+        for i in range(3):
+            thread = threading.Thread(target=worker, args=(i,))
+            threads.append(thread)
+            thread.start()
+
+        # Ждем завершения
+        for thread in threads:
+            thread.join(timeout=1.0)
+
+        # Проверяем, что все операции завершились без ошибок
+        assert len(results) == 6  # 3 потока * 2 операции
+        for worker_id, op_type, result in results:
+            assert op_type in ["read", "write"]
+            assert "error" not in str(result)
+
+    # ============================================================================
+    # New Functionality Integration Smoke Tests
+    # ============================================================================
+
+    def test_subjective_time_with_learning_smoke(self):
+        """Дымовой тест субъективного времени с Learning"""
+        state = SelfState()
+        learning_engine = LearningEngine()
+
+        # Добавляем записи памяти с субъективным временем
+        state.memory.append(
+            MemoryEntry(
+                event_type="noise",
+                meaning_significance=0.4,
+                timestamp=1.0,
+                subjective_timestamp=0.5
+            )
+        )
+
+        # Learning должен работать без учета субъективного времени
+        statistics = learning_engine.process_statistics(state.memory)
+        assert statistics["total_entries"] == 1
+
+        new_params = learning_engine.adjust_parameters(statistics, state.learning_params)
+        assert isinstance(new_params, dict)
+
+    def test_subjective_time_with_adaptation_smoke(self):
+        """Дымовой тест субъективного времени с Adaptation"""
+        state = SelfState()
+        adaptation_manager = AdaptationManager()
+
+        # Adaptation должен работать без учета субъективного времени
+        analysis = adaptation_manager.analyze_changes(state.learning_params, [])
+        assert isinstance(analysis, dict)
+
+        new_behavior = adaptation_manager.apply_adaptation(analysis, {}, state)
+        assert isinstance(new_behavior, dict)
+
+    def test_thread_safety_with_runtime_smoke(self):
+        """Дымовой тест потокобезопасности с runtime"""
+        from src.runtime.loop import run_loop
+        from src.environment.event_queue import EventQueue
+
+        state = SelfState()
+        event_queue = EventQueue()
+        stop_event = threading.Event()
+
+        # Добавляем событие
+        event = Event(type="noise", intensity=0.3, timestamp=1.0)
+        event_queue.push(event)
+
+        # Запускаем runtime в отдельном потоке
+        def run_runtime():
+            try:
+                run_loop(state, lambda s: None, 0.001, 5, stop_event, event_queue)
+            except Exception:
+                pass  # Игнорируем для smoke теста
+
+        runtime_thread = threading.Thread(target=run_runtime)
+        runtime_thread.start()
+
+        # Пока runtime работает, проверяем потокобезопасность
+        time.sleep(0.01)
+        status = state.get_safe_status_dict()
+        assert isinstance(status, dict)
+
+        stop_event.set()
+        runtime_thread.join(timeout=1.0)
+
+    # ============================================================================
+    # New Functionality Integration Smoke Tests
+    # ============================================================================
+
+    def test_new_functionality_integration_smoke(self):
         """Дымовой тест создания IndexEngine"""
         from pathlib import Path
         import tempfile

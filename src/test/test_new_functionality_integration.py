@@ -7,6 +7,7 @@
 - Интеграцию с Memory и Feedback
 - Работа в многопоточной среде runtime loop
 - Сохранение и загрузку состояния
+- Новую функциональность: субъективное время и потокобезопасность
 """
 
 import sys
@@ -25,6 +26,7 @@ from src.environment.event_queue import EventQueue
 from src.learning.learning import LearningEngine
 from src.memory.memory import MemoryEntry
 from src.runtime.loop import run_loop
+from src.runtime.subjective_time import compute_subjective_dt
 from src.state.self_state import SelfState
 
 
@@ -648,6 +650,563 @@ class TestNewFunctionalityIntegration:
         assert hasattr(self_state, "memory")
         assert hasattr(self_state, "learning_params")
         # Learning мог адаптироваться или нет - зависит от конкретных данных
+
+    # ============================================================================
+    # Subjective Time Integration Tests
+    # ============================================================================
+
+    def test_subjective_time_runtime_loop_integration(self):
+        """Интеграционный тест субъективного времени в runtime loop"""
+        self_state = SelfState()
+        event_queue = EventQueue()
+        stop_event = threading.Event()
+
+        # Устанавливаем начальное субъективное время
+        initial_subjective = 10.0
+        self_state.subjective_time = initial_subjective
+
+        # Добавляем события
+        events = [
+            Event(type="noise", intensity=0.3, timestamp=1.0),
+            Event(type="shock", intensity=-0.5, timestamp=2.0),
+            Event(type="recovery", intensity=0.4, timestamp=3.0),
+        ]
+        for event in events:
+            event_queue.push(event)
+
+        subjective_times = []
+
+        def monitor_subjective_time(state):
+            # Отслеживаем субъективное время на каждом тике
+            if hasattr(state, "subjective_time"):
+                subjective_times.append(state.subjective_time)
+
+        # Запускаем loop
+        thread = threading.Thread(
+            target=run_loop,
+            args=(self_state, monitor_subjective_time, 0.01, 1000, stop_event, event_queue),
+        )
+        thread.start()
+
+        time.sleep(0.2)
+        stop_event.set()
+        thread.join(timeout=1.0)
+
+        # Проверяем, что субъективное время изменялось
+        assert len(subjective_times) > 1, "Субъективное время должно было изменяться"
+        assert all(t >= initial_subjective for t in subjective_times), "Субъективное время должно быть монотонным"
+
+    def test_subjective_time_memory_persistence_integration(self):
+        """Интеграционный тест сохранения субъективного времени в памяти"""
+        self_state = SelfState()
+        event_queue = EventQueue()
+        stop_event = threading.Event()
+
+        # Запускаем систему
+        thread = threading.Thread(
+            target=run_loop,
+            args=(self_state, lambda s: None, 0.01, 1000, stop_event, event_queue),
+        )
+        thread.start()
+
+        # Добавляем события во время работы
+        events = [
+            Event(type="noise", intensity=0.4, timestamp=time.time()),
+            Event(type="shock", intensity=-0.6, timestamp=time.time() + 0.1),
+        ]
+        time.sleep(0.05)  # Даем системе запуститься
+        for event in events:
+            event_queue.push(event)
+
+        time.sleep(0.1)
+        stop_event.set()
+        thread.join(timeout=1.0)
+
+        # Проверяем, что в памяти есть записи с subjective_timestamp
+        memory_entries = [entry for entry in self_state.memory if hasattr(entry, 'subjective_timestamp')]
+        assert len(memory_entries) > 0, "Должны быть записи памяти с subjective_timestamp"
+
+        for entry in memory_entries:
+            assert entry.subjective_timestamp is not None, "subjective_timestamp должен быть установлен"
+            assert isinstance(entry.subjective_timestamp, float), "subjective_timestamp должен быть float"
+            assert entry.subjective_timestamp >= 0.0, "subjective_timestamp должен быть положительным"
+
+    def test_subjective_time_feedback_integration(self):
+        """Интеграционный тест субъективного времени с Feedback"""
+        from src.feedback import register_action
+
+        self_state = SelfState()
+        event_queue = EventQueue()
+        stop_event = threading.Event()
+
+        # Устанавливаем начальное субъективное время
+        self_state.subjective_time = 5.0
+
+        # Регистрируем действие для создания Feedback
+        action_id = "integration_test_action"
+        register_action(
+            action_id=action_id,
+            action_pattern="dampen",
+            state_before={"energy": 100.0, "stability": 1.0},
+            timestamp=time.time(),
+            pending_actions=[],
+        )
+
+        # Запускаем runtime loop
+        thread = threading.Thread(
+            target=run_loop,
+            args=(self_state, lambda s: None, 0.01, 1000, stop_event, event_queue),
+        )
+        thread.start()
+
+        time.sleep(0.1)
+        stop_event.set()
+        thread.join(timeout=1.0)
+
+        # Проверяем Feedback записи
+        feedback_entries = [entry for entry in self_state.memory if entry.event_type == "feedback"]
+        if feedback_entries:
+            for entry in feedback_entries:
+                assert hasattr(entry, "subjective_timestamp"), "Feedback должен иметь subjective_timestamp"
+                assert entry.subjective_timestamp is not None, "subjective_timestamp должен быть установлен"
+                assert entry.subjective_timestamp >= 0.0, "subjective_timestamp должен быть положительным"
+
+    def test_subjective_time_state_persistence_integration(self):
+        """Интеграционный тест сохранения субъективного времени в состоянии"""
+        from src.state.self_state import save_snapshot, load_snapshot
+
+        self_state = SelfState()
+        event_queue = EventQueue()
+        stop_event = threading.Event()
+
+        # Устанавливаем субъективное время
+        self_state.subjective_time = 25.5
+        self_state.ticks = 50
+
+        # Запускаем систему ненадолго
+        thread = threading.Thread(
+            target=run_loop,
+            args=(self_state, lambda s: None, 0.001, 10, stop_event, event_queue),
+        )
+        thread.start()
+
+        time.sleep(0.05)
+        stop_event.set()
+        thread.join(timeout=1.0)
+
+        # Сохраняем состояние
+        save_snapshot(self_state)
+
+        # Загружаем состояние
+        loaded_state = load_snapshot(50)
+
+        # Проверяем, что субъективное время сохранилось
+        assert hasattr(loaded_state, "subjective_time"), "Загруженное состояние должно иметь subjective_time"
+        assert loaded_state.subjective_time == 25.5, "Субъективное время должно сохраниться"
+
+    def test_subjective_time_runtime_dynamics_integration(self):
+        """Интеграционный тест динамики субъективного времени в runtime"""
+        self_state = SelfState()
+        event_queue = EventQueue()
+        stop_event = threading.Event()
+
+        # Добавляем события с разной интенсивностью
+        events = [
+            Event(type="idle", intensity=0.0, timestamp=1.0),    # Низкая интенсивность
+            Event(type="noise", intensity=0.5, timestamp=2.0),   # Средняя интенсивность
+            Event(type="shock", intensity=0.9, timestamp=3.0),   # Высокая интенсивность
+        ]
+        for event in events:
+            event_queue.push(event)
+
+        time_points = []
+
+        def monitor_time_dynamics(state):
+            # Записываем состояние времени на каждом тике
+            if hasattr(state, "subjective_time"):
+                time_points.append({
+                    "subjective_time": state.subjective_time,
+                    "energy": state.energy,
+                    "stability": state.stability,
+                    "intensity": getattr(state, "last_event_intensity", 0.0),
+                })
+
+        # Запускаем систему
+        thread = threading.Thread(
+            target=run_loop,
+            args=(self_state, monitor_time_dynamics, 0.01, 1000, stop_event, event_queue),
+        )
+        thread.start()
+
+        time.sleep(0.2)
+        stop_event.set()
+        thread.join(timeout=1.0)
+
+        # Проверяем, что система собрала данные о динамике времени
+        assert len(time_points) > 1, "Должны быть собраны данные о динамике времени"
+
+        # Проверяем монотонность субъективного времени
+        subjective_times = [point["subjective_time"] for point in time_points]
+        assert subjective_times == sorted(subjective_times), "Субъективное время должно быть монотонным"
+
+    # ============================================================================
+    # Thread Safety Integration Tests
+    # ============================================================================
+
+    def test_thread_safety_api_runtime_concurrent_integration(self):
+        """Интеграционный тест конкурентного доступа API и runtime"""
+        from fastapi.testclient import TestClient
+        from api import app
+
+        client = TestClient(app, timeout=10.0)
+
+        # Получаем токен
+        login_response = client.post("/token", data={"username": "admin", "password": "admin123"})
+        assert login_response.status_code == 200
+        token = login_response.json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+
+        # Создаем состояние и очередь
+        state = SelfState()
+        event_queue = EventQueue()
+        stop_event = threading.Event()
+
+        # Запускаем runtime loop
+        runtime_thread = threading.Thread(
+            target=run_loop,
+            args=(state, lambda s: None, 0.001, 1000, stop_event, event_queue),
+        )
+        runtime_thread.start()
+
+        # Пока runtime работает, делаем API запросы
+        api_results = []
+        for i in range(5):
+            try:
+                response = client.get("/status", headers=headers)
+                api_results.append(response.status_code)
+                time.sleep(0.005)  # Маленькая задержка
+            except Exception as e:
+                api_results.append(f"error: {e}")
+
+        stop_event.set()
+        runtime_thread.join(timeout=1.0)
+
+        # Все API запросы должны быть успешными
+        successful_requests = [r for r in api_results if r == 200]
+        assert len(successful_requests) >= 3, f"Слишком много неудачных API запросов: {api_results}"
+
+    def test_thread_safety_event_submission_during_runtime_integration(self):
+        """Интеграционный тест отправки событий во время работы runtime"""
+        from fastapi.testclient import TestClient
+        from api import app
+
+        client = TestClient(app, timeout=10.0)
+
+        # Регистрируем пользователя
+        user_data = {"username": "thread_test", "email": "thread@example.com", "password": "test123"}
+        client.post("/register", json=user_data)
+
+        login_response = client.post("/token", data={"username": "thread_test", "password": "test123"})
+        token = login_response.json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+
+        state = SelfState()
+        event_queue = EventQueue()
+        stop_event = threading.Event()
+
+        # Запускаем runtime
+        runtime_thread = threading.Thread(
+            target=run_loop,
+            args=(state, lambda s: None, 0.001, 1000, stop_event, event_queue),
+        )
+        runtime_thread.start()
+
+        # Отправляем события через API во время работы runtime
+        event_results = []
+        for i in range(3):
+            try:
+                event_data = {
+                    "type": "noise",
+                    "intensity": 0.2 + i * 0.1,
+                    "metadata": {"integration_test": True, "sequence": i}
+                }
+                response = client.post("/event", json=event_data, headers=headers)
+                event_results.append(response.status_code)
+                time.sleep(0.01)
+            except Exception as e:
+                event_results.append(f"error: {e}")
+
+        stop_event.set()
+        runtime_thread.join(timeout=1.0)
+
+        # Все отправки событий должны быть успешными
+        successful_events = [r for r in event_results if r == 200]
+        assert len(successful_events) == 3, f"Не все события отправлены успешно: {event_results}"
+
+    def test_thread_safety_state_consistency_integration(self):
+        """Интеграционный тест консистентности состояния при конкурентном доступе"""
+        state = SelfState()
+        stop_event = threading.Event()
+
+        # Записываем начальные значения
+        initial_energy = state.energy
+        initial_ticks = state.ticks
+
+        access_log = []
+
+        def api_reader(reader_id):
+            """Имитирует API чтение"""
+            for _ in range(10):
+                try:
+                    # Имитируем get_safe_status_dict
+                    snapshot = state.get_safe_status_dict()
+                    access_log.append(("read", reader_id, snapshot["ticks"], snapshot["energy"]))
+                    time.sleep(0.001)
+                except Exception as e:
+                    access_log.append(("read_error", reader_id, str(e)))
+
+        def runtime_writer(writer_id):
+            """Имитирует runtime запись"""
+            for i in range(5):
+                try:
+                    # Имитируем изменения состояния
+                    state.energy = initial_energy + i
+                    state.ticks = initial_ticks + i
+                    access_log.append(("write", writer_id, state.ticks, state.energy))
+                    time.sleep(0.002)
+                except Exception as e:
+                    access_log.append(("write_error", writer_id, str(e)))
+
+        # Запускаем читателей и писателей
+        threads = []
+        for i in range(2):  # 2 читателя
+            thread = threading.Thread(target=api_reader, args=(i,))
+            threads.append(thread)
+
+        for i in range(1):  # 1 писатель
+            thread = threading.Thread(target=runtime_writer, args=(i,))
+            threads.append(thread)
+
+        for thread in threads:
+            thread.start()
+
+        for thread in threads:
+            thread.join(timeout=2.0)
+
+        # Проверяем, что не было ошибок
+        errors = [entry for entry in access_log if "error" in entry[0]]
+        assert len(errors) == 0, f"Были ошибки при конкурентном доступе: {errors}"
+
+        # Проверяем, что были и чтения и записи
+        reads = [entry for entry in access_log if entry[0] == "read"]
+        writes = [entry for entry in access_log if entry[0] == "write"]
+
+        assert len(reads) > 0, "Должны быть успешные чтения"
+        assert len(writes) > 0, "Должны быть успешные записи"
+
+    def test_thread_safety_memory_consistency_integration(self):
+        """Интеграционный тест консистентности памяти при потокобезопасности"""
+        from src.memory.memory import Memory, MemoryEntry
+
+        memory = Memory()
+        stop_event = threading.Event()
+
+        # Добавляем начальные записи
+        for i in range(3):
+            entry = MemoryEntry(
+                event_type="noise",
+                meaning_significance=0.3,
+                timestamp=float(i)
+            )
+            memory.append(entry)
+
+        operations_log = []
+
+        def memory_reader(reader_id):
+            """Читает память"""
+            for _ in range(5):
+                try:
+                    # Имитируем чтение (создание копии)
+                    snapshot = list(memory)
+                    operations_log.append(("read", reader_id, len(snapshot)))
+                    time.sleep(0.001)
+                except Exception as e:
+                    operations_log.append(("read_error", reader_id, str(e)))
+
+        def memory_writer(writer_id):
+            """Пишет в память"""
+            for i in range(3):
+                try:
+                    entry = MemoryEntry(
+                        event_type="shock",
+                        meaning_significance=0.8,
+                        timestamp=10.0 + i
+                    )
+                    memory.append(entry)
+                    operations_log.append(("write", writer_id, len(memory)))
+                    time.sleep(0.002)
+                except Exception as e:
+                    operations_log.append(("write_error", writer_id, str(e)))
+
+        # Запускаем операции
+        threads = []
+        for i in range(2):  # 2 читателя
+            thread = threading.Thread(target=memory_reader, args=(i,))
+            threads.append(thread)
+
+        for i in range(1):  # 1 писатель
+            thread = threading.Thread(target=memory_writer, args=(i,))
+            threads.append(thread)
+
+        for thread in threads:
+            thread.start()
+
+        for thread in threads:
+            thread.join(timeout=2.0)
+
+        # Проверяем отсутствие ошибок
+        errors = [op for op in operations_log if "error" in op[0]]
+        assert len(errors) == 0, f"Были ошибки при работе с памятью: {errors}"
+
+        # Финальная длина памяти должна быть корректной
+        final_length = len(memory)
+        assert final_length >= 3, "Память должна содержать хотя бы начальные записи"
+
+    # ============================================================================
+    # Combined New Functionality Integration Tests
+    # ============================================================================
+
+    def test_subjective_time_thread_safety_combined_integration(self):
+        """Интеграционный тест комбинации субъективного времени и потокобезопасности"""
+        from fastapi.testclient import TestClient
+        from api import app
+
+        client = TestClient(app, timeout=10.0)
+
+        # Получаем токен
+        login_response = client.post("/token", data={"username": "admin", "password": "admin123"})
+        assert login_response.status_code == 200
+        token = login_response.json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+
+        state = SelfState()
+        event_queue = EventQueue()
+        stop_event = threading.Event()
+
+        # Устанавливаем начальное субъективное время
+        state.subjective_time = 100.0
+
+        # Запускаем runtime
+        runtime_thread = threading.Thread(
+            target=run_loop,
+            args=(state, lambda s: None, 0.001, 1000, stop_event, event_queue),
+        )
+        runtime_thread.start()
+
+        # Отправляем события через API
+        for i in range(3):
+            event_data = {
+                "type": ["noise", "shock", "recovery"][i],
+                "intensity": [0.3, -0.5, 0.4][i],
+                "metadata": {"combined_test": True}
+            }
+            response = client.post("/event", json=event_data, headers=headers)
+            assert response.status_code == 200
+            time.sleep(0.01)
+
+        # Читаем статус несколько раз
+        status_reads = []
+        for _ in range(3):
+            response = client.get("/status", headers=headers)
+            assert response.status_code == 200
+            status_data = response.json()
+            status_reads.append(status_data.get("subjective_time"))
+            time.sleep(0.005)
+
+        stop_event.set()
+        runtime_thread.join(timeout=1.0)
+
+        # Проверяем, что субъективное время присутствует в API ответах
+        valid_reads = [st for st in status_reads if st is not None]
+        assert len(valid_reads) > 0, "API должен возвращать subjective_time"
+
+        # Все значения должны быть положительными
+        assert all(st >= 0 for st in valid_reads), "subjective_time должен быть положительным"
+
+    def test_full_system_new_functionality_integration(self):
+        """Полная интеграция всей новой функциональности"""
+        from fastapi.testclient import TestClient
+        from api import app
+        from src.feedback import register_action
+
+        client = TestClient(app, timeout=10.0)
+
+        # Создаем пользователя
+        user_data = {"username": "full_test", "email": "full@example.com", "password": "test123"}
+        client.post("/register", json=user_data)
+
+        login_response = client.post("/token", data={"username": "full_test", "password": "test123"})
+        token = login_response.json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+
+        state = SelfState()
+        event_queue = EventQueue()
+        stop_event = threading.Event()
+
+        # Устанавливаем начальное субъективное время
+        state.subjective_time = 50.0
+
+        # Регистрируем действие для Feedback
+        register_action(
+            action_id="full_test_action",
+            action_pattern="absorb",
+            state_before={"energy": 100.0, "stability": 1.0},
+            timestamp=time.time(),
+            pending_actions=[],
+        )
+
+        # Запускаем runtime
+        runtime_thread = threading.Thread(
+            target=run_loop,
+            args=(state, lambda s: None, 0.001, 1000, stop_event, event_queue),
+        )
+        runtime_thread.start()
+
+        # Выполняем полный цикл тестирования
+        time.sleep(0.02)
+
+        # 1. Отправляем событие
+        event_response = client.post("/event", json={
+            "type": "shock",
+            "intensity": -0.7,
+            "metadata": {"full_integration_test": True}
+        }, headers=headers)
+        assert event_response.status_code == 200
+
+        time.sleep(0.02)
+
+        # 2. Читаем статус (с субъективным временем)
+        status_response = client.get("/status", headers=headers)
+        assert status_response.status_code == 200
+        status_data = status_response.json()
+
+        # 3. Проверяем наличие новой функциональности
+        assert "subjective_time" in status_data, "API должен возвращать subjective_time"
+        assert isinstance(status_data["subjective_time"], (int, float)), "subjective_time должен быть числом"
+        assert status_data["subjective_time"] >= 0, "subjective_time должен быть положительным"
+
+        stop_event.set()
+        runtime_thread.join(timeout=1.0)
+
+        # 4. Проверяем, что система сохранила состояние
+        assert hasattr(state, "memory"), "Система должна иметь память"
+        assert hasattr(state, "learning_params"), "Learning должен работать"
+        assert hasattr(state, "adaptation_params"), "Adaptation должен работать"
+
+        # 5. Проверяем наличие записей с субъективным временем
+        memory_with_subjective = [entry for entry in state.memory
+                                  if hasattr(entry, 'subjective_timestamp') and entry.subjective_timestamp is not None]
+        assert len(memory_with_subjective) > 0, "Должны быть записи памяти с subjective_timestamp"
 
     # ============================================================================
     # MCP Index Engine Integration
