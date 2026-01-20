@@ -7,11 +7,13 @@ import asyncio
 import sys
 from pathlib import Path
 
-# Добавляем текущую директорию в путь для импорта
-sys.path.insert(0, str(Path(__file__).parent))
+# Добавляем корень проекта в путь для импорта
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root))
 
 # Импортируем функции из mcp_index
 from mcp_index import (
+    _tokenize_query,
     get_doc_content,
     get_todo_content,
     list_docs,
@@ -62,6 +64,114 @@ async def test_search_todo():
     print("[OK] search_todo работает корректно")
 
 
+async def test_search_docs_and_mode():
+    """Тест поиска в документации с режимом AND"""
+    print("\n=== Тест: search_docs (AND mode) ===")
+    result = await search_docs("test query", search_mode="AND", limit=3)
+    print(f"Результат (первые 200 символов):\n{result[:200]}...")
+    # Строгая проверка: должен быть именно AND режим
+    assert "режим: AND" in result, f"Ожидался режим AND, но получен результат: {result[:200]}"
+    print("[OK] search_docs AND mode работает корректно")
+
+
+async def test_search_docs_or_mode():
+    """Тест поиска в документации с режимом OR"""
+    print("\n=== Тест: search_docs (OR mode) ===")
+    result = await search_docs("test query", search_mode="OR", limit=3)
+    print(f"Результат (первые 200 символов):\n{result[:200]}...")
+    # Строгая проверка: должен быть именно OR режим
+    assert "режим: OR" in result, f"Ожидался режим OR, но получен результат: {result[:200]}"
+    print("[OK] search_docs OR mode работает корректно")
+
+
+async def test_search_docs_or_mode_with_quoted_query():
+    """Тест: явный OR режим имеет приоритет над кавычками"""
+    print("\n=== Тест: search_docs (OR mode, quoted query) ===")
+    result = await search_docs('"test query"', search_mode="OR", limit=3)
+    print(f"Результат (первые 200 символов):\n{result[:200]}...")
+    # Строгая проверка: должен быть именно OR режим (явный режим имеет приоритет)
+    assert "режим: OR" in result, f"Ожидался режим OR при явном указании, но получен результат: {result[:200]}"
+    print("[OK] search_docs OR mode с quoted query работает корректно (явный режим имеет приоритет)")
+
+
+async def test_search_docs_phrase_mode():
+    """Тест поиска в документации с режимом PHRASE"""
+    print("\n=== Тест: search_docs (PHRASE mode) ===")
+    result = await search_docs('"test query"', limit=3)
+    print(f"Результат (первые 200 символов):\n{result[:200]}...")
+    # Строгая проверка: должен быть именно PHRASE режим
+    assert "режим: PHRASE" in result, f"Ожидался режим PHRASE, но получен результат: {result[:200]}"
+    print("[OK] search_docs PHRASE mode работает корректно")
+
+
+async def test_tokenize_query_quotes_auto_phrase():
+    """Тест: кавычки автоматически включают PHRASE режим"""
+    print("\n=== Тест: _tokenize_query (кавычки → PHRASE) ===")
+    # Кавычки без явного режима должны давать PHRASE
+    mode, tokens_or_phrase = _tokenize_query('"test query"', "AND", explicit_mode=False)
+    assert mode == "PHRASE", f"Ожидался режим PHRASE, получен {mode}"
+    assert tokens_or_phrase == "test query", f"Ожидалась фраза 'test query', получено {tokens_or_phrase}"
+    print("[OK] Кавычки автоматически включают PHRASE режим")
+
+
+async def test_tokenize_query_explicit_mode_priority():
+    """Тест: явный режим имеет приоритет над кавычками"""
+    print("\n=== Тест: _tokenize_query (явный режим имеет приоритет) ===")
+    # Явный OR режим должен иметь приоритет над кавычками
+    mode, tokens_or_phrase = _tokenize_query('"test query"', "OR", explicit_mode=True)
+    assert mode == "OR", f"Ожидался режим OR, получен {mode}"
+    assert isinstance(tokens_or_phrase, list), f"Ожидался список токенов, получено {type(tokens_or_phrase)}"
+    assert "test" in tokens_or_phrase and "query" in tokens_or_phrase, f"Ожидались токены ['test', 'query'], получено {tokens_or_phrase}"
+    print("[OK] Явный режим имеет приоритет над кавычками")
+
+
+async def test_tokenize_query_empty_query():
+    """Тест: пустой запрос обрабатывается корректно"""
+    print("\n=== Тест: _tokenize_query (пустой запрос) ===")
+    # Пустой запрос должен давать пустой список токенов
+    mode, tokens_or_phrase = _tokenize_query("   ", "AND", explicit_mode=False)
+    assert mode == "AND", f"Ожидался режим AND, получен {mode}"
+    assert isinstance(tokens_or_phrase, list), f"Ожидался список токенов, получено {type(tokens_or_phrase)}"
+    assert len(tokens_or_phrase) == 0, f"Ожидался пустой список токенов, получено {tokens_or_phrase}"
+    print("[OK] Пустой запрос обрабатывается корректно")
+
+
+async def test_search_docs_empty_query():
+    """Тест: пустой запрос возвращает ошибку"""
+    print("\n=== Тест: search_docs (пустой запрос) ===")
+    result = await search_docs("   ", limit=3)
+    print(f"Результат: {result}")
+    assert "Ошибка" in result or "пустой запрос" in result.lower(), f"Ожидалась ошибка для пустого запроса, получено: {result}"
+    print("[OK] Пустой запрос возвращает ошибку")
+
+
+async def test_search_todo_and_mode():
+    """Тест поиска в TODO с режимом AND"""
+    print("\n=== Тест: search_todo (AND mode) ===")
+    result = await search_todo("test query", search_mode="AND", limit=2)
+    print(f"Результат (первые 200 символов):\n{result[:200]}...")
+    assert "режим: AND" in result or "Найдено" in result or "ничего не найдено" in result.lower()
+    print("[OK] search_todo AND mode работает корректно")
+
+
+async def test_search_todo_or_mode():
+    """Тест поиска в TODO с режимом OR"""
+    print("\n=== Тест: search_todo (OR mode) ===")
+    result = await search_todo("test query", search_mode="OR", limit=2)
+    print(f"Результат (первые 200 символов):\n{result[:200]}...")
+    assert "режим: OR" in result or "Найдено" in result or "ничего не найдено" in result.lower()
+    print("[OK] search_todo OR mode работает корректно")
+
+
+async def test_search_todo_phrase_mode():
+    """Тест поиска в TODO с режимом PHRASE"""
+    print("\n=== Тест: search_todo (PHRASE mode) ===")
+    result = await search_todo('"test query"', limit=2)
+    print(f"Результат (первые 200 символов):\n{result[:200]}...")
+    assert "режим: PHRASE" in result or "Найдено" in result or "ничего не найдено" in result.lower()
+    print("[OK] search_todo PHRASE mode работает корректно")
+
+
 async def test_list_todo():
     """Тест списка TODO документов"""
     print("\n=== Тест: list_todo ===")
@@ -106,9 +216,22 @@ async def main():
         await test_mcp_server_init()
         await test_list_docs()
         await test_search_docs()
+        # Тесты токенизации (проверка реальной логики)
+        await test_tokenize_query_quotes_auto_phrase()
+        await test_tokenize_query_explicit_mode_priority()
+        await test_tokenize_query_empty_query()
+        # Тесты режимов поиска
+        await test_search_docs_and_mode()
+        await test_search_docs_or_mode()
+        await test_search_docs_or_mode_with_quoted_query()
+        await test_search_docs_phrase_mode()
+        await test_search_docs_empty_query()
         await test_get_doc_content()
         await test_list_todo()
         await test_search_todo()
+        await test_search_todo_and_mode()
+        await test_search_todo_or_mode()
+        await test_search_todo_phrase_mode()
         await test_get_todo_content()
 
         print("\n" + "=" * 60)

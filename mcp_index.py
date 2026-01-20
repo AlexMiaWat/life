@@ -29,16 +29,180 @@ DATA_DIR = Path(__file__).parent / "data"
 app = FastMCP("life-docs-server")
 
 
+def _tokenize_query(query: str, default_mode: str = "AND", explicit_mode: bool = False) -> tuple[str, list[str] | str]:
+    """
+    Токенизирует запрос и определяет режим поиска.
+
+    Args:
+        query: Поисковый запрос
+        default_mode: Режим по умолчанию (AND/OR/PHRASE). 
+        explicit_mode: True, если режим был указан явно пользователем (не default).
+
+    Returns:
+        Tuple (mode, tokens_or_phrase):
+        - mode: "AND", "OR", или "PHRASE"
+        - tokens_or_phrase: список токенов для AND/OR или строка для PHRASE
+    """
+    import re
+
+    query = query.strip()
+    
+    # Валидация и нормализация режима
+    mode = (default_mode or "AND").strip().upper()
+    if mode not in {"AND", "OR", "PHRASE"}:
+        mode = "AND"
+
+    # Проверка на кавычки: если запрос в кавычках, автоматически используем PHRASE
+    # (согласно контракту API: "PHRASE определяется автоматически по кавычкам")
+    # Явный режим имеет приоритет только если он был указан явно как AND или OR
+    is_quoted = query.startswith('"') and query.endswith('"') and len(query) > 2
+    if is_quoted:
+        inner = query[1:-1].strip()
+        # Если режим явно указан как PHRASE, используем его
+        if mode == "PHRASE":
+            return ("PHRASE", inner)
+        # Если режим был указан явно как AND/OR, приоритет у явного режима
+        # (токенизируем содержимое кавычек для AND/OR)
+        # Иначе (режим не указан явно или default_mode="AND") - кавычки автоматически включают PHRASE
+        if explicit_mode and mode in {"AND", "OR"}:
+            # Явный AND/OR режим имеет приоритет над кавычками
+            query = inner
+        else:
+            # Режим не указан явно или это default - кавычки автоматически включают PHRASE
+            return ("PHRASE", inner)
+
+    # Явный PHRASE mode без кавычек: ищем точную фразу как есть
+    if mode == "PHRASE":
+        return ("PHRASE", query)
+
+    # Токенизация для AND/OR: разбиваем на слова, удаляем пунктуацию
+    tokens = re.findall(r"\b\w+\b", query.lower())
+    
+    # Валидация: пустой список токенов означает пустой/невалидный запрос
+    if not tokens:
+        # Возвращаем пустой список, вызывающий код должен обработать это
+        return (mode, tokens)
+    
+    return (mode, tokens)
+
+
+def _search_and(content: str, tokens: list[str]) -> bool:
+    """Проверяет, что все токены присутствуют в контенте."""
+    # Пустой список токенов не должен матчить всё
+    if not tokens:
+        return False
+    content_lower = content.lower()
+    return all(token in content_lower for token in tokens)
+
+
+def _search_or(content: str, tokens: list[str]) -> bool:
+    """Проверяет, что хотя бы один токен присутствует в контенте."""
+    # Пустой список токенов не должен матчить всё
+    if not tokens:
+        return False
+    content_lower = content.lower()
+    return any(token in content_lower for token in tokens)
+
+
+def _search_phrase(content: str, phrase: str) -> bool:
+    """Ищет точную фразу в контенте (case-insensitive)."""
+    # Пустая фраза не должна матчить всё
+    if not phrase or not phrase.strip():
+        return False
+    return phrase.lower() in content.lower()
+
+
+def _find_context_lines(
+    content: str, query: str, mode: str, tokens_or_phrase: list[str] | str
+) -> list[str]:
+    """
+    Находит контекст вокруг найденного текста.
+
+    Args:
+        content: Содержимое файла
+        query: Исходный запрос
+        mode: Режим поиска
+        tokens_or_phrase: Токены или фраза для поиска
+
+    Returns:
+        Список строк контекста
+    """
+    lines = content.split("\n")
+    context_lines = []
+    content_lower = content.lower()
+
+    # Определяем, что искать для контекста
+    # Выбираем первый реально найденный токен/фразу
+    if mode == "PHRASE":
+        search_term = str(tokens_or_phrase).lower()
+        # Проверяем, что фраза действительно найдена
+        if search_term not in content_lower:
+            return []
+    elif mode == "AND" and isinstance(tokens_or_phrase, list):
+        # Для AND ищем первый токен, который реально присутствует в контенте
+        search_term = None
+        for token in tokens_or_phrase:
+            if token.lower() in content_lower:
+                search_term = token.lower()
+                break
+        if not search_term:
+            # Если ни один токен не найден (не должно быть, но на всякий случай)
+            search_term = query.lower()
+    elif mode == "OR" and isinstance(tokens_or_phrase, list):
+        # Для OR ищем первый токен, который реально присутствует в контенте
+        search_term = None
+        for token in tokens_or_phrase:
+            if token.lower() in content_lower:
+                search_term = token.lower()
+                break
+        if not search_term:
+            # Если ни один токен не найден (не должно быть, но на всякий случай)
+            search_term = query.lower()
+    else:
+        search_term = query.lower()
+
+    # Находим первую строку с совпадением
+    for i, line in enumerate(lines):
+        if search_term in line.lower():
+            start = max(0, i - 2)
+            end = min(len(lines), i + 3)
+            context_lines.extend(lines[start:end])
+            break
+
+    return context_lines[:5]  # Ограничить контекст
+
+
 @app.tool()
-async def search_docs(query: str, limit: int = 10) -> str:
+async def search_docs(query: str, search_mode: str = "AND", limit: int = 10) -> str:
     """Поиск по ключевым словам в документации проекта Life.
 
     Args:
-        query: Ключевые слова для поиска
+        query: Ключевые слова для поиска. Если запрос в кавычках и search_mode не указан явно,
+               автоматически используется режим PHRASE.
+        search_mode: Режим поиска ("AND", "OR", "PHRASE"). По умолчанию "AND".
+                     Если запрос в кавычках, PHRASE определяется автоматически (если режим не указан явно).
         limit: Максимальное количество результатов (по умолчанию 10)
     """
-    query_lower = query.lower()
+    # Валидация пустого запроса
+    if not query or not query.strip():
+        return "Ошибка: пустой запрос. Укажите хотя бы одно ключевое слово."
+    
+    # Определяем, был ли режим указан явно (проверяем, был ли передан не-default параметр)
+    # В FastMCP мы не можем различить это напрямую, поэтому используем эвристику:
+    # если search_mode != "AND", считаем что он указан явно
+    explicit_mode = (search_mode != "AND")
+    
+    # Определяем режим и токенизируем запрос
+    mode, tokens_or_phrase = _tokenize_query(query, search_mode, explicit_mode)
+    
+    # Валидация результата токенизации
+    if mode in {"AND", "OR"} and isinstance(tokens_or_phrase, list) and not tokens_or_phrase:
+        return f"Ошибка: запрос '{query}' не содержит валидных слов для поиска."
+    if mode == "PHRASE" and (not tokens_or_phrase or not str(tokens_or_phrase).strip()):
+        return f"Ошибка: пустая фраза в запросе '{query}'."
+    
     results = []
+    skipped_files = 0
 
     for root, dirs, files in os.walk(DOCS_DIR):
         for file in files:
@@ -50,18 +214,23 @@ async def search_docs(query: str, limit: int = 10) -> str:
                     with open(file_path, "r", encoding="utf-8") as f:
                         content = f.read()
 
-                    if query_lower in content.lower():
-                        # Найти контекст вокруг найденного текста
-                        lines = content.split("\n")
-                        context_lines = []
-                        for i, line in enumerate(lines):
-                            if query_lower in line.lower():
-                                start = max(0, i - 2)
-                                end = min(len(lines), i + 3)
-                                context_lines.extend(lines[start:end])
-                                break
+                    # Применяем соответствующий режим поиска
+                    match = False
+                    if mode == "PHRASE":
+                        match = _search_phrase(content, tokens_or_phrase)
+                    elif mode == "AND":
+                        if isinstance(tokens_or_phrase, list):
+                            match = _search_and(content, tokens_or_phrase)
+                    elif mode == "OR":
+                        if isinstance(tokens_or_phrase, list):
+                            match = _search_or(content, tokens_or_phrase)
 
-                        context = "\n".join(context_lines[:5])  # Ограничить контекст
+                    if match:
+                        # Найти контекст вокруг найденного текста
+                        context_lines = _find_context_lines(
+                            content, query, mode, tokens_or_phrase
+                        )
+                        context = "\n".join(context_lines)
 
                         results.append(
                             {"path": str(rel_path), "title": file, "context": context}
@@ -78,7 +247,7 @@ async def search_docs(query: str, limit: int = 10) -> str:
     if not results:
         return f"По запросу '{query}' ничего не найдено."
 
-    text = f"Найдено {len(results)} результатов по запросу '{query}':\n\n"
+    text = f"Найдено {len(results)} результатов по запросу '{query}' (режим: {mode}):\n\n"
     for result in results:
         text += f"**{result['path']}**\n{result['context']}\n\n---\n\n"
 
@@ -86,15 +255,36 @@ async def search_docs(query: str, limit: int = 10) -> str:
 
 
 @app.tool()
-async def search_todo(query: str, limit: int = 10) -> str:
+async def search_todo(query: str, search_mode: str = "AND", limit: int = 10) -> str:
     """Поиск по ключевым словам в документации TODO проекта Life.
 
     Args:
-        query: Ключевые слова для поиска
+        query: Ключевые слова для поиска. Если запрос в кавычках и search_mode не указан явно,
+               автоматически используется режим PHRASE.
+        search_mode: Режим поиска ("AND", "OR", "PHRASE"). По умолчанию "AND".
+                     Если запрос в кавычках, PHRASE определяется автоматически (если режим не указан явно).
         limit: Максимальное количество результатов (по умолчанию 10)
     """
-    query_lower = query.lower()
+    # Валидация пустого запроса
+    if not query or not query.strip():
+        return "Ошибка: пустой запрос. Укажите хотя бы одно ключевое слово."
+    
+    # Определяем, был ли режим указан явно (проверяем, был ли передан не-default параметр)
+    # В FastMCP мы не можем различить это напрямую, поэтому используем эвристику:
+    # если search_mode != "AND", считаем что он указан явно
+    explicit_mode = (search_mode != "AND")
+    
+    # Определяем режим и токенизируем запрос
+    mode, tokens_or_phrase = _tokenize_query(query, search_mode, explicit_mode)
+    
+    # Валидация результата токенизации
+    if mode in {"AND", "OR"} and isinstance(tokens_or_phrase, list) and not tokens_or_phrase:
+        return f"Ошибка: запрос '{query}' не содержит валидных слов для поиска."
+    if mode == "PHRASE" and (not tokens_or_phrase or not str(tokens_or_phrase).strip()):
+        return f"Ошибка: пустая фраза в запросе '{query}'."
+    
     results = []
+    skipped_files = 0
 
     for root, dirs, files in os.walk(TODO_DIR):
         for file in files:
@@ -106,18 +296,23 @@ async def search_todo(query: str, limit: int = 10) -> str:
                     with open(file_path, "r", encoding="utf-8") as f:
                         content = f.read()
 
-                    if query_lower in content.lower():
-                        # Найти контекст вокруг найденного текста
-                        lines = content.split("\n")
-                        context_lines = []
-                        for i, line in enumerate(lines):
-                            if query_lower in line.lower():
-                                start = max(0, i - 2)
-                                end = min(len(lines), i + 3)
-                                context_lines.extend(lines[start:end])
-                                break
+                    # Применяем соответствующий режим поиска
+                    match = False
+                    if mode == "PHRASE":
+                        match = _search_phrase(content, tokens_or_phrase)
+                    elif mode == "AND":
+                        if isinstance(tokens_or_phrase, list):
+                            match = _search_and(content, tokens_or_phrase)
+                    elif mode == "OR":
+                        if isinstance(tokens_or_phrase, list):
+                            match = _search_or(content, tokens_or_phrase)
 
-                        context = "\n".join(context_lines[:5])  # Ограничить контекст
+                    if match:
+                        # Найти контекст вокруг найденного текста
+                        context_lines = _find_context_lines(
+                            content, query, mode, tokens_or_phrase
+                        )
+                        context = "\n".join(context_lines)
 
                         results.append(
                             {"path": str(rel_path), "title": file, "context": context}
@@ -125,16 +320,25 @@ async def search_todo(query: str, limit: int = 10) -> str:
 
                         if len(results) >= limit:
                             break
-                except Exception:
+                except Exception as e:
+                    skipped_files += 1
+                    # Логируем только если пропущено много файлов (для диагностики)
+                    if skipped_files <= 3:
+                        import sys
+                        print(f"Предупреждение: не удалось прочитать файл {rel_path}: {e}", file=sys.stderr)
                     continue
 
         if len(results) >= limit:
             break
 
+    if skipped_files > 0:
+        import sys
+        print(f"Информация: пропущено файлов из-за ошибок: {skipped_files}", file=sys.stderr)
+
     if not results:
         return f"По запросу '{query}' ничего не найдено."
 
-    text = f"Найдено {len(results)} результатов по запросу '{query}':\n\n"
+    text = f"Найдено {len(results)} результатов по запросу '{query}' (режим: {mode}):\n\n"
     for result in results:
         text += f"**{result['path']}**\n{result['context']}\n\n---\n\n"
 

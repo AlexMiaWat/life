@@ -8,7 +8,7 @@
 |------|--------------|-----------------|------------------------------|
 | **Architect** | `architect` | Проектирование, стратегия, видение | `docs/architecture/`, `docs/concepts/`, `docs/development/` |
 | **Implementer** | `code` | Реализация, детализация систем | `docs/components/`, `src/` |
-| **Skeptic** | `code-skeptic` | Критика, поиск ошибок, проверка | Весь проект (Read-only), отчеты в `docs/reviews/` |
+| **Skeptic** | `code-skeptic` | Критика, поиск ошибок, проверка | Весь проект (только чтение), отчеты в `docs/reviews/` |
 | **Orchestrator** | `orchestrator` | Планирование, координация | `todo/`, `plans/`, управление задачами |
 
 ## Схема взаимодействия
