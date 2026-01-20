@@ -13,11 +13,15 @@ Learning только медленно изменяет внутренние п�
 - ✅ Разрешено: использование внутренней статистики из Memory
 """
 
+import copy
 import logging
 import threading
-from typing import Dict, List
+from typing import TYPE_CHECKING, Dict, List
 
 from src.memory.memory import MemoryEntry
+
+if TYPE_CHECKING:
+    from src.state.self_state import SelfState
 
 logger = logging.getLogger(__name__)
 
@@ -352,7 +356,9 @@ class LearningEngine:
 
         return new_coefficients
 
-    def record_changes(self, old_params: Dict, new_params: Dict, self_state) -> None:
+    def record_changes(
+        self, old_params: Dict, new_params: Dict, self_state: "SelfState"
+    ) -> None:
         """
         Фиксирует изменения параметров без интерпретации.
 
@@ -393,23 +399,29 @@ class LearningEngine:
 
             # Обновляем параметры в SelfState ВНУТРИ блокировки
             # ВАЖНО: Выполняем глубокое объединение (merge), а не полную перезапись
+            # ИСПРАВЛЕНИЕ RACE CONDITION: Используем deepcopy для создания полностью
+            # независимой копии перед обновлением, чтобы избежать изменения словаря,
+            # который может быть использован другим потоком
             if not hasattr(self_state, "learning_params"):
                 self_state.learning_params = {}
+
+            # Создаем глубокую копию текущих параметров для безопасного обновления
+            updated_params = copy.deepcopy(self_state.learning_params)
 
             # Объединяем старые и новые параметры
             # Для каждого ключа в new_params объединяем вложенные словари
             for key, new_value_dict in new_params.items():
-                if key not in self_state.learning_params:
+                if key not in updated_params:
                     # Если ключа нет, просто копируем новый словарь
-                    self_state.learning_params[key] = new_value_dict.copy()
+                    updated_params[key] = copy.deepcopy(new_value_dict)
                 else:
                     # Если ключ есть, объединяем вложенные словари
-                    current_value_dict = self_state.learning_params[key]
                     # Обновляем только те параметры, которые есть в new_params
                     for param_name, new_value in new_value_dict.items():
-                        current_value_dict[param_name] = new_value
-                    # Сохраняем обновленный словарь
-                    self_state.learning_params[key] = current_value_dict
+                        updated_params[key][param_name] = new_value
+
+            # Атомарно заменяем все параметры одной операцией
+            self_state.learning_params = updated_params
 
         # ВАЖНО: Не сохраняем историю изменений, не интерпретируем, не оцениваем
         # Просто обновляем параметры

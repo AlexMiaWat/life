@@ -211,6 +211,12 @@ def run_loop(
     adaptation_manager = AdaptationManager()  # Adaptation Manager (Этап 15)
     last_time = time.time()
     pending_actions = []  # Список ожидающих Feedback действий
+    
+    # Счетчики ошибок для отслеживания проблем
+    learning_errors = 0
+    adaptation_errors = 0
+    max_errors_before_warning = 10  # Порог для предупреждения о частых ошибках
+    
     while stop_event is None or not stop_event.is_set():
         try:
             current_time = time.time()
@@ -381,15 +387,25 @@ def run_loop(
                             current_params, new_params, self_state
                         )
                 except (TypeError, ValueError) as e:
+                    learning_errors += 1
                     logger.error(f"Критическая ошибка в Learning (параметры): {e}", exc_info=True)
                     # При критичных ошибках валидации пропускаем только блок Learning,
                     # но продолжаем выполнение остальных частей итерации
-                    pass
+                    if learning_errors >= max_errors_before_warning:
+                        logger.warning(
+                            f"Обнаружено {learning_errors} ошибок в Learning. "
+                            "Возможна деградация функциональности."
+                        )
                 except Exception as e:
+                    learning_errors += 1
                     logger.error(f"Неожиданная ошибка в Learning: {e}", exc_info=True)
                     # При неожиданных ошибках пропускаем только блок Learning,
                     # но продолжаем выполнение остальных частей итерации
-                    pass
+                    if learning_errors >= max_errors_before_warning:
+                        logger.warning(
+                            f"Обнаружено {learning_errors} ошибок в Learning. "
+                            "Возможна деградация функциональности."
+                        )
 
             # Затухание весов памяти (Memory v2.0) - механизм забывания
             # Вызывается раз в DECAY_INTERVAL тиков
@@ -428,9 +444,8 @@ def run_loop(
                         if hasattr(self_state, "_get_default_learning_params"):
                             self_state.learning_params = self_state._get_default_learning_params()
                         else:
-                            from src.state.self_state import SelfState
-                            temp_state = SelfState()
-                            self_state.learning_params = temp_state._get_default_learning_params()
+                            # Используем вспомогательную функцию без создания временного объекта
+                            self_state.learning_params = _get_default_learning_params()
 
                     if not hasattr(self_state, "adaptation_params") or not self_state.adaptation_params:
                         # Автоматическая инициализация при первом запуске
@@ -451,9 +466,8 @@ def run_loop(
                         if hasattr(self_state, "_get_default_learning_params"):
                             self_state.learning_params = self_state._get_default_learning_params()
                         else:
-                            from src.state.self_state import SelfState
-                            temp_state = SelfState()
-                            self_state.learning_params = temp_state._get_default_learning_params()
+                            # Используем вспомогательную функцию без создания временного объекта
+                            self_state.learning_params = _get_default_learning_params()
 
                     if not _validate_adaptation_params(self_state.adaptation_params):
                         logger.error(

@@ -1,9 +1,12 @@
+import logging
 from typing import Dict, Union
 
 from src.environment.event import Event
 from src.state.self_state import SelfState
 
 from .meaning import Meaning
+
+logger = logging.getLogger(__name__)
 
 
 class MeaningEngine:
@@ -63,8 +66,16 @@ class MeaningEngine:
 
         # Проверяем, что параметры действительно словари
         if not isinstance(learning_params, dict):
+            logger.warning(
+                f"learning_params имеет некорректный тип {type(learning_params)}, "
+                "заменяем на пустой словарь"
+            )
             learning_params = {}
         if not isinstance(adaptation_params, dict):
+            logger.warning(
+                f"adaptation_params имеет некорректный тип {type(adaptation_params)}, "
+                "заменяем на пустой словарь"
+            )
             adaptation_params = {}
 
         return learning_params, adaptation_params
@@ -143,12 +154,20 @@ class MeaningEngine:
 
         # Контекстуальная модификация на основе состояния
         # Если integrity низкая — даже малые события становятся важнее
-        integrity = getattr(self_state, "integrity", self_state.get("integrity", 1.0)) if isinstance(self_state, SelfState) else self_state.get("integrity", 1.0)
+        integrity = (
+            getattr(self_state, "integrity", self_state.get("integrity", 1.0))
+            if isinstance(self_state, SelfState)
+            else self_state.get("integrity", 1.0)
+        )
         if integrity < self.LOW_INTEGRITY_THRESHOLD:
             significance *= self.LOW_INTEGRITY_SIGNIFICANCE_MULTIPLIER
 
         # Если stability низкая — события ощущаются сильнее
-        stability = getattr(self_state, "stability", self_state.get("stability", 1.0)) if isinstance(self_state, SelfState) else self_state.get("stability", 1.0)
+        stability = (
+            getattr(self_state, "stability", self_state.get("stability", 1.0))
+            if isinstance(self_state, SelfState)
+            else self_state.get("stability", 1.0)
+        )
         if stability < 0.5:
             significance *= 1.2
 
@@ -234,7 +253,11 @@ class MeaningEngine:
             return "ignore"
 
         # При высокой стабильности — ослабление эффектов
-        stability = getattr(self_state, "stability", self_state.get("stability", 1.0)) if isinstance(self_state, SelfState) else self_state.get("stability", 1.0)
+        stability = (
+            getattr(self_state, "stability", self_state.get("stability", 1.0))
+            if isinstance(self_state, SelfState)
+            else self_state.get("stability", 1.0)
+        )
         if stability > 0.8:
             return "dampen"
 

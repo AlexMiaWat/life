@@ -78,6 +78,12 @@ class IndexEngine:
         # Флаг инициализации
         self._initialized = False
 
+        # Кэш статусов документов: относительный путь -> статус
+        self._document_status_cache: dict[str, str] = {}
+        
+        # Время модификации файла статусов для проверки обновлений
+        self._status_file_mtime: Optional[float] = None
+
     def initialize(self):
         """Инициализация индекса (ленивая загрузка)."""
         if not self._initialized:
@@ -416,6 +422,183 @@ class IndexEngine:
         rel_path = self._get_relative_path(file_path, base_dir)
         return self.content_cache.get(rel_path)
 
+    def _get_document_category(self, rel_path: str) -> str:
+        """
+        Определяет категорию документа по его пути относительно docs/.
+
+        Args:
+            rel_path: Относительный путь к документу
+
+        Returns:
+            Категория документа: 'core', 'system', 'concepts', 'meta', 'test', 'archive' или 'unknown'
+        """
+        # Нормализуем путь
+        path_parts = rel_path.replace("\\", "/").split("/")
+        
+        if not path_parts:
+            return "unknown"
+        
+        first_part = path_parts[0].lower()
+        
+        # Определяем категорию по первой части пути
+        if first_part in ("getting-started", "architecture"):
+            return "core"
+        elif first_part == "components":
+            return "system"
+        elif first_part == "concepts":
+            return "concepts"
+        elif first_part == "development":
+            return "meta"
+        elif first_part == "testing":
+            return "test"
+        elif first_part == "archive":
+            return "archive"
+        else:
+            return "unknown"
+
+    def _load_document_statuses(self) -> dict[str, str]:
+        """
+        Загружает статусы документов из docs/development/status.md.
+
+        Returns:
+            Словарь: относительный путь документа -> статус (✅, 🧱, ⏸, 🚫, 🔮)
+        """
+        status_file = self.docs_dir / "development" / "status.md"
+        
+        if not status_file.exists():
+            logger.debug(f"Файл статусов не найден: {status_file}")
+            return {}
+        
+        # Проверяем время модификации файла
+        try:
+            current_mtime = status_file.stat().st_mtime
+            if (
+                self._status_file_mtime is not None
+                and current_mtime <= self._status_file_mtime
+                and self._document_status_cache
+            ):
+                # Кэш актуален
+                return self._document_status_cache
+        except Exception as e:
+            logger.warning(f"Ошибка проверки времени модификации статусов: {e}")
+        
+        # Загружаем и парсим файл статусов
+        statuses = {}
+        try:
+            with open(status_file, "r", encoding="utf-8") as f:
+                content = f.read()
+            
+            # Ищем строки в формате:
+            # * **Status:** ✅ Implemented
+            # * **Документация:** [filename.md](../path/to/filename.md)
+            lines = content.split("\n")
+            current_status = None
+            
+            for i, line in enumerate(lines):
+                # Ищем строки со статусами в формате "* **Status:** ✅ ..."
+                status_match = re.search(r"\*\s+\*\*Status:\*\*\s+([✅🧱⏸🚫🔮])", line)
+                if status_match:
+                    current_status = status_match.group(1)
+                    continue
+                
+                # Ищем ссылку на документ в формате "* **Документация:** [filename.md](../path/to/filename.md)"
+                if current_status:
+                    link_match = re.search(
+                        r"\*\s+\*\*Документация:\*\*\s+\[([^\]]+\.md)\]\(\.\./([^)]+)\)", line
+                    )
+                    if link_match:
+                        doc_name = link_match.group(1)
+                        doc_path = link_match.group(2)
+                        # Нормализуем путь
+                        normalized_path = doc_path.replace("\\", "/")
+                        statuses[normalized_path] = current_status
+                        # Также добавляем по имени файла для поиска
+                        statuses[doc_name] = current_status
+                        current_status = None
+            
+            # Обновляем кэш
+            self._document_status_cache = statuses
+            self._status_file_mtime = current_mtime
+            
+        except Exception as e:
+            logger.warning(f"Ошибка загрузки статусов документов: {e}")
+        
+        return statuses
+
+    def _get_document_status(self, rel_path: str) -> str:
+        """
+        Определяет статус документа из status.md.
+
+        Args:
+            rel_path: Относительный путь к документу
+
+        Returns:
+            Статус документа: ✅, 🧱, ⏸, 🚫, 🔮 или 'unknown'
+        """
+        # Загружаем статусы (с кэшированием)
+        statuses = self._load_document_statuses()
+        
+        # Нормализуем путь для поиска
+        normalized_path = rel_path.replace("\\", "/")
+        
+        # Ищем точное совпадение или совпадение по имени файла
+        if normalized_path in statuses:
+            return statuses[normalized_path]
+        
+        # Пробуем найти по имени файла
+        path_parts = normalized_path.split("/")
+        if path_parts:
+            filename = path_parts[-1]
+            for doc_path, status in statuses.items():
+                if doc_path.endswith(filename):
+                    return status
+        
+        return "unknown"
+
+    def _calculate_document_score(self, rel_path: str) -> float:
+        """
+        Вычисляет приоритет документа на основе категории и статуса.
+
+        Args:
+            rel_path: Относительный путь к документу
+
+        Returns:
+            Числовой приоритет (score) для ранжирования
+        """
+        # Приоритеты по категориям
+        category_priorities = {
+            "core": 100,
+            "system": 90,
+            "meta": 80,
+            "concepts": 60,
+            "test": 50,
+            "archive": 20,
+            "unknown": 50,
+        }
+        
+        # Приоритеты по статусам
+        status_priorities = {
+            "✅": 100,  # Implemented
+            "🧱": 80,   # Documented
+            "🔮": 40,   # Future
+            "⏸": 30,   # Blocked
+            "🚫": 20,   # Forbidden
+            "unknown": 50,
+        }
+        
+        # Получаем категорию и статус
+        category = self._get_document_category(rel_path)
+        status = self._get_document_status(rel_path)
+        
+        # Получаем приоритеты
+        category_priority = category_priorities.get(category, 50)
+        status_priority = status_priorities.get(status, 50)
+        
+        # Вычисляем score по формуле: (category_priority * 0.6) + (status_priority * 0.4)
+        score = (category_priority * 0.6) + (status_priority * 0.4)
+        
+        return score
+
     def search_in_directory(
         self,
         directory: Path,
@@ -542,11 +725,15 @@ class IndexEngine:
                     )
                     context = "\n".join(context_lines)
 
+                    # Вычисляем приоритет документа для ранжирования
+                    score = self._calculate_document_score(rel_path)
+
                     results.append(
                         {
                             "path": rel_path,
                             "title": full_path.name,
                             "context": context,
+                            "score": score,
                         }
                     )
             except Exception as e:
@@ -554,5 +741,8 @@ class IndexEngine:
                     f"Ошибка при обработке результата поиска {rel_path}: {e}"
                 )
                 continue
+
+        # Сортируем результаты по score в порядке убывания
+        results.sort(key=lambda x: x.get("score", 0), reverse=True)
 
         return results

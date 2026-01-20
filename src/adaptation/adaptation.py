@@ -17,7 +17,10 @@ Adaptation только медленно перестраивает поведе
 import logging
 import threading
 import time
-from typing import Dict, List
+from typing import TYPE_CHECKING, Dict, List
+
+if TYPE_CHECKING:
+    from src.state.self_state import SelfState
 
 logger = logging.getLogger(__name__)
 
@@ -375,7 +378,9 @@ class AdaptationManager:
         learning_coefficients = learning_params.get("response_coefficients", {})
         return learning_coefficients.copy()
 
-    def store_history(self, old_params: Dict, new_params: Dict, self_state) -> None:
+    def store_history(
+        self, old_params: Dict, new_params: Dict, self_state: "SelfState"
+    ) -> None:
         """
         Хранит историю адаптаций для обратимости.
 
@@ -405,13 +410,19 @@ class AdaptationManager:
                             if param_name in old_value_dict:
                                 old_value = old_value_dict[param_name]
                                 # Проверка на None для избежания TypeError
-                                if old_value is not None and new_value is not None:
-                                    if abs(new_value - old_value) >= self.MIN_ADAPTATION_DELTA:
-                                        param_changes[param_name] = {
-                                            "old": old_value,
-                                            "new": new_value,
-                                            "delta": new_value - old_value,
-                                        }
+                                # УНИФИЦИРОВАННАЯ ОБРАБОТКА: выбрасываем исключение как в apply_adaptation()
+                                if old_value is None or new_value is None:
+                                    logger.warning(
+                                        f"Параметр {key}.{param_name} имеет значение None: "
+                                        f"old_value={old_value}, new_value={new_value}. Пропускаем."
+                                    )
+                                    continue
+                                if abs(new_value - old_value) >= self.MIN_ADAPTATION_DELTA:
+                                    param_changes[param_name] = {
+                                        "old": old_value,
+                                        "new": new_value,
+                                        "delta": new_value - old_value,
+                                    }
                         if param_changes:
                             changes[key] = param_changes
                 else:
