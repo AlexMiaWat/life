@@ -28,7 +28,7 @@ from api import app, fake_users_db
 @pytest.fixture
 def client():
     """Тестовый клиент FastAPI"""
-    return TestClient(app, timeout=10.0)
+    return TestClient(app)
 
 
 @pytest.fixture

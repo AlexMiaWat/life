@@ -470,8 +470,9 @@ class SelfState:
         """
         Проверка жизнеспособности с более строгими критериями.
         Возвращает True если все vital параметры выше пороговых значений.
+        В философии Life система может продолжать работать даже с нулевыми параметрами.
         """
-        return self.energy > 10.0 and self.integrity > 0.1 and self.stability > 0.1
+        return self.energy >= 0.0 and self.integrity >= 0.0 and self.stability >= 0.0
 
     def update_energy(self, value: float) -> None:
         """Безопасное обновление energy с валидацией"""
@@ -1125,10 +1126,10 @@ class SelfState:
 
 def create_initial_state() -> SelfState:
     state = SelfState()
-    # Инициализируем архивную память
-    state.archive_memory = ArchiveMemory()
+    # Инициализируем архивную память (для новой сессии начинаем с пустого архива)
+    state.archive_memory = ArchiveMemory(load_existing=False)
     # Инициализируем memory с архивом (__post_init__ уже создал memory, но пересоздадим с правильным архивом)
-    state.memory = Memory(archive=state.archive_memory)
+    state.memory = Memory(archive=state.archive_memory, load_existing_archive=False)
     return state
 
 

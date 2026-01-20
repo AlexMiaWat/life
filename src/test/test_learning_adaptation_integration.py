@@ -108,17 +108,17 @@ class TestLearningAdaptationStatic:
             source_code = f.read()
 
         # Проверяем, что интервалы определены
-        assert "learning_interval" in source_code
-        assert "adaptation_interval" in source_code
+        assert "LEARNING_INTERVAL" in source_code
+        assert "ADAPTATION_INTERVAL" in source_code
 
         # Проверяем значения интервалов
         assert (
-            "learning_interval = 75" in source_code
-            or "learning_interval=75" in source_code
+            "LEARNING_INTERVAL = 75" in source_code
+            or "LEARNING_INTERVAL=75" in source_code
         )
         assert (
-            "adaptation_interval = 100" in source_code
-            or "adaptation_interval=100" in source_code
+            "ADAPTATION_INTERVAL = 100" in source_code
+            or "ADAPTATION_INTERVAL=100" in source_code
         )
 
     def test_forbidden_methods_learning(self):
@@ -195,7 +195,7 @@ class TestLearningAdaptationStatic:
         assert isinstance(result, dict)
 
         # adjust_parameters возвращает dict
-        result = engine.adjust_parameters({}, {})
+        result = engine.adjust_parameters({}, {"event_type_sensitivity": {"noise": 0.2}})
         assert isinstance(result, dict)
 
         # analyze_changes возвращает dict
@@ -425,6 +425,7 @@ class TestLearningAdaptationRuntimeIntegration:
     def test_learning_frequency_in_runtime(self, base_state, event_queue):
         """Тест частоты вызова Learning (раз в 75 тиков)"""
         stop_event = threading.Event()
+        learning_interval = 75
 
         initial_params = base_state.learning_params.copy()
 

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="2" failures="0" skipped="0" tests="2" time="4.511" timestamp="2026-01-20T19:00:55.659546+00:00" hostname="601e704739a9"><testcase classname="" name="src.test.test_api_auth_integration" time="0.000"><error message="collection failure">ImportError while importing test module '/workspace/src/test/test_api_auth_integration.py'.
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="2" failures="0" skipped="0" tests="2" time="4.240" timestamp="2026-01-20T19:11:41.360277+00:00" hostname="601e704739a9"><testcase classname="" name="src.test.test_api_auth_integration" time="0.000"><error message="collection failure">ImportError while importing test module '/workspace/src/test/test_api_auth_integration.py'.
 Hint: make sure your test modules/packages have valid Python names.
 Traceback:
 /usr/lib/python3.10/importlib/__init__.py:126: in import_module

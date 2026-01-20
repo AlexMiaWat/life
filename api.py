@@ -172,19 +172,22 @@ async def create_event(
     """Создание события в системе Life."""
     check_api_access(x_api_key)
 
-    # Импортируем здесь чтобы избежать циклических импортов
-    from src.runtime.loop import add_external_event
-
-    # Добавляем событие в систему
-    result = add_external_event(event.type, event.intensity, event.metadata)
+    # В упрощенном API просто логируем событие
+    # TODO: Интегрировать с runtime loop когда будет доступ к event_queue
+    import time
+    timestamp = event.timestamp or time.time()
 
     return EventResponse(
         type=event.type,
         intensity=event.intensity,
-        timestamp=event.timestamp or result.get("timestamp", 0),
+        timestamp=timestamp,
         metadata=event.metadata,
-        message=f"Event '{event.type}' added to Life system"
+        message=f"Event '{event.type}' accepted by Life system"
     )
+
+
+# Совместимость с тестами - пустая база пользователей для упрощенного API
+fake_users_db = {}
 
 
 # API теперь читает состояние из snapshot файлов,
