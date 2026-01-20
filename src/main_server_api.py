@@ -55,11 +55,49 @@ class LifeHandler(BaseHTTPRequestHandler):
     )
 
     def do_GET(self):
-        if self.path == "/status":
+        if self.path.startswith("/status"):
             self.send_response(200)
             self.send_header("Content-type", "application/json")
             self.end_headers()
-            self.wfile.write(json.dumps(asdict(self.server.self_state)).encode())
+            
+            # Парсим query-параметры для ограничения больших полей
+            from urllib.parse import urlparse, parse_qs
+            parsed_url = urlparse(self.path)
+            query_params = parse_qs(parsed_url.query)
+            
+            # Извлекаем лимиты из query-параметров
+            limits = {}
+            if "memory_limit" in query_params:
+                try:
+                    limits["memory_limit"] = int(query_params["memory_limit"][0])
+                except (ValueError, IndexError):
+                    pass
+            if "events_limit" in query_params:
+                try:
+                    limits["events_limit"] = int(query_params["events_limit"][0])
+                except (ValueError, IndexError):
+                    pass
+            if "energy_history_limit" in query_params:
+                try:
+                    limits["energy_history_limit"] = int(query_params["energy_history_limit"][0])
+                except (ValueError, IndexError):
+                    pass
+            if "stability_history_limit" in query_params:
+                try:
+                    limits["stability_history_limit"] = int(query_params["stability_history_limit"][0])
+                except (ValueError, IndexError):
+                    pass
+            if "adaptation_history_limit" in query_params:
+                try:
+                    limits["adaptation_history_limit"] = int(query_params["adaptation_history_limit"][0])
+                except (ValueError, IndexError):
+                    pass
+            
+            # Используем безопасный метод для получения статуса
+            safe_status = self.server.self_state.get_safe_status_dict(
+                include_optional=True, limits=limits if limits else None
+            )
+            self.wfile.write(json.dumps(safe_status).encode())
         elif self.path == "/clear-data":
             os.makedirs("data/snapshots", exist_ok=True)
             log_file = "data/tick_log.jsonl"

@@ -78,12 +78,65 @@ class EventResponse(BaseModel):
 
 
 class StatusResponse(BaseModel):
+    """Минимальный контракт статуса (для обратной совместимости)."""
     active: bool
     ticks: int
     age: float
     energy: float
     stability: float
     integrity: float
+
+
+class ExtendedStatusResponse(BaseModel):
+    """Расширенный контракт статуса с полной информацией о состоянии системы."""
+    # Основные метрики (Vital Parameters) - ОБЯЗАТЕЛЬНЫЕ
+    active: bool
+    energy: float
+    integrity: float
+    stability: float
+    
+    # Временные метрики - ОБЯЗАТЕЛЬНЫЕ
+    ticks: int
+    age: float
+    subjective_time: float
+    
+    # Внутренняя динамика - РЕКОМЕНДУЕМЫЕ
+    fatigue: float
+    tension: float
+    
+    # Идентификация - ОПЦИОНАЛЬНЫЕ
+    life_id: Optional[str] = None
+    birth_timestamp: Optional[float] = None
+    
+    # Параметры обучения и адаптации - РЕКОМЕНДУЕМЫЕ
+    learning_params: Optional[dict] = None
+    adaptation_params: Optional[dict] = None
+    
+    # Последние значения - РЕКОМЕНДУЕМЫЕ
+    last_significance: Optional[float] = None
+    last_event_intensity: Optional[float] = None
+    
+    # Когнитивные слои - РЕКОМЕНДУЕМЫЕ
+    planning: Optional[dict] = None
+    intelligence: Optional[dict] = None
+    
+    # Параметры субъективного времени - ОПЦИОНАЛЬНЫЕ
+    subjective_time_base_rate: Optional[float] = None
+    subjective_time_rate_min: Optional[float] = None
+    subjective_time_rate_max: Optional[float] = None
+    subjective_time_intensity_coeff: Optional[float] = None
+    subjective_time_stability_coeff: Optional[float] = None
+    
+    # Опциональные большие поля (только если запрошены через query-параметры)
+    memory: Optional[list] = None
+    recent_events: Optional[list] = None
+    energy_history: Optional[list] = None
+    stability_history: Optional[list] = None
+    adaptation_history: Optional[list] = None
+    
+    class Config:
+        # Позволяет использовать модель с дополнительными полями
+        extra = "allow"
 
 
 # База данных пользователей (в продакшене использовать реальную БД)
@@ -245,13 +298,137 @@ async def protected_route(current_user: User = Depends(get_current_active_user))
     }
 
 
-@app.get("/status", response_model=StatusResponse)
-async def get_status(current_user: User = Depends(get_current_active_user)):
-    """Получение статуса системы (защищенный endpoint)."""
+@app.get("/status", response_model=ExtendedStatusResponse)
+async def get_status(
+    current_user: User = Depends(get_current_active_user),
+    memory_limit: Optional[int] = None,
+    events_limit: Optional[int] = None,
+    energy_history_limit: Optional[int] = None,
+    stability_history_limit: Optional[int] = None,
+    adaptation_history_limit: Optional[int] = None,
+    minimal: bool = False,
+):
+    """
+    Получение статуса системы (защищенный endpoint).
+    
+    Поддерживает расширенный контракт с опциональными полями.
+    
+    Query-параметры:
+    - memory_limit: ограничить количество записей памяти
+    - events_limit: ограничить количество последних событий
+    - energy_history_limit: ограничить количество значений истории энергии
+    - stability_history_limit: ограничить количество значений истории стабильности
+    - adaptation_history_limit: ограничить количество значений истории адаптации
+    - minimal: если True, возвращает только минимальный набор полей (для обратной совместимости)
+    
+    Примечание: В текущей реализации возвращаются примерные данные.
+    Для полной интеграции необходимо подключить реальный SelfState.
+    """
     # Здесь можно интегрировать с существующим SelfState
-    # Пока возвращаем примерные данные
-    return StatusResponse(
-        active=True, ticks=100, age=100.5, energy=85.0, stability=0.95, integrity=0.98
+    # Пока возвращаем примерные данные с расширенным контрактом
+    
+    # Формируем лимиты для больших полей
+    limits = {}
+    if memory_limit is not None:
+        limits["memory_limit"] = memory_limit
+    if events_limit is not None:
+        limits["events_limit"] = events_limit
+    if energy_history_limit is not None:
+        limits["energy_history_limit"] = energy_history_limit
+    if stability_history_limit is not None:
+        limits["stability_history_limit"] = stability_history_limit
+    if adaptation_history_limit is not None:
+        limits["adaptation_history_limit"] = adaptation_history_limit
+    
+    # Если запрошен минимальный контракт, возвращаем только основные поля
+    if minimal:
+        return StatusResponse(
+            active=True,
+            ticks=100,
+            age=100.5,
+            energy=85.0,
+            stability=0.95,
+            integrity=0.98,
+        )
+    
+    # Возвращаем расширенный контракт
+    return ExtendedStatusResponse(
+        # Основные метрики
+        active=True,
+        energy=85.0,
+        integrity=0.98,
+        stability=0.95,
+        # Временные метрики
+        ticks=100,
+        age=100.5,
+        subjective_time=105.0,
+        # Внутренняя динамика
+        fatigue=10.0,
+        tension=5.0,
+        # Идентификация
+        life_id="550e8400-e29b-41d4-a716-446655440000",
+        birth_timestamp=1700000000.0,
+        # Параметры обучения и адаптации
+        learning_params={
+            "event_type_sensitivity": {
+                "noise": 0.2,
+                "decay": 0.2,
+                "recovery": 0.2,
+                "shock": 0.2,
+                "idle": 0.2,
+            },
+            "significance_thresholds": {
+                "noise": 0.1,
+                "decay": 0.1,
+                "recovery": 0.1,
+                "shock": 0.1,
+                "idle": 0.1,
+            },
+            "response_coefficients": {
+                "dampen": 0.5,
+                "absorb": 1.0,
+                "ignore": 0.0,
+            },
+        },
+        adaptation_params={
+            "behavior_sensitivity": {
+                "noise": 0.2,
+                "decay": 0.2,
+                "recovery": 0.2,
+                "shock": 0.2,
+                "idle": 0.2,
+            },
+            "behavior_thresholds": {
+                "noise": 0.1,
+                "decay": 0.1,
+                "recovery": 0.1,
+                "shock": 0.1,
+                "idle": 0.1,
+            },
+            "behavior_coefficients": {
+                "dampen": 0.5,
+                "absorb": 1.0,
+                "ignore": 0.0,
+            },
+        },
+        # Последние значения
+        last_significance=0.7,
+        last_event_intensity=0.5,
+        # Когнитивные слои
+        planning={},
+        intelligence={},
+        # Параметры субъективного времени
+        subjective_time_base_rate=1.0,
+        subjective_time_rate_min=0.1,
+        subjective_time_rate_max=3.0,
+        subjective_time_intensity_coeff=1.0,
+        subjective_time_stability_coeff=0.5,
+        # Большие поля (только если запрошены через лимиты)
+        memory=[] if memory_limit is not None else None,
+        recent_events=[] if events_limit is not None else None,
+        energy_history=[] if energy_history_limit is not None else None,
+        stability_history=[] if stability_history_limit is not None else None,
+        adaptation_history=[] if adaptation_history_limit is not None else None,
     )
 
 

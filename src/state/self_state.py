@@ -447,6 +447,147 @@ class SelfState:
         if len(self._log_buffer) >= size:
             self._flush_log_buffer()
 
+    def get_safe_status_dict(
+        self,
+        include_optional: bool = True,
+        limits: Optional[dict] = None,
+    ) -> dict:
+        """
+        Получить безопасный словарь состояния для публичного API.
+
+        Исключает:
+        - Transient поля (activated_memory, last_pattern)
+        - Внутренние поля (начинающиеся с _)
+        - Не сериализуемые объекты (archive_memory)
+
+        Опционально ограничивает размер больших полей:
+        - memory (по умолчанию не включается, можно включить с лимитом)
+        - recent_events
+        - energy_history
+        - stability_history
+        - adaptation_history
+
+        Args:
+            include_optional: Если True, включает опциональные поля (life_id, birth_timestamp,
+                            learning_params, adaptation_params, planning, intelligence,
+                            subjective_time параметры)
+            limits: Словарь с лимитами для больших полей:
+                    - memory_limit: количество записей памяти (None = не включать)
+                    - events_limit: количество последних событий
+                    - energy_history_limit: количество значений истории энергии
+                    - stability_history_limit: количество значений истории стабильности
+                    - adaptation_history_limit: количество значений истории адаптации
+
+        Returns:
+            dict: Безопасный словарь состояния для публичного API
+        """
+        from dataclasses import asdict
+
+        # Получаем все поля через asdict
+        state_dict = asdict(self)
+
+        # Исключаем transient поля
+        state_dict.pop("activated_memory", None)
+        state_dict.pop("last_pattern", None)
+
+        # Исключаем внутренние поля (начинающиеся с _)
+        keys_to_remove = [key for key in state_dict.keys() if key.startswith("_")]
+        for key in keys_to_remove:
+            state_dict.pop(key, None)
+
+        # Исключаем не сериализуемые объекты
+        state_dict.pop("archive_memory", None)
+
+        # Обрабатываем limits
+        if limits is None:
+            limits = {}
+
+        # Обработка memory (по умолчанию не включаем, только если явно указан лимит)
+        memory_limit = limits.get("memory_limit")
+        if memory_limit is not None and self.memory is not None:
+            # Ограничиваем количество записей памяти
+            memory_entries = list(self.memory)[-memory_limit:] if memory_limit > 0 else []
+            state_dict["memory"] = [
+                {
+                    "event_type": entry.event_type,
+                    "meaning_significance": entry.meaning_significance,
+                    "timestamp": entry.timestamp,
+                    "weight": entry.weight,
+                    "feedback_data": entry.feedback_data,
+                }
+                for entry in memory_entries
+            ]
+        else:
+            # По умолчанию не включаем memory (может быть большим)
+            state_dict.pop("memory", None)
+
+        # Ограничиваем размер других больших полей
+        events_limit = limits.get("events_limit")
+        if events_limit is not None and events_limit > 0:
+            if "recent_events" in state_dict and isinstance(
+                state_dict["recent_events"], list
+            ):
+                state_dict["recent_events"] = state_dict["recent_events"][-events_limit:]
+        else:
+            # По умолчанию не включаем recent_events
+            state_dict.pop("recent_events", None)
+
+        energy_history_limit = limits.get("energy_history_limit")
+        if energy_history_limit is not None and energy_history_limit > 0:
+            if "energy_history" in state_dict and isinstance(
+                state_dict["energy_history"], list
+            ):
+                state_dict["energy_history"] = state_dict["energy_history"][
+                    -energy_history_limit:
+                ]
+        else:
+            # По умолчанию не включаем energy_history
+            state_dict.pop("energy_history", None)
+
+        stability_history_limit = limits.get("stability_history_limit")
+        if stability_history_limit is not None and stability_history_limit > 0:
+            if "stability_history" in state_dict and isinstance(
+                state_dict["stability_history"], list
+            ):
+                state_dict["stability_history"] = state_dict["stability_history"][
+                    -stability_history_limit:
+                ]
+        else:
+            # По умолчанию не включаем stability_history
+            state_dict.pop("stability_history", None)
+
+        adaptation_history_limit = limits.get("adaptation_history_limit")
+        if adaptation_history_limit is not None and adaptation_history_limit > 0:
+            if "adaptation_history" in state_dict and isinstance(
+                state_dict["adaptation_history"], list
+            ):
+                state_dict["adaptation_history"] = state_dict["adaptation_history"][
+                    -adaptation_history_limit:
+                ]
+        else:
+            # По умолчанию не включаем adaptation_history
+            state_dict.pop("adaptation_history", None)
+
+        # Если include_optional=False, исключаем опциональные поля
+        if not include_optional:
+            optional_fields = [
+                "life_id",
+                "birth_timestamp",
+                "learning_params",
+                "adaptation_params",
+                "planning",
+                "intelligence",
+                "subjective_time_base_rate",
+                "subjective_time_rate_min",
+                "subjective_time_rate_max",
+                "subjective_time_intensity_coeff",
+                "subjective_time_stability_coeff",
+            ]
+            for field_name in optional_fields:
+                state_dict.pop(field_name, None)
+
+        return state_dict
+
     def _validate_learning_params(self, params: dict) -> dict:
         """
         Валидация структуры learning_params при загрузке из snapshot.

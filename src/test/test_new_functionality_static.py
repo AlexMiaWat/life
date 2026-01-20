@@ -103,7 +103,13 @@ class TestNewFunctionalityStatic:
         assert isinstance(result, dict)
 
         # adjust_parameters возвращает dict
-        result = engine.adjust_parameters({}, {})
+        # current_params не может быть пустым, передаем валидные параметры
+        current_params = {
+            "event_type_sensitivity": {"noise": 0.2},
+            "significance_thresholds": {},
+            "response_coefficients": {},
+        }
+        result = engine.adjust_parameters({}, current_params)
         assert isinstance(result, dict)
 
         # record_changes возвращает None
