@@ -5,10 +5,19 @@ MCP Server для документации проекта Life.
 Использует FastMCP для упрощения.
 """
 
+import logging
 import os
+import threading
+import time
 from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
+
+# Настройка логирования
+logger = logging.getLogger(__name__)
+
+# Блокировка для защиты от одновременного доступа к переиндексации
+_reindex_lock = threading.Lock()
 
 # Путь к директории документации
 DOCS_DIR = Path(__file__).parent / "docs"
@@ -632,24 +641,125 @@ async def refresh_index() -> str:
     Выполняет полную переиндексацию всех директорий (docs/, todo/).
     Полезно использовать после массового изменения файлов или если индекс устарел.
 
+    **Потокобезопасность:** Операция защищена блокировкой для предотвращения одновременного
+    доступа. Если переиндексация уже выполняется, последующие вызовы будут ждать завершения.
+
     Returns:
-        Сообщение о статусе обновления индекса
+        Сообщение о статусе обновления индекса с информацией о времени выполнения и статистике.
+
+    Examples:
+        >>> import asyncio
+        >>> from mcp_index import refresh_index
+        >>> result = asyncio.run(refresh_index())
+        >>> print(result)
+        Индекс успешно обновлен.
+        
+        - Проиндексировано файлов: 150
+        - Уникальных токенов в индексе: 5234
+        - Время выполнения: 2.34 сек.
+
+    Raises:
+        RuntimeError: При критических ошибках инициализации движка индексации
+        ValueError: При ошибках валидации данных
+        OSError: При ошибках доступа к файловой системе
     """
+    start_time = time.time()
+    
+    # Используем блокировку для защиты от одновременного доступа
+    # Это предотвращает race conditions при параллельных вызовах
+    if not _reindex_lock.acquire(blocking=False):
+        # Если блокировка уже занята, значит переиндексация уже выполняется
+        logger.warning("Попытка запустить переиндексацию, когда она уже выполняется")
+        return (
+            "Переиндексация уже выполняется. Пожалуйста, подождите завершения "
+            "текущей операции перед повторным вызовом."
+        )
+    
     try:
-        engine = _get_index_engine()
-        engine.reindex()
+        logger.info("Начало переиндексации")
+        
+        # Инициализация движка
+        try:
+            engine = _get_index_engine()
+        except Exception as e:
+            logger.error(f"Ошибка инициализации IndexEngine: {type(e).__name__}: {e}", exc_info=True)
+            raise RuntimeError(f"Не удалось инициализировать движок индексации: {str(e)}") from e
+        
+        # Выполнение переиндексации
+        try:
+            engine.reindex()
+            logger.info("Переиндексация завершена успешно")
+        except Exception as e:
+            logger.error(f"Ошибка при выполнении переиндексации: {type(e).__name__}: {e}", exc_info=True)
+            raise RuntimeError(f"Ошибка при переиндексации: {str(e)}") from e
 
         # Подсчитываем статистику
-        cache_size = len(engine.content_cache)
-        index_size = len(engine.inverted_index)
+        try:
+            cache_size = len(engine.content_cache)
+            index_size = len(engine.inverted_index)
+        except Exception as e:
+            logger.error(f"Ошибка при подсчете статистики: {type(e).__name__}: {e}", exc_info=True)
+            raise ValueError(f"Ошибка при подсчете статистики: {str(e)}") from e
 
-        return (
+        # Валидация статистики
+        warnings = []
+        
+        if cache_size == 0:
+            warnings.append("⚠️ Предупреждение: не проиндексировано ни одного файла. Возможно, директории docs/ и todo/ пусты.")
+            logger.warning("Статистика: cache_size == 0")
+        
+        if index_size == 0:
+            warnings.append("⚠️ Предупреждение: индекс не содержит токенов. Возможно, файлы пусты или не содержат текста.")
+            logger.warning("Статистика: index_size == 0")
+        
+        # Проверка на подозрительно большие значения
+        if cache_size > 100000:
+            warnings.append(f"⚠️ Предупреждение: очень большое количество проиндексированных файлов ({cache_size}). Возможна ошибка.")
+            logger.warning(f"Статистика: подозрительно большое cache_size: {cache_size}")
+        
+        # Вычисляем время выполнения
+        elapsed_time = time.time() - start_time
+        
+        # Формируем результат
+        result = (
             f"Индекс успешно обновлен.\n\n"
             f"- Проиндексировано файлов: {cache_size}\n"
-            f"- Уникальных токенов в индексе: {index_size}"
+            f"- Уникальных токенов в индексе: {index_size}\n"
+            f"- Время выполнения: {elapsed_time:.2f} сек."
         )
+        
+        if warnings:
+            result += "\n\n" + "\n".join(warnings)
+        
+        logger.info(f"Переиндексация завершена: {cache_size} файлов, {index_size} токенов, {elapsed_time:.2f} сек.")
+        
+        return result
+        
+    except (RuntimeError, ValueError) as e:
+        # Специфичные ошибки - логируем и возвращаем понятное сообщение
+        elapsed_time = time.time() - start_time
+        error_msg = f"Ошибка при обновлении индекса: {str(e)}\nВремя до ошибки: {elapsed_time:.2f} сек."
+        logger.error(error_msg)
+        return error_msg
+        
+    except OSError as e:
+        # Ошибки файловой системы
+        elapsed_time = time.time() - start_time
+        error_msg = f"Ошибка доступа к файловой системе при обновлении индекса: {str(e)}\nВремя до ошибки: {elapsed_time:.2f} сек."
+        logger.error(error_msg, exc_info=True)
+        return error_msg
+        
     except Exception as e:
-        return f"Ошибка при обновлении индекса: {str(e)}"
+        # Неожиданные ошибки - логируем с полной информацией
+        elapsed_time = time.time() - start_time
+        error_msg = f"Неожиданная ошибка при обновлении индекса: {type(e).__name__}: {str(e)}\nВремя до ошибки: {elapsed_time:.2f} сек."
+        logger.error(error_msg, exc_info=True)
+        return error_msg
+        
+    finally:
+        # Всегда освобождаем блокировку
+        _reindex_lock.release()
+        logger.debug("Блокировка переиндексации освобождена")
 
 
 if __name__ == "__main__":

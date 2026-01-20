@@ -18,6 +18,7 @@ from mcp_index import (
     get_todo_content,
     list_docs,
     list_todo,
+    refresh_index,
     search_docs,
     search_todo,
 )
@@ -224,6 +225,102 @@ async def test_get_todo_content():
     print("[OK] get_todo_content работает корректно")
 
 
+async def test_refresh_index():
+    """Тест обновления индекса"""
+    print("\n=== Тест: refresh_index ===")
+    result = await refresh_index()
+    print(f"Результат:\n{result}")
+    
+    # Проверяем, что результат содержит ожидаемую информацию
+    assert "Индекс успешно обновлен" in result or "Ошибка" in result
+    assert "Проиндексировано файлов:" in result
+    assert "Уникальных токенов в индексе:" in result
+    assert "Время выполнения:" in result
+    
+    # Если успешно, проверяем формат статистики
+    if "Индекс успешно обновлен" in result:
+        # Проверяем, что есть числа в статистике
+        import re
+        file_count_match = re.search(r"Проиндексировано файлов: (\d+)", result)
+        token_count_match = re.search(r"Уникальных токенов в индексе: (\d+)", result)
+        time_match = re.search(r"Время выполнения: ([\d.]+) сек\.", result)
+        
+        assert file_count_match is not None, "Не найдено количество файлов в результате"
+        assert token_count_match is not None, "Не найдено количество токенов в результате"
+        assert time_match is not None, "Не найдено время выполнения в результате"
+        
+        file_count = int(file_count_match.group(1))
+        token_count = int(token_count_match.group(1))
+        elapsed_time = float(time_match.group(1))
+        
+        assert file_count >= 0, "Количество файлов должно быть неотрицательным"
+        assert token_count >= 0, "Количество токенов должно быть неотрицательным"
+        assert elapsed_time >= 0, "Время выполнения должно быть неотрицательным"
+        
+        print(f"[OK] refresh_index работает корректно: {file_count} файлов, {token_count} токенов, {elapsed_time:.2f} сек.")
+    else:
+        print(f"[WARNING] refresh_index вернул ошибку: {result}")
+    
+    print("[OK] refresh_index работает корректно")
+
+
+async def test_refresh_index_statistics():
+    """Тест проверки статистики после обновления индекса"""
+    print("\n=== Тест: refresh_index (проверка статистики) ===")
+    
+    # Выполняем переиндексацию
+    result = await refresh_index()
+    
+    if "Индекс успешно обновлен" in result:
+        import re
+        file_count_match = re.search(r"Проиндексировано файлов: (\d+)", result)
+        token_count_match = re.search(r"Уникальных токенов в индексе: (\d+)", result)
+        
+        if file_count_match and token_count_match:
+            file_count = int(file_count_match.group(1))
+            token_count = int(token_count_match.group(1))
+            
+            # Проверяем, что статистика разумная
+            # (в реальном проекте должно быть хотя бы несколько файлов)
+            print(f"Статистика: {file_count} файлов, {token_count} токенов")
+            
+            # Если файлов 0, проверяем наличие предупреждения
+            if file_count == 0:
+                assert "⚠️" in result or "Предупреждение" in result, "Должно быть предупреждение при 0 файлах"
+                print("[OK] Предупреждение при 0 файлах присутствует")
+            
+            print("[OK] Статистика корректна")
+    else:
+        print(f"[WARNING] Не удалось проверить статистику из-за ошибки: {result}")
+
+
+async def test_refresh_index_timing():
+    """Тест проверки времени выполнения переиндексации"""
+    print("\n=== Тест: refresh_index (проверка времени выполнения) ===")
+    
+    import time
+    start = time.time()
+    result = await refresh_index()
+    actual_elapsed = time.time() - start
+    
+    if "Индекс успешно обновлен" in result:
+        import re
+        time_match = re.search(r"Время выполнения: ([\d.]+) сек\.", result)
+        
+        if time_match:
+            reported_time = float(time_match.group(1))
+            
+            # Проверяем, что заявленное время близко к реальному (с допуском 1 сек)
+            assert abs(reported_time - actual_elapsed) < 1.0, \
+                f"Заявленное время ({reported_time:.2f}) сильно отличается от реального ({actual_elapsed:.2f})"
+            
+            print(f"[OK] Время выполнения корректно: заявлено {reported_time:.2f} сек., реально {actual_elapsed:.2f} сек.")
+        else:
+            print("[WARNING] Не найдено время выполнения в результате")
+    else:
+        print(f"[WARNING] Не удалось проверить время из-за ошибки: {result}")
+
+
 async def test_mcp_server_init():
     """Тест инициализации MCP сервера"""
     print("\n=== Тест: Инициализация MCP сервера ===")
@@ -267,6 +364,10 @@ async def main():
         await test_search_todo_or_mode()
         await test_search_todo_phrase_mode()
         await test_get_todo_content()
+        # Тесты refresh_index
+        await test_refresh_index()
+        await test_refresh_index_statistics()
+        await test_refresh_index_timing()
 
         print("\n" + "=" * 60)
         print("[OK] Все тесты пройдены успешно!")
