@@ -11,7 +11,7 @@
 ### Текущая архитектура:
 1. **Runtime Loop**: Выполняется в отдельном потоке, модифицирует объект `self_state` в памяти
 2. **Snapshot Manager**: Периодически сохраняет снапшоты в JSON файлы через `save_snapshot()`
-3. **API Server**: Выполняется в другом потоке, читает статус через `SnapshotReader` из JSON файлов
+3. **API Server**: Выполняется в другом потоке, читает статус из JSON файлов
 4. **Event Queue**: Общая очередь между API (запись событий) и runtime loop (чтение событий)
 
 ### Выявленные проблемы:
@@ -36,9 +36,9 @@ with temp_filename.open("w") as f:
 temp_filename.replace(filename)
 ```
 
-### 2. Reader-Writer Lock для SnapshotReader
+### 2. Reader-Writer Lock для API
 
-**Добавлен RWLock в `src/runtime/snapshot_reader.py`:**
+**Реализован RWLock для безопасного доступа к snapshots:**
 ```python
 class RWLock:
     """Простая реализация reader-writer lock"""
@@ -46,7 +46,7 @@ class RWLock:
     # но гарантирует эксклюзивный доступ для писателя
 ```
 
-**Интеграция в SnapshotReader:**
+**Интеграция в API:**
 - Все операции чтения используют `with self._rw_lock` (read lock)
 - Добавлены методы `force_refresh()` для тестирования
 - Обработка временных файлов при чтении

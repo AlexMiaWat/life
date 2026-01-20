@@ -107,7 +107,7 @@
 ## Выявленные особенности
 
 ### Положительные
-1. **SnapshotReader** использует RWLock для thread-safety
+1. **API** использует RWLock для thread-safety
 2. **EventQueue.pop_all()** защищен от race conditions
 3. **API** работает без аутентификации в упрощенном режиме
 4. **Overflow handling** корректно логирует потерянные события

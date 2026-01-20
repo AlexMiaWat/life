@@ -1145,8 +1145,8 @@ class SelfState:
         finally:
             # Снимаем флаг загрузки
             object.__setattr__(state, "_loading_from_snapshot", False)
-        # Загружаем архив при загрузке snapshot (только если файл существует)
-        state.archive_memory = ArchiveMemory(load_existing=True)
+        # Создаем архив при загрузке snapshot (без загрузки существующих данных)
+        state.archive_memory = ArchiveMemory(load_existing=False)
         # Инициализируем memory с архивом и загруженными записями
         state.memory = Memory(archive=state.archive_memory)
         for entry in memory_entries:
@@ -1179,61 +1179,55 @@ def save_snapshot(state: SelfState):
     Args:
         state: Состояние для сохранения
     """
+    from src.runtime.performance_metrics import measure_time
+
     # Временно отключаем логирование для сериализации
     # Это предотвращает логирование изменений, которые могут произойти при конвертации dataclass
     logging_was_enabled = state._logging_enabled
     state.disable_logging()
 
     try:
-        # Создаем snapshot вручную, избегая проблем с asdict и RLock
-        snapshot = {}
-        for field_name in SelfState.__dataclass_fields__:
-            if not field_name.startswith("_"):  # Пропускаем внутренние поля
-                try:
-                    value = getattr(state, field_name)
-                    # Пропускаем не сериализуемые объекты
-                    if field_name not in ["_api_lock", "archive_memory", "memory"]:
-                        snapshot[field_name] = value
-                except AttributeError:
-                    continue
+        with measure_time("save_snapshot"):
+            # Создаем snapshot вручную, избегая проблем с asdict и RLock
+            snapshot = {}
+            for field_name in SelfState.__dataclass_fields__:
+                if not field_name.startswith("_"):  # Пропускаем внутренние поля
+                    try:
+                        value = getattr(state, field_name)
+                        # Пропускаем не сериализуемые объекты
+                        if field_name not in ["_api_lock", "archive_memory", "memory"]:
+                            snapshot[field_name] = value
+                    except AttributeError:
+                        continue
 
-        # Исключаем transient поля и большие структуры для производительности
-        snapshot.pop("activated_memory", None)
-        snapshot.pop("last_pattern", None)
-        # Исключаем большие структуры, которые не нужны для snapshot
-        snapshot.pop("energy_history", None)
-        snapshot.pop("stability_history", None)
-        snapshot.pop("time_ratio_history", None)
-        snapshot.pop("adaptation_history", None)
-        snapshot.pop("recent_events", None)
+            # Исключаем transient поля и большие структуры для производительности
+            snapshot.pop("activated_memory", None)
+            snapshot.pop("last_pattern", None)
+            # Исключаем большие структуры, которые не нужны для snapshot
+            snapshot.pop("energy_history", None)
+            snapshot.pop("stability_history", None)
+            snapshot.pop("time_ratio_history", None)
+            snapshot.pop("adaptation_history", None)
+            snapshot.pop("recent_events", None)
 
-        # Оптимизированная конвертация Memory в list
-        if isinstance(state.memory, Memory):
-            # Используем более эффективную сериализацию
-            snapshot["memory"] = [
-                {
-                    "event_type": entry.event_type,
-                    "meaning_significance": entry.meaning_significance,
-                    "timestamp": entry.timestamp,
-                    "weight": entry.weight,
-                    "feedback_data": entry.feedback_data,
-                }
-                for entry in state.memory
-            ]
+            # Оптимизированная конвертация Memory в list с кэшированием
+            if isinstance(state.memory, Memory):
+                # Используем кэшированную сериализацию для производительности
+                snapshot["memory"] = state.memory.get_serialized_entries()
 
-        tick = snapshot["ticks"]
-        filename = SNAPSHOT_DIR / f"snapshot_{tick:06d}.json"
+            tick = snapshot["ticks"]
+            filename = SNAPSHOT_DIR / f"snapshot_{tick:06d}.json"
 
-        # Атомарная замена: сначала пишем во временный файл, затем переименовываем
-        # Это гарантирует, что читатели никогда не увидят частично записанный файл
-        temp_filename = SNAPSHOT_DIR / f"snapshot_{tick:06d}.tmp"
+            # Атомарная замена: сначала пишем во временный файл, затем переименовываем
+            # Это гарантирует, что читатели никогда не увидят частично записанный файл
+            temp_filename = SNAPSHOT_DIR / f"snapshot_{tick:06d}.tmp"
 
-        # Оптимизированная запись без лишних отступов (меньше размер файла)
-        with temp_filename.open("w") as f:
-            json.dump(snapshot, f, separators=(",", ":"), default=str)
+            # Оптимизированная запись без лишних отступов (меньше размер файла)
+            with temp_filename.open("w") as f:
+                json.dump(snapshot, f, separators=(",", ":"), default=str)
 
-        # Атомарное переименование - это гарантирует консистентность для читателей
-        temp_filename.replace(filename)
+            # Атомарное переименование - это гарантирует консистентность для читателей
+            temp_filename.replace(filename)
     finally:
         # Восстанавливаем логирование
         if logging_was_enabled:

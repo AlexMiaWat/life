@@ -136,7 +136,7 @@ class ArchiveMemory:
 
 class Memory(list):
     """
-    Активная память с поддержкой архивации.
+    Активная память с поддержкой архивации и оптимизацией сериализации.
     """
 
     def __init__(
@@ -162,25 +162,54 @@ class Memory(list):
         self.archive = archive
         self._max_size = 50  # Максимальный размер активной памяти
         self._min_weight_threshold = 0.1  # Порог веса для автоматического удаления
+        self._serialized_cache = (
+            None  # Кэш сериализованных записей для оптимизации snapshot
+        )
 
     def append(self, item):
         super().append(item)
+        self._invalidate_cache()
         self.clamp_size()
+
+    def _invalidate_cache(self):
+        """Инвалидирует кэш сериализованных данных при изменении памяти."""
+        self._serialized_cache = None
+
+    def get_serialized_entries(self) -> List[Dict]:
+        """
+        Возвращает сериализованные записи памяти с кэшированием для производительности.
+
+        Returns:
+            Список сериализованных записей для snapshot
+        """
+        if self._serialized_cache is None:
+            self._serialized_cache = [
+                {
+                    "event_type": entry.event_type,
+                    "meaning_significance": entry.meaning_significance,
+                    "timestamp": entry.timestamp,
+                    "weight": entry.weight,
+                    "feedback_data": entry.feedback_data,
+                }
+                for entry in self
+            ]
+        return self._serialized_cache
 
     def clamp_size(self):
         """Ограничивает размер памяти, удаляя записи с наименьшим весом и ниже порога."""
+        self._invalidate_cache()  # Инвалидируем кэш перед изменениями
+
         # Сначала удаляем записи с весом ниже порога
         self[:] = [
             entry for entry in self if entry.weight >= self._min_weight_threshold
         ]
 
         # Затем ограничиваем размер, удаляя записи с наименьшим весом
-        while len(self) > self._max_size:
-            # Находим запись с наименьшим весом
-            if not self:
-                break
-            min_weight_entry = min(self, key=lambda x: x.weight)
-            self.remove(min_weight_entry)
+        if len(self) > self._max_size:
+            # Оптимизация: сортируем один раз вместо поиска минимума на каждой итерации
+            self.sort(key=lambda x: x.weight)
+            # Удаляем записи с наименьшими весами
+            del self[: len(self) - self._max_size]
 
     def archive_old_entries(
         self,
@@ -221,12 +250,17 @@ class Memory(list):
         Returns:
             Количество заархивированных записей
         """
-        import time
+        from src.runtime.performance_metrics import measure_time
 
-        current_time = time.time()
-        entries_to_archive = []
+        with measure_time("archive_old_entries"):
+            import time
 
-        # Собираем записи для архивации
+            self._invalidate_cache()  # Инвалидируем кэш перед изменениями
+
+            current_time = time.time()
+            entries_to_archive = []
+
+        # Собираем записи для архивации (оптимизация: не удаляем во время итерации)
         for entry in self[:]:
             should_archive = False
 
@@ -248,7 +282,10 @@ class Memory(list):
 
             if should_archive:
                 entries_to_archive.append(entry)
-                self.remove(entry)
+
+        # Оптимизация: удаляем все записи за один проход
+        for entry in entries_to_archive:
+            self.remove(entry)
 
         # Добавляем записи в архив
         if entries_to_archive:
@@ -261,7 +298,7 @@ class Memory(list):
                 self.extend(entries_to_archive)
                 raise RuntimeError(f"Ошибка при сохранении архива: {e}") from e
 
-        return len(entries_to_archive)
+            return len(entries_to_archive)
 
     def decay_weights(self, decay_factor: float = 0.99, min_weight: float = 0.0) -> int:
         """
@@ -274,13 +311,18 @@ class Memory(list):
         Returns:
             Количество записей, вес которых достиг минимума
         """
-        if not self:
-            return 0
+        from src.runtime.performance_metrics import measure_time
 
-        import time
+        with measure_time("decay_weights"):
+            if not self:
+                return 0
 
-        current_time = time.time()
-        min_weight_count = 0
+            import time
+
+            current_time = time.time()
+            min_weight_count = 0
+
+            self._invalidate_cache()  # Инвалидируем кэш перед изменениями
 
         for entry in self:
             # Базовое затухание
@@ -304,7 +346,7 @@ class Memory(list):
                 entry.weight = min_weight
                 min_weight_count += 1
 
-        return min_weight_count
+            return min_weight_count
 
     def get_statistics(self) -> Dict:
         """
