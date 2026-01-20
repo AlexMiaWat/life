@@ -38,7 +38,7 @@
 
 ## Варианты решения
 
-### Вариант 1: Read-Write Lock (RW-Lock)
+### Вариант 1: Write Lock (RW-Lock)
 
 **Преимущества:**
 - Позволяет множественное чтение одновременно
@@ -55,7 +55,7 @@
 - Или использовать библиотеку `readerwriterlock` для полноценного RW-lock
 - Обернуть все операции чтения/записи в контекстные менеджеры
 
-### Вариант 2: Атомарная замена snapshot (Copy-on-Read)
+### Вариант 2: Атомарная замена snapshot (Copy-on-Write)
 
 **Преимущества:**
 - Не требует блокировок для чтения
@@ -101,7 +101,7 @@ Runtime Loop Thread (Writer):
   - Периодически создает snapshot через save_snapshot()
   - Атомарно обновляет shared_snapshot через lock
 
-API Server Thread (Readers):
+API Server Thread (Consumers):
   - Читает из shared_snapshot (без блокировок)
   - Получает моментальный снимок состояния
   - Не блокирует writer

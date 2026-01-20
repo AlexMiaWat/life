@@ -14,6 +14,9 @@ import requests
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from .generator import EventGenerator
+from ..logging_config import get_logger, setup_logging
+
+logger = get_logger(__name__)
 
 
 def send_event(
@@ -45,14 +48,20 @@ def main():
         default=5.0,
         help="Интервал генерации событий, сек (по умолчанию 5)",
     )
+    parser.add_argument(
+        "--verbose", "-v", action="store_true", help="Включить подробное логирование (debug уровень)"
+    )
     args = parser.parse_args()
+
+    # Настройка логирования
+    setup_logging(verbose=args.verbose)
 
     generator = EventGenerator()
 
-    print(
+    logger.info(
         f"[GeneratorCLI] start: host={args.host} port={args.port} interval={args.interval}s"
     )
-    print("[GeneratorCLI] Нажмите Ctrl+C для остановки")
+    logger.info("[GeneratorCLI] Нажмите Ctrl+C для остановки")
 
     try:
         while True:
@@ -65,17 +74,17 @@ def main():
             }
             success, code, reason, body = send_event(args.host, args.port, payload)
             if success:
-                print(
+                logger.debug(
                     f"[GeneratorCLI] Sent event: {payload} | Code: {code} | Body: '{body}'"
                 )
             else:
-                print(
+                logger.warning(
                     f"[GeneratorCLI] Failed: code={code} reason='{reason}' body='{body}'"
                 )
 
             time.sleep(args.interval)
     except KeyboardInterrupt:
-        print("\n[GeneratorCLI] Stopped")
+        logger.info("\n[GeneratorCLI] Stopped")
 
 
 if __name__ == "__main__":  # pragma: no cover

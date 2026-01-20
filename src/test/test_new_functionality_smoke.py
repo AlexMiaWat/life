@@ -582,3 +582,395 @@ class TestNewFunctionalitySmoke:
 
         behavior_params = adaptation_manager.apply_adaptation(analysis, {}, self_state)
         assert isinstance(behavior_params, dict)
+
+    # ============================================================================
+    # MCP Index Engine Smoke Tests
+    # ============================================================================
+
+    def test_mcp_index_engine_instantiation(self):
+        """Дымовой тест создания IndexEngine"""
+        from pathlib import Path
+        import tempfile
+        import shutil
+
+        # Создаем временные директории
+        docs_dir = Path(tempfile.mkdtemp())
+        todo_dir = Path(tempfile.mkdtemp())
+        src_dir = Path(tempfile.mkdtemp())
+
+        try:
+            from mcp_index_engine import IndexEngine
+            engine = IndexEngine(docs_dir, todo_dir, src_dir)
+            assert engine is not None
+            assert isinstance(engine, IndexEngine)
+            assert engine.docs_dir == docs_dir.resolve()
+            assert engine.todo_dir == todo_dir.resolve()
+            assert engine.src_dir == src_dir.resolve()
+            assert not engine._initialized
+        finally:
+            shutil.rmtree(docs_dir, ignore_errors=True)
+            shutil.rmtree(todo_dir, ignore_errors=True)
+            shutil.rmtree(src_dir, ignore_errors=True)
+
+    def test_mcp_index_engine_tokenization(self):
+        """Дымовой тест токенизации IndexEngine"""
+        from pathlib import Path
+        import tempfile
+        import shutil
+
+        docs_dir = Path(tempfile.mkdtemp())
+        todo_dir = Path(tempfile.mkdtemp())
+        src_dir = Path(tempfile.mkdtemp())
+
+        try:
+            from mcp_index_engine import IndexEngine
+            engine = IndexEngine(docs_dir, todo_dir, src_dir)
+
+            # Тест токенизации
+            content = "Hello world test search"
+            tokens = engine._tokenize_content(content)
+            assert isinstance(tokens, set)
+            assert "hello" in tokens
+            assert "world" in tokens
+            assert "test" in tokens
+            assert "search" in tokens
+            assert len(tokens) == 4
+
+            # Тест пустой токенизации
+            empty_tokens = engine._tokenize_content("")
+            assert len(empty_tokens) == 0
+        finally:
+            shutil.rmtree(docs_dir, ignore_errors=True)
+            shutil.rmtree(todo_dir, ignore_errors=True)
+            shutil.rmtree(src_dir, ignore_errors=True)
+
+    def test_mcp_index_engine_file_operations(self):
+        """Дымовой тест операций с файлами IndexEngine"""
+        from pathlib import Path
+        import tempfile
+        import shutil
+
+        docs_dir = Path(tempfile.mkdtemp())
+        todo_dir = Path(tempfile.mkdtemp())
+        src_dir = Path(tempfile.mkdtemp())
+
+        try:
+            from mcp_index_engine import IndexEngine
+            engine = IndexEngine(docs_dir, todo_dir, src_dir)
+
+            # Создаем тестовый файл
+            test_file = docs_dir / "test.md"
+            test_file.write_text("Test content for indexing", encoding="utf-8")
+
+            # Тест загрузки содержимого
+            content = engine._load_content(test_file)
+            assert content == "Test content for indexing"
+
+            # Тест получения содержимого через кэш
+            cached_content = engine._get_content(test_file, docs_dir)
+            assert cached_content == "Test content for indexing"
+
+            # Проверяем, что файл в кэше
+            rel_path = engine._get_relative_path(test_file, docs_dir)
+            assert rel_path in engine.content_cache
+        finally:
+            shutil.rmtree(docs_dir, ignore_errors=True)
+            shutil.rmtree(todo_dir, ignore_errors=True)
+            shutil.rmtree(src_dir, ignore_errors=True)
+
+    def test_mcp_index_engine_indexing(self):
+        """Дымовой тест индексации IndexEngine"""
+        from pathlib import Path
+        import tempfile
+        import shutil
+
+        docs_dir = Path(tempfile.mkdtemp())
+        todo_dir = Path(tempfile.mkdtemp())
+        src_dir = Path(tempfile.mkdtemp())
+
+        try:
+            from mcp_index_engine import IndexEngine
+            engine = IndexEngine(docs_dir, todo_dir, src_dir)
+
+            # Создаем тестовые файлы
+            (docs_dir / "test1.md").write_text("Hello world", encoding="utf-8")
+            (docs_dir / "test2.md").write_text("Hello search", encoding="utf-8")
+
+            # Индексируем
+            engine.index_directory(docs_dir)
+
+            # Проверяем индексацию
+            assert len(engine.content_cache) == 2
+            assert "hello" in engine.inverted_index
+            assert len(engine.inverted_index["hello"]) == 2
+
+            # Тест поиска
+            results = engine.search_in_directory(docs_dir, "hello")
+            assert len(results) == 2
+            assert all("test" in r["path"] for r in results)
+        finally:
+            shutil.rmtree(docs_dir, ignore_errors=True)
+            shutil.rmtree(todo_dir, ignore_errors=True)
+            shutil.rmtree(src_dir, ignore_errors=True)
+
+    def test_mcp_index_engine_initialization(self):
+        """Дымовой тест инициализации IndexEngine"""
+        from pathlib import Path
+        import tempfile
+        import shutil
+
+        docs_dir = Path(tempfile.mkdtemp())
+        todo_dir = Path(tempfile.mkdtemp())
+        src_dir = Path(tempfile.mkdtemp())
+
+        try:
+            from mcp_index_engine import IndexEngine
+            engine = IndexEngine(docs_dir, todo_dir, src_dir)
+
+            # Создаем файлы для индексации
+            (docs_dir / "doc1.md").write_text("Documentation content", encoding="utf-8")
+            (todo_dir / "todo1.md").write_text("TODO content", encoding="utf-8")
+
+            # Инициализируем
+            engine.initialize()
+
+            assert engine._initialized
+            assert len(engine.content_cache) == 2
+            assert len(engine.inverted_index) > 0
+        finally:
+            shutil.rmtree(docs_dir, ignore_errors=True)
+            shutil.rmtree(todo_dir, ignore_errors=True)
+            shutil.rmtree(src_dir, ignore_errors=True)
+
+    def test_mcp_index_engine_reindex(self):
+        """Дымовой тест переиндексации IndexEngine"""
+        from pathlib import Path
+        import tempfile
+        import shutil
+
+        docs_dir = Path(tempfile.mkdtemp())
+        todo_dir = Path(tempfile.mkdtemp())
+        src_dir = Path(tempfile.mkdtemp())
+
+        try:
+            from mcp_index_engine import IndexEngine
+            engine = IndexEngine(docs_dir, todo_dir, src_dir)
+
+            # Создаем начальные файлы
+            (docs_dir / "initial.md").write_text("Initial content", encoding="utf-8")
+            engine.initialize()
+
+            initial_cache_size = len(engine.content_cache)
+
+            # Добавляем новый файл
+            (docs_dir / "new.md").write_text("New content", encoding="utf-8")
+            engine.reindex()
+
+            # Проверяем переиндексацию
+            assert len(engine.content_cache) == initial_cache_size + 1
+            assert "new.md" in engine.content_cache
+        finally:
+            shutil.rmtree(docs_dir, ignore_errors=True)
+            shutil.rmtree(todo_dir, ignore_errors=True)
+            shutil.rmtree(src_dir, ignore_errors=True)
+
+    # ============================================================================
+    # API Authentication Smoke Tests
+    # ============================================================================
+
+    def test_api_app_instantiation(self):
+        """Дымовой тест создания FastAPI приложения"""
+        from api import app
+
+        assert app is not None
+        assert hasattr(app, "title")
+        assert hasattr(app, "description")
+        assert hasattr(app, "version")
+        assert app.title == "Life API"
+        assert app.version == "1.0.0"
+
+    def test_api_routes_registration(self):
+        """Дымовой тест регистрации маршрутов API"""
+        from api import app
+
+        routes = [route.path for route in app.routes]
+        expected_routes = ["/", "/register", "/token", "/protected", "/status", "/event", "/users"]
+
+        for route in expected_routes:
+            assert route in routes, f"Route {route} not found in API routes"
+
+    def test_api_models_instantiation(self):
+        """Дымовой тест создания экземпляров моделей API"""
+        from api import User, UserCreate, Token, EventCreate, StatusResponse
+
+        # User
+        user = User(username="test", email="test@example.com")
+        assert user.username == "test"
+        assert user.email == "test@example.com"
+        assert user.disabled is False
+
+        # UserCreate
+        user_create = UserCreate(username="test", email="test@example.com", password="pass")
+        assert user_create.username == "test"
+        assert user_create.password == "pass"
+
+        # Token
+        token = Token(access_token="jwt.token", token_type="bearer")
+        assert token.access_token == "jwt.token"
+        assert token.token_type == "bearer"
+
+        # EventCreate
+        event = EventCreate(type="noise", intensity=0.5)
+        assert event.type == "noise"
+        assert event.intensity == 0.5
+
+        # StatusResponse
+        status = StatusResponse(active=True, ticks=100, age=100.5, energy=85.0, stability=0.95, integrity=0.98)
+        assert status.active is True
+        assert status.ticks == 100
+        assert status.energy == 85.0
+
+    def test_api_utility_functions(self):
+        """Дымовой тест утилитарных функций API"""
+        from api import verify_password, get_password_hash, create_access_token
+
+        # Password hashing
+        password = "testpassword"
+        hashed = get_password_hash(password)
+        assert isinstance(hashed, str)
+        assert len(hashed) > 0
+        assert verify_password(password, hashed)
+
+        # Wrong password verification
+        assert not verify_password("wrongpassword", hashed)
+
+        # JWT token creation
+        data = {"sub": "testuser"}
+        token = create_access_token(data)
+        assert isinstance(token, str)
+        assert len(token) > 0
+        assert token.count(".") == 2  # JWT format
+
+    def test_api_user_database(self):
+        """Дымовой тест базы данных пользователей"""
+        from api import fake_users_db
+
+        assert isinstance(fake_users_db, dict)
+        assert len(fake_users_db) >= 2  # admin and user
+
+        # Проверяем структуру пользователей
+        for username, user in fake_users_db.items():
+            assert hasattr(user, "username")
+            assert hasattr(user, "email")
+            assert hasattr(user, "hashed_password")
+            assert hasattr(user, "disabled")
+            assert user.username == username
+
+    def test_api_test_client_creation(self):
+        """Дымовой тест создания тестового клиента"""
+        from fastapi.testclient import TestClient
+        from api import app
+
+        client = TestClient(app)
+        assert client is not None
+
+        # Тест базового запроса
+        response = client.get("/")
+        assert response.status_code == 200
+
+        data = response.json()
+        assert "message" in data
+        assert "version" in data
+
+    def test_api_openapi_specification(self):
+        """Дымовой тест спецификации OpenAPI"""
+        from fastapi.testclient import TestClient
+        from api import app
+
+        client = TestClient(app)
+
+        # Получаем спецификацию OpenAPI
+        response = client.get("/openapi.json")
+        assert response.status_code == 200
+
+        spec = response.json()
+        assert "info" in spec
+        assert "paths" in spec
+        assert spec["info"]["title"] == "Life API"
+        assert spec["info"]["version"] == "1.0.0"
+
+        # Проверяем наличие основных эндпоинтов в спецификации
+        assert "/" in spec["paths"]
+        assert "/register" in spec["paths"]
+        assert "/token" in spec["paths"]
+        assert "/status" in spec["paths"]
+
+    # ============================================================================
+    # MCP + API Integration Smoke Tests
+    # ============================================================================
+
+    def test_mcp_api_integration_smoke(self):
+        """Дымовой тест интеграции MCP Index Engine с API"""
+        from pathlib import Path
+        import tempfile
+        import shutil
+        from fastapi.testclient import TestClient
+
+        docs_dir = Path(tempfile.mkdtemp())
+        todo_dir = Path(tempfile.mkdtemp())
+        src_dir = Path(tempfile.mkdtemp())
+
+        try:
+            # Создаем тестовую документацию
+            (docs_dir / "api_docs.md").write_text("# API Documentation\nThis is API docs for search testing", encoding="utf-8")
+            (docs_dir / "readme.md").write_text("# README\nWelcome to the project", encoding="utf-8")
+
+            # Создаем IndexEngine
+            from mcp_index_engine import IndexEngine
+            engine = IndexEngine(docs_dir, todo_dir, src_dir)
+            engine.initialize()
+
+            # Проверяем индексацию
+            assert len(engine.content_cache) == 2
+            assert "api" in engine.inverted_index
+            assert "documentation" in engine.inverted_index
+
+            # Тест поиска
+            results = engine.search_in_directory(docs_dir, "api")
+            assert len(results) == 1
+            assert "api_docs.md" in results[0]["path"]
+
+            # Тест API клиента
+            from api import app
+            client = TestClient(app)
+
+            # Регистрируем пользователя
+            user_data = {
+                "username": "search_user",
+                "email": "search@example.com",
+                "password": "search123"
+            }
+            response = client.post("/register", json=user_data)
+            assert response.status_code == 201
+
+            # Входим
+            login_response = client.post("/token", data={
+                "username": "search_user",
+                "password": "search123"
+            })
+            assert login_response.status_code == 200
+
+            # Получаем статус
+            token = login_response.json()["access_token"]
+            headers = {"Authorization": f"Bearer {token}"}
+            status_response = client.get("/status", headers=headers)
+            assert status_response.status_code == 200
+
+            # Проверяем, что все компоненты работают вместе
+            assert len(engine.content_cache) == 2
+            assert status_response.json()["active"] is True
+
+        finally:
+            shutil.rmtree(docs_dir, ignore_errors=True)
+            shutil.rmtree(todo_dir, ignore_errors=True)
+            shutil.rmtree(src_dir, ignore_errors=True)

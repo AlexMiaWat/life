@@ -648,3 +648,507 @@ class TestNewFunctionalityIntegration:
         assert hasattr(self_state, "memory")
         assert hasattr(self_state, "learning_params")
         # Learning мог адаптироваться или нет - зависит от конкретных данных
+
+    # ============================================================================
+    # MCP Index Engine Integration
+    # ============================================================================
+
+    def test_mcp_index_engine_full_integration(self):
+        """Полная интеграция MCP Index Engine"""
+        from pathlib import Path
+        import tempfile
+        import shutil
+        from mcp_index_engine import IndexEngine
+
+        docs_dir = Path(tempfile.mkdtemp())
+        todo_dir = Path(tempfile.mkdtemp())
+        src_dir = Path(tempfile.mkdtemp())
+
+        try:
+            # Создаем тестовую документацию
+            docs_content = [
+                ("api.md", "# API Documentation\nREST API with authentication using JWT tokens"),
+                ("search.md", "# Search Engine\nAdvanced search capabilities with indexing"),
+                ("architecture.md", "# System Architecture\nModular design with multiple components"),
+            ]
+
+            for filename, content in docs_content:
+                (docs_dir / filename).write_text(content, encoding="utf-8")
+
+            # Создаем TODO файлы
+            todo_content = [
+                ("features.md", "# Planned Features\n- Advanced search\n- User authentication\n- API integration"),
+                ("bugs.md", "# Known Issues\n- Search performance\n- Memory usage"),
+            ]
+
+            for filename, content in todo_content:
+                (todo_dir / filename).write_text(content, encoding="utf-8")
+
+            # Инициализируем индекс
+            engine = IndexEngine(docs_dir, todo_dir, src_dir)
+            engine.initialize()
+
+            # Проверяем индексацию
+            assert len(engine.content_cache) == 5  # 3 docs + 2 todo
+            assert len(engine.inverted_index) > 0
+
+            # Тестируем поиск
+            results = engine.search_in_directory(docs_dir, "api")
+            assert len(results) >= 1
+            assert any("api.md" in r["path"] for r in results)
+
+            results = engine.search_in_directory(docs_dir, "search")
+            assert len(results) >= 2  # api.md и search.md
+
+            # Тестируем разные режимы поиска
+            and_results = engine.search_in_directory(docs_dir, "api authentication", mode="AND")
+            assert len(and_results) >= 1
+
+            or_results = engine.search_in_directory(docs_dir, "system modular", mode="OR")
+            assert len(or_results) >= 2
+
+            # Тестируем поиск по TODO
+            todo_results = engine.search_in_directory(todo_dir, "authentication")
+            assert len(todo_results) >= 1
+
+            # Тестируем обновление файла
+            api_file = docs_dir / "api.md"
+            api_file.write_text("# API Documentation\nUpdated: REST API with JWT authentication and advanced features", encoding="utf-8")
+
+            engine.update_file(api_file)
+            updated_results = engine.search_in_directory(docs_dir, "advanced")
+            assert len(updated_results) >= 1
+
+            # Тестируем переиндексацию
+            (docs_dir / "new_doc.md").write_text("# New Document\nRecently added content", encoding="utf-8")
+            engine.reindex()
+            assert len(engine.content_cache) == 6  # +1 новый файл
+
+        finally:
+            shutil.rmtree(docs_dir, ignore_errors=True)
+            shutil.rmtree(todo_dir, ignore_errors=True)
+            shutil.rmtree(src_dir, ignore_errors=True)
+
+    def test_mcp_index_engine_performance_integration(self):
+        """Интеграционный тест производительности MCP Index Engine"""
+        from pathlib import Path
+        import tempfile
+        import shutil
+        import time
+        from mcp_index_engine import IndexEngine
+
+        docs_dir = Path(tempfile.mkdtemp())
+
+        try:
+            # Создаем много файлов для тестирования производительности
+            for i in range(50):
+                content = f"# Document {i}\nThis is test content for document number {i}.\nKeywords: test, performance, search, indexing."
+                (docs_dir / f"doc_{i:03d}.md").write_text(content, encoding="utf-8")
+
+            engine = IndexEngine(docs_dir, Path(tempfile.mkdtemp()), Path(tempfile.mkdtemp()))
+
+            # Замеряем время индексации
+            start_time = time.time()
+            engine.initialize()
+            index_time = time.time() - start_time
+
+            # Проверяем, что индексация была reasonably быстрой (< 1 секунды для 50 файлов)
+            assert index_time < 1.0, f"Индексация заняла слишком много времени: {index_time}s"
+
+            # Замеряем время поиска
+            search_start = time.time()
+            results = engine.search_in_directory(docs_dir, "performance")
+            search_time = time.time() - search_start
+
+            # Поиск должен быть быстрым (< 0.1 секунды)
+            assert search_time < 0.1, f"Поиск занял слишком много времени: {search_time}s"
+            assert len(results) == 50  # Все документы содержат "performance"
+
+            # Тестируем LRU кэширование
+            small_engine = IndexEngine(docs_dir, Path(tempfile.mkdtemp()), Path(tempfile.mkdtemp()), cache_size_limit=10)
+
+            # Заполняем кэш
+            for i in range(15):
+                file_path = docs_dir / f"doc_{i:03d}.md"
+                small_engine._get_content(file_path, docs_dir)
+
+            # Кэш не должен превышать лимит
+            assert len(small_engine.content_cache) <= 10
+
+        finally:
+            shutil.rmtree(docs_dir, ignore_errors=True)
+
+    def test_mcp_index_engine_error_handling_integration(self):
+        """Интеграционный тест обработки ошибок MCP Index Engine"""
+        from pathlib import Path
+        import tempfile
+        import shutil
+        from mcp_index_engine import IndexEngine
+
+        docs_dir = Path(tempfile.mkdtemp())
+        todo_dir = Path(tempfile.mkdtemp())
+        src_dir = Path(tempfile.mkdtemp())
+
+        try:
+            # Создаем файлы с проблемами
+            (docs_dir / "valid.md").write_text("# Valid Document\nNormal content", encoding="utf-8")
+
+            # Файл с неподдерживаемой кодировкой (имитация)
+            (docs_dir / "binary.md").write_bytes(b'\x89PNG\r\n\x1a\n' + b'x' * 1000)  # PNG header + garbage
+
+            # Слишком большой файл
+            big_content = "x" * (10 * 1024 * 1024 + 1)  # > 10MB
+            (docs_dir / "huge.md").write_text(big_content, encoding="utf-8")
+
+            engine = IndexEngine(docs_dir, todo_dir, src_dir, max_file_size=10*1024*1024)
+
+            # Индексация должна обработать ошибки gracefully
+            engine.initialize()
+
+            # Должен проиндексировать валидный файл
+            assert len(engine.content_cache) >= 1
+            assert "valid.md" in engine.content_cache
+
+            # Бинарный и huge файлы должны быть пропущены
+            assert "binary.md" not in engine.content_cache
+            assert "huge.md" not in engine.content_cache
+
+            # Поиск должен работать несмотря на ошибки
+            results = engine.search_in_directory(docs_dir, "document")
+            assert len(results) >= 1
+
+        finally:
+            shutil.rmtree(docs_dir, ignore_errors=True)
+            shutil.rmtree(todo_dir, ignore_errors=True)
+            shutil.rmtree(src_dir, ignore_errors=True)
+
+    # ============================================================================
+    # API Authentication Integration
+    # ============================================================================
+
+    def test_api_auth_full_lifecycle_integration(self):
+        """Полная интеграция жизненного цикла API аутентификации"""
+        from fastapi.testclient import TestClient
+        from api import app
+
+        client = TestClient(app)
+
+        # 1. Регистрация пользователей
+        users = [
+            {"username": "testuser1", "email": "test1@example.com", "password": "pass123"},
+            {"username": "testuser2", "email": "test2@example.com", "password": "pass456"},
+        ]
+
+        tokens = {}
+        for user in users:
+            # Регистрация
+            response = client.post("/register", json=user)
+            assert response.status_code == 201
+
+            # Вход
+            login_response = client.post("/token", data={
+                "username": user["username"],
+                "password": user["password"]
+            })
+            assert login_response.status_code == 200
+
+            tokens[user["username"]] = login_response.json()["access_token"]
+
+        # 2. Проверка изоляции пользователей
+        for username, token in tokens.items():
+            headers = {"Authorization": f"Bearer {token}"}
+
+            # Каждый пользователь может получить статус
+            status_response = client.get("/status", headers=headers)
+            assert status_response.status_code == 200
+
+            # Каждый пользователь может создать событие
+            event_response = client.post("/event", json={
+                "type": "noise",
+                "metadata": {"user": username}
+            }, headers=headers)
+            assert event_response.status_code == 200
+            assert username in event_response.json()["message"]
+
+            # Каждый пользователь может получить список пользователей
+            users_response = client.get("/users", headers=headers)
+            assert users_response.status_code == 200
+            users_data = users_response.json()
+            assert len(users_data) >= 4  # admin, user, testuser1, testuser2
+
+        # 3. Проверка что пользователи не могут использовать токены друг друга
+        # (тестируем с токеном user1 на действия user2 - в текущей реализации токены не привязаны к пользователю в payload)
+        # В данной реализации JWT содержит только username, так что изоляция на уровне API
+
+    def test_api_auth_token_expiration_integration(self):
+        """Интеграционный тест истечения токенов API"""
+        from fastapi.testclient import TestClient
+        import jwt
+        import time
+        from api import app, SECRET_KEY, ALGORITHM
+
+        client = TestClient(app)
+
+        # Создаем токен с коротким сроком действия
+        expire_time = int(time.time()) + 2  # Истекает через 2 секунды
+        token_payload = {"sub": "admin", "exp": expire_time}
+        short_token = jwt.encode(token_payload, SECRET_KEY, algorithm=ALGORITHM)
+
+        headers = {"Authorization": f"Bearer {short_token}"}
+
+        # Токен должен работать сначала
+        response = client.get("/status", headers=headers)
+        assert response.status_code == 200
+
+        # Ждем истечения
+        time.sleep(3)
+
+        # Теперь токен должен быть невалиден
+        response = client.get("/status", headers=headers)
+        assert response.status_code == 401
+
+        # Проверяем что можем получить новый токен
+        login_response = client.post("/token", data={"username": "admin", "password": "admin123"})
+        assert login_response.status_code == 200
+
+        new_token = login_response.json()["access_token"]
+        new_headers = {"Authorization": f"Bearer {new_token}"}
+
+        # Новый токен работает
+        response = client.get("/status", headers=new_headers)
+        assert response.status_code == 200
+
+    def test_api_auth_concurrent_sessions_integration(self):
+        """Интеграционный тест одновременных сессий API"""
+        from fastapi.testclient import TestClient
+        from api import app
+
+        client = TestClient(app)
+
+        # Создаем несколько токенов для одного пользователя
+        tokens = []
+        for _ in range(5):
+            login_response = client.post("/token", data={"username": "admin", "password": "admin123"})
+            assert login_response.status_code == 200
+            tokens.append(login_response.json()["access_token"])
+
+        # Все токены должны работать одновременно
+        for i, token in enumerate(tokens):
+            headers = {"Authorization": f"Bearer {token}"}
+
+            # Получаем статус
+            status_response = client.get("/status", headers=headers)
+            assert status_response.status_code == 200
+
+            # Создаем событие
+            event_response = client.post("/event", json={
+                "type": "noise",
+                "metadata": {"session": i, "test": "concurrent"}
+            }, headers=headers)
+            assert event_response.status_code == 200
+
+            # Получаем пользователей
+            users_response = client.get("/users", headers=headers)
+            assert users_response.status_code == 200
+
+    def test_api_auth_event_processing_integration(self):
+        """Интеграционный тест обработки событий через API"""
+        from fastapi.testclient import TestClient
+        from api import app
+
+        client = TestClient(app)
+
+        # Получаем токен
+        login_response = client.post("/token", data={"username": "admin", "password": "admin123"})
+        token = login_response.json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+
+        # Создаем различные события
+        events = [
+            {"type": "noise", "intensity": 0.3, "metadata": {"test": "integration"}},
+            {"type": "shock", "intensity": -0.7, "metadata": {"test": "integration"}},
+            {"type": "recovery", "intensity": 0.8, "metadata": {"test": "integration"}},
+            {"type": "decay", "intensity": -0.4, "metadata": {"test": "integration"}},
+            {"type": "idle", "metadata": {"test": "integration"}},
+        ]
+
+        for event in events:
+            response = client.post("/event", json=event, headers=headers)
+            assert response.status_code == 200
+
+            data = response.json()
+            assert data["type"] == event["type"]
+            assert data["intensity"] == event.get("intensity", 0.0)
+            assert data["metadata"] == event.get("metadata", {})
+            assert "message" in data
+            assert "admin" in data["message"]
+
+        # Проверяем что статус обновился после обработки событий
+        status_response = client.get("/status", headers=headers)
+        assert status_response.status_code == 200
+
+        status_data = status_response.json()
+        assert "last_event_intensity" in status_data
+
+    def test_api_auth_extended_status_integration(self):
+        """Интеграционный тест расширенного статуса API"""
+        from fastapi.testclient import TestClient
+        from api import app
+
+        client = TestClient(app)
+
+        # Регистрируем нового пользователя для тестирования
+        user_data = {"username": "status_test", "email": "status@example.com", "password": "status123"}
+        client.post("/register", json=user_data)
+
+        login_response = client.post("/token", data={"username": "status_test", "password": "status123"})
+        token = login_response.json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+
+        # Получаем расширенный статус
+        response = client.get("/status", headers=headers)
+        assert response.status_code == 200
+
+        data = response.json()
+
+        # Проверяем обязательные поля
+        required_fields = ["active", "energy", "integrity", "stability", "ticks", "age", "subjective_time"]
+        for field in required_fields:
+            assert field in data
+
+        # Проверяем опциональные поля
+        optional_fields = ["life_id", "birth_timestamp", "learning_params", "adaptation_params"]
+        for field in optional_fields:
+            assert field in data  # В данной реализации все поля присутствуют
+
+        # Проверяем структуру learning_params
+        if data.get("learning_params"):
+            lp = data["learning_params"]
+            assert "event_type_sensitivity" in lp
+            assert "significance_thresholds" in lp
+            assert "response_coefficients" in lp
+
+        # Тестируем минимальный статус
+        min_response = client.get("/status?minimal=true", headers=headers)
+        assert min_response.status_code == 200
+
+        min_data = min_response.json()
+        minimal_fields = {"active", "ticks", "age", "energy", "stability", "integrity"}
+        assert set(min_data.keys()) == minimal_fields
+
+        # Тестируем статус с лимитами
+        limited_response = client.get("/status?memory_limit=5&events_limit=3", headers=headers)
+        assert limited_response.status_code == 200
+
+    def test_api_auth_error_handling_integration(self):
+        """Интеграционный тест обработки ошибок API"""
+        from fastapi.testclient import TestClient
+        from api import app
+
+        client = TestClient(app)
+
+        # Получаем токен
+        login_response = client.post("/token", data={"username": "admin", "password": "admin123"})
+        token = login_response.json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+
+        # Тестируем различные ошибочные запросы
+        error_cases = [
+            # Неправильный JSON в событии
+            ("POST", "/event", "invalid json", 400),
+            # Отсутствующий тип события
+            ("POST", "/event", {"intensity": 0.5}, 400),
+            # Неизвестный эндпоинт
+            ("GET", "/nonexistent", None, 404),
+            # Неправильный метод
+            ("PUT", "/status", None, 405),
+        ]
+
+        for method, endpoint, data, expected_status in error_cases:
+            if method == "POST":
+                response = client.post(endpoint, json=data, headers=headers)
+            elif method == "GET":
+                response = client.get(endpoint, headers=headers)
+            elif method == "PUT":
+                response = client.put(endpoint, json=data, headers=headers)
+            else:
+                continue
+
+            assert response.status_code == expected_status
+
+    # ============================================================================
+    # MCP + API Combined Integration
+    # ============================================================================
+
+    def test_mcp_api_combined_search_integration(self):
+        """Интеграционный тест комбинированного поиска MCP + API"""
+        from pathlib import Path
+        import tempfile
+        import shutil
+        from fastapi.testclient import TestClient
+        from mcp_index_engine import IndexEngine
+        from api import app
+
+        docs_dir = Path(tempfile.mkdtemp())
+        todo_dir = Path(tempfile.mkdtemp())
+        src_dir = Path(tempfile.mkdtemp())
+
+        try:
+            # Создаем документацию для поиска
+            docs_content = [
+                ("authentication.md", "# Authentication\nJWT tokens and user management in API"),
+                ("search.md", "# Search Engine\nMCP Index Engine provides fast search capabilities"),
+                ("api_endpoints.md", "# API Endpoints\n/status, /event, /users with authentication"),
+            ]
+
+            for filename, content in docs_content:
+                (docs_dir / filename).write_text(content, encoding="utf-8")
+
+            # Инициализируем поисковый индекс
+            engine = IndexEngine(docs_dir, todo_dir, src_dir)
+            engine.initialize()
+
+            # Тестируем поиск через индекс
+            auth_results = engine.search_in_directory(docs_dir, "authentication")
+            assert len(auth_results) >= 1
+            assert "authentication.md" in auth_results[0]["path"]
+
+            api_results = engine.search_in_directory(docs_dir, "api")
+            assert len(api_results) >= 2  # authentication.md и api_endpoints.md
+
+            # Тестируем API аутентификацию
+            client = TestClient(app)
+
+            # Регистрируем пользователя
+            user_data = {"username": "search_user", "email": "search@example.com", "password": "search123"}
+            client.post("/register", json=user_data)
+
+            # Входим
+            login_response = client.post("/token", data={"username": "search_user", "password": "search123"})
+            token = login_response.json()["access_token"]
+            headers = {"Authorization": f"Bearer {token}"}
+
+            # Создаем события через API
+            events = [
+                {"type": "noise", "metadata": {"search_test": True, "topic": "authentication"}},
+                {"type": "noise", "metadata": {"search_test": True, "topic": "api"}},
+                {"type": "noise", "metadata": {"search_test": True, "topic": "search"}},
+            ]
+
+            for event in events:
+                response = client.post("/event", json=event, headers=headers)
+                assert response.status_code == 200
+
+            # Проверяем статус
+            status_response = client.get("/status", headers=headers)
+            assert status_response.status_code == 200
+
+            # Проверяем что обе системы работают вместе
+            assert len(engine.content_cache) == 3  # Документы проиндексированы
+            assert status_response.json()["active"] is True  # API работает
+            assert len(api_results) >= 2  # Поиск работает
+
+        finally:
+            shutil.rmtree(docs_dir, ignore_errors=True)
+            shutil.rmtree(todo_dir, ignore_errors=True)
+            shutil.rmtree(src_dir, ignore_errors=True)

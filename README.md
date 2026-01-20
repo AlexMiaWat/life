@@ -88,7 +88,7 @@ life/
   - [`event.py`](src/environment/event.py): [`Event`](src/environment/event.py) - `type`, `intensity:[-1..1]`, `timestamp`, `metadata`.
   - [`event_queue.py`](src/environment/event_queue.py): [`EventQueue`](src/environment/event_queue.py) - thread-safe очередь с `push/pop/pop_all`, maxsize=100.
   - [`generator.py`](src/environment/generator.py): [`EventGenerator`](src/environment/generator.py) - `generate()` с типами `noise/decay/recovery/shock/idle` (weights [0.4,0.3,0.2,0.05,0.05]), intensity ranges.
-  - [`generator_cli.py`](src/environment/generator_cli.py): CLI `python -m environment.generator_cli --interval 5 --host localhost --port 8000`.
+  - [`generator_cli.py`](src/environment/generator_cli.py): CLI `python -m environment.generator_cli --interval 5 --host localhost --port 8000` с логированием (уровни INFO/DEBUG, флаг `--verbose`).
 - **`meaning/`** (этап 08, интегрирован):
   - [`meaning.py`](src/meaning/meaning.py): [`Meaning`](src/meaning/meaning.py) - `significance:[0..1]`, `impact:{energy/stability/integrity: delta}`.
   - [`engine.py`](src/meaning/engine.py): [`MeaningEngine`](src/meaning/engine.py) - `process(event, self_state) -> Meaning` через `appraisal/significance`, `impact_model`, `response_pattern` (ignore/absorb/dampen/amplify).
@@ -220,6 +220,9 @@ pytest src/test/test_runtime_loop_managers.py -v
 - **`test_performance.py`** - Тесты производительности (benchmarks) критических операций
 - **`test_memory.py`** - Расширен нагрузочными тестами для больших объемов данных
 - **`test_runtime_loop_managers.py`** - Тесты менеджеров Runtime Loop (SnapshotManager, LogManager, LifePolicy)
+- **`test_api_auth_integration.py`** - Интеграционные тесты API с аутентификацией (регистрация → вход → использование → изоляция пользователей)
+- **`test_api_auth_smoke.py`** - Дымовые тесты API аутентификации (базовая работоспособность, эндпоинты, валидация)
+- **`test_api_auth_static.py`** - Статические тесты API (структура моделей, сигнатуры функций, безопасность аутентификации)
 
 ### Покрытие модулей
 
@@ -228,8 +231,13 @@ pytest src/test/test_runtime_loop_managers.py -v
 - API эндпоинты (GET /status, GET /clear-data, POST /event, аутентификация)
 - Генератор событий (EventGenerator)
 - Monitor (console.py)
-- Environment (Event, EventQueue, Generator)
+- Environment (Event, EventQueue, Generator, generator_cli с новым логированием)
 - Runtime Loop Managers (SnapshotManager, LogManager, LifePolicy)
+
+**Новые тесты API аутентификации:**
+- **Интеграционные тесты** (`test_api_auth_integration.py`): Полный жизненный цикл пользователя, изоляция сессий, обработка ошибок
+- **Дымовые тесты** (`test_api_auth_smoke.py`): Базовая работоспособность, доступность эндпоинтов, регистрация пользователей
+- **Статические тесты** (`test_api_auth_static.py`): Структура моделей Pydantic, сигнатуры функций, безопасность JWT
 
 **Подробная документация:** [docs/testing/README.md](docs/testing/README.md)
 
@@ -485,6 +493,11 @@ Life взаимодействует с [`EventQueue`](src/environment/event_queu
    python -m environment.generator_cli --interval 5 --host localhost --port 8000
    ```
    Интервал можно менять параметром `--interval` (секунды).
+
+   **Дополнительные опции:**
+   - `--verbose, -v`: Включить подробное логирование (debug уровень) для отладки
+   - По умолчанию: логирование уровня INFO (только важная информация)
+   - С `--verbose`: логирование уровня DEBUG (все сообщения, включая отладочные)
 
 ## Тестирование
 

@@ -13,6 +13,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from src.environment.generator_cli import main, send_event
+from src.logging_config import setup_logging
 
 
 @pytest.mark.unit
@@ -219,6 +220,52 @@ class TestGeneratorCLI:
                     cli_module.main()
                 except KeyboardInterrupt:
                     pass
+
+    @patch("src.environment.generator_cli.setup_logging")
+    @patch("src.environment.generator_cli.EventGenerator")
+    @patch("time.sleep", side_effect=KeyboardInterrupt())
+    def test_main_verbose_logging_setup(self, mock_sleep, mock_generator_class, mock_setup_logging):
+        """Тест настройки verbose логирования в main"""
+        mock_generator = MagicMock()
+        mock_generator.generate.return_value = MagicMock(
+            type="test", intensity=0.5, timestamp=1234567890.0, metadata={}
+        )
+        mock_generator_class.return_value = mock_generator
+
+        import sys
+        from unittest.mock import patch
+
+        with patch.object(sys, "argv", ["generator_cli.py", "--verbose"]):
+            try:
+                main()
+            except KeyboardInterrupt:
+                pass
+
+        # Проверяем, что setup_logging был вызван с verbose=True
+        mock_setup_logging.assert_called_once_with(verbose=True)
+
+    @patch("src.environment.generator_cli.setup_logging")
+    @patch("src.environment.generator_cli.EventGenerator")
+    @patch("time.sleep", side_effect=KeyboardInterrupt())
+    def test_main_default_logging_setup(self, mock_sleep, mock_generator_class, mock_setup_logging):
+        """Тест настройки логирования по умолчанию в main"""
+        mock_generator = MagicMock()
+        mock_generator.generate.return_value = MagicMock(
+            type="test", intensity=0.5, timestamp=1234567890.0, metadata={}
+        )
+        mock_generator_class.return_value = mock_generator
+
+        import sys
+        from unittest.mock import patch
+
+        with patch.object(sys, "argv", ["generator_cli.py"]):
+            try:
+                main()
+            except KeyboardInterrupt:
+                pass
+
+        # Проверяем, что setup_logging был вызван с verbose=False (по умолчанию)
+        mock_setup_logging.assert_called_once_with(verbose=False)
 
 
 if __name__ == "__main__":

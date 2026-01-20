@@ -27,7 +27,7 @@ app = FastAPI(
 )
 
 # Контекст для хеширования паролей
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["sha256_crypt", "bcrypt"], deprecated="auto")
 
 # OAuth2 схема
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
@@ -145,7 +145,7 @@ fake_users_db: dict[str, UserInDB] = {
         username="admin",
         email="admin@example.com",
         full_name="Administrator",
-        hashed_password=pwd_context.hash("admin123"),
+        hashed_password=pwd_context.hash("admin123"[:72]),
         disabled=False,
     ),
     "user": UserInDB(

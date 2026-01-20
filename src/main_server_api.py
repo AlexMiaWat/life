@@ -13,6 +13,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from colorama import Fore, Style, init
 
 from src.environment import Event, EventQueue
+from src.logging_config import get_logger, setup_logging
 from src.monitor.console import log, monitor
 from src.runtime.loop import run_loop
 from src.state.self_state import SelfState, asdict
@@ -22,7 +23,7 @@ init()
 from typing import Any
 
 # Настройка логирования
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 HOST = "localhost"
 PORT = 8000
@@ -352,11 +353,7 @@ if __name__ == "__main__":  # pragma: no cover
     dev_mode = args.dev
 
     # Настройка уровня логирования в зависимости от режима
-    logging.basicConfig(
-        level=logging.DEBUG if dev_mode else logging.INFO,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
+    setup_logging(verbose=dev_mode)
 
     config = {
         "tick_interval": args.tick_interval,

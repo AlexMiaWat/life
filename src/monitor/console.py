@@ -1,4 +1,5 @@
 import json
+import logging
 import sys
 from pathlib import Path
 
@@ -8,13 +9,14 @@ from colorama import Fore, Style
 colorama.init(autoreset=True)
 from src.state.self_state import SelfState
 
+logger = logging.getLogger(__name__)
+
 LOG_FILE = Path("data/tick_log.jsonl")
 LOG_FILE.parent.mkdir(exist_ok=True)
 
 
 def log(message):
-    print(f"[RELOAD] {message}")
-    print("TEST CHANGE")
+    logger.info(f"[RELOAD] {message}")
 
 
 def monitor(state: SelfState, log_file_path: Path = None):
