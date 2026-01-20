@@ -32,7 +32,7 @@ PORT = 8000
 class StoppableHTTPServer(HTTPServer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.self_state = None
+        # self_state больше не нужен - API читает из snapshots
         self.event_queue: EventQueue | None = None
         self.stopped = False
         self.dev_mode = False
@@ -91,10 +91,16 @@ class LifeHandler(BaseHTTPRequestHandler):
                 except (ValueError, IndexError):
                     pass
             
-            # Используем безопасный метод для получения статуса
-            safe_status = self.server.self_state.get_safe_status_dict(
+            # Используем SnapshotReader для чтения статуса из файла
+            from src.runtime.snapshot_reader import read_life_status
+            safe_status = read_life_status(
                 include_optional=True, limits=limits if limits else None
             )
+            if safe_status is None:
+                self.send_response(503)
+                self.end_headers()
+                self.wfile.write(b'{"error": "Life system snapshot not available"}')
+                return
             self.wfile.write(json.dumps(safe_status).encode())
         elif self.path == "/clear-data":
             os.makedirs("data/snapshots", exist_ok=True)
@@ -214,10 +220,10 @@ class LifeHandler(BaseHTTPRequestHandler):
             sys.stdout.flush()
 
 
-def start_api_server(self_state, event_queue, dev_mode):
+def start_api_server(event_queue, dev_mode):
     global server
     server = StoppableHTTPServer((HOST, PORT), LifeHandler)
-    server.self_state = self_state
+    # self_state больше не передается - API читает из snapshots
     server.event_queue = event_queue
     server.dev_mode = dev_mode
     logger.info(f"API server running on http://{HOST}:{PORT}")
@@ -311,7 +317,7 @@ def reloader_thread():  # pragma: no cover
             # Перезапуск API сервера
             api_thread = threading.Thread(
                 target=start_api_server,
-                args=(self_state, event_queue, True),
+                args=(event_queue, True),
                 daemon=True,
             )
             api_thread.start()
@@ -387,7 +393,7 @@ if __name__ == "__main__":  # pragma: no cover
 
     # Start API thread
     api_thread = threading.Thread(
-        target=start_api_server, args=(self_state, event_queue, dev_mode), daemon=True
+        target=start_api_server, args=(event_queue, dev_mode), daemon=True
     )
     api_thread.start()
 

@@ -92,18 +92,8 @@ class ExtendedStatusResponse(BaseModel):
     model_config = ConfigDict(extra="allow")
 
 
-# Глобальная ссылка на состояние системы (будет установлена при запуске)
-life_state = None
-
-
-def get_life_state():
-    """Получение состояния системы Life."""
-    if life_state is None:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Life system not initialized"
-        )
-    return life_state
+# Импортируем SnapshotReader для чтения состояния из snapshots
+from src.runtime.snapshot_reader import read_life_status
 
 
 def check_api_access(x_api_key: Optional[str] = Header(None)):
@@ -134,11 +124,15 @@ async def root():
 @app.get("/health")
 async def health_check():
     """Проверка здоровья API."""
+    # Проверяем доступность snapshots вместо живого объекта
+    from src.runtime.snapshot_reader import get_snapshot_reader
+    snapshot_available = get_snapshot_reader().read_latest_snapshot() is not None
+
     return {
         "status": "healthy",
         "experiment": "Life continuous existence",
         "api_version": "1.0.0",
-        "life_system": "initialized" if life_state is not None else "not_initialized"
+        "snapshot_available": snapshot_available
     }
 
 
@@ -152,16 +146,20 @@ async def get_status(
     """Получение статуса системы Life."""
     check_api_access(x_api_key)
 
-    state = get_life_state()
-
-    # Получаем базовый статус
-    status_data = state.get_safe_status_dict(
+    # Читаем статус из snapshot файла вместо живого объекта
+    status_data = read_life_status(
         include_optional=not minimal,
         limits={
             "memory_limit": memory_limit,
             "events_limit": events_limit,
         }
     )
+
+    if status_data is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Life system snapshot not available"
+        )
 
     return ExtendedStatusResponse(**status_data)
 
@@ -189,8 +187,5 @@ async def create_event(
     )
 
 
-# Функция для установки состояния системы (вызывается из main_server_api.py)
-def set_life_state(state):
-    """Установка ссылки на состояние системы Life."""
-    global life_state
-    life_state = state
+# API теперь читает состояние из snapshot файлов,
+# поэтому установка ссылки на живой объект больше не требуется
