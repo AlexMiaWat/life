@@ -28,8 +28,12 @@ class AdaptationManager:
     Adaptation не отвечает на вопрос "что делать дальше".
     Adaptation только медленно перестраивает внутренние параметры поведения без интерпретации.
 
-    ВАЖНО: Параметры adaptation_params изменяются, но в текущей версии НЕ используются
-    в Decision, Action или MeaningEngine напрямую. Это подготовка к будущему использованию.
+    ВАЖНО: Параметры adaptation_params изменяются и используются в:
+    - MeaningEngine: behavior_sensitivity для модификации значимости событий,
+      behavior_thresholds для модификации порогов реакций,
+      behavior_coefficients для модификации эффектов паттернов
+    - Decision: behavior_thresholds для модификации порогов dampen/ignore
+    - Action: behavior_coefficients для модификации эффектов действий
     """
 
     # Максимальное изменение параметра за один вызов
@@ -141,21 +145,30 @@ class AdaptationManager:
         Returns:
             Новые параметры поведения (словарь с измененными значениями)
         """
+        # ВАЛИДАЦИЯ: Проверяем входные параметры
+        if not isinstance(analysis, dict):
+            logger.error(f"analysis должен быть словарем, получен {type(analysis)}")
+            return {}
+        
+        if not isinstance(current_behavior_params, dict):
+            logger.error(f"current_behavior_params должен быть словарем, получен {type(current_behavior_params)}")
+            return {}
+        
         # ПРОВЕРКА: Adaptation не должен напрямую изменять Decision/Action
-        # Проверяем ключи словаря рекурсивно (явная проверка вместо str())
+        # Проверяем ключи словаря рекурсивно с точным совпадением
         def _check_forbidden_keys(params_dict: Dict, path: str = "") -> None:
-            """Рекурсивно проверяет наличие запрещенных ключей."""
-            forbidden_keywords = ["decision", "action"]
+            """Рекурсивно проверяет наличие запрещенных ключей с точным совпадением."""
+            # Используем точное совпадение ключей вместо подстроки
+            forbidden_keys_exact = {"decision", "action"}
             for key, value in params_dict.items():
                 current_path = f"{path}.{key}" if path else key
-                # Проверяем ключ
+                # Проверяем ключ на точное совпадение (case-insensitive)
                 key_lower = str(key).lower()
-                for forbidden in forbidden_keywords:
-                    if forbidden in key_lower:
-                        raise ValueError(
-                            f"Adaptation не может напрямую изменять Decision/Action. "
-                            f"Обнаружен запрещенный ключ: {current_path}"
-                        )
+                if key_lower in forbidden_keys_exact:
+                    raise ValueError(
+                        f"Adaptation не может напрямую изменять Decision/Action. "
+                        f"Обнаружен запрещенный ключ: {current_path}"
+                    )
                 # Рекурсивно проверяем вложенные словари
                 if isinstance(value, dict):
                     _check_forbidden_keys(value, current_path)

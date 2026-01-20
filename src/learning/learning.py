@@ -28,9 +28,11 @@ class LearningEngine:
     Learning не отвечает на вопрос "что делать дальше".
     Learning только изменяет внутренние параметры без интерпретации.
 
-    ВАЖНО: Параметры learning_params изменяются, но в текущей версии НЕ используются
-    в Decision, Action или MeaningEngine. Это подготовка к будущей интеграции
-    (возможно, в Adaptation, Этап 15).
+    ВАЖНО: Параметры learning_params изменяются и используются в:
+    - MeaningEngine: event_type_sensitivity для модификации значимости событий
+    - Decision: significance_thresholds для модификации порогов игнорирования
+    - Action: response_coefficients для модификации эффектов действий
+    Параметры также используются в Adaptation Manager (Этап 15) для адаптации поведения.
     """
 
     # Максимальное изменение параметра за один вызов
@@ -138,6 +140,37 @@ class LearningEngine:
         Returns:
             Новые параметры (словарь с измененными значениями)
         """
+        # ВАЛИДАЦИЯ: Проверяем входные параметры
+        if not isinstance(current_params, dict):
+            logger.error(f"current_params должен быть словарем, получен {type(current_params)}")
+            return {}
+        
+        if not isinstance(statistics, dict):
+            logger.error(f"statistics должен быть словарем, получен {type(statistics)}")
+            return {}
+        
+        # Валидация и нормализация значений в current_params
+        validated_params = {}
+        for key, value_dict in current_params.items():
+            if not isinstance(value_dict, dict):
+                logger.warning(f"Параметр {key} должен быть словарем, пропускаем")
+                continue
+            
+            validated_params[key] = {}
+            for param_name, param_value in value_dict.items():
+                # Проверяем границы значений [0.0, 1.0]
+                if not isinstance(param_value, (int, float)):
+                    logger.warning(f"Параметр {key}.{param_name} должен быть числом, пропускаем")
+                    continue
+                
+                # Нормализуем значение до диапазона [0.0, 1.0]
+                normalized_value = max(0.0, min(1.0, float(param_value)))
+                if normalized_value != param_value:
+                    logger.debug(f"Нормализован параметр {key}.{param_name}: {param_value} -> {normalized_value}")
+                validated_params[key][param_name] = normalized_value
+        
+        # Используем валидированные параметры
+        current_params = validated_params
         new_params = {}
 
         # 1. Изменение чувствительности к типам событий
