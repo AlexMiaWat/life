@@ -28,6 +28,7 @@ SelfState обеспечивает **потокобезопасность** ме
 *   **v2.3:** Добавлены коэффициенты для учета энергии и сглаживания интенсивности в субъективном времени, интеграция субъективного времени в runtime loop.
 *   **v2.4:** Добавлена потокобезопасность между API и runtime потоками через RLock синхронизацию, исправлена логика is_active() для соответствия тестам.
 *   **v2.5:** Добавлена атомарная замена снапшотов для гарантии консистентности, улучшена потокобезопасность через RWLock в SnapshotReader.
+*   **v2.6:** Добавлены комплексные тесты race conditions для API /status (14 новых тестов), покрывающие все сценарии конкурентного доступа во время тиков.
 
 ## Структура состояния
 
@@ -197,20 +198,43 @@ state.reset_to_defaults()
 
 ### Проверка жизнеспособности (v2.1, обновлено v2.4)
 
+SelfState предоставляет методы для проверки жизнеспособности системы:
+
 ```python
 state = create_initial_state()
 
 # Проверка активности (система жизнеспособна если vital параметры выше порогов)
-is_active = state.is_active()  # True (если energy > 10, integrity > 0.1, stability > 0.1)
+is_active = state.is_active()  # True если: energy > 10.0, integrity > 0.1, stability > 0.1
 assert state.active == is_active  # active обновляется автоматически
 
-# Более строгая проверка жизнеспособности
-is_viable = state.is_viable()  # energy > 10, integrity > 0.1, stability > 0.1
+# Более строгая проверка жизнеспособности (тот же критерий, что и is_active)
+is_viable = state.is_viable()  # energy > 10.0, integrity > 0.1, stability > 0.1
 
 # При изменении vital параметров active обновляется автоматически
-state.energy = 5.0  # ниже порога 10
+state.energy = 5.0  # ниже порога 10.0
 assert state.active == False
 assert state.is_active() == False
+
+# Примеры значений для разных состояний
+state.energy = 100.0
+state.integrity = 1.0
+state.stability = 1.0
+assert state.is_active() == True  # все параметры выше порогов
+
+state.energy = 15.0
+state.integrity = 0.2
+state.stability = 0.2
+assert state.is_active() == True  # все параметры выше порогов
+
+state.energy = 10.0
+state.integrity = 0.1
+state.stability = 0.1
+assert state.is_active() == False  # параметры на границе (=, а не >)
+
+state.energy = 5.0
+state.integrity = 0.05
+state.stability = 0.05
+assert state.is_active() == False  # параметры ниже порогов
 ```
 
 ### Логирование изменений (v2.1)

@@ -14,7 +14,7 @@ from colorama import Fore, Style, init
 
 from src.environment import Event, EventQueue
 from src.logging_config import get_logger, setup_logging
-from src.monitor.console import log, monitor
+from src.monitor.console import monitor
 from src.runtime.loop import run_loop
 from src.state.self_state import SelfState, asdict
 

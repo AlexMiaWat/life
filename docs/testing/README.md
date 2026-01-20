@@ -6,10 +6,11 @@
 
 ## Статистика тестирования
 
-- **Всего тестов:** 242+ (см. [docs/development/STATISTICS.md](../development/STATISTICS.md) для актуальной статистики)
+- **Всего тестов:** 270+ (см. [docs/development/STATISTICS.md](../development/STATISTICS.md) для актуальной статистики)
 - **Все тесты проходят:** ✅
 - **Покрытие кода:** 96%
 - **Основные модули:** 100% покрытие
+- **Новые тесты (v2.2):** +14 тестов на race conditions для API /status
 - **Новые тесты (v2.1):** +9 тестов для субъективного времени
 
 ## Быстрый старт
@@ -65,6 +66,7 @@ pytest src/test/ -q
 - `test_runtime_loop_managers.py` - Тесты менеджеров Runtime Loop (SnapshotManager, LogManager, LifePolicy) - **ОБНОВЛЕНО**
 - `test_event_queue_edge_cases.py` - Edge cases EventQueue
 - `test_event_queue_race_condition.py` - Race conditions в EventQueue
+- `test_status_race_conditions.py` - Race conditions для чтения /status API во время тиков **НОВЫЙ**
 - `test_generator_cli.py` - Тесты CLI генератора
 - `test_degradation.py` - Тесты на деградацию системы + длительная работа
 - `test_property_based.py` - Property-based тесты (hypothesis) - **НОВЫЙ**
@@ -178,6 +180,21 @@ pytest src/test/ -q
 - Проверка ограничений и производительности
 - Маркер: `@pytest.mark.slow`
 
+### Тесты race conditions для API /status (НОВЫЕ)
+- **Комплексные тесты** (`test_status_race_conditions.py`):
+  - Множественные одновременные запросы `/status` во время активных тиков
+  - Чтение статуса в момент модификации состояния runtime loop
+  - Проверка консистентности snapshot при высокой нагрузке
+  - Чтение статуса во время операций архивации памяти
+  - Чтение статуса сразу после завершения тика
+  - Чтение статуса во время обработки очереди событий
+  - Чтение статуса во время создания снапшота
+  - Высокая частота подачи событий и overflow handling
+  - Одновременные операции push и pop_all в EventQueue
+  - Доступ к пустой очереди из нескольких потоков
+  - Гонка между проверкой empty() и get_nowait()
+  - Маркер: `@pytest.mark.concurrency` и `@pytest.mark.race_conditions`
+
 ### API тесты аутентификации (НОВЫЕ)
 - **Интеграционные тесты** (`test_api_auth_integration.py`):
   - Полный жизненный цикл пользователя (регистрация → вход → использование)
@@ -264,13 +281,14 @@ pytest src/test/ --cov=src --cov-report=term-missing
 
 **Покрытие по категориям:**
 - Бизнес-логика: 100% ✅
-- API эндпоинты: 100% ✅ (включая аутентификацию)
+- API эндпоинты: 100% ✅ (включая аутентификацию и race conditions)
 - Генератор событий: 100% ✅
 - Runtime Loop: ~95-100% ✅ (включая тесты делегирования и отсутствия регрессий)
 - Monitor: 100% ✅
-- EventQueue: 93% ✅
+- EventQueue: 93% ✅ (улучшено тестами race conditions)
 - API аутентификация: 100% ✅ (интеграционные, дымовые и статические тесты)
 - Менеджеры Runtime Loop: 100% ✅ (SnapshotManager, LogManager, LifePolicy)
+- Race conditions API /status: 100% ✅ (14 новых тестов покрывают все сценарии)
 
 ### Прогресс покрытия
 

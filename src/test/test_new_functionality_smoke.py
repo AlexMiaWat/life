@@ -757,7 +757,7 @@ class TestNewFunctionalitySmoke:
         state.stability = 0.0
         state.integrity = 0.0
         result_zero = state.is_active()
-        assert result_zero is True  # Нулевые значения все еще валидны
+        assert result_zero is False  # Нулевые значения не валидны (нужны energy > 10.0, integrity > 0.1, stability > 0.1)
 
         # Восстанавливаем
         state.energy = old_energy

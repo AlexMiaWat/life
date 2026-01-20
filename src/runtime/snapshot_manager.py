@@ -5,7 +5,7 @@ SnapshotManager: управление снапшотами состояния Li
 изолируя I/O операции от основного runtime loop.
 """
 import logging
-from typing import Callable
+from typing import Any, Callable, Dict, Optional
 
 from src.state.self_state import SelfState
 
@@ -23,11 +23,11 @@ class SnapshotManager:
     def __init__(self, period_ticks: int, saver: Callable[[SelfState], None]):
         """
         Инициализация менеджера снапшотов.
-        
+
         Args:
             period_ticks: Периодичность снапшотов (каждые N тиков)
             saver: Функция сохранения снапшота (например, save_snapshot)
-            
+
         Raises:
             ValueError: Если saver равен None или period_ticks <= 0
         """
@@ -35,9 +35,14 @@ class SnapshotManager:
             raise ValueError("saver cannot be None")
         if period_ticks <= 0:
             raise ValueError("period_ticks must be positive")
-        
+
         self.period_ticks = period_ticks
         self.saver = saver
+
+        # Статус последней операции
+        self.last_operation_success: Optional[bool] = None
+        self.last_operation_error: Optional[str] = None
+        self.last_operation_timestamp: Optional[float] = None
     
     def should_snapshot(self, ticks: int) -> bool:
         """
@@ -73,11 +78,53 @@ class SnapshotManager:
         if self_state is None:
             raise ValueError("self_state cannot be None")
         
+        import time
+
         if self.should_snapshot(self_state.ticks):
             try:
                 self.saver(self_state)
+                # Записываем успешную операцию
+                self.last_operation_success = True
+                self.last_operation_error = None
+                self.last_operation_timestamp = time.time()
                 return True
             except Exception as e:
-                logger.error(f"Ошибка при сохранении snapshot: {e}", exc_info=True)
+                error_msg = str(e)
+                logger.error(f"Ошибка при сохранении snapshot: {error_msg}", exc_info=True)
+                # Записываем неудачную операцию
+                self.last_operation_success = False
+                self.last_operation_error = error_msg
+                self.last_operation_timestamp = time.time()
                 return False
+
+        # Сброс статуса если снапшот не делался
+        self.last_operation_success = None
+        self.last_operation_error = None
         return False
+
+    def get_last_operation_status(self) -> Dict[str, Optional[Any]]:
+        """
+        Получает статус последней операции сохранения снапшота.
+
+        Returns:
+            Dict с информацией о последней операции:
+            - success: True/False/None (None если операция не выполнялась)
+            - error: Сообщение об ошибке или None
+            - timestamp: Время последней операции или None
+        """
+        return {
+            "success": self.last_operation_success,
+            "error": self.last_operation_error,
+            "timestamp": self.last_operation_timestamp,
+        }
+
+    def was_last_operation_successful(self) -> Optional[bool]:
+        """
+        Проверяет, была ли последняя операция успешной.
+
+        Returns:
+            True если последняя операция была успешной,
+            False если была ошибка,
+            None если операция не выполнялась
+        """
+        return self.last_operation_success

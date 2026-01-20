@@ -15,7 +15,10 @@ LOG_FILE = Path("data/tick_log.jsonl")
 LOG_FILE.parent.mkdir(exist_ok=True)
 
 
-def log(message):
+def log(message: str):
+    """
+    Отладочная функция для логирования сообщений
+    """
     print(f"[RELOAD] {message}")
     print("TEST CHANGE")
 

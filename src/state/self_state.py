@@ -1111,9 +1111,8 @@ class SelfState:
         finally:
             # Снимаем флаг загрузки
             object.__setattr__(state, '_loading_from_snapshot', False)
-        # Загружаем архив при загрузке snapshot
-        state.archive_memory = ArchiveMemory()
-        state.archive_memory._load_archive()
+        # Загружаем архив при загрузке snapshot (только если файл существует)
+        state.archive_memory = ArchiveMemory(load_existing=True)
         # Инициализируем memory с архивом и загруженными записями
         state.memory = Memory(archive=state.archive_memory)
         for entry in memory_entries:
