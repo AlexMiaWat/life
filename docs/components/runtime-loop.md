@@ -194,8 +194,45 @@ Runtime Loop вычисляет субъективное время на осн�
 
 **Использование:**
 ```python
+from src.runtime.snapshot_manager import SnapshotManager
+from src.state.self_state import save_snapshot
+
+# Создание менеджера с периодичностью 10 тиков
 snapshot_manager = SnapshotManager(period_ticks=10, saver=save_snapshot)
+
+# В runtime loop:
+# Flush логов перед снапшотом (управляется через LogManager)
+log_manager.maybe_flush(self_state, phase="before_snapshot")
+
+# Создание снапшота через менеджер
 snapshot_was_made = snapshot_manager.maybe_snapshot(self_state)
+
+# Flush логов после снапшота (если был сделан)
+if snapshot_was_made:
+    log_manager.maybe_flush(self_state, phase="after_snapshot")
+```
+
+**Примеры:**
+
+1. **Создание снапшота с периодичностью 5 тиков:**
+```python
+snapshot_manager = SnapshotManager(period_ticks=5, saver=save_snapshot)
+# Снапшоты будут создаваться на тиках: 5, 10, 15, 20, ...
+```
+
+2. **Проверка, нужно ли делать снапшот:**
+```python
+if snapshot_manager.should_snapshot(self_state.ticks):
+    # Подготовка к снапшоту
+    pass
+```
+
+3. **Обработка ошибок:**
+```python
+# Ошибки автоматически обрабатываются внутри менеджера
+snapshot_was_made = snapshot_manager.maybe_snapshot(self_state)
+# Если произошла ошибка, snapshot_was_made будет False,
+# но менеджер продолжит работать
 ```
 
 ### LogManager

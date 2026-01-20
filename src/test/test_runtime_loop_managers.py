@@ -92,6 +92,15 @@ class TestSnapshotManager:
         
         with pytest.raises(ValueError, match="period_ticks must be positive"):
             SnapshotManager(period_ticks=-1, saver=saver)
+    
+    def test_maybe_snapshot_rejects_none_state(self):
+        """Тест: maybe_snapshot отклоняет None для self_state"""
+        saver = Mock()
+        manager = SnapshotManager(period_ticks=10, saver=saver)
+        
+        # Проверка на None для self_state
+        with pytest.raises(ValueError, match="self_state cannot be None"):
+            manager.maybe_snapshot(None)
 
 
 @pytest.mark.unit
@@ -437,3 +446,44 @@ class TestRuntimeLoopDelegation:
         assert self_state.energy < initial_energy
         assert self_state.stability < initial_stability
         assert self_state.integrity < initial_integrity
+    
+    def test_snapshot_manager_coordination_with_log_manager(self):
+        """Тест: координация между SnapshotManager и LogManager"""
+        from unittest.mock import patch
+        
+        saver = Mock()
+        flush_fn = Mock()
+        
+        snapshot_manager = SnapshotManager(period_ticks=10, saver=saver)
+        flush_policy = FlushPolicy(
+            flush_before_snapshot=True,
+            flush_after_snapshot=True,
+        )
+        log_manager = LogManager(flush_policy=flush_policy, flush_fn=flush_fn)
+        
+        self_state = SelfState()
+        
+        # Симулируем последовательность вызовов как в runtime loop
+        for tick in [9, 10, 11]:
+            self_state.ticks = tick
+            
+            # Flush перед снапшотом (как в runtime loop)
+            log_manager.maybe_flush(self_state, phase="before_snapshot")
+            
+            # Snapshot через SnapshotManager
+            snapshot_was_made = snapshot_manager.maybe_snapshot(self_state)
+            
+            # Flush после снапшота (если был сделан)
+            if snapshot_was_made:
+                log_manager.maybe_flush(self_state, phase="after_snapshot")
+        
+        # Проверяем, что flush был вызван перед снапшотом на тике 10
+        # (flush вызывается на каждом тике в фазе before_snapshot, но нас интересует тик 10)
+        assert flush_fn.call_count >= 2  # Минимум 2 flush (перед и после снапшота на тике 10)
+        
+        # Проверяем, что saver был вызван только на тике 10
+        assert saver.call_count == 1
+        
+        # Проверяем, что saver не вызывал flush напрямую
+        # (это проверяется тем, что flush_fn вызывается отдельно, а не внутри saver)
+        # saver должен быть вызван без дополнительных побочных эффектов flush

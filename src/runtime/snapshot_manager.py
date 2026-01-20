@@ -43,6 +43,10 @@ class SnapshotManager:
         """
         Проверяет, нужно ли делать снапшот на текущем тике.
         
+        Тик 0 исключен из снапшотов намеренно: при инициализации системы
+        состояние еще не стабилизировалось, поэтому первый снапшот делается
+        только после первого полного цикла (на тике period_ticks).
+        
         Args:
             ticks: Текущее количество тиков
             
@@ -62,7 +66,13 @@ class SnapshotManager:
             
         Returns:
             True если снапшот был сделан, False иначе
+            
+        Raises:
+            ValueError: Если self_state равен None
         """
+        if self_state is None:
+            raise ValueError("self_state cannot be None")
+        
         if self.should_snapshot(self_state.ticks):
             try:
                 self.saver(self_state)

@@ -961,7 +961,7 @@ def create_initial_state() -> SelfState:
     return state
 
 
-def save_snapshot(state: SelfState, compress: bool = False):
+def save_snapshot(state: SelfState):
     """
     Сохраняет текущее состояние жизни как отдельный JSON файл.
     Оптимизированная сериализация с исключением transient полей.
@@ -970,13 +970,12 @@ def save_snapshot(state: SelfState, compress: bool = False):
     Изменения состояния, которые могут произойти во время вызова asdict() (например,
     конвертация dataclass), не будут залогированы. Это намеренное решение для оптимизации.
 
+    ПРИМЕЧАНИЕ: Flush буфера логов должен управляться через LogManager в runtime loop,
+    а не внутри этой функции. Это обеспечивает правильное разделение ответственности.
+
     Args:
         state: Состояние для сохранения
-        compress: Если True, использовать сжатие gzip (не реализовано пока)
     """
-    # Сбрасываем буфер логов перед сериализацией
-    state._flush_log_buffer()
-
     # Временно отключаем логирование для сериализации
     # Это предотвращает логирование изменений, которые могут произойти при конвертации dataclass
     logging_was_enabled = state._logging_enabled
