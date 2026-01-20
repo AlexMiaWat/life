@@ -2,11 +2,12 @@ import json
 import threading
 import time
 import uuid
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
 from src.memory.memory import ArchiveMemory, Memory, MemoryEntry
+from src.validation.field_validator import FieldValidator
 
 # Папка для снимков
 SNAPSHOT_DIR = Path("data/snapshots")
@@ -24,7 +25,9 @@ MAX_LOG_FILE_SIZE = 10 * 1024 * 1024  # 10MB в байтах
 @dataclass
 class SelfState:
     # Thread-safety lock для API доступа
-    _api_lock: threading.RLock = field(default_factory=threading.RLock, init=False, repr=False)
+    _api_lock: threading.RLock = field(
+        default_factory=threading.RLock, init=False, repr=False
+    )
 
     life_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     birth_timestamp: float = field(default_factory=time.time)
@@ -47,7 +50,7 @@ class SelfState:
     intelligence: dict = field(default_factory=dict)
     memory: Memory = field(default=None)  # Активная память с поддержкой архивации
     archive_memory: ArchiveMemory = field(
-        default_factory=ArchiveMemory, init=False
+        default_factory=lambda: ArchiveMemory(), init=False
     )  # Архивная память (не сериализуется в snapshot напрямую)
 
     # Внутренние флаги для контроля инициализации и логирования
@@ -65,8 +68,12 @@ class SelfState:
     subjective_time_intensity_coeff: float = 1.0
     subjective_time_stability_coeff: float = 0.5
     subjective_time_energy_coeff: float = 0.5
-    subjective_time_intensity_smoothing: float = 0.3  # Коэффициент экспоненциального сглаживания для интенсивности
-    time_ratio_history: list = field(default_factory=list)  # История соотношений physical/subjective time
+    subjective_time_intensity_smoothing: float = (
+        0.3  # Коэффициент экспоненциального сглаживания для интенсивности
+    )
+    time_ratio_history: list = field(
+        default_factory=list
+    )  # История соотношений physical/subjective time
 
     # Last perceived event intensity (signal for subjective time), in [0..1].
     last_event_intensity: float = 0.0
@@ -78,7 +85,9 @@ class SelfState:
         # Помечаем объект как инициализированный после __post_init__
         object.__setattr__(self, "_initialized", True)
 
-    def _validate_field(self, field_name: str, value: float, clamp: bool = False) -> float:
+    def _validate_field(
+        self, field_name: str, value: float, clamp: bool = False
+    ) -> float:
         """
         Валидация значения поля с учетом его границ.
 
@@ -90,65 +99,7 @@ class SelfState:
         Returns:
             Валидированное значение
         """
-        if field_name == "energy":
-            if clamp:
-                return max(0.0, min(100.0, value))
-            if not (0.0 <= value <= 100.0):
-                raise ValueError(f"energy must be between 0.0 and 100.0, got {value}")
-            return value
-        elif field_name in ["integrity", "stability"]:
-            if clamp:
-                return max(0.0, min(1.0, value))
-            if not (0.0 <= value <= 1.0):
-                raise ValueError(f"{field_name} must be between 0.0 and 1.0, got {value}")
-            return value
-        elif field_name == "last_event_intensity":
-            if clamp:
-                return max(0.0, min(1.0, value))
-            if not (0.0 <= value <= 1.0):
-                raise ValueError(f"last_event_intensity must be between 0.0 and 1.0, got {value}")
-            return value
-        elif field_name in ["fatigue", "tension", "age"]:
-            if clamp:
-                return max(0.0, value)
-            if value < 0.0:
-                raise ValueError(f"{field_name} must be >= 0.0, got {value}")
-            return value
-        elif field_name == "subjective_time":
-            if clamp:
-                return max(0.0, value)
-            if value < 0.0:
-                raise ValueError(f"subjective_time must be >= 0.0, got {value}")
-            return value
-        elif field_name == "ticks":
-            if value < 0:
-                raise ValueError(f"ticks must be >= 0, got {value}")
-            return int(value)
-        elif field_name == "subjective_time_base_rate":
-            if clamp:
-                return max(0.0, value)
-            if value < 0.0:
-                raise ValueError(f"subjective_time_base_rate must be >= 0.0, got {value}")
-            return value
-        elif field_name == "subjective_time_rate_min":
-            if clamp:
-                return max(0.0, value)
-            if value < 0.0:
-                raise ValueError(f"subjective_time_rate_min must be >= 0.0, got {value}")
-            return value
-        elif field_name == "subjective_time_rate_max":
-            if clamp:
-                return max(0.0, value)
-            if value < 0.0:
-                raise ValueError(f"subjective_time_rate_max must be >= 0.0, got {value}")
-            return value
-        elif field_name == "subjective_time_intensity_smoothing":
-            if clamp:
-                return max(0.0, min(1.0, value))
-            if not (0.0 <= value <= 1.0):
-                raise ValueError(f"subjective_time_intensity_smoothing must be between 0.0 and 1.0, got {value}")
-            return value
-        return value
+        return FieldValidator.validate_field(field_name, value, clamp)
 
     def _rotate_log_if_needed(self) -> None:
         """Ротация лог-файла при достижении максимального размера"""
@@ -291,7 +242,9 @@ class SelfState:
             # Используем RLock для потокобезопасности изменений состояния
             with self._api_lock:
                 # Защита неизменяемых полей (только после инициализации и не при загрузке snapshot)
-                if name in ["life_id", "birth_timestamp"] and not getattr(self, '_loading_from_snapshot', False):
+                if name in ["life_id", "birth_timestamp"] and not getattr(
+                    self, "_loading_from_snapshot", False
+                ):
                     raise AttributeError(
                         f"Cannot modify immutable field '{name}' after initialization"
                     )
@@ -338,7 +291,11 @@ class SelfState:
         else:
             # Для неинициализированного состояния или специальных полей - без блокировки
             # Защита неизменяемых полей (только после инициализации и не при загрузке snapshot)
-            if is_initialized and name in ["life_id", "birth_timestamp"] and not getattr(self, '_loading_from_snapshot', False):
+            if (
+                is_initialized
+                and name in ["life_id", "birth_timestamp"]
+                and not getattr(self, "_loading_from_snapshot", False)
+            ):
                 raise AttributeError(
                     f"Cannot modify immutable field '{name}' after initialization"
                 )
@@ -631,11 +588,11 @@ class SelfState:
             # Создаем словарь вручную, избегая проблемных полей
             state_dict = {}
             for field_name in SelfState.__dataclass_fields__:
-                if not field_name.startswith('_'):  # Пропускаем внутренние поля
+                if not field_name.startswith("_"):  # Пропускаем внутренние поля
                     try:
                         value = getattr(self, field_name)
                         # Пропускаем не сериализуемые объекты
-                        if field_name not in ['_api_lock', 'archive_memory', 'memory']:
+                        if field_name not in ["_api_lock", "archive_memory", "memory"]:
                             state_dict[field_name] = value
                     except AttributeError:
                         continue
@@ -660,7 +617,9 @@ class SelfState:
         memory_limit = limits.get("memory_limit")
         if memory_limit is not None and self.memory is not None:
             # Ограничиваем количество записей памяти
-            memory_entries = list(self.memory)[-memory_limit:] if memory_limit > 0 else []
+            memory_entries = (
+                list(self.memory)[-memory_limit:] if memory_limit > 0 else []
+            )
             state_dict["memory"] = [
                 {
                     "event_type": entry.event_type,
@@ -681,7 +640,9 @@ class SelfState:
             if "recent_events" in state_dict and isinstance(
                 state_dict["recent_events"], list
             ):
-                state_dict["recent_events"] = state_dict["recent_events"][-events_limit:]
+                state_dict["recent_events"] = state_dict["recent_events"][
+                    -events_limit:
+                ]
         else:
             # По умолчанию не включаем recent_events
             state_dict.pop("recent_events", None)
@@ -757,6 +718,7 @@ class SelfState:
             ValueError: При критических ошибках структуры
         """
         import logging
+
         logger = logging.getLogger(__name__)
 
         # Ожидаемая структура
@@ -767,34 +729,52 @@ class SelfState:
         }
 
         if not isinstance(params, dict):
-            logger.warning("learning_params не является словарем, используем значения по умолчанию")
+            logger.warning(
+                "learning_params не является словарем, используем значения по умолчанию"
+            )
             return self._get_default_learning_params()
 
         validated_params = {}
 
         for section_name, expected_keys in expected_structure.items():
             if section_name not in params:
-                logger.warning(f"Отсутствует секция {section_name} в learning_params, используем значения по умолчанию")
-                validated_params[section_name] = self._get_default_learning_params()[section_name]
+                logger.warning(
+                    f"Отсутствует секция {section_name} в learning_params, используем значения по умолчанию"
+                )
+                validated_params[section_name] = self._get_default_learning_params()[
+                    section_name
+                ]
                 continue
 
             section = params[section_name]
             if not isinstance(section, dict):
-                logger.warning(f"Секция {section_name} не является словарем, используем значения по умолчанию")
-                validated_params[section_name] = self._get_default_learning_params()[section_name]
+                logger.warning(
+                    f"Секция {section_name} не является словарем, используем значения по умолчанию"
+                )
+                validated_params[section_name] = self._get_default_learning_params()[
+                    section_name
+                ]
                 continue
 
             validated_section = {}
             for key in expected_keys:
                 if key not in section:
-                    logger.warning(f"Отсутствует ключ {key} в секции {section_name}, используем значение по умолчанию")
-                    validated_section[key] = self._get_default_learning_params()[section_name][key]
+                    logger.warning(
+                        f"Отсутствует ключ {key} в секции {section_name}, используем значение по умолчанию"
+                    )
+                    validated_section[key] = self._get_default_learning_params()[
+                        section_name
+                    ][key]
                     continue
 
                 value = section[key]
                 if not isinstance(value, (int, float)):
-                    logger.warning(f"Значение {key} в секции {section_name} не является числом ({type(value)}), используем значение по умолчанию")
-                    validated_section[key] = self._get_default_learning_params()[section_name][key]
+                    logger.warning(
+                        f"Значение {key} в секции {section_name} не является числом ({type(value)}), используем значение по умолчанию"
+                    )
+                    validated_section[key] = self._get_default_learning_params()[
+                        section_name
+                    ][key]
                     continue
 
                 # Валидация диапазонов
@@ -828,6 +808,7 @@ class SelfState:
             ValueError: При критических ошибках структуры
         """
         import logging
+
         logger = logging.getLogger(__name__)
 
         # Ожидаемая структура
@@ -838,34 +819,52 @@ class SelfState:
         }
 
         if not isinstance(params, dict):
-            logger.warning("adaptation_params не является словарем, используем значения по умолчанию")
+            logger.warning(
+                "adaptation_params не является словарем, используем значения по умолчанию"
+            )
             return self._get_default_adaptation_params()
 
         validated_params = {}
 
         for section_name, expected_keys in expected_structure.items():
             if section_name not in params:
-                logger.warning(f"Отсутствует секция {section_name} в adaptation_params, используем значения по умолчанию")
-                validated_params[section_name] = self._get_default_adaptation_params()[section_name]
+                logger.warning(
+                    f"Отсутствует секция {section_name} в adaptation_params, используем значения по умолчанию"
+                )
+                validated_params[section_name] = self._get_default_adaptation_params()[
+                    section_name
+                ]
                 continue
 
             section = params[section_name]
             if not isinstance(section, dict):
-                logger.warning(f"Секция {section_name} не является словарем, используем значения по умолчанию")
-                validated_params[section_name] = self._get_default_adaptation_params()[section_name]
+                logger.warning(
+                    f"Секция {section_name} не является словарем, используем значения по умолчанию"
+                )
+                validated_params[section_name] = self._get_default_adaptation_params()[
+                    section_name
+                ]
                 continue
 
             validated_section = {}
             for key in expected_keys:
                 if key not in section:
-                    logger.warning(f"Отсутствует ключ {key} в секции {section_name}, используем значение по умолчанию")
-                    validated_section[key] = self._get_default_adaptation_params()[section_name][key]
+                    logger.warning(
+                        f"Отсутствует ключ {key} в секции {section_name}, используем значение по умолчанию"
+                    )
+                    validated_section[key] = self._get_default_adaptation_params()[
+                        section_name
+                    ][key]
                     continue
 
                 value = section[key]
                 if not isinstance(value, (int, float)):
-                    logger.warning(f"Значение {key} в секции {section_name} не является числом ({type(value)}), используем значение по умолчанию")
-                    validated_section[key] = self._get_default_adaptation_params()[section_name][key]
+                    logger.warning(
+                        f"Значение {key} в секции {section_name} не является числом ({type(value)}), используем значение по умолчанию"
+                    )
+                    validated_section[key] = self._get_default_adaptation_params()[
+                        section_name
+                    ][key]
                     continue
 
                 # Валидация диапазонов (такие же как для learning)
@@ -1064,6 +1063,7 @@ class SelfState:
             SelfState: Загруженное и валидированное состояние
         """
         import logging
+
         logger = logging.getLogger(__name__)
 
         # Mapping для совместимости
@@ -1078,15 +1078,23 @@ class SelfState:
 
         # Валидация и исправление learning_params
         if "learning_params" in mapped_data:
-            mapped_data["learning_params"] = self._validate_learning_params(mapped_data["learning_params"])
+            mapped_data["learning_params"] = self._validate_learning_params(
+                mapped_data["learning_params"]
+            )
         else:
-            logger.info("learning_params отсутствуют в snapshot, будут использованы значения по умолчанию")
+            logger.info(
+                "learning_params отсутствуют в snapshot, будут использованы значения по умолчанию"
+            )
 
         # Валидация и исправление adaptation_params
         if "adaptation_params" in mapped_data:
-            mapped_data["adaptation_params"] = self._validate_adaptation_params(mapped_data["adaptation_params"])
+            mapped_data["adaptation_params"] = self._validate_adaptation_params(
+                mapped_data["adaptation_params"]
+            )
         else:
-            logger.info("adaptation_params отсутствуют в snapshot, будут использованы значения по умолчанию")
+            logger.info(
+                "adaptation_params отсутствуют в snapshot, будут использованы значения по умолчанию"
+            )
 
         # Удаляем поля, которые не должны передаваться в __init__
         if "archive_memory" in mapped_data:
@@ -1102,7 +1110,7 @@ class SelfState:
         # Сначала создаем экземпляр с флагом загрузки
         state = SelfState()
         # Устанавливаем флаг загрузки из snapshot
-        object.__setattr__(state, '_loading_from_snapshot', True)
+        object.__setattr__(state, "_loading_from_snapshot", True)
         try:
             # Теперь можем устанавливать immutable поля
             for name, value in mapped_data.items():
@@ -1110,7 +1118,7 @@ class SelfState:
                     setattr(state, name, value)
         finally:
             # Снимаем флаг загрузки
-            object.__setattr__(state, '_loading_from_snapshot', False)
+            object.__setattr__(state, "_loading_from_snapshot", False)
         # Загружаем архив при загрузке snapshot (только если файл существует)
         state.archive_memory = ArchiveMemory(load_existing=True)
         # Инициализируем memory с архивом и загруженными записями
@@ -1118,17 +1126,16 @@ class SelfState:
         for entry in memory_entries:
             state.memory.append(entry)
 
-        logger.info("Snapshot загружен успешно с валидацией learning_params и adaptation_params")
+        logger.info(
+            "Snapshot загружен успешно с валидацией learning_params и adaptation_params"
+        )
         return state
 
 
 def create_initial_state() -> SelfState:
-    state = SelfState()
-    # Инициализируем архивную память (для новой сессии начинаем с пустого архива)
-    state.archive_memory = ArchiveMemory(load_existing=False)
-    # Инициализируем memory с архивом (__post_init__ уже создал memory, но пересоздадим с правильным архивом)
-    state.memory = Memory(archive=state.archive_memory, load_existing_archive=False)
-    return state
+    """Создает начальное состояние для новой сессии жизни"""
+    # ArchiveMemory() по умолчанию имеет load_existing=False, что подходит для новой сессии
+    return SelfState()
 
 
 def save_snapshot(state: SelfState):
@@ -1155,11 +1162,11 @@ def save_snapshot(state: SelfState):
         # Создаем snapshot вручную, избегая проблем с asdict и RLock
         snapshot = {}
         for field_name in SelfState.__dataclass_fields__:
-            if not field_name.startswith('_'):  # Пропускаем внутренние поля
+            if not field_name.startswith("_"):  # Пропускаем внутренние поля
                 try:
                     value = getattr(state, field_name)
                     # Пропускаем не сериализуемые объекты
-                    if field_name not in ['_api_lock', 'archive_memory', 'memory']:
+                    if field_name not in ["_api_lock", "archive_memory", "memory"]:
                         snapshot[field_name] = value
                 except AttributeError:
                     continue

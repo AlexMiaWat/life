@@ -2,7 +2,6 @@ import argparse
 import glob
 import importlib
 import json
-import logging
 import os
 import sys
 import threading
@@ -16,7 +15,7 @@ from src.environment import Event, EventQueue
 from src.logging_config import get_logger, setup_logging
 from src.monitor.console import monitor
 from src.runtime.loop import run_loop
-from src.state.self_state import SelfState, asdict
+from src.state.self_state import SelfState
 
 init()
 
@@ -57,12 +56,13 @@ class LifeHandler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-type", "application/json")
             self.end_headers()
-            
+
             # Парсим query-параметры для ограничения больших полей
-            from urllib.parse import urlparse, parse_qs
+            from urllib.parse import parse_qs, urlparse
+
             parsed_url = urlparse(self.path)
             query_params = parse_qs(parsed_url.query)
-            
+
             # Извлекаем лимиты из query-параметров
             limits = {}
             if "memory_limit" in query_params:
@@ -77,45 +77,50 @@ class LifeHandler(BaseHTTPRequestHandler):
                     pass
             if "energy_history_limit" in query_params:
                 try:
-                    limits["energy_history_limit"] = int(query_params["energy_history_limit"][0])
+                    limits["energy_history_limit"] = int(
+                        query_params["energy_history_limit"][0]
+                    )
                 except (ValueError, IndexError):
                     pass
             if "stability_history_limit" in query_params:
                 try:
-                    limits["stability_history_limit"] = int(query_params["stability_history_limit"][0])
+                    limits["stability_history_limit"] = int(
+                        query_params["stability_history_limit"][0]
+                    )
                 except (ValueError, IndexError):
                     pass
             if "adaptation_history_limit" in query_params:
                 try:
-                    limits["adaptation_history_limit"] = int(query_params["adaptation_history_limit"][0])
+                    limits["adaptation_history_limit"] = int(
+                        query_params["adaptation_history_limit"][0]
+                    )
                 except (ValueError, IndexError):
                     pass
-            
-            # Используем SnapshotReader для чтения статуса из файла
-            from src.runtime.snapshot_reader import read_life_status
-            safe_status = read_life_status(
-                include_optional=True, limits=limits if limits else None
-            )
-            if safe_status is None:
-                self.send_response(503)
-                self.end_headers()
-                self.wfile.write(b'{"error": "Life system snapshot not available"}')
-                return
+
+            # Получаем текущее состояние
+            # Сначала пробуем взять из сервера (для тестов), иначе из snapshot
+            if (
+                hasattr(self.server, "self_state")
+                and self.server.self_state is not None
+            ):
+                self_state = self.server.self_state
+            else:
+                try:
+                    self_state = SelfState().load_latest_snapshot()
+                except FileNotFoundError:
+                    self_state = SelfState()
+
+            safe_status = self_state.get_safe_status_dict(limits=limits)
             self.wfile.write(json.dumps(safe_status).encode())
         elif self.path == "/refresh-cache":
-            # Принудительное обновление кэша снапшотов (для тестирования)
-            from src.runtime.snapshot_reader import get_snapshot_reader
-            reader = get_snapshot_reader()
-            refreshed_data = reader.force_refresh()
-            if refreshed_data is None:
-                self.send_response(503)
-                self.end_headers()
-                self.wfile.write(b'{"error": "Could not refresh snapshot cache"}')
-                return
+            # В текущей реализации состояние читается из snapshots при каждом запросе,
+            # поэтому кэширование не требуется. Просто возвращаем успех.
             self.send_response(200)
             self.send_header("Content-type", "application/json")
             self.end_headers()
-            self.wfile.write(json.dumps({"status": "cache_refreshed", "snapshot_ticks": refreshed_data.get("ticks")}).encode())
+            self.wfile.write(
+                b'{"message": "Cache refreshed (no-op in current implementation)"}'
+            )
         elif self.path == "/clear-data":
             os.makedirs("data/snapshots", exist_ok=True)
             log_file = "data/tick_log.jsonl"
@@ -213,7 +218,9 @@ class LifeHandler(BaseHTTPRequestHandler):
                     + f"Клиент IP: {self.client_address[0]}"
                     + Style.RESET_ALL
                 )
-                logger.debug(Fore.YELLOW + f"Запрос: {self.requestline}" + Style.RESET_ALL)
+                logger.debug(
+                    Fore.YELLOW + f"Запрос: {self.requestline}" + Style.RESET_ALL
+                )
                 logger.debug(Fore.MAGENTA + f"Статус ответа: {code}" + Style.RESET_ALL)
                 if isinstance(size, (int, float)) and size > 0:
                     logger.debug(
@@ -295,7 +302,9 @@ def reloader_thread():  # pragma: no cover
                 if api_thread:
                     api_thread.join(timeout=5.0)
                     if api_thread.is_alive():
-                        logger.warning("[RELOAD] api_thread не завершился за 5 секунд, продолжается перезагрузка")
+                        logger.warning(
+                            "[RELOAD] api_thread не завершился за 5 секунд, продолжается перезагрузка"
+                        )
 
             # Перезагрузка модулей
             import environment.event as event_module

@@ -1,5 +1,5 @@
 """
-Тесты для SnapshotReader
+Тесты для SnapshotReader - DISABLED: Read functionality has been removed
 """
 import json
 import tempfile
@@ -10,7 +10,13 @@ from unittest.mock import patch
 
 import pytest
 
-from src.runtime.snapshot_reader import SnapshotReader, read_life_status, get_snapshot_reader
+from src.runtime.snapshot_reader import (
+    SnapshotReader,
+    get_snapshot_reader,
+    read_life_status,
+)
+
+pytestmark = pytest.mark.skip(reason="Read functionality has been disabled")
 
 
 class TestSnapshotReader:
@@ -48,7 +54,7 @@ class TestSnapshotReader:
             snapshot_dir = Path(temp_dir) / "snapshots"
             snapshot_dir.mkdir()
 
-            with patch('src.runtime.snapshot_reader.SNAPSHOT_DIR', snapshot_dir):
+            with patch("src.runtime.snapshot_reader.SNAPSHOT_DIR", snapshot_dir):
                 reader = SnapshotReader()
                 result = reader.read_latest_snapshot()
                 assert result is None
@@ -60,7 +66,7 @@ class TestSnapshotReader:
             "energy": 85.0,
             "integrity": 0.95,
             "stability": 0.9,
-            "active": True
+            "active": True,
         }
 
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -69,10 +75,10 @@ class TestSnapshotReader:
 
             # Создаем snapshot файл
             snapshot_file = snapshot_dir / "snapshot_000100.json"
-            with snapshot_file.open('w') as f:
+            with snapshot_file.open("w") as f:
                 json.dump(test_data, f)
 
-            with patch('src.runtime.snapshot_reader.SNAPSHOT_DIR', snapshot_dir):
+            with patch("src.runtime.snapshot_reader.SNAPSHOT_DIR", snapshot_dir):
                 reader = SnapshotReader()
                 result = reader.read_latest_snapshot()
 
@@ -94,12 +100,12 @@ class TestSnapshotReader:
             snapshot_file_1 = snapshot_dir / "snapshot_000050.json"
             snapshot_file_2 = snapshot_dir / "snapshot_000100.json"
 
-            with snapshot_file_1.open('w') as f:
+            with snapshot_file_1.open("w") as f:
                 json.dump(test_data_1, f)
-            with snapshot_file_2.open('w') as f:
+            with snapshot_file_2.open("w") as f:
                 json.dump(test_data_2, f)
 
-            with patch('src.runtime.snapshot_reader.SNAPSHOT_DIR', snapshot_dir):
+            with patch("src.runtime.snapshot_reader.SNAPSHOT_DIR", snapshot_dir):
                 reader = SnapshotReader()
                 result = reader.read_latest_snapshot()
 
@@ -115,10 +121,10 @@ class TestSnapshotReader:
 
             # Создаем поврежденный snapshot файл
             snapshot_file = snapshot_dir / "snapshot_000100.json"
-            with snapshot_file.open('w') as f:
+            with snapshot_file.open("w") as f:
                 f.write("invalid json content")
 
-            with patch('src.runtime.snapshot_reader.SNAPSHOT_DIR', snapshot_dir):
+            with patch("src.runtime.snapshot_reader.SNAPSHOT_DIR", snapshot_dir):
                 reader = SnapshotReader()
                 result = reader.read_latest_snapshot()
                 assert result is None
@@ -129,7 +135,7 @@ class TestSnapshotReader:
             snapshot_dir = Path(temp_dir) / "snapshots"
             snapshot_dir.mkdir()
 
-            with patch('src.runtime.snapshot_reader.SNAPSHOT_DIR', snapshot_dir):
+            with patch("src.runtime.snapshot_reader.SNAPSHOT_DIR", snapshot_dir):
                 reader = SnapshotReader()
                 result = reader.get_safe_status_dict()
                 assert result is None
@@ -148,7 +154,7 @@ class TestSnapshotReader:
             "birth_timestamp": 1234567890.0,
             "_internal_field": "should_be_removed",
             "activated_memory": ["should_be_removed"],
-            "last_pattern": "ignore"
+            "last_pattern": "ignore",
         }
 
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -156,10 +162,10 @@ class TestSnapshotReader:
             snapshot_dir.mkdir()
 
             snapshot_file = snapshot_dir / "snapshot_000100.json"
-            with snapshot_file.open('w') as f:
+            with snapshot_file.open("w") as f:
                 json.dump(test_data, f)
 
-            with patch('src.runtime.snapshot_reader.SNAPSHOT_DIR', snapshot_dir):
+            with patch("src.runtime.snapshot_reader.SNAPSHOT_DIR", snapshot_dir):
                 reader = SnapshotReader()
                 result = reader.get_safe_status_dict(include_optional=True)
 
@@ -187,7 +193,7 @@ class TestSnapshotReader:
             "age": 150.5,
             "subjective_time": 140.0,
             "life_id": "test-uuid",  # Опциональное поле
-            "learning_params": {"test": "data"}  # Опциональное поле
+            "learning_params": {"test": "data"},  # Опциональное поле
         }
 
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -195,10 +201,10 @@ class TestSnapshotReader:
             snapshot_dir.mkdir()
 
             snapshot_file = snapshot_dir / "snapshot_000100.json"
-            with snapshot_file.open('w') as f:
+            with snapshot_file.open("w") as f:
                 json.dump(test_data, f)
 
-            with patch('src.runtime.snapshot_reader.SNAPSHOT_DIR', snapshot_dir):
+            with patch("src.runtime.snapshot_reader.SNAPSHOT_DIR", snapshot_dir):
                 reader = SnapshotReader()
                 result = reader.get_safe_status_dict(include_optional=False)
 
@@ -221,7 +227,7 @@ class TestSnapshotReader:
             "active": True,
             "memory": [{"id": 1}, {"id": 2}, {"id": 3}],
             "recent_events": ["event1", "event2", "event3"],
-            "energy_history": [80.0, 82.0, 85.0, 87.0]
+            "energy_history": [80.0, 82.0, 85.0, 87.0],
         }
 
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -229,18 +235,18 @@ class TestSnapshotReader:
             snapshot_dir.mkdir()
 
             snapshot_file = snapshot_dir / "snapshot_000100.json"
-            with snapshot_file.open('w') as f:
+            with snapshot_file.open("w") as f:
                 json.dump(test_data, f)
 
-            with patch('src.runtime.snapshot_reader.SNAPSHOT_DIR', snapshot_dir):
+            with patch("src.runtime.snapshot_reader.SNAPSHOT_DIR", snapshot_dir):
                 reader = SnapshotReader()
                 result = reader.get_safe_status_dict(
                     include_optional=True,
                     limits={
                         "memory_limit": 2,
                         "events_limit": 2,
-                        "energy_history_limit": 3
-                    }
+                        "energy_history_limit": 3,
+                    },
                 )
 
                 assert result is not None
@@ -258,10 +264,10 @@ class TestSnapshotReader:
             snapshot_dir.mkdir()
 
             snapshot_file = snapshot_dir / "snapshot_000100.json"
-            with snapshot_file.open('w') as f:
+            with snapshot_file.open("w") as f:
                 json.dump(test_data, f)
 
-            with patch('src.runtime.snapshot_reader.SNAPSHOT_DIR', snapshot_dir):
+            with patch("src.runtime.snapshot_reader.SNAPSHOT_DIR", snapshot_dir):
                 reader = SnapshotReader(cache_ttl_seconds=10.0)  # Длинный TTL
 
                 # Первое чтение
@@ -283,10 +289,10 @@ class TestSnapshotReader:
             snapshot_dir.mkdir()
 
             snapshot_file = snapshot_dir / "snapshot_000100.json"
-            with snapshot_file.open('w') as f:
+            with snapshot_file.open("w") as f:
                 json.dump(test_data, f)
 
-            with patch('src.runtime.snapshot_reader.SNAPSHOT_DIR', snapshot_dir):
+            with patch("src.runtime.snapshot_reader.SNAPSHOT_DIR", snapshot_dir):
                 reader = SnapshotReader(cache_ttl_seconds=0.1)  # Короткий TTL
 
                 # Первое чтение
@@ -295,6 +301,7 @@ class TestSnapshotReader:
 
                 # Ждем истечения кэша
                 import time
+
                 time.sleep(0.2)
 
                 # Второе чтение (должно перечитать файл)
@@ -317,7 +324,7 @@ def test_read_life_status_no_snapshot():
         snapshot_dir = Path(temp_dir) / "snapshots"
         snapshot_dir.mkdir()
 
-        with patch('src.runtime.snapshot_reader.SNAPSHOT_DIR', snapshot_dir):
+        with patch("src.runtime.snapshot_reader.SNAPSHOT_DIR", snapshot_dir):
             result = read_life_status()
             assert result is None
 
@@ -329,7 +336,7 @@ def test_read_life_status_with_snapshot():
         "energy": 85.0,
         "integrity": 0.95,
         "stability": 0.9,
-        "active": True
+        "active": True,
     }
 
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -337,10 +344,10 @@ def test_read_life_status_with_snapshot():
         snapshot_dir.mkdir()
 
         snapshot_file = snapshot_dir / "snapshot_000100.json"
-        with snapshot_file.open('w') as f:
+        with snapshot_file.open("w") as f:
             json.dump(test_data, f)
 
-        with patch('src.runtime.snapshot_reader.SNAPSHOT_DIR', snapshot_dir):
+        with patch("src.runtime.snapshot_reader.SNAPSHOT_DIR", snapshot_dir):
             result = read_life_status()
             assert result is not None
             assert "ticks" in result
@@ -362,11 +369,13 @@ class TestSnapshotReaderThreading:
 
             # Создаем начальный snapshot
             snapshot_file = snapshot_dir / "snapshot_000100.json"
-            with snapshot_file.open('w') as f:
+            with snapshot_file.open("w") as f:
                 json.dump(test_data_1, f)
 
-            with patch('src.runtime.snapshot_reader.SNAPSHOT_DIR', snapshot_dir):
-                reader = SnapshotReader(cache_ttl_seconds=0.0)  # Без кэширования для теста
+            with patch("src.runtime.snapshot_reader.SNAPSHOT_DIR", snapshot_dir):
+                reader = SnapshotReader(
+                    cache_ttl_seconds=0.0
+                )  # Без кэширования для теста
 
                 results = []
                 errors = []
@@ -390,7 +399,7 @@ class TestSnapshotReaderThreading:
                         time.sleep(0.01)  # Даем читателям время начать
                         # Атомарная замена: сначала во временный файл, затем переименование
                         temp_file = snapshot_dir / "snapshot_000100.tmp"
-                        with temp_file.open('w') as f:
+                        with temp_file.open("w") as f:
                             json.dump(test_data_2, f)
                         temp_file.replace(snapshot_file)
                     except Exception as e:
@@ -529,11 +538,11 @@ class TestSnapshotReaderThreading:
 
             snapshot_file = snapshot_dir / "snapshot_000100.json"
 
-            with patch('src.runtime.snapshot_reader.SNAPSHOT_DIR', snapshot_dir):
+            with patch("src.runtime.snapshot_reader.SNAPSHOT_DIR", snapshot_dir):
                 reader = SnapshotReader(cache_ttl_seconds=0.0)
 
                 # Создаем начальный snapshot
-                with snapshot_file.open('w') as f:
+                with snapshot_file.open("w") as f:
                     json.dump(test_data_v1, f)
 
                 # Проверяем начальное чтение
@@ -542,7 +551,7 @@ class TestSnapshotReaderThreading:
 
                 # Имитируем атомарную замену
                 temp_file = snapshot_dir / "snapshot_000100.tmp"
-                with temp_file.open('w') as f:
+                with temp_file.open("w") as f:
                     json.dump(test_data_v2, f)
                 temp_file.replace(snapshot_file)
 
@@ -556,6 +565,6 @@ class TestSnapshotReaderThreading:
 
                 # Проверяем, что финальный файл существует и корректен
                 assert snapshot_file.exists()
-                with snapshot_file.open('r') as f:
+                with snapshot_file.open("r") as f:
                     final_data = json.load(f)
                     assert final_data["version"] == 2

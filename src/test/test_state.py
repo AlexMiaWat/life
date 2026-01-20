@@ -823,10 +823,71 @@ class TestSubjectiveTimeAliases:
         assert "subjective_time" in status
         assert "age" in status
         assert "subjective_age" not in status  # Property не сериализуется
-        assert "physical_age" not in status    # Property не сериализуется
+        assert "physical_age" not in status  # Property не сериализуется
 
         assert status["subjective_time"] == 10.0
         assert status["age"] == 20.0
+
+
+class TestSelfStateIsolation:
+    """Тесты на изоляцию экземпляров SelfState"""
+
+    def test_archive_memory_isolation(self):
+        """Тест что ArchiveMemory изолирован между экземплярами SelfState"""
+        from src.memory.memory import MemoryEntry
+
+        # Создаем два экземпляра SelfState
+        state1 = SelfState()
+        state2 = SelfState()
+
+        # Проверяем что ArchiveMemory пустой у обоих
+        assert len(state1.archive_memory._entries) == 0
+        assert len(state2.archive_memory._entries) == 0
+
+        # Добавляем запись в ArchiveMemory первого экземпляра
+        entry = MemoryEntry(
+            event_type="test_event",
+            meaning_significance=0.8,
+            timestamp=1000.0,
+            weight=1.0,
+        )
+        state1.archive_memory.add_entry(entry)
+
+        # Проверяем что запись появилась только у первого экземпляра
+        assert len(state1.archive_memory._entries) == 1
+        assert len(state2.archive_memory._entries) == 0
+
+        # Проверяем что записи действительно разные объекты
+        assert state1.archive_memory is not state2.archive_memory
+
+    def test_memory_isolation(self):
+        """Тест что Memory изолирован между экземплярами SelfState"""
+        from src.memory.memory import MemoryEntry
+
+        # Создаем два экземпляра SelfState
+        state1 = SelfState()
+        state2 = SelfState()
+
+        # Проверяем что Memory пустой у обоих
+        assert len(state1.memory) == 0
+        assert len(state2.memory) == 0
+
+        # Добавляем запись в Memory первого экземпляра
+        entry = MemoryEntry(
+            event_type="test_event",
+            meaning_significance=0.8,
+            timestamp=1000.0,
+            weight=1.0,
+        )
+        state1.memory.append(entry)
+
+        # Проверяем что запись появилась только у первого экземпляра
+        assert len(state1.memory) == 1
+        assert len(state2.memory) == 0
+
+        # Проверяем что Memory объекты разные
+        assert state1.memory is not state2.memory
+        assert state1.memory.archive is not state2.memory.archive
 
 
 if __name__ == "__main__":
