@@ -825,7 +825,7 @@ class TestNewFunctionalitySmoke:
         assert event.intensity == 0.5
 
         # StatusResponse
-        status = StatusResponse(active=True, ticks=100, age=100.5, energy=85.0, stability=0.95, integrity=0.98)
+        status = StatusResponse(active=True, ticks=100, age=100.5, energy=85.0, stability=0.95, integrity=0.98, subjective_time=50.0, fatigue=0.1, tension=0.2)
         assert status.active is True
         assert status.ticks == 100
         assert status.energy == 85.0

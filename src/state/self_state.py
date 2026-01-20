@@ -56,6 +56,7 @@ class SelfState:
     _log_only_critical: bool = field(default=False, init=False, repr=False)
     _log_buffer: list = field(default_factory=list, init=False, repr=False)
     _log_buffer_size: int = field(default=100, init=False, repr=False)
+    _loading_from_snapshot: bool = field(default=False, init=False, repr=False)
 
     # === Subjective time modulation parameters (defaults) ===
     subjective_time_base_rate: float = 1.0
@@ -120,6 +121,24 @@ class SelfState:
             if value < 0:
                 raise ValueError(f"ticks must be >= 0, got {value}")
             return int(value)
+        elif field_name == "subjective_time_base_rate":
+            if clamp:
+                return max(0.0, value)
+            if value < 0.0:
+                raise ValueError(f"subjective_time_base_rate must be >= 0.0, got {value}")
+            return value
+        elif field_name == "subjective_time_rate_min":
+            if clamp:
+                return max(0.0, value)
+            if value < 0.0:
+                raise ValueError(f"subjective_time_rate_min must be >= 0.0, got {value}")
+            return value
+        elif field_name == "subjective_time_rate_max":
+            if clamp:
+                return max(0.0, value)
+            if value < 0.0:
+                raise ValueError(f"subjective_time_rate_max must be >= 0.0, got {value}")
+            return value
         return value
 
     def _rotate_log_if_needed(self) -> None:
@@ -257,8 +276,8 @@ class SelfState:
         # Проверяем, инициализирован ли объект (безопасно через hasattr)
         is_initialized = hasattr(self, "_initialized") and self._initialized
 
-        # Защита неизменяемых полей (только после инициализации)
-        if is_initialized and name in ["life_id", "birth_timestamp"]:
+        # Защита неизменяемых полей (только после инициализации и не при загрузке snapshot)
+        if is_initialized and name in ["life_id", "birth_timestamp"] and not getattr(self, '_loading_from_snapshot', False):
             raise AttributeError(
                 f"Cannot modify immutable field '{name}' after initialization"
             )
@@ -355,12 +374,34 @@ class SelfState:
         default_factory=list
     )  # История адаптаций для обратимости (Этап 15)
 
+    # === Subjective time aliases ===
+    @property
+    def subjective_age(self) -> float:
+        """Alias for subjective_time - accumulated subjective time in seconds."""
+        return self.subjective_time
+
+    @subjective_age.setter
+    def subjective_age(self, value: float) -> None:
+        """Set subjective_time via subjective_age alias."""
+        self.subjective_time = value
+
+    @property
+    def physical_age(self) -> float:
+        """Alias for age - physical time in seconds."""
+        return self.age
+
+    @physical_age.setter
+    def physical_age(self, value: float) -> None:
+        """Set age via physical_age alias."""
+        self.age = value
+
     def is_active(self) -> bool:
         """
         Проверка жизнеспособности состояния.
-        Возвращает True если все vital параметры > 0.
+        Согласно философии Life, система всегда "активна" (работает), даже в degraded состоянии.
+        Возвращает True всегда - система продолжает функционировать при любых параметрах.
         """
-        return self.energy > 0.0 and self.integrity > 0.0 and self.stability > 0.0
+        return True
 
     def is_viable(self) -> bool:
         """
@@ -991,8 +1032,19 @@ class SelfState:
             memory_entries = [MemoryEntry(**entry) for entry in mapped_data["memory"]]
             mapped_data.pop("memory")  # Удаляем из mapped_data, инициализируем отдельно
 
-        # Создать экземпляр из dict
-        state = SelfState(**mapped_data)
+        # Создать экземпляр, разрешив изменение immutable полей для загрузки
+        # Сначала создаем экземпляр с флагом загрузки
+        state = SelfState()
+        # Устанавливаем флаг загрузки из snapshot
+        object.__setattr__(state, '_loading_from_snapshot', True)
+        try:
+            # Теперь можем устанавливать immutable поля
+            for name, value in mapped_data.items():
+                if hasattr(state, name):
+                    setattr(state, name, value)
+        finally:
+            # Снимаем флаг загрузки
+            object.__setattr__(state, '_loading_from_snapshot', False)
         # Загружаем архив при загрузке snapshot
         state.archive_memory = ArchiveMemory()
         state.archive_memory._load_archive()
@@ -1035,15 +1087,21 @@ def save_snapshot(state: SelfState):
     state.disable_logging()
 
     try:
-        snapshot = asdict(state)
+        # Создаем snapshot вручную, избегая проблем с asdict и RLock
+        snapshot = {}
+        for field_name in SelfState.__dataclass_fields__:
+            if not field_name.startswith('_'):  # Пропускаем внутренние поля
+                try:
+                    value = getattr(state, field_name)
+                    # Пропускаем не сериализуемые объекты
+                    if field_name not in ['_api_lock', 'archive_memory', 'memory']:
+                        snapshot[field_name] = value
+                except AttributeError:
+                    continue
+
         # Исключаем transient поля
         snapshot.pop("activated_memory", None)
         snapshot.pop("last_pattern", None)
-        snapshot.pop("_initialized", None)
-        snapshot.pop("_logging_enabled", None)
-        snapshot.pop("_log_only_critical", None)
-        snapshot.pop("_log_buffer", None)
-        snapshot.pop("_log_buffer_size", None)
 
         # Оптимизированная конвертация Memory в list
         if isinstance(state.memory, Memory):

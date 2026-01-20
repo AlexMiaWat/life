@@ -727,5 +727,107 @@ class TestSelfStateLogging:
         assert len(history) <= 5
 
 
+@pytest.mark.unit
+@pytest.mark.order(2)
+class TestSubjectiveTimeAliases:
+    """Тесты для алиасов субъективного времени"""
+
+    def test_subjective_age_property(self):
+        """Тест property subjective_age как алиаса к subjective_time"""
+        state = SelfState()
+
+        # Проверка начального значения
+        assert state.subjective_age == 0.0
+        assert state.subjective_age == state.subjective_time
+
+        # Проверка установки через subjective_age
+        state.subjective_age = 10.5
+        assert state.subjective_time == 10.5
+        assert state.subjective_age == 10.5
+
+        # Проверка установки через subjective_time
+        state.subjective_time = 20.0
+        assert state.subjective_age == 20.0
+        assert state.subjective_time == 20.0
+
+    def test_physical_age_property(self):
+        """Тест property physical_age как алиаса к age"""
+        state = SelfState()
+
+        # Проверка начального значения
+        assert state.physical_age == 0.0
+        assert state.physical_age == state.age
+
+        # Проверка установки через physical_age
+        state.physical_age = 15.3
+        assert state.age == 15.3
+        assert state.physical_age == 15.3
+
+        # Проверка установки через age
+        state.age = 25.7
+        assert state.physical_age == 25.7
+        assert state.age == 25.7
+
+    def test_subjective_age_validation(self):
+        """Тест валидации subjective_age (через subjective_time)"""
+        state = SelfState()
+
+        # Положительные значения должны работать
+        state.subjective_age = 10.0
+        assert state.subjective_age == 10.0
+
+        # Нулевое значение должно работать
+        state.subjective_age = 0.0
+        assert state.subjective_age == 0.0
+
+        # Отрицательные значения должны вызывать ошибку
+        with pytest.raises(ValueError, match="subjective_time must be >= 0.0"):
+            state.subjective_age = -1.0
+
+    def test_physical_age_validation(self):
+        """Тест валидации physical_age (через age)"""
+        state = SelfState()
+
+        # Положительные значения должны работать
+        state.physical_age = 10.0
+        assert state.physical_age == 10.0
+
+        # Нулевое значение должно работать
+        state.physical_age = 0.0
+        assert state.physical_age == 0.0
+
+        # Отрицательные значения должны вызывать ошибку
+        with pytest.raises(ValueError, match="age must be >= 0.0"):
+            state.physical_age = -1.0
+
+    def test_subjective_age_apply_delta(self):
+        """Тест применения дельт к subjective_age через apply_delta"""
+        state = SelfState()
+        state.subjective_age = 5.0
+
+        # Применяем положительную дельту
+        state.apply_delta({"subjective_time": 3.0})
+        assert state.subjective_age == 8.0
+
+        # Применяем отрицательную дельту (должна быть обрезана до 0)
+        state.apply_delta({"subjective_time": -10.0})
+        assert state.subjective_age == 0.0
+
+    def test_aliases_in_get_safe_status_dict(self):
+        """Тест что алиасы не попадают в get_safe_status_dict (только базовые поля)"""
+        state = SelfState()
+        state.subjective_age = 10.0
+        state.physical_age = 20.0
+
+        status = state.get_safe_status_dict()
+        assert "subjective_time" in status
+        assert "age" in status
+        assert "subjective_age" not in status  # Property не сериализуется
+        assert "physical_age" not in status    # Property не сериализуется
+
+        assert status["subjective_time"] == 10.0
+        assert status["age"] == 20.0
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

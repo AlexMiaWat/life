@@ -26,18 +26,20 @@ class ArchiveMemory:
     Хранит записи, которые были перенесены из активной памяти.
     """
 
-    def __init__(self, archive_file: Optional[Path] = None):
+    def __init__(self, archive_file: Optional[Path] = None, load_existing: bool = True):
         """
         Инициализация архивной памяти.
 
         Args:
             archive_file: Путь к файлу архива. Если None, используется дефолтный.
+            load_existing: Загружать ли существующие данные из файла. По умолчанию True.
         """
         if archive_file is None:
             archive_file = ARCHIVE_DIR / "memory_archive.json"
         self.archive_file = archive_file
         self._entries: List[MemoryEntry] = []
-        self._load_archive()
+        if load_existing:
+            self._load_archive()
 
     def _load_archive(self):
         """Загружает архив из файла, если он существует."""
@@ -129,16 +131,17 @@ class Memory(list):
     Активная память с поддержкой архивации.
     """
 
-    def __init__(self, archive: Optional[ArchiveMemory] = None):
+    def __init__(self, archive: Optional[ArchiveMemory] = None, load_existing_archive: bool = True):
         """
         Инициализация памяти.
 
         Args:
             archive: Экземпляр ArchiveMemory для архивации. Если None, создается новый.
+            load_existing_archive: Загружать ли существующие данные архива. По умолчанию True.
         """
         super().__init__()
         if archive is None:
-            archive = ArchiveMemory()
+            archive = ArchiveMemory(load_existing=load_existing_archive)
         self.archive = archive
         self._max_size = 50  # Максимальный размер активной памяти
         self._min_weight_threshold = 0.1  # Порог веса для автоматического удаления

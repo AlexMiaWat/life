@@ -353,6 +353,9 @@ async def get_status(
             energy=85.0,
             stability=0.95,
             integrity=0.98,
+            subjective_time=50.0,
+            fatigue=0.1,
+            tension=0.2,
         )
     
     # Возвращаем расширенный контракт

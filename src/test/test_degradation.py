@@ -113,42 +113,38 @@ class TestDegradationUnit:
         assert state.integrity <= 0.0001
         assert state.stability <= 0.0001
 
-    def test_active_flag_set_false_on_zero_energy(self):
-        """Тест: флаг active должен быть False при energy=0 в loop"""
+    def test_active_flag_remains_true_on_zero_energy(self):
+        """Тест: флаг active остается True при energy=0 (система продолжает работать в degraded состоянии)"""
         state = SelfState()
-        state.energy = 0.0
+        # Используем apply_delta для установки energy в 0, чтобы избежать проблем с __setattr__
+        state.apply_delta({"energy": -100.0})  # Уменьшаем до 0
         state.integrity = 1.0
         state.stability = 1.0
 
-        # Проверяем условие из loop.py (finally block)
-        if state.energy <= 0 or state.integrity <= 0 or state.stability <= 0:
-            state.active = False
+        # Согласно философии Life, система продолжает работать при параметрах <= 0
+        # Флаг active не должен автоматически становиться False
+        assert state.active is True
+        assert state.energy == 0.0
 
-        assert state.active is False
-
-    def test_active_flag_set_false_on_zero_integrity(self):
-        """Тест: флаг active должен быть False при integrity=0"""
+    def test_active_flag_remains_true_on_zero_integrity(self):
+        """Тест: флаг active остается True при integrity=0 (система продолжает работать в degraded состоянии)"""
         state = SelfState()
         state.energy = 100.0
         state.integrity = 0.0
         state.stability = 1.0
 
-        if state.energy <= 0 or state.integrity <= 0 or state.stability <= 0:
-            state.active = False
+        # Согласно философии Life, система продолжает работать при параметрах <= 0
+        assert state.active is True
 
-        assert state.active is False
-
-    def test_active_flag_set_false_on_zero_stability(self):
-        """Тест: флаг active должен быть False при stability=0"""
+    def test_active_flag_remains_true_on_zero_stability(self):
+        """Тест: флаг active остается True при stability=0 (система продолжает работать в degraded состоянии)"""
         state = SelfState()
         state.energy = 100.0
         state.integrity = 1.0
         state.stability = 0.0
 
-        if state.energy <= 0 or state.integrity <= 0 or state.stability <= 0:
-            state.active = False
-
-        assert state.active is False
+        # Согласно философии Life, система продолжает работать при параметрах <= 0
+        assert state.active is True
 
     def test_degradation_preserves_other_state(self):
         """Тест: деградация не влияет на другие параметры состояния"""
@@ -290,8 +286,8 @@ class TestDegradationIntegration:
                 or last["stability"] <= first["stability"]
             )
 
-    def test_deactivation_on_energy_zero(self, event_queue):
-        """Тест деактивации при падении energy до 0"""
+    def test_system_continues_on_energy_zero(self, event_queue):
+        """Тест продолжения работы при падении energy до 0 (бессмертная слабость)"""
         state = SelfState()
         state.energy = 0.01  # Почти 0
         state.integrity = 0.01
@@ -309,11 +305,13 @@ class TestDegradationIntegration:
         stop_event.set()
         loop_thread.join(timeout=1.0)
 
-        # Система должна деактивироваться
-        assert state.active is False
+        # Система должна продолжать работать в degraded состоянии
+        assert state.active is True
+        # Параметры могут быть <= 0, но система не останавливается
+        assert state.ticks > 0  # Тики должны увеличиваться
 
-    def test_deactivation_on_integrity_zero(self, event_queue):
-        """Тест деактивации при падении integrity до 0"""
+    def test_system_continues_on_integrity_zero(self, event_queue):
+        """Тест продолжения работы при integrity=0 (бессмертная слабость)"""
         state = SelfState()
         state.energy = 100.0
         state.integrity = 0.0  # Уже 0
@@ -331,10 +329,12 @@ class TestDegradationIntegration:
         stop_event.set()
         loop_thread.join(timeout=1.0)
 
-        assert state.active is False
+        # Система продолжает работать
+        assert state.active is True
+        assert state.ticks > 0
 
-    def test_deactivation_on_stability_zero(self, event_queue):
-        """Тест деактивации при падении stability до 0"""
+    def test_system_continues_on_stability_zero(self, event_queue):
+        """Тест продолжения работы при stability=0 (бессмертная слабость)"""
         state = SelfState()
         state.energy = 100.0
         state.integrity = 1.0
@@ -352,7 +352,9 @@ class TestDegradationIntegration:
         stop_event.set()
         loop_thread.join(timeout=1.0)
 
-        assert state.active is False
+        # Система продолжает работать
+        assert state.active is True
+        assert state.ticks > 0
 
     def test_loop_continues_while_degrading(self, event_queue):
         """Тест: loop продолжает работать пока параметры > 0"""
@@ -570,8 +572,8 @@ class TestDegradationEdgeCases:
         assert state.life_id == life_id
         assert state.birth_timestamp == birth_timestamp
 
-    def test_all_params_zero_simultaneously(self, event_queue):
-        """Тест: все параметры равны 0 одновременно"""
+    def test_system_continues_with_all_params_zero(self, event_queue):
+        """Тест: система продолжает работать даже когда все параметры равны 0 (бессмертная слабость)"""
         state = SelfState()
         state.energy = 0.0
         state.integrity = 0.0
@@ -589,12 +591,14 @@ class TestDegradationEdgeCases:
         stop_event.set()
         loop_thread.join(timeout=1.0)
 
-        # Система деактивирована
-        assert state.active is False
-        # Параметры остаются на 0
+        # Система продолжает работать в крайне degraded состоянии
+        assert state.active is True
+        # Параметры остаются на 0, но система не останавливается
         assert state.energy == 0.0
         assert state.integrity == 0.0
         assert state.stability == 0.0
+        # Тики должны увеличиваться несмотря на нулевые параметры
+        assert state.ticks > 0
 
 
 @pytest.mark.integration
