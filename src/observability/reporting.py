@@ -18,12 +18,15 @@ try:
     import matplotlib.pyplot as plt
     import matplotlib.dates as mdates
     from jinja2 import Template
+
     MATPLOTLIB_AVAILABLE = True
 except ImportError:
     MATPLOTLIB_AVAILABLE = False
     plt = None
     mdates = None
     Template = None
+
+if not MATPLOTLIB_AVAILABLE:
     logger = logging.getLogger(__name__)
     logger.warning("matplotlib или jinja2 не установлены. Визуализации будут недоступны.")
 
@@ -44,7 +47,9 @@ class ReportGenerator:
         # Создаем базовый HTML шаблон если его нет
         self._ensure_template_exists()
 
-    def generate_html_report(self, report: ObservationReport, output_path: Optional[Path] = None) -> Path:
+    def generate_html_report(
+        self, report: ObservationReport, output_path: Optional[Path] = None
+    ) -> Path:
         """
         Сгенерировать полный HTML отчет с визуализациями.
 
@@ -70,18 +75,19 @@ class ReportGenerator:
 
         # Сохраняем отчет
         if output_path is None:
-            timestamp = time.strftime('%Y%m%d_%H%M%S')
-            output_path = Path(f'observation_report_{timestamp}.html')
+            timestamp = time.strftime("%Y%m%d_%H%M%S")
+            output_path = Path(f"observation_report_{timestamp}.html")
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(output_path, 'w', encoding='utf-8') as f:
+        with open(output_path, "w", encoding="utf-8") as f:
             f.write(html_content)
 
         logger.info(f"HTML отчет сохранен: {output_path}")
         return output_path
 
-    def generate_summary_report(self, reports: List[ObservationReport],
-                              output_path: Optional[Path] = None) -> Path:
+    def generate_summary_report(
+        self, reports: List[ObservationReport], output_path: Optional[Path] = None
+    ) -> Path:
         """
         Сгенерировать сводный отчет по нескольким наблюдениям.
 
@@ -106,7 +112,7 @@ class ReportGenerator:
             "total_reports": len(reports),
             "observation_period": (
                 min(r.observation_period[0] for r in reports),
-                max(r.observation_period[1] for r in reports)
+                max(r.observation_period[1] for r in reports),
             ),
             "average_metrics": self._calculate_average_metrics(reports),
             "trend_analysis": trend_data,
@@ -116,8 +122,9 @@ class ReportGenerator:
 
         # Генерируем HTML
         from jinja2 import Environment
+
         env = Environment()
-        env.filters['datetime'] = datetime_filter
+        env.filters["datetime"] = datetime_filter
         template = env.from_string("""
         <!DOCTYPE html>
         <html>
@@ -172,11 +179,11 @@ class ReportGenerator:
 
         # Сохраняем отчет
         if output_path is None:
-            timestamp = time.strftime('%Y%m%d_%H%M%S')
-            output_path = Path(f'summary_report_{timestamp}.html')
+            timestamp = time.strftime("%Y%m%d_%H%M%S")
+            output_path = Path(f"summary_report_{timestamp}.html")
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(output_path, 'w', encoding='utf-8') as f:
+        with open(output_path, "w", encoding="utf-8") as f:
             f.write(html_content)
 
         logger.info(f"Сводный отчет сохранен: {output_path}")
@@ -189,35 +196,47 @@ class ReportGenerator:
         try:
             # График метрик
             fig, axes = plt.subplots(2, 2, figsize=(12, 8))
-            fig.suptitle('System Metrics Overview')
+            fig.suptitle("System Metrics Overview")
 
             metrics = report.metrics_summary
 
             # Метрики производительности
-            axes[0, 0].bar(['Cycles', 'Actions', 'Memory'],
-                          [metrics.cycle_count, metrics.action_count, metrics.memory_entries_count])
-            axes[0, 0].set_title('Activity Metrics')
-            axes[0, 0].tick_params(axis='x', rotation=45)
+            axes[0, 0].bar(
+                ["Cycles", "Actions", "Memory"],
+                [metrics.cycle_count, metrics.action_count, metrics.memory_entries_count],
+            )
+            axes[0, 0].set_title("Activity Metrics")
+            axes[0, 0].tick_params(axis="x", rotation=45)
 
             # Эффективность компонентов
-            axes[0, 1].bar(['Learning', 'Adaptation', 'Decision'],
-                          [metrics.learning_effectiveness, metrics.adaptation_rate, metrics.decision_success_rate])
-            axes[0, 1].set_title('Component Effectiveness')
+            axes[0, 1].bar(
+                ["Learning", "Adaptation", "Decision"],
+                [
+                    metrics.learning_effectiveness,
+                    metrics.adaptation_rate,
+                    metrics.decision_success_rate,
+                ],
+            )
+            axes[0, 1].set_title("Component Effectiveness")
             axes[0, 1].set_ylim(0, 1)
 
             # Уровни здоровья
-            axes[1, 0].bar(['Integrity', 'Energy', 'Errors'],
-                          [metrics.integrity_score, metrics.energy_level, metrics.error_count])
-            axes[1, 0].set_title('System Health')
-            axes[1, 0].tick_params(axis='x', rotation=45)
+            axes[1, 0].bar(
+                ["Integrity", "Energy", "Errors"],
+                [metrics.integrity_score, metrics.energy_level, metrics.error_count],
+            )
+            axes[1, 0].set_title("System Health")
+            axes[1, 0].tick_params(axis="x", rotation=45)
 
             # Скорости обработки
-            axes[1, 1].bar(['Events/sec', 'Changes/sec'],
-                          [metrics.event_processing_rate, metrics.state_change_frequency])
-            axes[1, 1].set_title('Processing Rates')
+            axes[1, 1].bar(
+                ["Events/sec", "Changes/sec"],
+                [metrics.event_processing_rate, metrics.state_change_frequency],
+            )
+            axes[1, 1].set_title("Processing Rates")
 
             plt.tight_layout()
-            charts['metrics_overview'] = self._fig_to_base64(fig)
+            charts["metrics_overview"] = self._fig_to_base64(fig)
             plt.close(fig)
 
             # График паттернов поведения
@@ -229,14 +248,14 @@ class ReportGenerator:
                 impacts = [p.impact_score for p in patterns]
 
                 x = range(len(patterns))
-                ax.bar(x, frequencies, alpha=0.7, label='Frequency')
-                ax.scatter(x, impacts, color='red', label='Impact', s=50)
+                ax.bar(x, frequencies, alpha=0.7, label="Frequency")
+                ax.scatter(x, impacts, color="red", label="Impact", s=50)
                 ax.set_xticks(x)
-                ax.set_xticklabels(names, rotation=45, ha='right')
-                ax.set_title('Behavior Patterns')
+                ax.set_xticklabels(names, rotation=45, ha="right")
+                ax.set_title("Behavior Patterns")
                 ax.legend()
 
-                charts['behavior_patterns'] = self._fig_to_base64(fig)
+                charts["behavior_patterns"] = self._fig_to_base64(fig)
                 plt.close(fig)
 
         except Exception as e:
@@ -255,52 +274,54 @@ class ReportGenerator:
             # Сортируем отчеты по времени
             sorted_reports = sorted(reports, key=lambda r: r.metrics_summary.timestamp)
 
-            timestamps = [datetime.fromtimestamp(r.metrics_summary.timestamp) for r in sorted_reports]
+            timestamps = [
+                datetime.fromtimestamp(r.metrics_summary.timestamp) for r in sorted_reports
+            ]
 
             # График изменения метрик со временем
             fig, axes = plt.subplots(2, 2, figsize=(14, 10))
-            fig.suptitle('Metrics Trends Over Time')
+            fig.suptitle("Metrics Trends Over Time")
 
             # Integrity и Energy
             integrity_scores = [r.metrics_summary.integrity_score for r in sorted_reports]
             energy_levels = [r.metrics_summary.energy_level for r in sorted_reports]
 
-            axes[0, 0].plot(timestamps, integrity_scores, 'b-o', label='Integrity')
-            axes[0, 0].plot(timestamps, energy_levels, 'g-s', label='Energy')
-            axes[0, 0].set_title('System Health Trends')
+            axes[0, 0].plot(timestamps, integrity_scores, "b-o", label="Integrity")
+            axes[0, 0].plot(timestamps, energy_levels, "g-s", label="Energy")
+            axes[0, 0].set_title("System Health Trends")
             axes[0, 0].legend()
-            axes[0, 0].tick_params(axis='x', rotation=45)
+            axes[0, 0].tick_params(axis="x", rotation=45)
 
             # Learning и Adaptation
             learning_eff = [r.metrics_summary.learning_effectiveness for r in sorted_reports]
             adaptation_rate = [r.metrics_summary.adaptation_rate for r in sorted_reports]
 
-            axes[0, 1].plot(timestamps, learning_eff, 'r-o', label='Learning')
-            axes[0, 1].plot(timestamps, adaptation_rate, 'm-s', label='Adaptation')
-            axes[0, 1].set_title('Component Effectiveness Trends')
+            axes[0, 1].plot(timestamps, learning_eff, "r-o", label="Learning")
+            axes[0, 1].plot(timestamps, adaptation_rate, "m-s", label="Adaptation")
+            axes[0, 1].set_title("Component Effectiveness Trends")
             axes[0, 1].legend()
-            axes[0, 1].tick_params(axis='x', rotation=45)
+            axes[0, 1].tick_params(axis="x", rotation=45)
 
             # Activity metrics
             cycle_counts = [r.metrics_summary.cycle_count for r in sorted_reports]
             action_counts = [r.metrics_summary.action_count for r in sorted_reports]
 
-            axes[1, 0].plot(timestamps, cycle_counts, 'c-o', label='Cycles')
-            axes[1, 0].plot(timestamps, action_counts, 'y-s', label='Actions')
-            axes[1, 0].set_title('Activity Trends')
+            axes[1, 0].plot(timestamps, cycle_counts, "c-o", label="Cycles")
+            axes[1, 0].plot(timestamps, action_counts, "y-s", label="Actions")
+            axes[1, 0].set_title("Activity Trends")
             axes[1, 0].legend()
-            axes[1, 0].tick_params(axis='x', rotation=45)
+            axes[1, 0].tick_params(axis="x", rotation=45)
 
             # Error rate
             error_counts = [r.metrics_summary.error_count for r in sorted_reports]
 
-            axes[1, 1].plot(timestamps, error_counts, 'r-o', label='Errors')
-            axes[1, 1].set_title('Error Trends')
+            axes[1, 1].plot(timestamps, error_counts, "r-o", label="Errors")
+            axes[1, 1].set_title("Error Trends")
             axes[1, 1].legend()
-            axes[1, 1].tick_params(axis='x', rotation=45)
+            axes[1, 1].tick_params(axis="x", rotation=45)
 
             plt.tight_layout()
-            charts['trends_overview'] = self._fig_to_base64(fig)
+            charts["trends_overview"] = self._fig_to_base64(fig)
             plt.close(fig)
 
         except Exception as e:
@@ -308,7 +329,9 @@ class ReportGenerator:
 
         return charts
 
-    def _prepare_template_data(self, report: ObservationReport, charts: Dict[str, str]) -> Dict[str, Any]:
+    def _prepare_template_data(
+        self, report: ObservationReport, charts: Dict[str, str]
+    ) -> Dict[str, Any]:
         """Подготовить данные для HTML шаблона."""
         return {
             "report": report,
@@ -328,7 +351,7 @@ class ReportGenerator:
         template_path = self.template_dir / "observation_report.html"
 
         if template_path.exists():
-            with open(template_path, 'r', encoding='utf-8') as f:
+            with open(template_path, "r", encoding="utf-8") as f:
                 template_content = f.read()
         else:
             # Используем встроенный шаблон
@@ -336,8 +359,9 @@ class ReportGenerator:
 
         # Создаем Environment с кастомными фильтрами
         from jinja2 import Environment
+
         env = Environment()
-        env.filters['datetime'] = datetime_filter
+        env.filters["datetime"] = datetime_filter
         return env.from_string(template_content)
 
     def _get_default_template(self) -> str:
@@ -483,16 +507,16 @@ class ReportGenerator:
         template_path = self.template_dir / "observation_report.html"
         if not template_path.exists():
             template_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(template_path, 'w', encoding='utf-8') as f:
+            with open(template_path, "w", encoding="utf-8") as f:
                 f.write(self._get_default_template())
             logger.info(f"Создан базовый шаблон: {template_path}")
 
-    def _fig_to_base64(self, fig: plt.Figure) -> str:
+    def _fig_to_base64(self, fig) -> str:
         """Преобразовать matplotlib фигуру в base64 строку."""
         buffer = BytesIO()
-        fig.savefig(buffer, format='png', dpi=100, bbox_inches='tight')
+        fig.savefig(buffer, format="png", dpi=100, bbox_inches="tight")
         buffer.seek(0)
-        image_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+        image_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
         buffer.close()
         return image_base64
 
@@ -509,11 +533,11 @@ class ReportGenerator:
 
         # Анализируем ключевые метрики
         metrics_to_check = [
-            ('integrity_score', 'Integrity Score'),
-            ('energy_level', 'Energy Level'),
-            ('learning_effectiveness', 'Learning Effectiveness'),
-            ('adaptation_rate', 'Adaptation Rate'),
-            ('error_count', 'Error Count'),
+            ("integrity_score", "Integrity Score"),
+            ("energy_level", "Energy Level"),
+            ("learning_effectiveness", "Learning Effectiveness"),
+            ("adaptation_rate", "Adaptation Rate"),
+            ("error_count", "Error Count"),
         ]
 
         for metric_attr, display_name in metrics_to_check:
@@ -529,27 +553,29 @@ class ReportGenerator:
                 direction = "stable"
                 description = f"{display_name} remains stable"
             elif change_percent > 0:
-                if metric_attr == 'error_count':
+                if metric_attr == "error_count":
                     direction = "worsening"
                     description = f"{display_name} is increasing"
                 else:
                     direction = "improving"
                     description = f"{display_name} is improving"
             else:
-                if metric_attr == 'error_count':
+                if metric_attr == "error_count":
                     direction = "improving"
                     description = f"{display_name} is decreasing"
                 else:
                     direction = "declining"
                     description = f"{display_name} is declining"
 
-            trends.append({
-                "metric": metric_attr,
-                "display_name": display_name,
-                "change_percent": change_percent,
-                "direction": direction,
-                "description": description,
-            })
+            trends.append(
+                {
+                    "metric": metric_attr,
+                    "display_name": display_name,
+                    "change_percent": change_percent,
+                    "direction": direction,
+                    "description": description,
+                }
+            )
 
         return trends
 
@@ -559,10 +585,18 @@ class ReportGenerator:
             return {}
 
         metrics_attrs = [
-            'cycle_count', 'uptime_seconds', 'memory_entries_count',
-            'learning_effectiveness', 'adaptation_rate', 'decision_success_rate',
-            'error_count', 'integrity_score', 'energy_level',
-            'action_count', 'event_processing_rate', 'state_change_frequency'
+            "cycle_count",
+            "uptime_seconds",
+            "memory_entries_count",
+            "learning_effectiveness",
+            "adaptation_rate",
+            "decision_success_rate",
+            "error_count",
+            "integrity_score",
+            "energy_level",
+            "action_count",
+            "event_processing_rate",
+            "state_change_frequency",
         ]
 
         averages = {}
@@ -576,7 +610,7 @@ class ReportGenerator:
 # Фильтр для Jinja2
 def datetime_filter(timestamp: float) -> str:
     """Jinja2 фильтр для форматирования timestamp."""
-    return datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+    return datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
 
 
 # Фильтры настраиваются при создании Environment в методах класса

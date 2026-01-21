@@ -38,9 +38,7 @@ class TestRefreshIndexBasic:
             import re
 
             file_count_match = re.search(r"Проиндексировано файлов: (\d+)", result)
-            token_count_match = re.search(
-                r"Уникальных токенов в индексе: (\d+)", result
-            )
+            token_count_match = re.search(r"Уникальных токенов в индексе: (\d+)", result)
             time_match = re.search(r"Время выполнения: ([\d.]+) сек\.", result)
 
             assert file_count_match is not None, "Не найдено количество файлов"
@@ -99,10 +97,7 @@ class TestRefreshIndexErrorHandling:
             result = asyncio.run(refresh_index())
 
             assert "Ошибка" in result
-            assert (
-                "переиндексации" in result.lower()
-                or "обновлении индекса" in result.lower()
-            )
+            assert "переиндексации" in result.lower() or "обновлении индекса" in result.lower()
             assert "Время до ошибки:" in result
 
     def test_refresh_index_handles_statistics_error(self):
@@ -185,10 +180,7 @@ class TestRefreshIndexValidation:
             token_count = int(token_count_match.group(1))
             if token_count == 0:
                 assert "⚠️" in result or "Предупреждение" in result
-                assert (
-                    "не содержит токенов" in result.lower()
-                    or "файлы пусты" in result.lower()
-                )
+                assert "не содержит токенов" in result.lower() or "файлы пусты" in result.lower()
 
 
 @pytest.mark.integration
@@ -199,10 +191,7 @@ class TestRefreshIndexIntegration:
         """Тест интеграции refresh_index() с поиском"""
         # Выполняем переиндексацию
         refresh_result = asyncio.run(refresh_index())
-        assert (
-            "Индекс успешно обновлен" in refresh_result
-            or "Ошибка" not in refresh_result
-        )
+        assert "Индекс успешно обновлен" in refresh_result or "Ошибка" not in refresh_result
 
         # Проверяем, что после переиндексации поиск работает
         from mcp_index import search_docs

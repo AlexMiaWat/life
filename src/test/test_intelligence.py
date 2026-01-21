@@ -145,9 +145,7 @@ class TestProcessInformation:
         base_state.recent_events = ["shock", "noise", "recovery", "decay"]
         base_state.energy = 75.5
         base_state.stability = 0.85
-        base_state.planning = {
-            "potential_sequences": [["e1", "e2"], ["e3", "e4"], ["e5", "e6"]]
-        }
+        base_state.planning = {"potential_sequences": [["e1", "e2"], ["e3", "e4"], ["e5", "e6"]]}
 
         process_information(base_state)
 

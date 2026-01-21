@@ -187,9 +187,7 @@ class TestEchoMechanism:
         memory = Memory()
 
         # Создаем архив
-        archive_entry = MemoryEntry(
-            event_type="shock", meaning_significance=0.7, timestamp=500.0
-        )
+        archive_entry = MemoryEntry(event_type="shock", meaning_significance=0.7, timestamp=500.0)
         memory.archive.add_entry(archive_entry)
 
         # Устанавливаем параметры для высокой вероятности эхо
@@ -251,10 +249,7 @@ class TestRhythmIntegration:
 
         # Фаза должна быть близка к 2π (полный цикл), с учетом нормализации
         # После 24 обновлений по 1 часу каждый, фаза должна быть ~0 (нормализована)
-        assert (
-            abs(state.circadian_phase) < 0.01
-            or abs(state.circadian_phase - 2 * math.pi) < 0.01
-        )
+        assert abs(state.circadian_phase) < 0.01 or abs(state.circadian_phase - 2 * math.pi) < 0.01
 
     @patch("src.state.self_state.SelfState.trigger_memory_echo")
     def test_echo_integration_in_runtime(self, mock_echo):

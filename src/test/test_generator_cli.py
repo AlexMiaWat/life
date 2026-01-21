@@ -197,10 +197,11 @@ class TestGeneratorCLI:
         from unittest.mock import patch
 
         # Мокируем все зависимости
-        with patch("environment.generator_cli.EventGenerator") as mock_gen_class, patch(
-            "environment.generator_cli.send_event"
-        ) as mock_send, patch("time.sleep", side_effect=KeyboardInterrupt()), patch(
-            "builtins.print"
+        with (
+            patch("environment.generator_cli.EventGenerator") as mock_gen_class,
+            patch("environment.generator_cli.send_event") as mock_send,
+            patch("time.sleep", side_effect=KeyboardInterrupt()),
+            patch("builtins.print"),
         ):
             mock_generator = MagicMock()
             mock_generator.generate.return_value = MagicMock(
@@ -223,9 +224,7 @@ class TestGeneratorCLI:
     @patch("src.environment.generator_cli.setup_logging")
     @patch("src.environment.generator_cli.EventGenerator")
     @patch("time.sleep", side_effect=KeyboardInterrupt())
-    def test_main_verbose_logging_setup(
-        self, mock_sleep, mock_generator_class, mock_setup_logging
-    ):
+    def test_main_verbose_logging_setup(self, mock_sleep, mock_generator_class, mock_setup_logging):
         """Тест настройки verbose логирования в main"""
         mock_generator = MagicMock()
         mock_generator.generate.return_value = MagicMock(
@@ -248,9 +247,7 @@ class TestGeneratorCLI:
     @patch("src.environment.generator_cli.setup_logging")
     @patch("src.environment.generator_cli.EventGenerator")
     @patch("time.sleep", side_effect=KeyboardInterrupt())
-    def test_main_default_logging_setup(
-        self, mock_sleep, mock_generator_class, mock_setup_logging
-    ):
+    def test_main_default_logging_setup(self, mock_sleep, mock_generator_class, mock_setup_logging):
         """Тест настройки логирования по умолчанию в main"""
         mock_generator = MagicMock()
         mock_generator.generate.return_value = MagicMock(

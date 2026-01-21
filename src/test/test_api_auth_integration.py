@@ -137,9 +137,7 @@ class TestAPIAuthIntegration:
             assert response.status_code == 201
 
         # Пользователь 1 входит и создает событие
-        login1 = client.post(
-            "/token", data={"username": user1, "password": "password123"}
-        )
+        login1 = client.post("/token", data={"username": user1, "password": "password123"})
         token1 = login1.json()["access_token"]
         headers1 = {"Authorization": f"Bearer {token1}"}
 
@@ -150,9 +148,7 @@ class TestAPIAuthIntegration:
         assert user1 in event_response.json()["message"]
 
         # Пользователь 2 входит и проверяет статус
-        login2 = client.post(
-            "/token", data={"username": user2, "password": "password123"}
-        )
+        login2 = client.post("/token", data={"username": user2, "password": "password123"})
         token2 = login2.json()["access_token"]
         headers2 = {"Authorization": f"Bearer {token2}"}
 
@@ -336,9 +332,7 @@ class TestAPIAuthIntegration:
                 assert event_response["timestamp"] == event_data["timestamp"]
             else:
                 # Автоматически установленный timestamp должен быть близок к текущему времени
-                assert (
-                    abs(event_response["timestamp"] - time.time()) < 10
-                )  # В пределах 10 секунд
+                assert abs(event_response["timestamp"] - time.time()) < 10  # В пределах 10 секунд
 
     def test_event_validation_integration(self, client, auth_headers):
         """Интеграционный тест валидации событий"""

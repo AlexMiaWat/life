@@ -22,7 +22,7 @@ class MemoryEntry:
     meaning_significance: float  # Значимость события для памяти
     timestamp: float  # Время создания записи (Unix timestamp)
     weight: float = 1.0  # Вес записи для механизма забывания (v2.0)
-    feedback_data: Optional[Dict] = None  # Для Feedback записей
+    feedback_data: Optional[Dict] = None  # Для Feedback записей (сериализованный FeedbackRecord)
     subjective_timestamp: Optional[float] = None  # Субъективное время в момент создания записи (v2.1)
 ```
 
@@ -241,7 +241,7 @@ if search_time:
 ## Реализация
 
 ### Файлы компонента
-*   **`src/memory/types.py`** — определения типов данных (MemoryEntry)
+*   **`src/memory/memory_types.py`** — определения типов данных (MemoryEntry)
 *   **`src/memory/memory.py`** — основная реализация Memory и ArchiveMemory
 *   **`src/memory/index_engine.py`** — многоуровневый индексный движок
 *   **`src/test/test_memory.py`** — unit-тесты для базовой функциональности

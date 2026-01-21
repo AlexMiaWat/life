@@ -28,16 +28,12 @@ def check_feedback_data():
         print(f"Feedback records: {len(feedback_records)}")
 
         if len(feedback_records) == 0:
-            print(
-                "[WARNING] No feedback records found yet. Waiting for actions to complete..."
-            )
+            print("[WARNING] No feedback records found yet. Waiting for actions to complete...")
             return False
 
         # Проверяем наличие feedback_data
         records_with_data = [f for f in feedback_records if f.get("feedback_data")]
-        records_without_data = [
-            f for f in feedback_records if not f.get("feedback_data")
-        ]
+        records_without_data = [f for f in feedback_records if not f.get("feedback_data")]
 
         print(f"Feedback records WITH data: {len(records_with_data)}")
         print(f"Feedback records WITHOUT data: {len(records_without_data)}")

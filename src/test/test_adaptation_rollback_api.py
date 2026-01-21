@@ -65,7 +65,7 @@ class TestAdaptationRollbackAPI:
         response = requests.post(
             "http://localhost:8000/adaptation/rollback",
             json=payload,
-            headers={"Content-Type": "application/json"}
+            headers={"Content-Type": "application/json"},
         )
         assert response.status_code == 400
 
@@ -81,7 +81,7 @@ class TestAdaptationRollbackAPI:
         response = requests.post(
             "http://localhost:8000/adaptation/rollback",
             json=payload,
-            headers={"Content-Type": "application/json"}
+            headers={"Content-Type": "application/json"},
         )
         assert response.status_code == 400
 
@@ -97,7 +97,7 @@ class TestAdaptationRollbackAPI:
         response = requests.post(
             "http://localhost:8000/adaptation/rollback",
             json=payload,
-            headers={"Content-Type": "application/json"}
+            headers={"Content-Type": "application/json"},
         )
         assert response.status_code == 400
 
@@ -113,7 +113,7 @@ class TestAdaptationRollbackAPI:
         response = requests.post(
             "http://localhost:8000/adaptation/rollback",
             json=payload,
-            headers={"Content-Type": "application/json"}
+            headers={"Content-Type": "application/json"},
         )
         assert response.status_code == 400
 
@@ -130,7 +130,7 @@ class TestAdaptationRollbackAPI:
         response = requests.post(
             "http://localhost:8000/adaptation/rollback",
             json=payload,
-            headers={"Content-Type": "application/json"}
+            headers={"Content-Type": "application/json"},
         )
         assert response.status_code == 400
 
@@ -167,7 +167,7 @@ class TestAdaptationRollbackAPI:
         response = requests.post(
             "http://localhost:8000/adaptation/rollback",
             json=payload,
-            headers={"Content-Type": "application/json"}
+            headers={"Content-Type": "application/json"},
         )
 
         # Should succeed (200) or fail gracefully (400)
@@ -194,7 +194,7 @@ class TestAdaptationRollbackAPIMocking:
 
         # Mock request with malformed JSON
         handler = RequestHandler(None, None, None)
-        handler.rfile = io.BytesIO(b'{invalid json')
+        handler.rfile = io.BytesIO(b"{invalid json")
         handler.headers = {"Content-Length": "13"}
         handler.send_response = lambda code: None
         handler.end_headers = lambda: None
@@ -223,6 +223,7 @@ class TestAdaptationRollbackAPIMocking:
         # Mock server state
         class MockServer:
             pass
+
         handler.server = MockServer()
 
         handler._handle_adaptation_rollback()

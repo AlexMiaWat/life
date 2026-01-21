@@ -100,13 +100,9 @@ class EventGenerator:
         elif event_type == "shock":
             intensity = random.uniform(-1.0, 1.0)
         elif event_type == "memory_echo":
-            intensity = random.uniform(
-                -0.2, 0.2
-            )  # Мягкое влияние для внутренних воспоминаний
+            intensity = random.uniform(-0.2, 0.2)  # Мягкое влияние для внутренних воспоминаний
         elif event_type == "social_presence":
-            intensity = random.uniform(
-                -0.4, 0.4
-            )  # Может быть как комфортным, так и тревожным
+            intensity = random.uniform(-0.4, 0.4)  # Может быть как комфортным, так и тревожным
         elif event_type == "social_conflict":
             intensity = random.uniform(-0.6, 0.0)  # Конфликт всегда негативен
         elif event_type == "social_harmony":
@@ -136,9 +132,7 @@ class EventGenerator:
                 -0.3, 0.4
             )  # Любопытство может быть как положительным, так и отрицательным
         elif event_type == "meaning_found":
-            intensity = random.uniform(
-                0.0, 0.9
-            )  # Нахождение смысла всегда положительно
+            intensity = random.uniform(0.0, 0.9)  # Нахождение смысла всегда положительно
         elif event_type == "void":
             intensity = random.uniform(-0.8, 0.0)  # Пустота всегда негативна
         elif event_type == "acceptance":
@@ -152,6 +146,4 @@ class EventGenerator:
 
         timestamp = time.time()
         metadata: dict[str, Any] = {}
-        return Event(
-            type=event_type, intensity=intensity, timestamp=timestamp, metadata=metadata
-        )
+        return Event(type=event_type, intensity=intensity, timestamp=timestamp, metadata=metadata)

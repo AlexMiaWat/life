@@ -171,9 +171,7 @@ class TestSelfState:
         state = SelfState()
 
         # Попытка применить дельту к нечисловому полю (list)
-        with pytest.raises(
-            TypeError, match="Cannot apply delta to field 'recent_events'"
-        ):
+        with pytest.raises(TypeError, match="Cannot apply delta to field 'recent_events'"):
             state.apply_delta({"recent_events": 1.0})
 
         # Попытка применить дельту к нечисловому полю (dict)
@@ -229,9 +227,7 @@ class TestSnapshots:
         state.stability = 0.9
 
         # Добавляем запись в память
-        entry = MemoryEntry(
-            event_type="test", meaning_significance=0.5, timestamp=time.time()
-        )
+        entry = MemoryEntry(event_type="test", meaning_significance=0.5, timestamp=time.time())
         state.memory.append(entry)
 
         save_snapshot(state)
@@ -459,9 +455,7 @@ class TestSelfStateProtection:
         original_life_id = state.life_id
 
         # Попытка изменить life_id должна вызвать AttributeError
-        with pytest.raises(
-            AttributeError, match="Cannot modify immutable field 'life_id'"
-        ):
+        with pytest.raises(AttributeError, match="Cannot modify immutable field 'life_id'"):
             state.life_id = "new_life_id"
 
         # life_id не должен измениться
@@ -473,9 +467,7 @@ class TestSelfStateProtection:
         original_timestamp = state.birth_timestamp
 
         # Попытка изменить birth_timestamp должна вызвать AttributeError
-        with pytest.raises(
-            AttributeError, match="Cannot modify immutable field 'birth_timestamp'"
-        ):
+        with pytest.raises(AttributeError, match="Cannot modify immutable field 'birth_timestamp'"):
             state.birth_timestamp = time.time()
 
         # birth_timestamp не должен измениться

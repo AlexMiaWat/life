@@ -34,14 +34,10 @@ def check_feedback_data():
 
         # Проверяем наличие feedback_data
         records_with_data = [f for f in feedback_records if f.get("feedback_data")]
-        records_without_data = [
-            f for f in feedback_records if not f.get("feedback_data")
-        ]
+        records_without_data = [f for f in feedback_records if not f.get("feedback_data")]
 
         print(f"\nFeedback records WITH data: {len(records_with_data)}")
-        print(
-            f"Feedback records WITHOUT data (old format): {len(records_without_data)}"
-        )
+        print(f"Feedback records WITHOUT data (old format): {len(records_without_data)}")
 
         if len(records_with_data) > 0:
             print("\n" + "=" * 60)
@@ -58,16 +54,10 @@ def check_feedback_data():
             print("Data structure check:")
             print("=" * 60)
             print(f"  action_id: {'OK' if fd.get('action_id') else 'MISSING'}")
-            print(
-                f"  action_pattern: {'OK' if fd.get('action_pattern') else 'MISSING'}"
-            )
+            print(f"  action_pattern: {'OK' if fd.get('action_pattern') else 'MISSING'}")
             print(f"  state_delta: {'OK' if fd.get('state_delta') else 'MISSING'}")
-            print(
-                f"  delay_ticks: {'OK' if fd.get('delay_ticks') is not None else 'MISSING'}"
-            )
-            print(
-                f"  associated_events: {'OK' if 'associated_events' in fd else 'MISSING'}"
-            )
+            print(f"  delay_ticks: {'OK' if fd.get('delay_ticks') is not None else 'MISSING'}")
+            print(f"  associated_events: {'OK' if 'associated_events' in fd else 'MISSING'}")
 
             if all(
                 [

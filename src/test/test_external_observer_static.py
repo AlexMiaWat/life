@@ -24,7 +24,7 @@ from src.observability.external_observer import (
     ExternalObserver,
     SystemMetrics,
     BehaviorPattern,
-    ObservationReport
+    ObservationReport,
 )
 
 
@@ -99,11 +99,12 @@ class TestExternalObserverStatic:
             behavior_patterns=[],
             trends={},
             anomalies=[],
-            recommendations=[]
+            recommendations=[],
         )
 
         import tempfile
-        with tempfile.NamedTemporaryFile(suffix='.json', delete=False) as f:
+
+        with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
             temp_path = Path(f.name)
 
         try:
@@ -122,10 +123,19 @@ class TestExternalObserverStatic:
 
         # Проверяем наличие всех полей
         required_fields = [
-            "timestamp", "cycle_count", "uptime_seconds", "memory_entries_count",
-            "learning_effectiveness", "adaptation_rate", "decision_success_rate",
-            "error_count", "integrity_score", "energy_level",
-            "action_count", "event_processing_rate", "state_change_frequency"
+            "timestamp",
+            "cycle_count",
+            "uptime_seconds",
+            "memory_entries_count",
+            "learning_effectiveness",
+            "adaptation_rate",
+            "decision_success_rate",
+            "error_count",
+            "integrity_score",
+            "energy_level",
+            "action_count",
+            "event_processing_rate",
+            "state_change_frequency",
         ]
 
         for field in required_fields:
@@ -151,13 +161,18 @@ class TestExternalObserverStatic:
             impact_score=0.7,
             first_observed=time.time(),
             last_observed=time.time(),
-            metadata={"test": "value"}
+            metadata={"test": "value"},
         )
 
         # Проверяем наличие всех полей
         required_fields = [
-            "pattern_type", "description", "frequency", "impact_score",
-            "first_observed", "last_observed", "metadata"
+            "pattern_type",
+            "description",
+            "frequency",
+            "impact_score",
+            "first_observed",
+            "last_observed",
+            "metadata",
         ]
 
         for field in required_fields:
@@ -180,13 +195,17 @@ class TestExternalObserverStatic:
             behavior_patterns=[],
             trends={},
             anomalies=[],
-            recommendations=[]
+            recommendations=[],
         )
 
         # Проверяем наличие всех полей
         required_fields = [
-            "observation_period", "metrics_summary", "behavior_patterns",
-            "trends", "anomalies", "recommendations"
+            "observation_period",
+            "metrics_summary",
+            "behavior_patterns",
+            "trends",
+            "anomalies",
+            "recommendations",
         ]
 
         for field in required_fields:
@@ -210,16 +229,18 @@ class TestExternalObserverStatic:
         source_code = inspect.getsource(ExternalObserver)
 
         forbidden_patterns = [
-            "print(",      # Не используем print
-            "eval(",       # Не используем eval
-            "exec(",       # Не используем exec
-            "import os",   # Не используем os напрямую (кроме Path)
+            "print(",  # Не используем print
+            "eval(",  # Не используем eval
+            "exec(",  # Не используем exec
+            "import os",  # Не используем os напрямую (кроме Path)
             "import sys",  # Не используем sys напрямую
             "subprocess",  # Не используем subprocess
         ]
 
         for pattern in forbidden_patterns:
-            assert pattern not in source_code, f"Forbidden pattern '{pattern}' found in ExternalObserver"
+            assert (
+                pattern not in source_code
+            ), f"Forbidden pattern '{pattern}' found in ExternalObserver"
 
     def test_external_observer_docstrings(self):
         """Проверка наличия docstrings в ExternalObserver"""
@@ -285,10 +306,7 @@ class TestExternalObserverStatic:
         # Создаем metrics с параметрами
         timestamp = time.time()
         metrics = SystemMetrics(
-            timestamp=timestamp,
-            cycle_count=1000,
-            energy_level=0.85,
-            error_count=5
+            timestamp=timestamp, cycle_count=1000, energy_level=0.85, error_count=5
         )
 
         assert metrics.timestamp == timestamp
@@ -314,7 +332,7 @@ class TestExternalObserverStatic:
             impact_score=0.8,
             first_observed=timestamp - 100,
             last_observed=timestamp,
-            metadata={"confidence": 0.9}
+            metadata={"confidence": 0.9},
         )
 
         assert pattern.pattern_type == "learning_cycle"
@@ -335,7 +353,7 @@ class TestExternalObserverStatic:
             behavior_patterns=[],
             trends={"energy_level": "stable"},
             anomalies=[],
-            recommendations=["System performing well"]
+            recommendations=["System performing well"],
         )
 
         assert report.observation_period == (start_time, end_time)
@@ -388,15 +406,12 @@ class TestExternalObserverStatic:
         report = ObservationReport(
             observation_period=(1000.0, 2000.0),
             metrics_summary=SystemMetrics(
-                cycle_count=100,
-                uptime_seconds=3600.0,
-                learning_effectiveness=0.85,
-                error_count=3
+                cycle_count=100, uptime_seconds=3600.0, learning_effectiveness=0.85, error_count=3
             ),
             behavior_patterns=[pattern],
             trends={"energy_level": "stable"},
             anomalies=[{"type": "high_error_rate", "severity": "medium"}],
-            recommendations=["Check error handling"]
+            recommendations=["Check error handling"],
         )
 
         data = report.to_dict()

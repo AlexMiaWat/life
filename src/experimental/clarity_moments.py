@@ -43,9 +43,7 @@ class ClarityMoments:
             logger: Логгер для структурированного логирования
         """
         self.logger = logger or StructuredLogger(__name__)
-        self._last_check_tick = (
-            -self.CLARITY_CHECK_INTERVAL
-        )  # Начинаем с готовности к проверке
+        self._last_check_tick = -self.CLARITY_CHECK_INTERVAL  # Начинаем с готовности к проверке
         self._clarity_events_count = 0
 
     def check_clarity_conditions(self, self_state) -> Optional[Dict[str, Any]]:

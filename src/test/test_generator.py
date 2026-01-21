@@ -51,6 +51,7 @@ class TestEventGenerator:
             "recovery",
             "shock",
             "idle",
+            "silence",
             "social_presence",
             "social_conflict",
             "social_harmony",
@@ -141,9 +142,9 @@ class TestEventGenerator:
             event = generator.generate()
             event_counts[event.type] = event_counts.get(event.type, 0) + 1
 
-        # Проверяем, что все 22 типа генерируются (5 базовых + 9 старых новых + 8 новых)
+        # Проверяем, что все 23 типа генерируются (5 базовых + 10 старых новых + 8 новых)
         # memory_echo имеет вес 0.0, поэтому не генерируется обычным генератором
-        assert len(event_counts) == 22
+        assert len(event_counts) == 23
 
         # Проверяем наличие всех ожидаемых типов
         expected_types = {
@@ -152,6 +153,7 @@ class TestEventGenerator:
             "recovery",
             "shock",
             "idle",
+            "silence",
             "social_presence",
             "social_conflict",
             "social_harmony",

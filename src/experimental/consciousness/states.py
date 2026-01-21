@@ -19,6 +19,7 @@ class ConsciousnessState:
     """
     Определение состояния сознания.
     """
+
     name: str
     description: str
     entry_conditions: Dict[str, Any] = field(default_factory=dict)
@@ -42,18 +43,18 @@ class ConsciousnessState:
 
             if isinstance(condition_value, dict):
                 # Сложное условие с оператором
-                operator = condition_value.get('operator', '>=')
-                threshold = condition_value.get('value', 0.0)
+                operator = condition_value.get("operator", ">=")
+                threshold = condition_value.get("value", 0.0)
 
-                if operator == '>=' and not (metric_value >= threshold):
+                if operator == ">=" and not (metric_value >= threshold):
                     return False
-                elif operator == '>' and not (metric_value > threshold):
+                elif operator == ">" and not (metric_value > threshold):
                     return False
-                elif operator == '<=' and not (metric_value <= threshold):
+                elif operator == "<=" and not (metric_value <= threshold):
                     return False
-                elif operator == '<' and not (metric_value < threshold):
+                elif operator == "<" and not (metric_value < threshold):
                     return False
-                elif operator == '==' and not (metric_value == threshold):
+                elif operator == "==" and not (metric_value == threshold):
                     return False
             else:
                 # Простое условие
@@ -130,10 +131,12 @@ class ConsciousnessStates:
         # Инициализация в состоянии awake
         self.enter_state("awake", {})
 
-        self.logger.log_event({
-            "event_type": "consciousness_states_initialized",
-            "available_states": list(self._states.keys())
-        })
+        self.logger.log_event(
+            {
+                "event_type": "consciousness_states_initialized",
+                "available_states": list(self._states.keys()),
+            }
+        )
 
     def _define_states(self) -> Dict[str, ConsciousnessState]:
         """
@@ -148,61 +151,45 @@ class ConsciousnessStates:
                 description="Отсутствие активного сознания, минимальная обработка",
                 entry_conditions={
                     "consciousness_level": {"operator": "<", "value": 0.1},
-                    "energy": {"operator": "<", "value": 0.3}
+                    "energy": {"operator": "<", "value": 0.3},
                 },
-                maintenance_conditions={
-                    "consciousness_level": 0.05,
-                    "energy": 0.2
-                },
+                maintenance_conditions={"consciousness_level": 0.05, "energy": 0.2},
                 effects={
                     "processing_speed": 0.1,
                     "decision_quality": 0.1,
                     "learning_rate": 0.0,
-                    "response_time": 2.0
-                }
+                    "response_time": 2.0,
+                },
             ),
-
             "dreaming": ConsciousnessState(
                 name="dreaming",
                 description="Сниженное сознание, фоновые процессы, низкая энергия",
                 entry_conditions={
                     "consciousness_level": {"operator": "<", "value": 0.2},
-                    "energy": {"operator": "<", "value": 0.5}
+                    "energy": {"operator": "<", "value": 0.5},
                 },
-                maintenance_conditions={
-                    "consciousness_level": 0.1,
-                    "energy": 0.3
-                },
-                exit_conditions={
-                    "energy": 0.6  # Выход при восстановлении энергии
-                },
+                maintenance_conditions={"consciousness_level": 0.1, "energy": 0.3},
+                exit_conditions={"energy": 0.6},  # Выход при восстановлении энергии
                 effects={
                     "processing_speed": 0.3,
                     "decision_quality": 0.3,
                     "learning_rate": 0.2,
                     "creativity": 1.2,
-                    "response_time": 1.5
-                }
+                    "response_time": 1.5,
+                },
             ),
-
             "awake": ConsciousnessState(
                 name="awake",
                 description="Базовое бодрствование, нормальная обработка событий",
-                entry_conditions={
-                    "consciousness_level": {"operator": ">=", "value": 0.1}
-                },
-                maintenance_conditions={
-                    "consciousness_level": 0.1,
-                    "energy": 0.4
-                },
+                entry_conditions={"consciousness_level": {"operator": ">=", "value": 0.1}},
+                maintenance_conditions={"consciousness_level": 0.1, "energy": 0.4},
                 effects={
                     "processing_speed": 0.8,
                     "decision_quality": 0.7,
                     "learning_rate": 0.6,
-                    "response_time": 1.0
-                }
+                    "response_time": 1.0,
+                },
             ),
-
             "flow": ConsciousnessState(
                 name="flow",
                 description="Состояние потока: высокая концентрация и эффективность",
@@ -210,16 +197,12 @@ class ConsciousnessStates:
                     "consciousness_level": {"operator": ">=", "value": 0.3},
                     "energy": {"operator": ">=", "value": 0.7},
                     "stability": {"operator": ">=", "value": 0.8},
-                    "cognitive_load": {"operator": "<=", "value": 0.6}
+                    "cognitive_load": {"operator": "<=", "value": 0.6},
                 },
-                maintenance_conditions={
-                    "energy": 0.6,
-                    "stability": 0.7,
-                    "attention_focus": 0.8
-                },
+                maintenance_conditions={"energy": 0.6, "stability": 0.7, "attention_focus": 0.8},
                 exit_conditions={
                     "energy": 0.4,  # Выход при снижении энергии
-                    "cognitive_load": 0.8  # Выход при перегрузке
+                    "cognitive_load": 0.8,  # Выход при перегрузке
                 },
                 effects={
                     "processing_speed": 1.2,
@@ -227,35 +210,30 @@ class ConsciousnessStates:
                     "learning_rate": 1.0,
                     "creativity": 1.1,
                     "error_rate": 0.7,
-                    "response_time": 0.8
-                }
+                    "response_time": 0.8,
+                },
             ),
-
             "reflective": ConsciousnessState(
                 name="reflective",
                 description="Рефлексивное состояние: анализ поведения и самооценка",
                 entry_conditions={
                     "consciousness_level": {"operator": ">=", "value": 0.3},
                     "self_reflection_score": {"operator": ">=", "value": 0.4},
-                    "cognitive_load": {"operator": "<=", "value": 0.7}
+                    "cognitive_load": {"operator": "<=", "value": 0.7},
                 },
-                maintenance_conditions={
-                    "self_reflection_score": 0.3,
-                    "energy": 0.5
-                },
+                maintenance_conditions={"self_reflection_score": 0.3, "energy": 0.5},
                 exit_conditions={
                     "cognitive_load": 0.9,  # Выход при перегрузке
-                    "self_reflection_score": 0.2  # Выход при снижении рефлексии
+                    "self_reflection_score": 0.2,  # Выход при снижении рефлексии
                 },
                 effects={
                     "processing_speed": 0.7,
                     "decision_quality": 1.0,
                     "learning_rate": 1.2,
                     "self_analysis": 1.5,
-                    "response_time": 1.2
-                }
+                    "response_time": 1.2,
+                },
             ),
-
             "meta": ConsciousnessState(
                 name="meta",
                 description="Метакогнитивное состояние: анализ собственных процессов мышления",
@@ -263,17 +241,17 @@ class ConsciousnessStates:
                     "consciousness_level": {"operator": ">=", "value": 0.5},
                     "meta_cognition_depth": {"operator": ">=", "value": 0.4},
                     "energy": {"operator": ">=", "value": 0.6},
-                    "cognitive_load": {"operator": "<=", "value": 0.5}
+                    "cognitive_load": {"operator": "<=", "value": 0.5},
                 },
                 maintenance_conditions={
                     "meta_cognition_depth": 0.3,
                     "energy": 0.5,
-                    "stability": 0.7
+                    "stability": 0.7,
                 },
                 exit_conditions={
                     "energy": 0.4,  # Выход при снижении энергии
                     "cognitive_load": 0.7,  # Выход при перегрузке
-                    "meta_cognition_depth": 0.2  # Выход при снижении метакогниции
+                    "meta_cognition_depth": 0.2,  # Выход при снижении метакогниции
                 },
                 effects={
                     "processing_speed": 0.6,
@@ -281,9 +259,9 @@ class ConsciousnessStates:
                     "learning_rate": 1.4,
                     "optimization_capability": 1.5,
                     "abstract_reasoning": 1.3,
-                    "response_time": 1.5
-                }
-            )
+                    "response_time": 1.5,
+                },
+            ),
         }
 
     def get_current_state(self) -> Optional[ConsciousnessState]:
@@ -391,23 +369,27 @@ class ConsciousnessStates:
             True если вход успешен
         """
         if state_name not in self._states:
-            self.logger.log_event({
-                "event_type": "state_transition_failed",
-                "target_state": state_name,
-                "reason": "unknown_state"
-            })
+            self.logger.log_event(
+                {
+                    "event_type": "state_transition_failed",
+                    "target_state": state_name,
+                    "reason": "unknown_state",
+                }
+            )
             return False
 
         target_state = self._states[state_name]
 
         # Проверяем условия входа
         if not target_state.can_enter(metrics):
-            self.logger.log_event({
-                "event_type": "state_transition_failed",
-                "target_state": state_name,
-                "reason": "entry_conditions_not_met",
-                "metrics": metrics
-            })
+            self.logger.log_event(
+                {
+                    "event_type": "state_transition_failed",
+                    "target_state": state_name,
+                    "reason": "entry_conditions_not_met",
+                    "metrics": metrics,
+                }
+            )
             return False
 
         # Выходим из текущего состояния
@@ -429,14 +411,11 @@ class ConsciousnessStates:
             "to_state": state_name,
             "timestamp": self.state_entry_time,
             "trigger": "manual" if old_state_name != "none" else "initialization",
-            "metrics": metrics.copy()
+            "metrics": metrics.copy(),
         }
         self._state_history.append(transition_record)
 
-        self.logger.log_event({
-            "event_type": "state_transition_successful",
-            **transition_record
-        })
+        self.logger.log_event({"event_type": "state_transition_successful", **transition_record})
 
         return True
 
@@ -516,11 +495,9 @@ class ConsciousnessStates:
         """
         # Заглушка: в реальной реализации здесь будут применяться
         # эффекты к различным компонентам системы
-        self.logger.log_event({
-            "event_type": "state_effects_applied",
-            "state": state.name,
-            "effects": state.effects
-        })
+        self.logger.log_event(
+            {"event_type": "state_effects_applied", "state": state.name, "effects": state.effects}
+        )
 
     def _reset_state_effects(self, state: ConsciousnessState) -> None:
         """
@@ -531,10 +508,7 @@ class ConsciousnessStates:
         """
         # Заглушка: в реальной реализации здесь будут сбрасываться
         # эффекты к различным компонентам системы
-        self.logger.log_event({
-            "event_type": "state_effects_reset",
-            "state": state.name
-        })
+        self.logger.log_event({"event_type": "state_effects_reset", "state": state.name})
 
     def get_state_statistics(self) -> Dict[str, Any]:
         """
@@ -552,7 +526,9 @@ class ConsciousnessStates:
             state_stats[state_name] = {
                 "total_duration": duration,
                 "percentage": percentage,
-                "transitions_to": sum(1 for h in self._state_history if h["to_state"] == state_name)
+                "transitions_to": sum(
+                    1 for h in self._state_history if h["to_state"] == state_name
+                ),
             }
 
         return {
@@ -560,7 +536,7 @@ class ConsciousnessStates:
             "total_time_in_states": total_time,
             "current_state": self.get_current_state_name(),
             "current_state_duration": time.time() - self.state_entry_time,
-            "state_breakdown": state_stats
+            "state_breakdown": state_stats,
         }
 
     def get_state_history(self, limit: int = 10) -> List[Dict[str, Any]]:
@@ -585,6 +561,4 @@ class ConsciousnessStates:
         self._transition_count = 0
         self._state_durations.clear()
 
-        self.logger.log_event({
-            "event_type": "consciousness_states_reset"
-        })
+        self.logger.log_event({"event_type": "consciousness_states_reset"})

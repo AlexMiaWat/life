@@ -20,7 +20,7 @@ import pytest
 
 from src.memory.memory import Memory, ArchiveMemory
 from src.memory.index_engine import MemoryIndexEngine, MemoryQuery
-from src.memory.types import MemoryEntry
+from src.memory.memory_types import MemoryEntry
 
 
 @pytest.mark.integration
@@ -91,7 +91,7 @@ class TestMemoryIndexIntegration:
             event_type="test_event",
             min_significance=0.5,
             start_timestamp=1002.0,
-            end_timestamp=1004.0
+            end_timestamp=1004.0,
         )
         results = memory._index_engine.search(query)
         assert len(results) == 2  # 1002.0 (0.6), 1003.0 (0.8)
@@ -110,7 +110,7 @@ class TestMemoryIndexIntegration:
                 f"event_{i % 10}",  # 10 разных типов событий
                 0.1 + (i % 90) * 0.01,  # significance от 0.1 до 1.0
                 1000.0 + i,
-                {"index": i}
+                {"index": i},
             )
             memory.append(entry)
             entries.append(entry)
@@ -130,11 +130,7 @@ class TestMemoryIndexIntegration:
         assert len(results) == 100  # 100 записей типа event_5
 
         # Поиск по диапазону
-        query = MemoryQuery(
-            min_significance=0.5,
-            max_significance=0.8,
-            limit=50
-        )
+        query = MemoryQuery(min_significance=0.5, max_significance=0.8, limit=50)
         results = memory._index_engine.search(query)
         assert len(results) == 50  # Ограничено limit
 
@@ -268,7 +264,7 @@ class TestMemoryIndexIntegration:
             min_significance=0.5,
             start_timestamp=1500.0,
             end_timestamp=2000.0,
-            limit=50
+            limit=50,
         )
         results = archive._index_engine.search(query)
         assert len(results) <= 50
@@ -460,7 +456,7 @@ class TestMemoryIndexIntegration:
                     f"perf_event_{i % 20}",  # 20 разных типов
                     0.1 + (i % 90) * 0.01,
                     {"perf_test": True},
-                    timestamp=1000.0 + i
+                    timestamp=1000.0 + i,
                 )
                 entries.append(entry)
 
@@ -479,10 +475,14 @@ class TestMemoryIndexIntegration:
             # Для size=100: creation < 0.1s, search < 0.01s
             # Для size=1000: creation < 1.0s, search < 0.1s
             expected_creation = size * 0.001  # ~1ms per entry
-            expected_search = size * 0.0001   # ~0.1ms per entry for search
+            expected_search = size * 0.0001  # ~0.1ms per entry for search
 
-            assert creation_time < expected_creation * 5, f"Creation too slow for size {size}: {creation_time:.3f}s"
-            assert search_time < expected_search * 5, f"Search too slow for size {size}: {search_time:.3f}s"
+            assert (
+                creation_time < expected_creation * 5
+            ), f"Creation too slow for size {size}: {creation_time:.3f}s"
+            assert (
+                search_time < expected_search * 5
+            ), f"Search too slow for size {size}: {search_time:.3f}s"
 
     def test_memory_index_cache_effectiveness(self):
         """Тестирование эффективности кэширования"""

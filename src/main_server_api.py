@@ -60,9 +60,7 @@ class StoppableHTTPServer(HTTPServer):
 
 
 class LifeHandler(BaseHTTPRequestHandler):
-    server: (
-        Any  # Добавляем, чтобы IDE знала, что у server могут быть кастомные атрибуты
-    )
+    server: Any  # Добавляем, чтобы IDE знала, что у server могут быть кастомные атрибуты
 
     def do_GET(self):
         if self.path.startswith("/status"):
@@ -90,9 +88,7 @@ class LifeHandler(BaseHTTPRequestHandler):
                     pass
             if "energy_history_limit" in query_params:
                 try:
-                    limits["energy_history_limit"] = int(
-                        query_params["energy_history_limit"][0]
-                    )
+                    limits["energy_history_limit"] = int(query_params["energy_history_limit"][0])
                 except (ValueError, IndexError):
                     pass
             if "stability_history_limit" in query_params:
@@ -112,10 +108,7 @@ class LifeHandler(BaseHTTPRequestHandler):
 
             # Получаем текущее состояние
             # Сначала пробуем взять из сервера (для тестов), иначе из snapshot
-            if (
-                hasattr(self.server, "self_state")
-                and self.server.self_state is not None
-            ):
+            if hasattr(self.server, "self_state") and self.server.self_state is not None:
                 self_state = self.server.self_state
             else:
                 try:
@@ -131,9 +124,7 @@ class LifeHandler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-type", "application/json")
             self.end_headers()
-            self.wfile.write(
-                b'{"message": "Cache refreshed (no-op in current implementation)"}'
-            )
+            self.wfile.write(b'{"message": "Cache refreshed (no-op in current implementation)"}')
         elif self.path == "/clear-data":
             os.makedirs("data/snapshots", exist_ok=True)
             log_file = "data/tick_log.jsonl"
@@ -222,6 +213,7 @@ class LifeHandler(BaseHTTPRequestHandler):
             # GET /adaptation/rollback/options — получить доступные варианты отката
             try:
                 from src.adaptation.adaptation import AdaptationManager
+
                 adaptation_manager = AdaptationManager()
 
                 # Загружаем состояние
@@ -236,10 +228,9 @@ class LifeHandler(BaseHTTPRequestHandler):
                 self.send_response(200)
                 self.send_header("Content-type", "application/json")
                 self.end_headers()
-                self.wfile.write(json.dumps({
-                    "options": options,
-                    "total_options": len(options)
-                }).encode())
+                self.wfile.write(
+                    json.dumps({"options": options, "total_options": len(options)}).encode()
+                )
 
             except Exception as e:
                 logger.error(f"Error getting rollback options: {e}")
@@ -264,11 +255,15 @@ class LifeHandler(BaseHTTPRequestHandler):
                 self.send_response(200)
                 self.send_header("Content-type", "application/json")
                 self.end_headers()
-                self.wfile.write(json.dumps({
-                    "history": recent_history,
-                    "total_entries": len(history),
-                    "returned_entries": len(recent_history)
-                }).encode())
+                self.wfile.write(
+                    json.dumps(
+                        {
+                            "history": recent_history,
+                            "total_entries": len(history),
+                            "returned_entries": len(recent_history),
+                        }
+                    ).encode()
+                )
 
             except Exception as e:
                 logger.error(f"Error getting adaptation history: {e}")
@@ -282,7 +277,9 @@ class LifeHandler(BaseHTTPRequestHandler):
                 # Получаем глобальный экземпляр consciousness_engine
                 consciousness_engine = global_consciousness_engine
 
-                if consciousness_engine and hasattr(consciousness_engine, 'get_consciousness_snapshot'):
+                if consciousness_engine and hasattr(
+                    consciousness_engine, "get_consciousness_snapshot"
+                ):
                     # Многопоточная версия
                     snapshot = consciousness_engine.get_consciousness_snapshot()
 
@@ -293,7 +290,9 @@ class LifeHandler(BaseHTTPRequestHandler):
                 else:
                     self.send_response(404)
                     self.end_headers()
-                    self.wfile.write(json.dumps({"error": "Parallel consciousness not enabled"}).encode())
+                    self.wfile.write(
+                        json.dumps({"error": "Parallel consciousness not enabled"}).encode()
+                    )
 
             except Exception as e:
                 logger.error(f"Error getting consciousness status: {e}")
@@ -306,7 +305,7 @@ class LifeHandler(BaseHTTPRequestHandler):
             try:
                 consciousness_engine = global_consciousness_engine
 
-                if consciousness_engine and hasattr(consciousness_engine, 'get_process_metrics'):
+                if consciousness_engine and hasattr(consciousness_engine, "get_process_metrics"):
                     # Многопоточная версия
                     process_metrics = consciousness_engine.get_process_metrics()
 
@@ -317,7 +316,9 @@ class LifeHandler(BaseHTTPRequestHandler):
                 else:
                     self.send_response(404)
                     self.end_headers()
-                    self.wfile.write(json.dumps({"error": "Parallel consciousness not enabled"}).encode())
+                    self.wfile.write(
+                        json.dumps({"error": "Parallel consciousness not enabled"}).encode()
+                    )
 
             except Exception as e:
                 logger.error(f"Error getting consciousness processes: {e}")
@@ -331,25 +332,33 @@ class LifeHandler(BaseHTTPRequestHandler):
                 process_name = self.path.split("/consciousness/process/")[1]
                 consciousness_engine = global_consciousness_engine
 
-                if consciousness_engine and hasattr(consciousness_engine, 'get_process_metrics'):
+                if consciousness_engine and hasattr(consciousness_engine, "get_process_metrics"):
                     process_metrics = consciousness_engine.get_process_metrics()
 
                     if process_name in process_metrics:
                         self.send_response(200)
                         self.send_header("Content-type", "application/json")
                         self.end_headers()
-                        self.wfile.write(json.dumps({
-                            "process_name": process_name,
-                            "metrics": process_metrics[process_name]
-                        }).encode())
+                        self.wfile.write(
+                            json.dumps(
+                                {
+                                    "process_name": process_name,
+                                    "metrics": process_metrics[process_name],
+                                }
+                            ).encode()
+                        )
                     else:
                         self.send_response(404)
                         self.end_headers()
-                        self.wfile.write(json.dumps({"error": f"Process '{process_name}' not found"}).encode())
+                        self.wfile.write(
+                            json.dumps({"error": f"Process '{process_name}' not found"}).encode()
+                        )
                 else:
                     self.send_response(404)
                     self.end_headers()
-                    self.wfile.write(json.dumps({"error": "Parallel consciousness not enabled"}).encode())
+                    self.wfile.write(
+                        json.dumps({"error": "Parallel consciousness not enabled"}).encode()
+                    )
 
             except Exception as e:
                 logger.error(f"Error getting process info: {e}")
@@ -364,17 +373,25 @@ class LifeHandler(BaseHTTPRequestHandler):
 
                 if consciousness_engine:
                     config_info = {
-                        "type": "parallel" if hasattr(consciousness_engine, 'processes') else "sequential",
-                        "is_running": getattr(consciousness_engine, 'is_running', False),
-                        "process_count": len(getattr(consciousness_engine, 'processes', [])),
-                        "processes": [
-                            {
-                                "name": p.process_name,
-                                "update_interval": p.update_interval,
-                                "is_alive": p.is_alive()
-                            }
-                            for p in getattr(consciousness_engine, 'processes', [])
-                        ] if hasattr(consciousness_engine, 'processes') else []
+                        "type": (
+                            "parallel"
+                            if hasattr(consciousness_engine, "processes")
+                            else "sequential"
+                        ),
+                        "is_running": getattr(consciousness_engine, "is_running", False),
+                        "process_count": len(getattr(consciousness_engine, "processes", [])),
+                        "processes": (
+                            [
+                                {
+                                    "name": p.process_name,
+                                    "update_interval": p.update_interval,
+                                    "is_alive": p.is_alive(),
+                                }
+                                for p in getattr(consciousness_engine, "processes", [])
+                            ]
+                            if hasattr(consciousness_engine, "processes")
+                            else []
+                        ),
                     }
 
                     self.send_response(200)
@@ -384,7 +401,9 @@ class LifeHandler(BaseHTTPRequestHandler):
                 else:
                     self.send_response(404)
                     self.end_headers()
-                    self.wfile.write(json.dumps({"error": "Consciousness system not enabled"}).encode())
+                    self.wfile.write(
+                        json.dumps({"error": "Consciousness system not enabled"}).encode()
+                    )
 
             except Exception as e:
                 logger.error(f"Error getting consciousness config: {e}")
@@ -490,9 +509,7 @@ class LifeHandler(BaseHTTPRequestHandler):
         metadata = payload.get("metadata") or {}
 
         try:
-            logger.debug(
-                f"Получен POST /event: type='{event_type}', intensity={intensity}"
-            )
+            logger.debug(f"Получен POST /event: type='{event_type}', intensity={intensity}")
             event = Event(
                 type=event_type,
                 intensity=intensity,
@@ -500,9 +517,7 @@ class LifeHandler(BaseHTTPRequestHandler):
                 metadata=metadata,
             )
             self.server.event_queue.push(event)
-            logger.debug(
-                f"Event PUSHED to queue. Size now: {self.server.event_queue.size()}"
-            )
+            logger.debug(f"Event PUSHED to queue. Size now: {self.server.event_queue.size()}")
             self.send_response(200)
             self.end_headers()
             self.wfile.write(b"Event accepted")
@@ -564,7 +579,7 @@ class LifeHandler(BaseHTTPRequestHandler):
         response = {
             "accepted_count": accepted_count,
             "total_count": len(events_data),
-            "errors": errors
+            "errors": errors,
         }
 
         self.send_response(200)
@@ -657,7 +672,9 @@ class LifeHandler(BaseHTTPRequestHandler):
                         continue
 
                     setattr(self_state, field, new_value)
-                    updated_fields.append({"field": field, "old_value": old_value, "new_value": new_value})
+                    updated_fields.append(
+                        {"field": field, "old_value": old_value, "new_value": new_value}
+                    )
                 except Exception as e:
                     errors.append(f"Invalid value for {field}: {e}")
             else:
@@ -668,10 +685,7 @@ class LifeHandler(BaseHTTPRequestHandler):
             self_state.save_snapshot()
             logger.info(f"State updated via API: {updated_fields}")
 
-        response = {
-            "updated_fields": updated_fields,
-            "errors": errors
-        }
+        response = {"updated_fields": updated_fields, "errors": errors}
 
         self.send_response(200)
         self.send_header("Content-type", "application/json")
@@ -690,15 +704,19 @@ class LifeHandler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-type", "application/json")
             self.end_headers()
-            self.wfile.write(json.dumps({
-                "message": "State reset to defaults",
-                "new_state": {
-                    "energy": reset_state.energy,
-                    "stability": reset_state.stability,
-                    "integrity": reset_state.integrity,
-                    "ticks": reset_state.ticks
-                }
-            }).encode())
+            self.wfile.write(
+                json.dumps(
+                    {
+                        "message": "State reset to defaults",
+                        "new_state": {
+                            "energy": reset_state.energy,
+                            "stability": reset_state.stability,
+                            "integrity": reset_state.integrity,
+                            "ticks": reset_state.ticks,
+                        },
+                    }
+                ).encode()
+            )
         except Exception as e:
             self.send_response(500)
             self.end_headers()
@@ -756,10 +774,11 @@ class LifeHandler(BaseHTTPRequestHandler):
             self.send_response(400)
             self.send_header("Content-type", "application/json")
             self.end_headers()
-            self.wfile.write(json.dumps({
-                "error": f"Unknown mode '{mode}'",
-                "available_modes": available_modes
-            }).encode())
+            self.wfile.write(
+                json.dumps(
+                    {"error": f"Unknown mode '{mode}'", "available_modes": available_modes}
+                ).encode()
+            )
             return
 
         result = self.server.environment_config_manager.update_config({"activity_mode": mode})
@@ -799,7 +818,7 @@ class LifeHandler(BaseHTTPRequestHandler):
                 type=event_data.get("type", "noise"),
                 intensity=float(event_data.get("intensity", 0.0)),
                 timestamp=float(event_data.get("timestamp", time.time())),
-                metadata=event_data.get("metadata", {})
+                metadata=event_data.get("metadata", {}),
             )
         except Exception as e:
             self.send_response(400)
@@ -811,10 +830,7 @@ class LifeHandler(BaseHTTPRequestHandler):
         prediction = self.server.impact_analyzer.analyze_single_event(event, self_state)
 
         response = {
-            "event": {
-                "type": prediction.event.type,
-                "intensity": prediction.event.intensity
-            },
+            "event": {"type": prediction.event.type, "intensity": prediction.event.intensity},
             "prediction": {
                 "meaning_significance": prediction.meaning_significance,
                 "impact": prediction.meaning_impact,
@@ -822,8 +838,8 @@ class LifeHandler(BaseHTTPRequestHandler):
                 "final_stability": prediction.final_stability,
                 "final_integrity": prediction.final_integrity,
                 "response_pattern": prediction.response_pattern,
-                "confidence": prediction.confidence
-            }
+                "confidence": prediction.confidence,
+            },
         }
 
         self.send_response(200)
@@ -869,7 +885,7 @@ class LifeHandler(BaseHTTPRequestHandler):
                     type=event_data.get("type", "noise"),
                     intensity=float(event_data.get("intensity", 0.0)),
                     timestamp=float(event_data.get("timestamp", time.time())),
-                    metadata=event_data.get("metadata", {})
+                    metadata=event_data.get("metadata", {}),
                 )
                 events.append(event)
             except Exception as e:
@@ -886,27 +902,24 @@ class LifeHandler(BaseHTTPRequestHandler):
                 "event_count": len(events),
                 "cumulative_impact": analysis.cumulative_impact,
                 "final_state": analysis.final_state,
-                "risk_assessment": analysis.risk_assessment
+                "risk_assessment": analysis.risk_assessment,
             },
             "recommendations": analysis.recommendations,
             "predictions": [
                 {
-                    "event": {
-                        "type": pred.event.type,
-                        "intensity": pred.event.intensity
-                    },
+                    "event": {"type": pred.event.type, "intensity": pred.event.intensity},
                     "meaning_significance": pred.meaning_significance,
                     "impact": pred.meaning_impact,
                     "final_state": {
                         "energy": pred.final_energy,
                         "stability": pred.final_stability,
-                        "integrity": pred.final_integrity
+                        "integrity": pred.final_integrity,
                     },
                     "response_pattern": pred.response_pattern,
-                    "confidence": pred.confidence
+                    "confidence": pred.confidence,
                 }
                 for pred in analysis.predictions
-            ]
+            ],
         }
 
         self.send_response(200)
@@ -966,9 +979,7 @@ class LifeHandler(BaseHTTPRequestHandler):
                 if not isinstance(steps, int) or steps <= 0:
                     raise ValueError("steps must be a positive integer")
 
-                result = adaptation_manager.rollback_steps(
-                    steps, self_state, structured_logger
-                )
+                result = adaptation_manager.rollback_steps(steps, self_state, structured_logger)
 
             if result["success"]:
                 # Сохраняем измененное состояние
@@ -1002,23 +1013,13 @@ class LifeHandler(BaseHTTPRequestHandler):
                 logger.debug(Fore.CYAN + "=" * 80 + Style.RESET_ALL)
                 logger.debug(Fore.GREEN + "ВХОДЯЩИЙ HTTP-ЗАПРОС" + Style.RESET_ALL)
                 logger.debug(
-                    Fore.YELLOW
-                    + f"Время: {self.log_date_time_string()}"
-                    + Style.RESET_ALL
+                    Fore.YELLOW + f"Время: {self.log_date_time_string()}" + Style.RESET_ALL
                 )
-                logger.debug(
-                    Fore.YELLOW
-                    + f"Клиент IP: {self.client_address[0]}"
-                    + Style.RESET_ALL
-                )
-                logger.debug(
-                    Fore.YELLOW + f"Запрос: {self.requestline}" + Style.RESET_ALL
-                )
+                logger.debug(Fore.YELLOW + f"Клиент IP: {self.client_address[0]}" + Style.RESET_ALL)
+                logger.debug(Fore.YELLOW + f"Запрос: {self.requestline}" + Style.RESET_ALL)
                 logger.debug(Fore.MAGENTA + f"Статус ответа: {code}" + Style.RESET_ALL)
                 if isinstance(size, (int, float)) and size > 0:
-                    logger.debug(
-                        Fore.MAGENTA + f"Размер ответа: {size} байт" + Style.RESET_ALL
-                    )
+                    logger.debug(Fore.MAGENTA + f"Размер ответа: {size} байт" + Style.RESET_ALL)
                 logger.debug(Fore.CYAN + "=" * 80 + Style.RESET_ALL)
             except UnicodeEncodeError:
                 # Fallback to plain text if color output fails
@@ -1128,9 +1129,7 @@ def reloader_thread():  # pragma: no cover
             logger.debug(
                 f"Reloaded loop_module.run_loop: firstlineno={loop_module.run_loop.__code__.co_firstlineno}, argcount={loop_module.run_loop.__code__.co_argcount}"
             )
-            logger.debug(
-                f"New run_loop code file: {loop_module.run_loop.__code__.co_filename}"
-            )
+            logger.debug(f"New run_loop code file: {loop_module.run_loop.__code__.co_filename}")
 
             # Обновляем ссылки на функции
             monitor = console_module.monitor

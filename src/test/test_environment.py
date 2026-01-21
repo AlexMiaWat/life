@@ -32,9 +32,7 @@ class TestEvent:
     def test_event_creation_with_metadata(self):
         """Тест создания Event с metadata"""
         metadata = {"key1": "value1", "key2": 123}
-        event = Event(
-            type="test", intensity=0.5, timestamp=time.time(), metadata=metadata
-        )
+        event = Event(type="test", intensity=0.5, timestamp=time.time(), metadata=metadata)
         assert event.metadata == metadata
         assert event.metadata["key1"] == "value1"
         assert event.metadata["key2"] == 123
@@ -95,10 +93,7 @@ class TestEventQueue:
     def test_queue_push_multiple(self):
         """Тест добавления нескольких событий"""
         queue = EventQueue()
-        events = [
-            Event(type=f"event_{i}", intensity=0.5, timestamp=time.time())
-            for i in range(5)
-        ]
+        events = [Event(type=f"event_{i}", intensity=0.5, timestamp=time.time()) for i in range(5)]
 
         for event in events:
             queue.push(event)
@@ -128,10 +123,7 @@ class TestEventQueue:
     def test_queue_pop_fifo_order(self):
         """Тест порядка извлечения (FIFO)"""
         queue = EventQueue()
-        events = [
-            Event(type=f"event_{i}", intensity=0.5, timestamp=time.time())
-            for i in range(5)
-        ]
+        events = [Event(type=f"event_{i}", intensity=0.5, timestamp=time.time()) for i in range(5)]
 
         for event in events:
             queue.push(event)
@@ -166,8 +158,7 @@ class TestEventQueue:
         """Тест pop_all с несколькими событиями"""
         queue = EventQueue()
         original_events = [
-            Event(type=f"event_{i}", intensity=0.5, timestamp=time.time())
-            for i in range(5)
+            Event(type=f"event_{i}", intensity=0.5, timestamp=time.time()) for i in range(5)
         ]
 
         for event in original_events:
@@ -183,8 +174,7 @@ class TestEventQueue:
         """Тест порядка pop_all (FIFO)"""
         queue = EventQueue()
         original_events = [
-            Event(type=f"event_{i}", intensity=0.5, timestamp=time.time())
-            for i in range(5)
+            Event(type=f"event_{i}", intensity=0.5, timestamp=time.time()) for i in range(5)
         ]
 
         for event in original_events:

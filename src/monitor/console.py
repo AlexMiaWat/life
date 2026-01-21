@@ -95,9 +95,7 @@ def monitor(state: SelfState, log_file_path: Path = None):
         энергия_txt = f"{Fore.GREEN}энергия: {energy:.1f} %{Style.RESET_ALL}"
         интеллект_txt = f"{Fore.YELLOW}интеллект: {integrity:.4f}{Style.RESET_ALL}"
         стабильность_txt = f"{Fore.CYAN}стабильность: {stability:.4f}{Style.RESET_ALL}"
-        значимость_txt = (
-            f"{Fore.MAGENTA}значимость: {last_significance:.4f}{Style.RESET_ALL}"
-        )
+        значимость_txt = f"{Fore.MAGENTA}значимость: {last_significance:.4f}{Style.RESET_ALL}"
         активация_txt = f"активация: {activated_count} ({top_significance:.2f})"
         decision_txt = f"{Fore.YELLOW}decision: {last_pattern}{Style.RESET_ALL}"
         action_txt = f"{Fore.GREEN}action: executed {last_pattern}{Style.RESET_ALL}"

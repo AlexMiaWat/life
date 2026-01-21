@@ -16,56 +16,54 @@ from pathlib import Path
 from typing import Dict, List, Optional, Any, Tuple
 from datetime import datetime, timedelta
 
+from src.technical_monitor import TechnicalBehaviorMonitor
+
 logger = logging.getLogger(__name__)
 
 
 @dataclass
 class SystemMetrics:
-    """Метрики производительности и состояния системы."""
+    """Базовые метрики состояния системы."""
+
     timestamp: float = field(default_factory=time.time)
 
-    # Базовые метрики
+    # Базовые счетчики
     cycle_count: int = 0
     uptime_seconds: float = 0.0
     memory_entries_count: int = 0
 
-    # Метрики компонентов
-    learning_effectiveness: float = 0.0
-    adaptation_rate: float = 0.0
-    decision_success_rate: float = 0.0
-
-    # Метрики стабильности
-    error_count: int = 0
-    integrity_score: float = 1.0
-    energy_level: float = 1.0
-
     # Метрики активности
+    error_count: int = 0
     action_count: int = 0
     event_processing_rate: float = 0.0  # событий в секунду
     state_change_frequency: float = 0.0  # изменений состояния в секунду
 
 
+
+
 @dataclass
 class BehaviorPattern:
     """Паттерн поведения системы."""
+
     pattern_type: str
     description: str
-    frequency: float
-    impact_score: float
-    first_observed: float
-    last_observed: float
+    frequency: float  # частота наблюдения (0.0-1.0)
+    impact_score: float  # влияние на систему (0.0-1.0)
+    first_observed: float  # timestamp первого наблюдения
+    last_observed: float  # timestamp последнего наблюдения
     metadata: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
 class ObservationReport:
-    """Отчет внешнего наблюдения."""
+    """Отчет внешнего наблюдения с сырыми данными."""
+
     observation_period: Tuple[float, float]  # start_time, end_time
     metrics_summary: SystemMetrics
-    behavior_patterns: List[BehaviorPattern]
-    trends: Dict[str, str]  # metric_name -> trend_direction
-    anomalies: List[Dict[str, Any]]
-    recommendations: List[str]
+    behavior_patterns: List[BehaviorPattern] = field(default_factory=list)
+    trends: Dict[str, str] = field(default_factory=dict)
+    anomalies: List[str] = field(default_factory=list)
+    recommendations: List[str] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
         """Преобразовать отчет в словарь для сериализации."""
@@ -75,31 +73,11 @@ class ObservationReport:
                 "cycle_count": self.metrics_summary.cycle_count,
                 "uptime_seconds": self.metrics_summary.uptime_seconds,
                 "memory_entries_count": self.metrics_summary.memory_entries_count,
-                "learning_effectiveness": self.metrics_summary.learning_effectiveness,
-                "adaptation_rate": self.metrics_summary.adaptation_rate,
-                "decision_success_rate": self.metrics_summary.decision_success_rate,
                 "error_count": self.metrics_summary.error_count,
-                "integrity_score": self.metrics_summary.integrity_score,
-                "energy_level": self.metrics_summary.energy_level,
                 "action_count": self.metrics_summary.action_count,
                 "event_processing_rate": self.metrics_summary.event_processing_rate,
                 "state_change_frequency": self.metrics_summary.state_change_frequency,
             },
-            "behavior_patterns": [
-                {
-                    "pattern_type": p.pattern_type,
-                    "description": p.description,
-                    "frequency": p.frequency,
-                    "impact_score": p.impact_score,
-                    "first_observed": p.first_observed,
-                    "last_observed": p.last_observed,
-                    "metadata": p.metadata,
-                }
-                for p in self.behavior_patterns
-            ],
-            "trends": self.trends,
-            "anomalies": self.anomalies,
-            "recommendations": self.recommendations,
         }
 
 
@@ -107,16 +85,19 @@ class TechnicalBehaviorMonitor:
     """
     Технический монитор поведения системы Life.
 
-    Анализирует логи, метрики и паттерны поведения без вмешательства в систему.
-    Фокусируется на технических аспектах производительности и стабильности.
+    Собирает сырые метрики из логов и снимков без интерпретации.
     """
 
-    def __init__(self, logs_directory: Optional[Path] = None, snapshots_directory: Optional[Path] = None):
+    def __init__(
+        self, logs_directory: Optional[Path] = None, snapshots_directory: Optional[Path] = None
+    ):
         self.logs_directory = logs_directory or Path("logs")
         self.snapshots_directory = snapshots_directory or Path("data/snapshots")
         self.observation_history: List[ObservationReport] = []
 
-    def observe_from_logs(self, start_time: Optional[float] = None, end_time: Optional[float] = None) -> ObservationReport:
+    def observe_from_logs(
+        self, start_time: Optional[float] = None, end_time: Optional[float] = None
+    ) -> ObservationReport:
         """
         Проанализировать поведение системы на основе логов.
 
@@ -176,7 +157,7 @@ class TechnicalBehaviorMonitor:
         snapshots_data = []
         for path in snapshot_paths:
             try:
-                with open(path, 'r', encoding='utf-8') as f:
+                with open(path, "r", encoding="utf-8") as f:
                     data = json.load(f)
                     snapshots_data.append(data)
             except Exception as e:
@@ -186,8 +167,8 @@ class TechnicalBehaviorMonitor:
             raise ValueError("Не удалось загрузить ни один снимок")
 
         # Анализируем временной ряд
-        start_time = min(s['timestamp'] for s in snapshots_data)
-        end_time = max(s['timestamp'] for s in snapshots_data)
+        start_time = min(s["timestamp"] for s in snapshots_data)
+        end_time = max(s["timestamp"] for s in snapshots_data)
 
         # Собираем метрики из снимков
         metrics = self._extract_metrics_from_snapshots(snapshots_data)
@@ -220,7 +201,7 @@ class TechnicalBehaviorMonitor:
         """Сохранить отчет в файл."""
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(output_path, 'w', encoding='utf-8') as f:
+        with open(output_path, "w", encoding="utf-8") as f:
             json.dump(report.to_dict(), f, indent=2, ensure_ascii=False)
 
         logger.info(f"Отчет сохранен: {output_path}")
@@ -236,10 +217,18 @@ class TechnicalBehaviorMonitor:
         # Собираем статистику по метрикам
         avg_metrics = {}
         metric_fields = [
-            'cycle_count', 'uptime_seconds', 'memory_entries_count',
-            'learning_effectiveness', 'adaptation_rate', 'decision_success_rate',
-            'error_count', 'integrity_score', 'energy_level',
-            'action_count', 'event_processing_rate', 'state_change_frequency'
+            "cycle_count",
+            "uptime_seconds",
+            "memory_entries_count",
+            "learning_effectiveness",
+            "adaptation_rate",
+            "decision_success_rate",
+            "error_count",
+            "integrity_score",
+            "energy_level",
+            "action_count",
+            "event_processing_rate",
+            "state_change_frequency",
         ]
 
         for field in metric_fields:
@@ -253,14 +242,18 @@ class TechnicalBehaviorMonitor:
             latest = self.observation_history[-1]
             previous = self.observation_history[-2]
 
-            for field in ['integrity_score', 'energy_level', 'error_count']:
+            for field in ["integrity_score", "energy_level", "error_count"]:
                 latest_val = getattr(latest.metrics_summary, field)
                 prev_val = getattr(previous.metrics_summary, field)
 
                 if latest_val > prev_val:
-                    trend = "improving" if field in ['integrity_score', 'energy_level'] else "worsening"
+                    trend = (
+                        "improving" if field in ["integrity_score", "energy_level"] else "worsening"
+                    )
                 elif latest_val < prev_val:
-                    trend = "worsening" if field in ['integrity_score', 'energy_level'] else "improving"
+                    trend = (
+                        "worsening" if field in ["integrity_score", "energy_level"] else "improving"
+                    )
                 else:
                     trend = "stable"
 
@@ -273,7 +266,7 @@ class TechnicalBehaviorMonitor:
             "observation_period": {
                 "earliest": min(obs.observation_period[0] for obs in self.observation_history),
                 "latest": max(obs.observation_period[1] for obs in self.observation_history),
-            }
+            },
         }
 
     def _extract_metrics_from_logs(self, start_time: float, end_time: float) -> SystemMetrics:
@@ -296,18 +289,18 @@ class TechnicalBehaviorMonitor:
 
             if logs_data:
                 return SystemMetrics(
-                    cycle_count=logs_data.get('cycle_count', 1000),
+                    cycle_count=logs_data.get("cycle_count", 1000),
                     uptime_seconds=end_time - start_time,
-                    memory_entries_count=logs_data.get('memory_count', 500),
-                    learning_effectiveness=max(0.0, min(1.0, logs_data.get('learning_eff', 0.75))),
-                    adaptation_rate=max(0.0, min(1.0, logs_data.get('adaptation_rate', 0.6))),
-                    decision_success_rate=max(0.0, min(1.0, logs_data.get('decision_rate', 0.85))),
-                    error_count=max(0, logs_data.get('error_count', 5)),
-                    integrity_score=max(0.0, min(1.0, logs_data.get('integrity', 0.95))),
-                    energy_level=max(0.0, min(1.0, logs_data.get('energy', 0.8))),
-                    action_count=max(0, logs_data.get('action_count', 200)),
-                    event_processing_rate=max(0.0, logs_data.get('event_rate', 2.5)),
-                    state_change_frequency=max(0.0, logs_data.get('change_rate', 1.2)),
+                    memory_entries_count=logs_data.get("memory_count", 500),
+                    learning_effectiveness=max(0.0, min(1.0, logs_data.get("learning_eff", 0.75))),
+                    adaptation_rate=max(0.0, min(1.0, logs_data.get("adaptation_rate", 0.6))),
+                    decision_success_rate=max(0.0, min(1.0, logs_data.get("decision_rate", 0.85))),
+                    error_count=max(0, logs_data.get("error_count", 5)),
+                    integrity_score=max(0.0, min(1.0, logs_data.get("integrity", 0.95))),
+                    energy_level=max(0.0, min(1.0, logs_data.get("energy", 0.8))),
+                    action_count=max(0, logs_data.get("action_count", 200)),
+                    event_processing_rate=max(0.0, logs_data.get("event_rate", 2.5)),
+                    state_change_frequency=max(0.0, logs_data.get("change_rate", 1.2)),
                 )
             else:
                 logger.warning("Не удалось прочитать логи, используем значения по умолчанию")
@@ -333,17 +326,17 @@ class TechnicalBehaviorMonitor:
             # TODO: Реализовать чтение и анализ реальных логов
             # Пока имитируем успешное чтение
             return {
-                'cycle_count': 1000,
-                'memory_count': 500,
-                'learning_eff': 0.75,
-                'adaptation_rate': 0.6,
-                'decision_rate': 0.85,
-                'error_count': 5,
-                'integrity': 0.95,
-                'energy': 0.8,
-                'action_count': 200,
-                'event_rate': 2.5,
-                'change_rate': 1.2,
+                "cycle_count": 1000,
+                "memory_count": 500,
+                "learning_eff": 0.75,
+                "adaptation_rate": 0.6,
+                "decision_rate": 0.85,
+                "error_count": 5,
+                "integrity": 0.95,
+                "energy": 0.8,
+                "action_count": 200,
+                "event_rate": 2.5,
+                "change_rate": 1.2,
             }
 
         except Exception as e:
@@ -372,7 +365,7 @@ class TechnicalBehaviorMonitor:
         # TODO: Реализовать анализ снимков
         return SystemMetrics(
             cycle_count=len(snapshots),
-            uptime_seconds=snapshots[-1]['timestamp'] - snapshots[0]['timestamp'],
+            uptime_seconds=snapshots[-1]["timestamp"] - snapshots[0]["timestamp"],
             memory_entries_count=500,
             learning_effectiveness=0.75,
             adaptation_rate=0.6,
@@ -385,7 +378,9 @@ class TechnicalBehaviorMonitor:
             state_change_frequency=1.0,
         )
 
-    def _analyze_behavior_patterns(self, start_time: float, end_time: float) -> List[BehaviorPattern]:
+    def _analyze_behavior_patterns(
+        self, start_time: float, end_time: float
+    ) -> List[BehaviorPattern]:
         """
         Анализировать паттерны поведения на основе доступных данных.
 
@@ -409,33 +404,39 @@ class TechnicalBehaviorMonitor:
                 return patterns
 
             # Имитируем обнаружение паттернов
-            patterns.extend([
-                BehaviorPattern(
-                    pattern_type="learning_cycle",
-                    description="Регулярные циклы обучения каждые 75 тиков",
-                    frequency=min(1.0, max(0.0, 0.8)),  # Ограничиваем диапазон
-                    impact_score=min(1.0, max(0.0, 0.7)),
-                    first_observed=max(start_time, start_time + 10),  # Не раньше start_time
-                    last_observed=min(end_time, end_time - 10),  # Не позже end_time
-                    metadata={"confidence": 0.85, "occurrences": 12}
-                ),
-                BehaviorPattern(
-                    pattern_type="adaptation_burst",
-                    description="Периоды интенсивной адаптации при изменении условий",
-                    frequency=min(1.0, max(0.0, 0.3)),
-                    impact_score=min(1.0, max(0.0, 0.8)),
-                    first_observed=max(start_time, start_time + 100),
-                    last_observed=min(end_time, end_time - 50),
-                    metadata={"confidence": 0.72, "occurrences": 3}
-                ),
-            ])
+            patterns.extend(
+                [
+                    BehaviorPattern(
+                        pattern_type="learning_cycle",
+                        description="Регулярные циклы обучения каждые 75 тиков",
+                        frequency=min(1.0, max(0.0, 0.8)),  # Ограничиваем диапазон
+                        impact_score=min(1.0, max(0.0, 0.7)),
+                        first_observed=max(start_time, start_time + 10),  # Не раньше start_time
+                        last_observed=min(end_time, end_time - 10),  # Не позже end_time
+                        metadata={"confidence": 0.85, "occurrences": 12},
+                    ),
+                    BehaviorPattern(
+                        pattern_type="adaptation_burst",
+                        description="Периоды интенсивной адаптации при изменении условий",
+                        frequency=min(1.0, max(0.0, 0.3)),
+                        impact_score=min(1.0, max(0.0, 0.8)),
+                        first_observed=max(start_time, start_time + 100),
+                        last_observed=min(end_time, end_time - 50),
+                        metadata={"confidence": 0.72, "occurrences": 3},
+                    ),
+                ]
+            )
 
             # Фильтруем паттерны с некорректными данными
             valid_patterns = []
             for pattern in patterns:
-                if (pattern.first_observed < pattern.last_observed and
-                    pattern.frequency >= 0 and pattern.frequency <= 1 and
-                    pattern.impact_score >= 0 and pattern.impact_score <= 1):
+                if (
+                    pattern.first_observed < pattern.last_observed
+                    and pattern.frequency >= 0
+                    and pattern.frequency <= 1
+                    and pattern.impact_score >= 0
+                    and pattern.impact_score <= 1
+                ):
                     valid_patterns.append(pattern)
                 else:
                     logger.warning(f"Пропущен некорректный паттерн: {pattern.pattern_type}")
@@ -455,8 +456,8 @@ class TechnicalBehaviorMonitor:
                 description="Постепенный рост количества записей в памяти",
                 frequency=1.0,
                 impact_score=0.6,
-                first_observed=snapshots[0]['timestamp'],
-                last_observed=snapshots[-1]['timestamp'],
+                first_observed=snapshots[0]["timestamp"],
+                last_observed=snapshots[-1]["timestamp"],
             ),
         ]
 
@@ -477,7 +478,9 @@ class TechnicalBehaviorMonitor:
             "adaptation_rate": "improving",
         }
 
-    def _detect_anomalies(self, metrics: SystemMetrics, patterns: List[BehaviorPattern]) -> List[Dict[str, Any]]:
+    def _detect_anomalies(
+        self, metrics: SystemMetrics, patterns: List[BehaviorPattern]
+    ) -> List[Dict[str, Any]]:
         """
         Обнаружить аномалии в метриках и паттернах.
 
@@ -493,68 +496,98 @@ class TechnicalBehaviorMonitor:
         try:
             # Проверяем базовые метрики на аномалии
             if metrics.error_count > 10:
-                anomalies.append({
-                    "type": "high_error_rate",
-                    "description": f"Высокий уровень ошибок: {metrics.error_count}",
-                    "severity": "high",
-                    "timestamp": metrics.timestamp,
-                    "metric": "error_count",
-                    "value": metrics.error_count,
-                    "threshold": 10,
-                })
+                anomalies.append(
+                    {
+                        "type": "high_error_rate",
+                        "description": f"Высокий уровень ошибок: {metrics.error_count}",
+                        "severity": "high",
+                        "timestamp": metrics.timestamp,
+                        "metric": "error_count",
+                        "value": metrics.error_count,
+                        "threshold": 10,
+                    }
+                )
 
             # Проверяем уровень энергии
             if metrics.energy_level < 0.2:
-                anomalies.append({
-                    "type": "low_energy_level",
-                    "description": ".2f",
-                    "severity": "medium",
-                    "timestamp": metrics.timestamp,
-                    "metric": "energy_level",
-                    "value": metrics.energy_level,
-                    "threshold": 0.2,
-                })
+                anomalies.append(
+                    {
+                        "type": "low_energy_level",
+                        "description": ".2f",
+                        "severity": "medium",
+                        "timestamp": metrics.timestamp,
+                        "metric": "energy_level",
+                        "value": metrics.energy_level,
+                        "threshold": 0.2,
+                    }
+                )
 
             # Проверяем уровень integrity
             if metrics.integrity_score < 0.3:
-                anomalies.append({
-                    "type": "low_integrity_score",
-                    "description": ".2f",
-                    "severity": "critical",
-                    "timestamp": metrics.timestamp,
-                    "metric": "integrity_score",
-                    "value": metrics.integrity_score,
-                    "threshold": 0.3,
-                })
+                anomalies.append(
+                    {
+                        "type": "low_integrity_score",
+                        "description": ".2f",
+                        "severity": "critical",
+                        "timestamp": metrics.timestamp,
+                        "metric": "integrity_score",
+                        "value": metrics.integrity_score,
+                        "threshold": 0.3,
+                    }
+                )
 
             # Проверяем экстремальные значения других метрик
             checks = [
-                (metrics.learning_effectiveness < 0.1, "very_low_learning", "Критически низкая эффективность обучения", "critical"),
-                (metrics.adaptation_rate < 0.1, "very_low_adaptation", "Критически низкая скорость адаптации", "high"),
-                (metrics.decision_success_rate < 0.2, "very_low_decision_success", "Критически низкая успешность решений", "critical"),
-                (metrics.event_processing_rate > 50, "high_event_rate", "Аномально высокая скорость обработки событий", "medium"),
+                (
+                    metrics.learning_effectiveness < 0.1,
+                    "very_low_learning",
+                    "Критически низкая эффективность обучения",
+                    "critical",
+                ),
+                (
+                    metrics.adaptation_rate < 0.1,
+                    "very_low_adaptation",
+                    "Критически низкая скорость адаптации",
+                    "high",
+                ),
+                (
+                    metrics.decision_success_rate < 0.2,
+                    "very_low_decision_success",
+                    "Критически низкая успешность решений",
+                    "critical",
+                ),
+                (
+                    metrics.event_processing_rate > 50,
+                    "high_event_rate",
+                    "Аномально высокая скорость обработки событий",
+                    "medium",
+                ),
             ]
 
             for condition, anomaly_type, description, severity in checks:
                 if condition:
-                    anomalies.append({
-                        "type": anomaly_type,
-                        "description": description,
-                        "severity": severity,
-                        "timestamp": metrics.timestamp,
-                    })
+                    anomalies.append(
+                        {
+                            "type": anomaly_type,
+                            "description": description,
+                            "severity": severity,
+                            "timestamp": metrics.timestamp,
+                        }
+                    )
 
             # Проверяем паттерны на аномалии
             for pattern in patterns:
                 if pattern.frequency > 0.95:  # Слишком частый паттерн
-                    anomalies.append({
-                        "type": "dominant_pattern",
-                        "description": f"Доминирующий паттерн поведения: {pattern.pattern_type}",
-                        "severity": "low",
-                        "timestamp": metrics.timestamp,
-                        "pattern": pattern.pattern_type,
-                        "frequency": pattern.frequency,
-                    })
+                    anomalies.append(
+                        {
+                            "type": "dominant_pattern",
+                            "description": f"Доминирующий паттерн поведения: {pattern.pattern_type}",
+                            "severity": "low",
+                            "timestamp": metrics.timestamp,
+                            "pattern": pattern.pattern_type,
+                            "frequency": pattern.frequency,
+                        }
+                    )
 
             logger.info(f"Обнаружено {len(anomalies)} аномалий")
             return anomalies
@@ -567,8 +600,9 @@ class TechnicalBehaviorMonitor:
         """Обнаружить аномалии в снимках. Заглушка для реализации."""
         return []
 
-    def _generate_recommendations(self, metrics: SystemMetrics, trends: Dict[str, str],
-                                anomalies: List[Dict]) -> List[str]:
+    def _generate_recommendations(
+        self, metrics: SystemMetrics, trends: Dict[str, str], anomalies: List[Dict]
+    ) -> List[str]:
         """
         Сгенерировать рекомендации на основе метрик, трендов и аномалий.
 
@@ -588,23 +622,23 @@ class TechnicalBehaviorMonitor:
                 "energy_level": {
                     "declining": "Проверить энергопотребление системы и источники энергии",
                     "stable": "Уровень энергии стабильный - положительный показатель",
-                    "improving": "Энергия системы растет - хорошая динамика"
+                    "improving": "Энергия системы растет - хорошая динамика",
                 },
                 "integrity_score": {
                     "declining": "Критично: проверить целостность системы и механизмы валидации",
                     "stable": "Целостность системы стабильна",
-                    "improving": "Целостность системы улучшается"
+                    "improving": "Целостность системы улучшается",
                 },
                 "error_count": {
                     "increasing": "Растет количество ошибок - требуется анализ логов",
                     "stable": "Количество ошибок стабильно",
-                    "decreasing": "Количество ошибок уменьшается - положительная динамика"
+                    "decreasing": "Количество ошибок уменьшается - положительная динамика",
                 },
                 "learning_effectiveness": {
                     "improving": "Обучение работает эффективно, продолжить наблюдение",
                     "stable": "Эффективность обучения стабильна",
-                    "declining": "Эффективность обучения падает - проверить механизмы обучения"
-                }
+                    "declining": "Эффективность обучения падает - проверить механизмы обучения",
+                },
             }
 
             for metric, trend in trends.items():
@@ -629,14 +663,16 @@ class TechnicalBehaviorMonitor:
                 "critical": "Немедленно проанализировать и устранить",
                 "high": "Приоритизировать анализ и исправление",
                 "medium": "Запланировать проверку в ближайшее время",
-                "low": "Мониторить ситуацию"
+                "low": "Мониторить ситуацию",
             }
 
             for anomaly in anomalies:
                 severity = anomaly.get("severity", "medium")
                 action = severity_actions.get(severity, "Проверить")
                 anomaly_type = anomaly.get("type", "unknown")
-                recommendations.append(f"{action}: аномалия '{anomaly_type}' ({severity} приоритет)")
+                recommendations.append(
+                    f"{action}: аномалия '{anomaly_type}' ({severity} приоритет)"
+                )
 
             # Общие рекомендации
             if not anomalies:
@@ -654,8 +690,9 @@ class TechnicalBehaviorMonitor:
             logger.error(f"Ошибка при генерации рекомендаций: {e}")
             return ["Произошла ошибка при генерации рекомендаций - требуется ручной анализ"]
 
-    def _generate_snapshot_recommendations(self, snapshots: List[Dict], trends: Dict[str, str],
-                                         anomalies: List[Dict]) -> List[str]:
+    def _generate_snapshot_recommendations(
+        self, snapshots: List[Dict], trends: Dict[str, str], anomalies: List[Dict]
+    ) -> List[str]:
         """Сгенерировать рекомендации по снимкам. Заглушка для реализации."""
         return ["Продолжить мониторинг состояния системы"]
 

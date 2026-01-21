@@ -180,10 +180,10 @@ class TestSilenceEventQueueIntegration:
 
         if silence_event:
             # Проверяем что это валидный Event
-            assert hasattr(silence_event, 'type')
-            assert hasattr(silence_event, 'intensity')
-            assert hasattr(silence_event, 'timestamp')
-            assert hasattr(silence_event, 'metadata')
+            assert hasattr(silence_event, "type")
+            assert hasattr(silence_event, "intensity")
+            assert hasattr(silence_event, "timestamp")
+            assert hasattr(silence_event, "metadata")
 
             assert silence_event.type == "silence"
             assert isinstance(silence_event.intensity, (int, float))

@@ -70,9 +70,7 @@ class TestAPIServer:
         """Тест POST /event с валидными данными"""
         payload = {"type": "shock", "intensity": 0.5, "metadata": {"test": "value"}}
 
-        response = requests.post(
-            f"{server_setup['base_url']}/event", json=payload, timeout=5
-        )
+        response = requests.post(f"{server_setup['base_url']}/event", json=payload, timeout=5)
 
         assert response.status_code == 200
         assert response.text == "Event accepted"
@@ -91,9 +89,7 @@ class TestAPIServer:
         """Тест POST /event с минимальными данными (только type)"""
         payload = {"type": "noise"}
 
-        response = requests.post(
-            f"{server_setup['base_url']}/event", json=payload, timeout=5
-        )
+        response = requests.post(f"{server_setup['base_url']}/event", json=payload, timeout=5)
 
         assert response.status_code == 200
 
@@ -110,9 +106,7 @@ class TestAPIServer:
         custom_timestamp = 1000.0
         payload = {"type": "recovery", "intensity": 0.3, "timestamp": custom_timestamp}
 
-        response = requests.post(
-            f"{server_setup['base_url']}/event", json=payload, timeout=5
-        )
+        response = requests.post(f"{server_setup['base_url']}/event", json=payload, timeout=5)
 
         assert response.status_code == 200
 
@@ -137,9 +131,7 @@ class TestAPIServer:
         """Тест POST /event без поля type"""
         payload = {"intensity": 0.5}
 
-        response = requests.post(
-            f"{server_setup['base_url']}/event", json=payload, timeout=5
-        )
+        response = requests.post(f"{server_setup['base_url']}/event", json=payload, timeout=5)
 
         assert response.status_code == 400
         assert "'type' is required" in response.text
@@ -148,9 +140,7 @@ class TestAPIServer:
         """Тест POST /event с невалидным типом (не строка)"""
         payload = {"type": 123}
 
-        response = requests.post(
-            f"{server_setup['base_url']}/event", json=payload, timeout=5
-        )
+        response = requests.post(f"{server_setup['base_url']}/event", json=payload, timeout=5)
 
         assert response.status_code == 400
         assert "'type' is required" in response.text
@@ -179,9 +169,7 @@ class TestAPIServer:
 
         for event_type in event_types:
             payload = {"type": event_type, "intensity": 0.3}
-            response = requests.post(
-                f"{server_setup['base_url']}/event", json=payload, timeout=5
-            )
+            response = requests.post(f"{server_setup['base_url']}/event", json=payload, timeout=5)
             assert response.status_code == 200
 
         # Проверяем очередь только для тестового сервера
@@ -201,23 +189,17 @@ class TestAPIServer:
         """Тест переполнения очереди событий"""
         # Для реального сервера этот тест не имеет смысла (не можем проверить очередь)
         if server_setup.get("is_real_server"):
-            pytest.skip(
-                "Queue overflow test requires access to event_queue (test server only)"
-            )
+            pytest.skip("Queue overflow test requires access to event_queue (test server only)")
 
         # Заполняем очередь до максимума (100)
         for i in range(100):
             payload = {"type": "noise", "intensity": 0.1}
-            response = requests.post(
-                f"{server_setup['base_url']}/event", json=payload, timeout=5
-            )
+            response = requests.post(f"{server_setup['base_url']}/event", json=payload, timeout=5)
             assert response.status_code == 200
 
         # Попытка добавить еще одно событие (должно быть проигнорировано)
         payload = {"type": "shock", "intensity": 0.9}
-        response = requests.post(
-            f"{server_setup['base_url']}/event", json=payload, timeout=5
-        )
+        response = requests.post(f"{server_setup['base_url']}/event", json=payload, timeout=5)
         # Сервер все равно вернет 200, но событие не добавится
         assert response.status_code == 200
         assert server_setup["event_queue"].size() == 100
@@ -226,9 +208,7 @@ class TestAPIServer:
         """Тест, что состояние обновляется после обработки событий"""
         # Отправляем событие
         payload = {"type": "shock", "intensity": 0.8}
-        response = requests.post(
-            f"{server_setup['base_url']}/event", json=payload, timeout=5
-        )
+        response = requests.post(f"{server_setup['base_url']}/event", json=payload, timeout=5)
         assert response.status_code == 200
 
         # Проверяем статус

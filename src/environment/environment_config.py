@@ -19,6 +19,7 @@ logger = get_logger(__name__)
 @dataclass
 class EventTypeConfig:
     """Конфигурация типа события"""
+
     enabled: bool = True
     weight: float = 1.0
     intensity_min: float = 0.0
@@ -52,58 +53,109 @@ class EnvironmentConfig:
         """Инициализировать конфигурацию типов событий по умолчанию"""
         default_configs = {
             # Физические события
-            "noise": EventTypeConfig(weight=0.352, intensity_min=-0.3, intensity_max=0.3,
-                                   description="Фоновый шум"),
-            "decay": EventTypeConfig(weight=0.244, intensity_min=-0.5, intensity_max=0.0,
-                                   description="Естественный распад"),
-            "recovery": EventTypeConfig(weight=0.180, intensity_min=0.0, intensity_max=0.5,
-                                      description="Восстановление"),
-            "shock": EventTypeConfig(weight=0.040, intensity_min=-1.0, intensity_max=1.0,
-                                   description="Резкий удар"),
-            "idle": EventTypeConfig(weight=0.040, intensity_min=0.0, intensity_max=0.0,
-                                  description="Тишина"),
-
+            "noise": EventTypeConfig(
+                weight=0.352, intensity_min=-0.3, intensity_max=0.3, description="Фоновый шум"
+            ),
+            "decay": EventTypeConfig(
+                weight=0.244,
+                intensity_min=-0.5,
+                intensity_max=0.0,
+                description="Естественный распад",
+            ),
+            "recovery": EventTypeConfig(
+                weight=0.180, intensity_min=0.0, intensity_max=0.5, description="Восстановление"
+            ),
+            "shock": EventTypeConfig(
+                weight=0.040, intensity_min=-1.0, intensity_max=1.0, description="Резкий удар"
+            ),
+            "idle": EventTypeConfig(
+                weight=0.040, intensity_min=0.0, intensity_max=0.0, description="Тишина"
+            ),
             # Социальные события
-            "social_presence": EventTypeConfig(weight=0.014, intensity_min=-0.4, intensity_max=0.4,
-                                             description="Ощущение присутствия других"),
-            "social_conflict": EventTypeConfig(weight=0.010, intensity_min=-0.6, intensity_max=0.0,
-                                             description="Социальный конфликт"),
-            "social_harmony": EventTypeConfig(weight=0.010, intensity_min=0.0, intensity_max=0.6,
-                                            description="Социальная гармония"),
-
+            "social_presence": EventTypeConfig(
+                weight=0.014,
+                intensity_min=-0.4,
+                intensity_max=0.4,
+                description="Ощущение присутствия других",
+            ),
+            "social_conflict": EventTypeConfig(
+                weight=0.010,
+                intensity_min=-0.6,
+                intensity_max=0.0,
+                description="Социальный конфликт",
+            ),
+            "social_harmony": EventTypeConfig(
+                weight=0.010,
+                intensity_min=0.0,
+                intensity_max=0.6,
+                description="Социальная гармония",
+            ),
             # Когнитивные события
-            "cognitive_doubt": EventTypeConfig(weight=0.014, intensity_min=-0.5, intensity_max=0.0,
-                                             description="Когнитивное сомнение"),
-            "cognitive_clarity": EventTypeConfig(weight=0.010, intensity_min=0.0, intensity_max=0.5,
-                                               description="Когнитивная ясность"),
-            "cognitive_confusion": EventTypeConfig(weight=0.014, intensity_min=-0.4, intensity_max=0.0,
-                                                 description="Когнитивная путаница"),
-
+            "cognitive_doubt": EventTypeConfig(
+                weight=0.014,
+                intensity_min=-0.5,
+                intensity_max=0.0,
+                description="Когнитивное сомнение",
+            ),
+            "cognitive_clarity": EventTypeConfig(
+                weight=0.010,
+                intensity_min=0.0,
+                intensity_max=0.5,
+                description="Когнитивная ясность",
+            ),
+            "cognitive_confusion": EventTypeConfig(
+                weight=0.014,
+                intensity_min=-0.4,
+                intensity_max=0.0,
+                description="Когнитивная путаница",
+            ),
             # Экзистенциальные события
-            "existential_void": EventTypeConfig(weight=0.007, intensity_min=-0.7, intensity_max=0.0,
-                                              description="Экзистенциальная пустота"),
-            "existential_purpose": EventTypeConfig(weight=0.006, intensity_min=0.0, intensity_max=0.7,
-                                                 description="Экзистенциальное ощущение цели"),
-            "existential_finitude": EventTypeConfig(weight=0.008, intensity_min=-0.6, intensity_max=0.0,
-                                                  description="Осознание конечности"),
-
+            "existential_void": EventTypeConfig(
+                weight=0.007,
+                intensity_min=-0.7,
+                intensity_max=0.0,
+                description="Экзистенциальная пустота",
+            ),
+            "existential_purpose": EventTypeConfig(
+                weight=0.006,
+                intensity_min=0.0,
+                intensity_max=0.7,
+                description="Экзистенциальное ощущение цели",
+            ),
+            "existential_finitude": EventTypeConfig(
+                weight=0.008,
+                intensity_min=-0.6,
+                intensity_max=0.0,
+                description="Осознание конечности",
+            ),
             # Другие события
-            "connection": EventTypeConfig(weight=0.007, intensity_min=0.0, intensity_max=0.8,
-                                        description="Ощущение связи"),
-            "isolation": EventTypeConfig(weight=0.007, intensity_min=-0.7, intensity_max=0.0,
-                                       description="Ощущение изоляции"),
-            "insight": EventTypeConfig(weight=0.007, intensity_min=0.0, intensity_max=0.6,
-                                     description="Момент озарения"),
-            "confusion": EventTypeConfig(weight=0.007, intensity_min=-0.5, intensity_max=0.0,
-                                       description="Состояние замешательства"),
-            "curiosity": EventTypeConfig(weight=0.007, intensity_min=-0.3, intensity_max=0.4,
-                                       description="Любопытство"),
-            "meaning_found": EventTypeConfig(weight=0.007, intensity_min=0.0, intensity_max=0.9,
-                                           description="Нахождение смысла"),
-            "void": EventTypeConfig(weight=0.007, intensity_min=-0.8, intensity_max=0.0,
-                                  description="Ощущение пустоты"),
-            "acceptance": EventTypeConfig(weight=0.007, intensity_min=0.0, intensity_max=0.5,
-                                        description="Принятие состояния"),
+            "connection": EventTypeConfig(
+                weight=0.007, intensity_min=0.0, intensity_max=0.8, description="Ощущение связи"
+            ),
+            "isolation": EventTypeConfig(
+                weight=0.007, intensity_min=-0.7, intensity_max=0.0, description="Ощущение изоляции"
+            ),
+            "insight": EventTypeConfig(
+                weight=0.007, intensity_min=0.0, intensity_max=0.6, description="Момент озарения"
+            ),
+            "confusion": EventTypeConfig(
+                weight=0.007,
+                intensity_min=-0.5,
+                intensity_max=0.0,
+                description="Состояние замешательства",
+            ),
+            "curiosity": EventTypeConfig(
+                weight=0.007, intensity_min=-0.3, intensity_max=0.4, description="Любопытство"
+            ),
+            "meaning_found": EventTypeConfig(
+                weight=0.007, intensity_min=0.0, intensity_max=0.9, description="Нахождение смысла"
+            ),
+            "void": EventTypeConfig(
+                weight=0.007, intensity_min=-0.8, intensity_max=0.0, description="Ощущение пустоты"
+            ),
+            "acceptance": EventTypeConfig(
+                weight=0.007, intensity_min=0.0, intensity_max=0.5, description="Принятие состояния"
+            ),
         }
 
         self.event_types = default_configs
@@ -123,7 +175,11 @@ class EnvironmentConfig:
             return weights
         else:
             # Используем веса из конфигурации
-            return {event_type: config.weight for event_type, config in self.event_types.items() if config.enabled}
+            return {
+                event_type: config.weight
+                for event_type, config in self.event_types.items()
+                if config.enabled
+            }
 
     def get_intensity_range(self, event_type: str) -> tuple[float, float]:
         """Получить диапазон интенсивности для типа события"""
@@ -149,7 +205,9 @@ class EnvironmentConfig:
         self.crisis_probability = config["crisis_probability"]
         self.crisis_mode = config.get("crisis_mode", False)
 
-        logger.info(f"Environment mode set to '{mode}': activity={self.activity_level}, crisis_prob={self.crisis_probability}")
+        logger.info(
+            f"Environment mode set to '{mode}': activity={self.activity_level}, crisis_prob={self.crisis_probability}"
+        )
         return True
 
     def update_event_type_config(self, event_type: str, **kwargs) -> bool:
@@ -196,11 +254,11 @@ class EnvironmentConfig:
                     "description": config.description,
                 }
                 for event_type, config in self.event_types.items()
-            }
+            },
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'EnvironmentConfig':
+    def from_dict(cls, data: Dict[str, Any]) -> "EnvironmentConfig":
         """Создать конфигурацию из словаря"""
         config = cls()
         config.activity_level = data.get("activity_level", 1.0)
@@ -238,7 +296,7 @@ class EnvironmentConfigManager:
         """Загрузить конфигурацию из файла"""
         try:
             if self.config_file.exists():
-                with open(self.config_file, 'r', encoding='utf-8') as f:
+                with open(self.config_file, "r", encoding="utf-8") as f:
                     data = json.load(f)
                 self.config = EnvironmentConfig.from_dict(data)
                 logger.info(f"Loaded environment configuration from {self.config_file}")
@@ -252,7 +310,7 @@ class EnvironmentConfigManager:
         """Сохранить конфигурацию в файл"""
         try:
             self.config_file.parent.mkdir(parents=True, exist_ok=True)
-            with open(self.config_file, 'w', encoding='utf-8') as f:
+            with open(self.config_file, "w", encoding="utf-8") as f:
                 json.dump(self.config.to_dict(), f, indent=2, ensure_ascii=False)
             logger.info(f"Saved environment configuration to {self.config_file}")
             return True
@@ -305,23 +363,17 @@ class EnvironmentConfigManager:
                 return {
                     "success": True,
                     "updated_fields": updated_fields,
-                    "message": f"Updated {len(updated_fields)} configuration fields"
+                    "message": f"Updated {len(updated_fields)} configuration fields",
                 }
             else:
-                return {
-                    "success": False,
-                    "error": "No valid fields to update"
-                }
+                return {"success": False, "error": "No valid fields to update"}
 
     def reset_config(self) -> Dict[str, Any]:
         """Сбросить конфигурацию к значениям по умолчанию"""
         with self.lock:
             self.config.reset_to_defaults()
             self.save_config()
-            return {
-                "success": True,
-                "message": "Configuration reset to defaults"
-            }
+            return {"success": True, "message": "Configuration reset to defaults"}
 
     def get_available_modes(self) -> List[str]:
         """Получить список доступных режимов активности"""

@@ -40,9 +40,7 @@ class TestExecuteAction:
         response_coefficients = learning_params.get("response_coefficients", {})
         adaptation_params = getattr(base_state, "adaptation_params", {})
         behavior_coefficients = adaptation_params.get("behavior_coefficients", {})
-        coefficient = behavior_coefficients.get(
-            "dampen", response_coefficients.get("dampen", 1.0)
-        )
+        coefficient = behavior_coefficients.get("dampen", response_coefficients.get("dampen", 1.0))
         # Эффект усталости: 0.01 * (1.0 - coefficient)
         expected_effect = 0.01 * (1.0 - coefficient)
 
@@ -128,9 +126,7 @@ class TestExecuteAction:
         response_coefficients = learning_params.get("response_coefficients", {})
         adaptation_params = getattr(base_state, "adaptation_params", {})
         behavior_coefficients = adaptation_params.get("behavior_coefficients", {})
-        coefficient = behavior_coefficients.get(
-            "dampen", response_coefficients.get("dampen", 1.0)
-        )
+        coefficient = behavior_coefficients.get("dampen", response_coefficients.get("dampen", 1.0))
         # Эффект усталости за один раз: 0.01 * (1.0 - coefficient)
         effect_per_action = 0.01 * (1.0 - coefficient)
 

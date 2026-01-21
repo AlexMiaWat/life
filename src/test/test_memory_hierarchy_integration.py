@@ -57,10 +57,7 @@ class TestMemoryHierarchyIntegration:
 
         # Создаем событие с высокой интенсивностью
         high_intensity_event = Event(
-            type="shock",
-            intensity=0.9,
-            timestamp=time.time(),
-            metadata={"source": "test"}
+            type="shock", intensity=0.9, timestamp=time.time(), metadata={"source": "test"}
         )
 
         # Добавляем событие в сенсорный буфер
@@ -96,10 +93,7 @@ class TestMemoryHierarchyIntegration:
 
         # Создаем событие со средней интенсивностью
         medium_intensity_event = Event(
-            type="noise",
-            intensity=0.3,
-            timestamp=time.time(),
-            metadata={"source": "test"}
+            type="noise", intensity=0.3, timestamp=time.time(), metadata={"source": "test"}
         )
 
         # Добавляем событие в сенсорный буфер SENSORY_TO_EPISODIC_THRESHOLD раз
@@ -108,8 +102,9 @@ class TestMemoryHierarchyIntegration:
             event_copy = Event(
                 type=medium_intensity_event.type,
                 intensity=medium_intensity_event.intensity,
-                timestamp=medium_intensity_event.timestamp + i * 0.001,  # Небольшое смещение времени
-                metadata={"source": "test"}
+                timestamp=medium_intensity_event.timestamp
+                + i * 0.001,  # Небольшое смещение времени
+                metadata={"source": "test"},
             )
             hierarchy.add_sensory_event(event_copy)
 
@@ -153,7 +148,9 @@ class TestMemoryHierarchyIntegration:
         hierarchy.set_episodic_memory(memory)
 
         # Добавляем событие и проверяем
-        event = Event(type="test", intensity=0.9, timestamp=time.time(), metadata={"source": "test"})
+        event = Event(
+            type="test", intensity=0.9, timestamp=time.time(), metadata={"source": "test"}
+        )
         hierarchy.add_sensory_event(event)
 
         assert hierarchy.sensory_buffer.buffer_size > 0

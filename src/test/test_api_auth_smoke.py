@@ -24,7 +24,7 @@ from api import app
 @pytest.fixture
 def client():
     """Тестовый клиент FastAPI"""
-    return TestClient(app, timeout=10.0)
+    return TestClient(app)
 
 
 @pytest.mark.smoke

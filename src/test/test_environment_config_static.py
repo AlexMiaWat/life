@@ -9,7 +9,9 @@ import json
 from unittest.mock import Mock, patch, mock_open
 
 from src.environment.environment_config import (
-    EnvironmentConfigManager, EnvironmentConfig, EventTypeConfig
+    EnvironmentConfigManager,
+    EnvironmentConfig,
+    EventTypeConfig,
 )
 
 
@@ -23,7 +25,7 @@ class TestEventTypeConfig:
             weight=2.0,
             intensity_min=0.1,
             intensity_max=0.9,
-            description="Test event type"
+            description="Test event type",
         )
 
         assert config.enabled is True
@@ -50,7 +52,7 @@ class TestEnvironmentConfig:
         """Тест создания конфигурации среды"""
         event_types = {
             "positive": EventTypeConfig(enabled=True, weight=1.5),
-            "negative": EventTypeConfig(enabled=False, weight=0.5)
+            "negative": EventTypeConfig(enabled=False, weight=0.5),
         }
 
         config = EnvironmentConfig(
@@ -58,7 +60,7 @@ class TestEnvironmentConfig:
             crisis_mode=True,
             crisis_probability=0.1,
             event_types=event_types,
-            custom_weights={"stress": 2.0}
+            custom_weights={"stress": 2.0},
         )
 
         assert config.activity_level == 1.5
@@ -92,11 +94,7 @@ class TestEnvironmentConfig:
 
     def test_config_to_dict(self):
         """Тест сериализации конфигурации в словарь"""
-        config = EnvironmentConfig(
-            activity_level=1.2,
-            crisis_mode=True,
-            crisis_probability=0.08
-        )
+        config = EnvironmentConfig(activity_level=1.2, crisis_mode=True, crisis_probability=0.08)
 
         config_dict = config.to_dict()
 
@@ -117,10 +115,10 @@ class TestEnvironmentConfig:
                     "weight": 2.0,
                     "intensity_min": 0.0,
                     "intensity_max": 1.0,
-                    "description": "Positive events"
+                    "description": "Positive events",
                 }
             },
-            "custom_weights": {"stress": 1.5}
+            "custom_weights": {"stress": 1.5},
         }
 
         config = EnvironmentConfig.from_dict(config_dict)
@@ -143,14 +141,10 @@ class TestEnvironmentConfigManager:
         assert manager.config.activity_level == 1.0
         assert manager.is_dirty is False
 
-    @patch('src.environment.environment_config.Path')
+    @patch("src.environment.environment_config.Path")
     def test_load_config(self, mock_path):
         """Тест загрузки конфигурации из файла"""
-        config_data = {
-            "activity_level": 1.5,
-            "crisis_mode": True,
-            "crisis_probability": 0.1
-        }
+        config_data = {"activity_level": 1.5, "crisis_mode": True, "crisis_probability": 0.1}
 
         mock_file = Mock()
         mock_file.exists.return_value = True
@@ -165,7 +159,7 @@ class TestEnvironmentConfigManager:
         assert manager.config.crisis_probability == 0.1
         assert manager.is_dirty is False
 
-    @patch('src.environment.environment_config.Path')
+    @patch("src.environment.environment_config.Path")
     def test_load_config_file_not_exists(self, mock_path):
         """Тест загрузки конфигурации при отсутствии файла"""
         mock_file = Mock()
@@ -179,8 +173,8 @@ class TestEnvironmentConfigManager:
         assert manager.config.activity_level == 1.0
         assert manager.config.crisis_mode is False
 
-    @patch('src.environment.environment_config.Path')
-    @patch('builtins.open', new_callable=mock_open)
+    @patch("src.environment.environment_config.Path")
+    @patch("builtins.open", new_callable=mock_open)
     def test_save_config(self, mock_file_open, mock_path):
         """Тест сохранения конфигурации в файл"""
         mock_file = Mock()
@@ -211,11 +205,7 @@ class TestEnvironmentConfigManager:
         """Тест обновления конфигурации"""
         manager = EnvironmentConfigManager()
 
-        updates = {
-            "activity_level": 1.8,
-            "crisis_mode": True,
-            "crisis_probability": 0.15
-        }
+        updates = {"activity_level": 1.8, "crisis_mode": True, "crisis_probability": 0.15}
 
         manager.update_config(updates)
 
@@ -276,7 +266,7 @@ class TestEnvironmentConfigManager:
             "weight": 0.5,
             "intensity_min": 0.2,
             "intensity_max": 0.8,
-            "description": "Updated description"
+            "description": "Updated description",
         }
 
         manager.update_event_type_config("positive", updates)
@@ -293,11 +283,7 @@ class TestEnvironmentConfigManager:
         """Тест обновления конфигурации нового типа события"""
         manager = EnvironmentConfigManager()
 
-        updates = {
-            "enabled": True,
-            "weight": 3.0,
-            "description": "New event type"
-        }
+        updates = {"enabled": True, "weight": 3.0, "description": "New event type"}
 
         manager.update_event_type_config("custom_event", updates)
 

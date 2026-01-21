@@ -43,7 +43,7 @@ class TestProfilingSystem:
             stop_event = threading.Event()
 
             # Имитируем короткий запуск с профилированием
-            with patch('cProfile.Profile') as mock_profile_class:
+            with patch("cProfile.Profile") as mock_profile_class:
                 mock_profile = mock_profile_class.return_value
                 mock_profile.__enter__ = mock_profile
                 mock_profile.__exit__ = lambda *args: None
@@ -54,19 +54,19 @@ class TestProfilingSystem:
                     args=(
                         state,
                         lambda s: None,  # monitor
-                        0.01,           # tick_interval
-                        1000,           # snapshot_period
+                        0.01,  # tick_interval
+                        1000,  # snapshot_period
                         stop_event,
-                        None,           # event_queue
-                        False,          # disable_weakness_penalty
-                        False,          # disable_structured_logging
-                        False,          # disable_learning
-                        False,          # disable_adaptation
-                        True,           # disable_philosophical_analysis
-                        False,          # disable_philosophical_reports
-                        True,           # disable_clarity_moments
-                        10,             # log_flush_period_ticks
-                        True,           # enable_profiling
+                        None,  # event_queue
+                        False,  # disable_weakness_penalty
+                        False,  # disable_structured_logging
+                        False,  # disable_learning
+                        False,  # disable_adaptation
+                        True,  # disable_philosophical_analysis
+                        False,  # disable_philosophical_reports
+                        True,  # disable_clarity_moments
+                        10,  # log_flush_period_ticks
+                        True,  # enable_profiling
                     ),
                 )
                 thread.start()
@@ -88,15 +88,25 @@ class TestProfilingSystem:
             stop_event = threading.Event()
 
             # Запускаем без флага профилирования
-            with patch('cProfile.Profile') as mock_profile_class:
+            with patch("cProfile.Profile") as mock_profile_class:
                 thread = threading.Thread(
                     target=run_loop,
                     args=(
                         state,
                         lambda s: None,
-                        0.01, 1000, stop_event, None,
-                        False, False, False, False, True, False, True, 10,
-                        False  # enable_profiling = False
+                        0.01,
+                        1000,
+                        stop_event,
+                        None,
+                        False,
+                        False,
+                        False,
+                        False,
+                        True,
+                        False,
+                        True,
+                        10,
+                        False,  # enable_profiling = False
                     ),
                 )
                 thread.start()
@@ -121,8 +131,19 @@ class TestProfilingSystem:
             args=(
                 state,
                 lambda s: None,
-                0.01, 1000, stop_event, None,
-                False, False, False, False, True, False, True, 10, False
+                0.01,
+                1000,
+                stop_event,
+                None,
+                False,
+                False,
+                False,
+                False,
+                True,
+                False,
+                True,
+                10,
+                False,
             ),
         )
         thread1.start()
@@ -143,8 +164,19 @@ class TestProfilingSystem:
             args=(
                 state2,
                 lambda s: None,
-                0.01, 1000, stop_event2, None,
-                False, False, False, False, True, False, True, 10, True
+                0.01,
+                1000,
+                stop_event2,
+                None,
+                False,
+                False,
+                False,
+                False,
+                True,
+                False,
+                True,
+                10,
+                True,
             ),
         )
         thread2.start()
@@ -158,7 +190,9 @@ class TestProfilingSystem:
         overhead_ratio = time_with_profiling / time_without_profiling
 
         # Накладные расходы должны быть разумными (< 50%)
-        assert overhead_ratio < 1.5, f"Слишком большие накладные расходы профилирования: {overhead_ratio:.2f}x"
+        assert (
+            overhead_ratio < 1.5
+        ), f"Слишком большие накладные расходы профилирования: {overhead_ratio:.2f}x"
 
     def test_profiling_basic_functionality(self):
         """Тест базовой функциональности профилирования"""
@@ -181,7 +215,7 @@ class TestProfilingSystem:
     def test_profiling_analysis_output(self):
         """Тест анализа результатов профилирования"""
         # Создаем временный .prof файл для теста
-        with tempfile.NamedTemporaryFile(suffix='.prof', delete=False) as f:
+        with tempfile.NamedTemporaryFile(suffix=".prof", delete=False) as f:
             prof_file = f.name
 
         try:
@@ -198,7 +232,7 @@ class TestProfilingSystem:
 
             # Читаем и анализируем профиль
             stats = pstats.Stats(prof_file)
-            stats.sort_stats('cumulative')
+            stats.sort_stats("cumulative")
 
             # Проверяем, что профиль содержит данные
             assert stats.total_calls > 0

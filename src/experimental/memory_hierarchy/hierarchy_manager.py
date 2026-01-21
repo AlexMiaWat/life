@@ -10,7 +10,7 @@ import time
 from typing import Dict, List, Optional, Any
 
 from src.environment.event import Event
-from src.memory.types import MemoryEntry
+from src.memory.memory_types import MemoryEntry
 from src.observability.structured_logger import StructuredLogger
 
 from .sensory_buffer import SensoryBuffer
@@ -39,7 +39,7 @@ class MemoryHierarchyManager:
     def __init__(
         self,
         sensory_buffer: Optional[SensoryBuffer] = None,
-        logger: Optional[StructuredLogger] = None
+        logger: Optional[StructuredLogger] = None,
     ):
         """
         Инициализация менеджера иерархии памяти.
@@ -55,24 +55,26 @@ class MemoryHierarchyManager:
 
         # Интеграция с эпизодической памятью
         self.episodic_memory = None  # Будет установлено при вызове set_episodic_memory
-        self.semantic_store = SemanticMemoryStore(logger=self.logger)   # SemanticMemoryStore
-        self.procedural_store = ProceduralMemoryStore(logger=self.logger) # ProceduralMemoryStore
+        self.semantic_store = SemanticMemoryStore(logger=self.logger)  # SemanticMemoryStore
+        self.procedural_store = ProceduralMemoryStore(logger=self.logger)  # ProceduralMemoryStore
 
         # Статистика переноса данных
         self._transfer_stats = {
             "sensory_to_episodic": 0,
             "episodic_to_semantic": 0,
             "semantic_to_procedural": 0,
-            "last_semantic_consolidation": time.time()
+            "last_semantic_consolidation": time.time(),
         }
 
         # Кэш для оптимизации
         self._event_processing_counts: Dict[str, int] = {}  # event_hash -> count
 
-        self.logger.log_event({
-            "event_type": "memory_hierarchy_initialized",
-            "sensory_buffer_size": self.sensory_buffer.buffer_size
-        })
+        self.logger.log_event(
+            {
+                "event_type": "memory_hierarchy_initialized",
+                "sensory_buffer_size": self.sensory_buffer.buffer_size,
+            }
+        )
 
     def set_episodic_memory(self, memory) -> None:
         """
@@ -82,10 +84,12 @@ class MemoryHierarchyManager:
             memory: Экземпляр Memory (эпизодическая память)
         """
         self.episodic_memory = memory
-        self.logger.log_event({
-            "event_type": "episodic_memory_integrated",
-            "memory_entries_count": len(memory) if memory else 0
-        })
+        self.logger.log_event(
+            {
+                "event_type": "episodic_memory_integrated",
+                "memory_entries_count": len(memory) if memory else 0,
+            }
+        )
 
     def add_sensory_event(self, event: Event) -> None:
         """
@@ -127,7 +131,7 @@ class MemoryHierarchyManager:
             "sensory_to_episodic_transfers": 0,
             "episodic_to_semantic_transfers": 0,
             "semantic_consolidations": 0,
-            "timestamp": time.time()
+            "timestamp": time.time(),
         }
 
         # Консолидация sensory → episodic
@@ -140,15 +144,17 @@ class MemoryHierarchyManager:
             consolidation_stats["episodic_to_semantic_transfers"] = semantic_transfers
 
         # Периодическая консолидация semantic (раз в минуту)
-        if time.time() - self._transfer_stats["last_semantic_consolidation"] > self.SEMANTIC_CONSOLIDATION_INTERVAL:
+        if (
+            time.time() - self._transfer_stats["last_semantic_consolidation"]
+            > self.SEMANTIC_CONSOLIDATION_INTERVAL
+        ):
             semantic_consolidations = self._consolidate_semantic_knowledge()
             consolidation_stats["semantic_consolidations"] = semantic_consolidations
             self._transfer_stats["last_semantic_consolidation"] = time.time()
 
-        self.logger.log_event({
-            "event_type": "memory_consolidation_completed",
-            **consolidation_stats
-        })
+        self.logger.log_event(
+            {"event_type": "memory_consolidation_completed", **consolidation_stats}
+        )
 
         return consolidation_stats
 
@@ -172,38 +178,44 @@ class MemoryHierarchyManager:
 
         # Отладка
         if sensory_events:
-            self.logger.log_event({
-                "event_type": "debug_sensory_consolidation",
-                "events_count": len(sensory_events),
-                "episodic_memory_available": self.episodic_memory is not None
-            })
+            self.logger.log_event(
+                {
+                    "event_type": "debug_sensory_consolidation",
+                    "events_count": len(sensory_events),
+                    "episodic_memory_available": self.episodic_memory is not None,
+                }
+            )
 
         for event in sensory_events:
             # Создаем идентификатор события для отслеживания повторений по типу
             event_hash = event.type
 
             # Увеличиваем счетчик "видов" события (сколько раз оно наблюдалось в буфере)
-            self._event_processing_counts[event_hash] = self._event_processing_counts.get(event_hash, 0) + 1
+            self._event_processing_counts[event_hash] = (
+                self._event_processing_counts.get(event_hash, 0) + 1
+            )
             processing_count = self._event_processing_counts[event_hash]
 
             # Проверяем условия для переноса в эпизодическую память:
             # 1. Достигнут порог повторений ИЛИ
             # 2. Высокая интенсивность (даже при первой обработке)
             should_transfer = (
-                processing_count >= self.SENSORY_TO_EPISODIC_THRESHOLD or
-                abs(event.intensity) > 0.8  # Порог высокой интенсивности
+                processing_count >= self.SENSORY_TO_EPISODIC_THRESHOLD
+                or abs(event.intensity) > 0.8  # Порог высокой интенсивности
             )
 
             # Отладка
-            self.logger.log_event({
-                "event_type": "debug_transfer_check",
-                "event_type": event.type,
-                "intensity": event.intensity,
-                "processing_count": processing_count,
-                "threshold": self.SENSORY_TO_EPISODIC_THRESHOLD,
-                "should_transfer": should_transfer,
-                "episodic_memory_available": self.episodic_memory is not None
-            })
+            self.logger.log_event(
+                {
+                    "event_type": "debug_transfer_check",
+                    "event_type": event.type,
+                    "intensity": event.intensity,
+                    "processing_count": processing_count,
+                    "threshold": self.SENSORY_TO_EPISODIC_THRESHOLD,
+                    "should_transfer": should_transfer,
+                    "episodic_memory_available": self.episodic_memory is not None,
+                }
+            )
 
             if should_transfer:
                 # Создаем MemoryEntry для эпизодической памяти
@@ -211,7 +223,7 @@ class MemoryHierarchyManager:
                     event_type=event.type,
                     meaning_significance=abs(event.intensity),
                     timestamp=event.timestamp,
-                    subjective_timestamp=getattr(self_state, 'subjective_time', 0.0)
+                    subjective_timestamp=getattr(self_state, "subjective_time", 0.0),
                 )
 
                 # Добавляем в эпизодическую память (если доступна)
@@ -220,13 +232,19 @@ class MemoryHierarchyManager:
                     transfers_count += 1
                     self._transfer_stats["sensory_to_episodic"] += 1
 
-                    self.logger.log_event({
-                        "event_type": "sensory_to_episodic_transfer",
-                        "event_type": event.type,
-                        "significance": memory_entry.meaning_significance,
-                        "processing_count": processing_count,
-                        "transfer_reason": "threshold_reached" if processing_count >= self.SENSORY_TO_EPISODIC_THRESHOLD else "high_intensity"
-                    })
+                    self.logger.log_event(
+                        {
+                            "event_type": "sensory_to_episodic_transfer",
+                            "event_type": event.type,
+                            "significance": memory_entry.meaning_significance,
+                            "processing_count": processing_count,
+                            "transfer_reason": (
+                                "threshold_reached"
+                                if processing_count >= self.SENSORY_TO_EPISODIC_THRESHOLD
+                                else "high_intensity"
+                            ),
+                        }
+                    )
 
                     # Очищаем счетчик для этого события (оно уже перенесено)
                     del self._event_processing_counts[event_hash]
@@ -266,20 +284,24 @@ class MemoryHierarchyManager:
                     concept_id=concept_id,
                     name=f"Pattern of {event_type}",
                     description=f"Recurring pattern of {event_type} events (observed {count} times)",
-                    confidence=min(0.8, count / 20.0),  # Уверенность растет с количеством наблюдений
-                    activation_count=1
+                    confidence=min(
+                        0.8, count / 20.0
+                    ),  # Уверенность растет с количеством наблюдений
+                    activation_count=1,
                 )
 
                 self.semantic_store.add_concept(concept)
                 transferred_concepts += 1
 
-                self.logger.log_event({
-                    "event_type": "episodic_to_semantic_transfer",
-                    "concept_id": concept_id,
-                    "source_event_type": event_type,
-                    "observation_count": count,
-                    "confidence": concept.confidence
-                })
+                self.logger.log_event(
+                    {
+                        "event_type": "episodic_to_semantic_transfer",
+                        "concept_id": concept_id,
+                        "source_event_type": event_type,
+                        "observation_count": count,
+                        "confidence": concept.confidence,
+                    }
+                )
 
         return transferred_concepts
 
@@ -307,26 +329,28 @@ class MemoryHierarchyManager:
                 "transfers_sensory_to_episodic": self._transfer_stats["sensory_to_episodic"],
                 "transfers_episodic_to_semantic": self._transfer_stats["episodic_to_semantic"],
                 "transfers_semantic_to_procedural": self._transfer_stats["semantic_to_procedural"],
-                "last_semantic_consolidation": self._transfer_stats["last_semantic_consolidation"]
+                "last_semantic_consolidation": self._transfer_stats["last_semantic_consolidation"],
             },
             "sensory_buffer": {
                 **self.sensory_buffer.get_buffer_status(),
-                "available": self.sensory_buffer is not None
+                "available": self.sensory_buffer is not None,
             },
             "episodic_memory": {
                 "available": self.episodic_memory is not None,
-                "status": "integrated" if self.episodic_memory is not None else "not_integrated"
+                "status": "integrated" if self.episodic_memory is not None else "not_integrated",
             },
             "semantic_store": {
                 "available": self.semantic_store is not None,
                 "status": "implemented" if self.semantic_store else "not_implemented",
-                "concepts_count": len(self.semantic_store._concepts) if self.semantic_store else 0
+                "concepts_count": len(self.semantic_store._concepts) if self.semantic_store else 0,
             },
             "procedural_store": {
                 "available": self.procedural_store is not None,
                 "status": "implemented" if self.procedural_store else "not_implemented",
-                "patterns_count": len(self.procedural_store._patterns) if self.procedural_store else 0
-            }
+                "patterns_count": (
+                    len(self.procedural_store._patterns) if self.procedural_store else 0
+                ),
+            },
         }
 
         return status
@@ -374,9 +398,7 @@ class MemoryHierarchyManager:
             "sensory_to_episodic": 0,
             "episodic_to_semantic": 0,
             "semantic_to_procedural": 0,
-            "last_semantic_consolidation": time.time()
+            "last_semantic_consolidation": time.time(),
         }
 
-        self.logger.log_event({
-            "event_type": "memory_hierarchy_reset"
-        })
+        self.logger.log_event({"event_type": "memory_hierarchy_reset"})

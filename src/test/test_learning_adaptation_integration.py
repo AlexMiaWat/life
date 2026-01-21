@@ -112,13 +112,9 @@ class TestLearningAdaptationStatic:
         assert "ADAPTATION_INTERVAL" in source_code
 
         # Проверяем значения интервалов
+        assert "LEARNING_INTERVAL = 50" in source_code or "LEARNING_INTERVAL=50" in source_code
         assert (
-            "LEARNING_INTERVAL = 50" in source_code
-            or "LEARNING_INTERVAL=50" in source_code
-        )
-        assert (
-            "ADAPTATION_INTERVAL = 100" in source_code
-            or "ADAPTATION_INTERVAL=100" in source_code
+            "ADAPTATION_INTERVAL = 100" in source_code or "ADAPTATION_INTERVAL=100" in source_code
         )
 
     def test_forbidden_methods_learning(self):
@@ -137,9 +133,7 @@ class TestLearningAdaptationStatic:
         ]
 
         for method in forbidden_methods:
-            assert not hasattr(
-                engine, method
-            ), f"LearningEngine не должен иметь метод {method}"
+            assert not hasattr(engine, method), f"LearningEngine не должен иметь метод {method}"
 
     def test_forbidden_methods_adaptation(self):
         """Проверка отсутствия запрещенных методов в Adaptation"""
@@ -157,9 +151,7 @@ class TestLearningAdaptationStatic:
         ]
 
         for method in forbidden_methods:
-            assert not hasattr(
-                manager, method
-            ), f"AdaptationManager не должен иметь метод {method}"
+            assert not hasattr(manager, method), f"AdaptationManager не должен иметь метод {method}"
 
     def test_method_signatures(self):
         """Проверка сигнатур методов"""
@@ -609,9 +601,7 @@ class TestLearningAdaptationRuntimeIntegration:
 
         # Feedback записи появятся позже (через несколько тиков после регистрации)
         # Проверяем наличие записей с типом "feedback"
-        feedback_entries = [
-            entry for entry in base_state.memory if entry.event_type == "feedback"
-        ]
+        feedback_entries = [entry for entry in base_state.memory if entry.event_type == "feedback"]
         # Может быть 0, если delay_ticks не прошло
         assert isinstance(feedback_entries, list)
 
@@ -670,9 +660,7 @@ class TestLearningAdaptationRuntimeIntegration:
             assert hasattr(base_state, "adaptation_params")
             # Проверяем, что параметры изменились медленно
             if "behavior_sensitivity" in base_state.adaptation_params:
-                for key, value in base_state.adaptation_params[
-                    "behavior_sensitivity"
-                ].items():
+                for key, value in base_state.adaptation_params["behavior_sensitivity"].items():
                     assert 0.0 <= value <= 1.0
 
 

@@ -24,6 +24,7 @@ class TestTechnicalMonitorSmoke:
         """Тест успешного импорта модуля."""
         try:
             from src import technical_monitor
+
             assert technical_monitor is not None
         except ImportError as e:
             pytest.fail(f"Не удалось импортировать модуль technical_monitor: {e}")
@@ -259,7 +260,7 @@ class TestTechnicalMonitorSmoke:
         snapshot = TechnicalSnapshot()
         report = TechnicalReport(snapshot=snapshot)
 
-        with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix='.json') as f:
+        with tempfile.NamedTemporaryFile(mode="w+", delete=False, suffix=".json") as f:
             temp_path = f.name
 
         try:
@@ -274,6 +275,7 @@ class TestTechnicalMonitorSmoke:
 
         finally:
             import os
+
             os.unlink(temp_path)
 
     def test_get_trends_basic(self):
@@ -375,7 +377,10 @@ class TestTechnicalMonitorSmoke:
         learning_engine.get_parameters.return_value = {"learning_rate": 0.12, "progress": 0.65}
 
         adaptation_manager = Mock()
-        adaptation_manager.get_parameters.return_value = {"adaptation_rate": 0.18, "stability": 0.82}
+        adaptation_manager.get_parameters.return_value = {
+            "adaptation_rate": 0.18,
+            "stability": 0.82,
+        }
 
         decision_engine = Mock()
         decision_engine.get_recent_decisions.return_value = [
@@ -391,7 +396,7 @@ class TestTechnicalMonitorSmoke:
         report = monitor.analyze_snapshot(snapshot)
 
         # Сохранение отчета
-        with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix='.json') as f:
+        with tempfile.NamedTemporaryFile(mode="w+", delete=False, suffix=".json") as f:
             temp_path = f.name
 
         try:
@@ -408,4 +413,5 @@ class TestTechnicalMonitorSmoke:
 
         finally:
             import os
+
             os.unlink(temp_path)

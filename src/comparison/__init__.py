@@ -16,9 +16,9 @@ from .comparison_metrics import ComparisonMetrics
 from .comparison_api import ComparisonAPI
 
 __all__ = [
-    'ComparisonManager',
-    'LifeInstance',
-    'PatternAnalyzer',
-    'ComparisonMetrics',
-    'ComparisonAPI'
+    "ComparisonManager",
+    "LifeInstance",
+    "PatternAnalyzer",
+    "ComparisonMetrics",
+    "ComparisonAPI",
 ]

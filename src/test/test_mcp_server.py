@@ -62,11 +62,7 @@ async def test_search_todo():
     print("\n=== Тест: search_todo ===")
     result = await search_todo("TODO", limit=2)
     print(f"Результат (первые 200 символов):\n{result[:200]}...")
-    assert (
-        "TODO" in result.upper()
-        or "Найдено" in result
-        or "ничего не найдено" in result.lower()
-    )
+    assert "TODO" in result.upper() or "Найдено" in result or "ничего не найдено" in result.lower()
     print("[OK] search_todo работает корректно")
 
 
@@ -77,9 +73,7 @@ async def test_search_docs_and_mode():
     result = await search_docs("test query", search_mode="AND", limit=3)
     print(f"Результат (первые 200 символов):\n{result[:200]}...")
     # Строгая проверка: должен быть именно AND режим
-    assert (
-        "режим: AND" in result
-    ), f"Ожидался режим AND, но получен результат: {result[:200]}"
+    assert "режим: AND" in result, f"Ожидался режим AND, но получен результат: {result[:200]}"
     print("[OK] search_docs AND mode работает корректно")
 
 
@@ -90,9 +84,7 @@ async def test_search_docs_or_mode():
     result = await search_docs("test query", search_mode="OR", limit=3)
     print(f"Результат (первые 200 символов):\n{result[:200]}...")
     # Строгая проверка: должен быть именно OR режим
-    assert (
-        "режим: OR" in result
-    ), f"Ожидался режим OR, но получен результат: {result[:200]}"
+    assert "режим: OR" in result, f"Ожидался режим OR, но получен результат: {result[:200]}"
     print("[OK] search_docs OR mode работает корректно")
 
 
@@ -118,9 +110,7 @@ async def test_search_docs_phrase_mode():
     result = await search_docs('"test query"', limit=3)
     print(f"Результат (первые 200 символов):\n{result[:200]}...")
     # Строгая проверка: должен быть именно PHRASE режим
-    assert (
-        "режим: PHRASE" in result
-    ), f"Ожидался режим PHRASE, но получен результат: {result[:200]}"
+    assert "режим: PHRASE" in result, f"Ожидался режим PHRASE, но получен результат: {result[:200]}"
     print("[OK] search_docs PHRASE mode работает корректно")
 
 
@@ -187,11 +177,7 @@ async def test_search_todo_and_mode():
     print("\n=== Тест: search_todo (AND mode) ===")
     result = await search_todo("test query", search_mode="AND", limit=2)
     print(f"Результат (первые 200 символов):\n{result[:200]}...")
-    assert (
-        "режим: AND" in result
-        or "Найдено" in result
-        or "ничего не найдено" in result.lower()
-    )
+    assert "режим: AND" in result or "Найдено" in result or "ничего не найдено" in result.lower()
     print("[OK] search_todo AND mode работает корректно")
 
 
@@ -201,11 +187,7 @@ async def test_search_todo_or_mode():
     print("\n=== Тест: search_todo (OR mode) ===")
     result = await search_todo("test query", search_mode="OR", limit=2)
     print(f"Результат (первые 200 символов):\n{result[:200]}...")
-    assert (
-        "режим: OR" in result
-        or "Найдено" in result
-        or "ничего не найдено" in result.lower()
-    )
+    assert "режим: OR" in result or "Найдено" in result or "ничего не найдено" in result.lower()
     print("[OK] search_todo OR mode работает корректно")
 
 
@@ -215,11 +197,7 @@ async def test_search_todo_phrase_mode():
     print("\n=== Тест: search_todo (PHRASE mode) ===")
     result = await search_todo('"test query"', limit=2)
     print(f"Результат (первые 200 символов):\n{result[:200]}...")
-    assert (
-        "режим: PHRASE" in result
-        or "Найдено" in result
-        or "ничего не найдено" in result.lower()
-    )
+    assert "режим: PHRASE" in result or "Найдено" in result or "ничего не найдено" in result.lower()
     print("[OK] search_todo PHRASE mode работает корректно")
 
 
@@ -266,9 +244,7 @@ async def test_refresh_index():
         time_match = re.search(r"Время выполнения: ([\d.]+) сек\.", result)
 
         assert file_count_match is not None, "Не найдено количество файлов в результате"
-        assert (
-            token_count_match is not None
-        ), "Не найдено количество токенов в результате"
+        assert token_count_match is not None, "Не найдено количество токенов в результате"
         assert time_match is not None, "Не найдено время выполнения в результате"
 
         file_count = int(file_count_match.group(1))

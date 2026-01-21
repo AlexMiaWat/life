@@ -23,6 +23,7 @@ class ParallelProcessMetrics:
     """
     Метрики параллельного процесса сознания.
     """
+
     process_name: str
     update_frequency: float  # Hz
     last_update_time: float = 0.0
@@ -39,6 +40,7 @@ class ConsciousnessSharedState:
     """
     Разделяемое состояние сознания для потоков.
     """
+
     consciousness_level: float = 0.0
     self_reflection_score: float = 0.0
     meta_cognition_depth: float = 0.0
@@ -61,14 +63,14 @@ class ConsciousnessSharedState:
         """Получить snapshot всех метрик."""
         with self._lock:
             return {
-                'consciousness_level': self.consciousness_level,
-                'self_reflection_score': self.self_reflection_score,
-                'meta_cognition_depth': self.meta_cognition_depth,
-                'current_state': self.current_state,
-                'neural_activity': self.neural_activity,
-                'energy_level': self.energy_level,
-                'stability': self.stability,
-                'cognitive_load': self.cognitive_load
+                "consciousness_level": self.consciousness_level,
+                "self_reflection_score": self.self_reflection_score,
+                "meta_cognition_depth": self.meta_cognition_depth,
+                "current_state": self.current_state,
+                "neural_activity": self.neural_activity,
+                "energy_level": self.energy_level,
+                "stability": self.stability,
+                "cognitive_load": self.cognitive_load,
             }
 
 
@@ -77,8 +79,12 @@ class ConsciousnessProcess(threading.Thread):
     Базовый класс для параллельных процессов сознания.
     """
 
-    def __init__(self, name: str, shared_state: ConsciousnessSharedState,
-                 logger: Optional[StructuredLogger] = None):
+    def __init__(
+        self,
+        name: str,
+        shared_state: ConsciousnessSharedState,
+        logger: Optional[StructuredLogger] = None,
+    ):
         super().__init__(name=name, daemon=True)
         self.process_name = name
         self.shared_state = shared_state
@@ -91,8 +97,7 @@ class ConsciousnessProcess(threading.Thread):
 
         # Метрики процесса
         self.metrics = ParallelProcessMetrics(
-            process_name=name,
-            update_frequency=1.0 / self.update_interval
+            process_name=name, update_frequency=1.0 / self.update_interval
         )
 
         # Очереди для межпроцессного общения
@@ -115,12 +120,14 @@ class ConsciousnessProcess(threading.Thread):
         """Основной цикл процесса."""
         self.metrics.thread_id = threading.get_ident()
 
-        self.logger.log_event({
-            "event_type": "consciousness_process_started",
-            "process_name": self.process_name,
-            "thread_id": self.metrics.thread_id,
-            "update_interval": self.update_interval
-        })
+        self.logger.log_event(
+            {
+                "event_type": "consciousness_process_started",
+                "process_name": self.process_name,
+                "thread_id": self.metrics.thread_id,
+                "update_interval": self.update_interval,
+            }
+        )
 
         while self.is_running and not self.stop_event.is_set():
             try:
@@ -141,21 +148,25 @@ class ConsciousnessProcess(threading.Thread):
                 self.metrics.error_count += 1
                 self.metrics.last_error = str(e)
 
-                self.logger.log_event({
-                    "event_type": "consciousness_process_error",
-                    "process_name": self.process_name,
-                    "error": str(e),
-                    "error_count": self.metrics.error_count
-                })
+                self.logger.log_event(
+                    {
+                        "event_type": "consciousness_process_error",
+                        "process_name": self.process_name,
+                        "error": str(e),
+                        "error_count": self.metrics.error_count,
+                    }
+                )
 
                 # Небольшая пауза при ошибке
                 self.stop_event.wait(1.0)
 
-        self.logger.log_event({
-            "event_type": "consciousness_process_stopped",
-            "process_name": self.process_name,
-            "total_updates": self.metrics.update_count
-        })
+        self.logger.log_event(
+            {
+                "event_type": "consciousness_process_stopped",
+                "process_name": self.process_name,
+                "total_updates": self.metrics.update_count,
+            }
+        )
 
     def process_step(self) -> None:
         """
@@ -184,9 +195,12 @@ class NeuralActivityMonitor(ConsciousnessProcess):
     Отслеживает частоту обработки событий и тиков.
     """
 
-    def __init__(self, shared_state: ConsciousnessSharedState,
-                 self_state_provider: Callable,
-                 logger: Optional[StructuredLogger] = None):
+    def __init__(
+        self,
+        shared_state: ConsciousnessSharedState,
+        self_state_provider: Callable,
+        logger: Optional[StructuredLogger] = None,
+    ):
         super().__init__("neural_activity_monitor", shared_state, logger)
         self.update_interval = 0.1  # 10 Hz
         self.self_state_provider = self_state_provider
@@ -202,9 +216,9 @@ class NeuralActivityMonitor(ConsciousnessProcess):
             self_state = self.self_state_provider()
 
             # Извлечь метрики активности
-            tick_frequency = getattr(self_state, 'tick_frequency', 1.0)
-            event_processing_rate = getattr(self_state, 'event_processing_rate', 10.0)
-            decision_complexity = getattr(self_state, 'decision_complexity', 0.5)
+            tick_frequency = getattr(self_state, "tick_frequency", 1.0)
+            event_processing_rate = getattr(self_state, "event_processing_rate", 10.0)
+            decision_complexity = getattr(self_state, "decision_complexity", 0.5)
 
             # Добавить в историю
             current_time = time.time()
@@ -221,23 +235,22 @@ class NeuralActivityMonitor(ConsciousnessProcess):
             )
 
             # Обновить разделяемое состояние
-            self.shared_state.update_metric('neural_activity', neural_activity)
+            self.shared_state.update_metric("neural_activity", neural_activity)
 
             # Логировать результаты (не на каждом шаге для производительности)
             if self.metrics.update_count % 10 == 0:  # Каждые 10 обновлений (1 сек)
-                self.logger.log_event({
-                    "event_type": "neural_activity_updated",
-                    "neural_activity": neural_activity,
-                    "tick_frequency": smoothed_tick_freq,
-                    "event_processing_rate": smoothed_event_rate,
-                    "decision_complexity": decision_complexity
-                })
+                self.logger.log_event(
+                    {
+                        "event_type": "neural_activity_updated",
+                        "neural_activity": neural_activity,
+                        "tick_frequency": smoothed_tick_freq,
+                        "event_processing_rate": smoothed_event_rate,
+                        "decision_complexity": decision_complexity,
+                    }
+                )
 
         except Exception as e:
-            self.logger.log_event({
-                "event_type": "neural_activity_monitor_error",
-                "error": str(e)
-            })
+            self.logger.log_event({"event_type": "neural_activity_monitor_error", "error": str(e)})
 
     def _calculate_smoothed_value(self, history: deque) -> float:
         """Рассчитать сглаженное значение из истории."""
@@ -256,19 +269,16 @@ class NeuralActivityMonitor(ConsciousnessProcess):
 
         return weighted_sum / total_weight if total_weight > 0 else 0.0
 
-    def _calculate_neural_activity(self, tick_freq: float, event_rate: float,
-                                 complexity: float) -> float:
+    def _calculate_neural_activity(
+        self, tick_freq: float, event_rate: float, complexity: float
+    ) -> float:
         """Рассчитать уровень нейронной активности."""
         # Нормализация
         normalized_tick = min(1.0, tick_freq / 10.0)  # Макс 10 тиков/сек
         normalized_event = min(1.0, event_rate / 100.0)  # Макс 100 событий/сек
 
         # Взвешенная сумма
-        activity = (
-            normalized_tick * 0.4 +
-            normalized_event * 0.4 +
-            complexity * 0.2
-        )
+        activity = normalized_tick * 0.4 + normalized_event * 0.4 + complexity * 0.2
 
         return max(0.0, min(1.0, activity))
 
@@ -279,10 +289,13 @@ class SelfReflectionProcessor(ConsciousnessProcess):
     Анализирует паттерны поведения и эффективность решений.
     """
 
-    def __init__(self, shared_state: ConsciousnessSharedState,
-                 decision_history_provider: Callable,
-                 behavior_patterns_provider: Callable,
-                 logger: Optional[StructuredLogger] = None):
+    def __init__(
+        self,
+        shared_state: ConsciousnessSharedState,
+        decision_history_provider: Callable,
+        behavior_patterns_provider: Callable,
+        logger: Optional[StructuredLogger] = None,
+    ):
         super().__init__("self_reflection_processor", shared_state, logger)
         self.update_interval = 5.0  # 0.2 Hz
         self.decision_history_provider = decision_history_provider
@@ -302,42 +315,41 @@ class SelfReflectionProcessor(ConsciousnessProcess):
 
             # Рассчитать общий уровень саморефлексии
             self_reflection_score = (
-                behavior_quality * 0.5 +
-                decision_quality * 0.3 +
-                pattern_recognition * 0.2
+                behavior_quality * 0.5 + decision_quality * 0.3 + pattern_recognition * 0.2
             )
 
             # Ограничить диапазон
             self_reflection_score = max(0.0, min(1.0, self_reflection_score))
 
             # Обновить разделяемое состояние
-            self.shared_state.update_metric('self_reflection_score', self_reflection_score)
+            self.shared_state.update_metric("self_reflection_score", self_reflection_score)
 
-            self.logger.log_event({
-                "event_type": "self_reflection_updated",
-                "self_reflection_score": self_reflection_score,
-                "behavior_quality": behavior_quality,
-                "decision_quality": decision_quality,
-                "pattern_recognition": pattern_recognition
-            })
+            self.logger.log_event(
+                {
+                    "event_type": "self_reflection_updated",
+                    "self_reflection_score": self_reflection_score,
+                    "behavior_quality": behavior_quality,
+                    "decision_quality": decision_quality,
+                    "pattern_recognition": pattern_recognition,
+                }
+            )
 
         except Exception as e:
-            self.logger.log_event({
-                "event_type": "self_reflection_processor_error",
-                "error": str(e)
-            })
+            self.logger.log_event(
+                {"event_type": "self_reflection_processor_error", "error": str(e)}
+            )
 
     def _analyze_behavior_patterns(self, behavior_patterns: List[Dict]) -> float:
         """Анализировать качество паттернов поведения."""
         if not behavior_patterns:
             return 0.0
-        return sum(p.get('quality', 0.5) for p in behavior_patterns) / len(behavior_patterns)
+        return sum(p.get("quality", 0.5) for p in behavior_patterns) / len(behavior_patterns)
 
     def _evaluate_decision_quality(self, decision_history: List[Dict]) -> float:
         """Оценивать качество решений."""
         if not decision_history:
             return 0.0
-        success_count = sum(1 for d in decision_history if d.get('success', False))
+        success_count = sum(1 for d in decision_history if d.get("success", False))
         return success_count / len(decision_history)
 
     def _assess_pattern_recognition(self, behavior_patterns: List[Dict]) -> float:
@@ -345,7 +357,7 @@ class SelfReflectionProcessor(ConsciousnessProcess):
         if not behavior_patterns:
             return 0.0
         pattern_count = len(behavior_patterns)
-        diversity = len(set(p.get('type', 'unknown') for p in behavior_patterns))
+        diversity = len(set(p.get("type", "unknown") for p in behavior_patterns))
         return min(1.0, (pattern_count + diversity) / 20.0)
 
 
@@ -355,10 +367,13 @@ class MetaCognitionAnalyzer(ConsciousnessProcess):
     Осознает собственные когнитивные процессы.
     """
 
-    def __init__(self, shared_state: ConsciousnessSharedState,
-                 cognitive_processes_provider: Callable,
-                 optimization_history_provider: Callable,
-                 logger: Optional[StructuredLogger] = None):
+    def __init__(
+        self,
+        shared_state: ConsciousnessSharedState,
+        cognitive_processes_provider: Callable,
+        optimization_history_provider: Callable,
+        logger: Optional[StructuredLogger] = None,
+    ):
         super().__init__("meta_cognition_analyzer", shared_state, logger)
         self.update_interval = 30.0  # 0.033 Hz - низкочастотный анализ
         self.cognitive_processes_provider = cognitive_processes_provider
@@ -378,30 +393,27 @@ class MetaCognitionAnalyzer(ConsciousnessProcess):
 
             # Рассчитать глубину метакогниции
             meta_cognition_depth = (
-                process_awareness * 0.4 +
-                optimization_capability * 0.4 +
-                abstract_reasoning * 0.2
+                process_awareness * 0.4 + optimization_capability * 0.4 + abstract_reasoning * 0.2
             )
 
             # Ограничить диапазон
             meta_cognition_depth = max(0.0, min(1.0, meta_cognition_depth))
 
             # Обновить разделяемое состояние
-            self.shared_state.update_metric('meta_cognition_depth', meta_cognition_depth)
+            self.shared_state.update_metric("meta_cognition_depth", meta_cognition_depth)
 
-            self.logger.log_event({
-                "event_type": "meta_cognition_updated",
-                "meta_cognition_depth": meta_cognition_depth,
-                "process_awareness": process_awareness,
-                "optimization_capability": optimization_capability,
-                "abstract_reasoning": abstract_reasoning
-            })
+            self.logger.log_event(
+                {
+                    "event_type": "meta_cognition_updated",
+                    "meta_cognition_depth": meta_cognition_depth,
+                    "process_awareness": process_awareness,
+                    "optimization_capability": optimization_capability,
+                    "abstract_reasoning": abstract_reasoning,
+                }
+            )
 
         except Exception as e:
-            self.logger.log_event({
-                "event_type": "meta_cognition_analyzer_error",
-                "error": str(e)
-            })
+            self.logger.log_event({"event_type": "meta_cognition_analyzer_error", "error": str(e)})
 
     def _measure_process_awareness(self, cognitive_processes: List[Dict]) -> float:
         """Измерить осознанность когнитивных процессов."""
@@ -413,15 +425,18 @@ class MetaCognitionAnalyzer(ConsciousnessProcess):
         """Оценить способность к самооптимизации."""
         if not optimization_history:
             return 0.0
-        success_count = sum(1 for opt in optimization_history if opt.get('success', False))
+        success_count = sum(1 for opt in optimization_history if opt.get("success", False))
         return success_count / len(optimization_history)
 
     def _evaluate_abstract_reasoning(self, cognitive_processes: List[Dict]) -> float:
         """Оценить способность к абстрактному мышлению."""
         if not cognitive_processes:
             return 0.0
-        abstract_count = sum(1 for proc in cognitive_processes
-                           if proc.get('type') in ['generalization', 'abstraction', 'concept_formation'])
+        abstract_count = sum(
+            1
+            for proc in cognitive_processes
+            if proc.get("type") in ["generalization", "abstraction", "concept_formation"]
+        )
         return min(1.0, abstract_count / 5.0)
 
 
@@ -431,8 +446,9 @@ class StateTransitionManager(ConsciousnessProcess):
     Управляет переходами между состояниями сознания.
     """
 
-    def __init__(self, shared_state: ConsciousnessSharedState,
-                 logger: Optional[StructuredLogger] = None):
+    def __init__(
+        self, shared_state: ConsciousnessSharedState, logger: Optional[StructuredLogger] = None
+    ):
         super().__init__("state_transition_manager", shared_state, logger)
         self.update_interval = 1.0  # 1 Hz
 
@@ -443,7 +459,7 @@ class StateTransitionManager(ConsciousnessProcess):
             "awake": {"min_level": 0.1, "max_level": 0.5},
             "reflective": {"min_level": 0.3, "max_level": 0.7},
             "flow": {"min_level": 0.4, "max_level": 0.9},
-            "meta": {"min_level": 0.5, "max_level": 1.0}
+            "meta": {"min_level": 0.5, "max_level": 1.0},
         }
 
         # Предотвращение частых переходов
@@ -461,35 +477,36 @@ class StateTransitionManager(ConsciousnessProcess):
 
             # Получить текущие метрики
             metrics = self.shared_state.get_metrics_snapshot()
-            current_level = metrics['consciousness_level']
-            current_energy = metrics['energy_level']
-            current_stability = metrics['stability']
-            current_state = metrics['current_state']
+            current_level = metrics["consciousness_level"]
+            current_energy = metrics["energy_level"]
+            current_stability = metrics["stability"]
+            current_state = metrics["current_state"]
 
             # Определить целевое состояние
-            target_state = self._determine_target_state(current_level, current_energy, current_stability)
+            target_state = self._determine_target_state(
+                current_level, current_energy, current_stability
+            )
 
             # Проверить необходимость перехода
             if target_state != current_state:
                 # Выполнить переход
-                self.shared_state.update_metric('current_state', target_state)
+                self.shared_state.update_metric("current_state", target_state)
                 self.last_transition_time = current_time
 
-                self.logger.log_event({
-                    "event_type": "consciousness_state_transition",
-                    "from_state": current_state,
-                    "to_state": target_state,
-                    "consciousness_level": current_level,
-                    "energy_level": current_energy,
-                    "stability": current_stability,
-                    "reason": "automatic_transition"
-                })
+                self.logger.log_event(
+                    {
+                        "event_type": "consciousness_state_transition",
+                        "from_state": current_state,
+                        "to_state": target_state,
+                        "consciousness_level": current_level,
+                        "energy_level": current_energy,
+                        "stability": current_stability,
+                        "reason": "automatic_transition",
+                    }
+                )
 
         except Exception as e:
-            self.logger.log_event({
-                "event_type": "state_transition_manager_error",
-                "error": str(e)
-            })
+            self.logger.log_event({"event_type": "state_transition_manager_error", "error": str(e)})
 
     def _determine_target_state(self, level: float, energy: float, stability: float) -> str:
         """Определить целевое состояние на основе метрик."""
@@ -519,8 +536,9 @@ class ConsciousnessMetricsAggregator(ConsciousnessProcess):
     Собирает и агрегирует метрики от всех процессов.
     """
 
-    def __init__(self, shared_state: ConsciousnessSharedState,
-                 logger: Optional[StructuredLogger] = None):
+    def __init__(
+        self, shared_state: ConsciousnessSharedState, logger: Optional[StructuredLogger] = None
+    ):
         super().__init__("consciousness_metrics_aggregator", shared_state, logger)
         self.update_interval = 1.0  # 1 Hz
 
@@ -534,39 +552,35 @@ class ConsciousnessMetricsAggregator(ConsciousnessProcess):
             consciousness_level = self._calculate_consciousness_level(metrics)
 
             # Обновить финальный уровень
-            self.shared_state.update_metric('consciousness_level', consciousness_level)
+            self.shared_state.update_metric("consciousness_level", consciousness_level)
 
             # Логировать агрегированные метрики (не на каждом шаге)
             if self.metrics.update_count % 10 == 0:  # Каждые 10 сек
-                self.logger.log_event({
-                    "event_type": "consciousness_metrics_aggregated",
-                    "consciousness_level": consciousness_level,
-                    "self_reflection_score": metrics['self_reflection_score'],
-                    "meta_cognition_depth": metrics['meta_cognition_depth'],
-                    "current_state": metrics['current_state'],
-                    "neural_activity": metrics['neural_activity']
-                })
+                self.logger.log_event(
+                    {
+                        "event_type": "consciousness_metrics_aggregated",
+                        "consciousness_level": consciousness_level,
+                        "self_reflection_score": metrics["self_reflection_score"],
+                        "meta_cognition_depth": metrics["meta_cognition_depth"],
+                        "current_state": metrics["current_state"],
+                        "neural_activity": metrics["neural_activity"],
+                    }
+                )
 
         except Exception as e:
-            self.logger.log_event({
-                "event_type": "consciousness_metrics_aggregator_error",
-                "error": str(e)
-            })
+            self.logger.log_event(
+                {"event_type": "consciousness_metrics_aggregator_error", "error": str(e)}
+            )
 
     def _calculate_consciousness_level(self, metrics: Dict[str, float]) -> float:
         """Рассчитать общий уровень сознания."""
-        neural_activity = metrics['neural_activity']
-        self_reflection = metrics['self_reflection_score']
-        meta_cognition = metrics['meta_cognition_depth']
-        energy = metrics['energy_level']
+        neural_activity = metrics["neural_activity"]
+        self_reflection = metrics["self_reflection_score"]
+        meta_cognition = metrics["meta_cognition_depth"]
+        energy = metrics["energy_level"]
 
         # Взвешенная формула
-        level = (
-            neural_activity * 0.4 +
-            self_reflection * 0.3 +
-            meta_cognition * 0.2 +
-            energy * 0.1
-        )
+        level = neural_activity * 0.4 + self_reflection * 0.3 + meta_cognition * 0.2 + energy * 0.1
 
         return max(0.1, min(1.0, level))  # Минимум 0.1 для базовой осознанности
 
@@ -577,12 +591,15 @@ class ParallelConsciousnessEngine:
     Координирует работу параллельных процессов сознания.
     """
 
-    def __init__(self, self_state_provider: Callable,
-                 decision_history_provider: Callable = None,
-                 behavior_patterns_provider: Callable = None,
-                 cognitive_processes_provider: Callable = None,
-                 optimization_history_provider: Callable = None,
-                 logger: Optional[StructuredLogger] = None):
+    def __init__(
+        self,
+        self_state_provider: Callable,
+        decision_history_provider: Callable = None,
+        behavior_patterns_provider: Callable = None,
+        cognitive_processes_provider: Callable = None,
+        optimization_history_provider: Callable = None,
+        logger: Optional[StructuredLogger] = None,
+    ):
         """
         Инициализация многопоточного движка сознания.
 
@@ -612,39 +629,31 @@ class ParallelConsciousnessEngine:
         # Статус
         self.is_running = False
 
-        self.logger.log_event({
-            "event_type": "parallel_consciousness_engine_initialized",
-            "process_count": len(self.processes)
-        })
+        self.logger.log_event(
+            {
+                "event_type": "parallel_consciousness_engine_initialized",
+                "process_count": len(self.processes),
+            }
+        )
 
     def _create_processes(self) -> List[ConsciousnessProcess]:
         """Создать все параллельные процессы."""
         return [
-            NeuralActivityMonitor(
-                self.shared_state,
-                self.self_state_provider,
-                self.logger
-            ),
+            NeuralActivityMonitor(self.shared_state, self.self_state_provider, self.logger),
             SelfReflectionProcessor(
                 self.shared_state,
                 self.decision_history_provider,
                 self.behavior_patterns_provider,
-                self.logger
+                self.logger,
             ),
             MetaCognitionAnalyzer(
                 self.shared_state,
                 self.cognitive_processes_provider,
                 self.optimization_history_provider,
-                self.logger
+                self.logger,
             ),
-            StateTransitionManager(
-                self.shared_state,
-                self.logger
-            ),
-            ConsciousnessMetricsAggregator(
-                self.shared_state,
-                self.logger
-            )
+            StateTransitionManager(self.shared_state, self.logger),
+            ConsciousnessMetricsAggregator(self.shared_state, self.logger),
         ]
 
     def start(self) -> None:
@@ -658,10 +667,12 @@ class ParallelConsciousnessEngine:
         for process in self.processes:
             process.start_process()
 
-        self.logger.log_event({
-            "event_type": "parallel_consciousness_engine_started",
-            "active_processes": [p.process_name for p in self.processes if p.is_alive()]
-        })
+        self.logger.log_event(
+            {
+                "event_type": "parallel_consciousness_engine_started",
+                "active_processes": [p.process_name for p in self.processes if p.is_alive()],
+            }
+        )
 
     def stop(self) -> None:
         """Остановить все процессы сознания."""
@@ -674,9 +685,7 @@ class ParallelConsciousnessEngine:
         for process in self.processes:
             process.stop_process()
 
-        self.logger.log_event({
-            "event_type": "parallel_consciousness_engine_stopped"
-        })
+        self.logger.log_event({"event_type": "parallel_consciousness_engine_stopped"})
 
     def get_consciousness_snapshot(self) -> Dict[str, Any]:
         """
@@ -695,14 +704,14 @@ class ParallelConsciousnessEngine:
                 "update_count": process.metrics.update_count,
                 "error_count": process.metrics.error_count,
                 "last_update": process.metrics.last_update_time,
-                "thread_id": process.metrics.thread_id
+                "thread_id": process.metrics.thread_id,
             }
 
         return {
             "metrics": metrics,
             "processes": process_status,
             "timestamp": time.time(),
-            "is_running": self.is_running
+            "is_running": self.is_running,
         }
 
     def get_process_metrics(self) -> Dict[str, Any]:
@@ -721,13 +730,14 @@ class ParallelConsciousnessEngine:
                 "is_active": process.metrics.is_active,
                 "thread_id": process.metrics.thread_id,
                 "error_count": process.metrics.error_count,
-                "last_error": process.metrics.last_error
+                "last_error": process.metrics.last_error,
             }
             for process in self.processes
         }
 
-    def update_external_metrics(self, energy: float = None, stability: float = None,
-                              cognitive_load: float = None) -> None:
+    def update_external_metrics(
+        self, energy: float = None, stability: float = None, cognitive_load: float = None
+    ) -> None:
         """
         Обновить внешние метрики (энергия, стабильность и т.д.).
 
@@ -737,11 +747,11 @@ class ParallelConsciousnessEngine:
             cognitive_load: Когнитивная нагрузка
         """
         if energy is not None:
-            self.shared_state.update_metric('energy_level', energy)
+            self.shared_state.update_metric("energy_level", energy)
         if stability is not None:
-            self.shared_state.update_metric('stability', stability)
+            self.shared_state.update_metric("stability", stability)
         if cognitive_load is not None:
-            self.shared_state.update_metric('cognitive_load', cognitive_load)
+            self.shared_state.update_metric("cognitive_load", cognitive_load)
 
     def reset_engine(self) -> None:
         """Сбросить состояние движка."""
@@ -753,6 +763,4 @@ class ParallelConsciousnessEngine:
         # Пересоздать процессы
         self.processes = self._create_processes()
 
-        self.logger.log_event({
-            "event_type": "parallel_consciousness_engine_reset"
-        })
+        self.logger.log_event({"event_type": "parallel_consciousness_engine_reset"})

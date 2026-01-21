@@ -23,6 +23,7 @@ class ProceduralPattern:
 
     Представляет навык или автоматизм, извлеченный из повторяющегося успешного опыта.
     """
+
     pattern_id: str  # Уникальный идентификатор паттерна
     name: str  # Читаемое имя паттерна
     description: str  # Описание паттерна
@@ -80,7 +81,7 @@ class ProceduralPattern:
                 "pattern_id": self.pattern_id,
                 "execution_time": execution_time,
                 "actions_executed": len(self.action_sequence),
-                "result": result
+                "result": result,
             }
 
         except Exception as e:
@@ -92,7 +93,7 @@ class ProceduralPattern:
                 "success": False,
                 "pattern_id": self.pattern_id,
                 "execution_time": execution_time,
-                "error": str(e)
+                "error": str(e),
             }
 
     def _execute_sequence(self, context: Dict[str, Any]) -> Dict[str, Any]:
@@ -115,14 +116,11 @@ class ProceduralPattern:
                 "action_type": action_type,
                 "parameters": parameters,
                 "timestamp": time.time(),
-                "simulated_result": f"Executed {action_type} with {parameters}"
+                "simulated_result": f"Executed {action_type} with {parameters}",
             }
             results.append(action_result)
 
-        return {
-            "sequence_length": len(self.action_sequence),
-            "actions": results
-        }
+        return {"sequence_length": len(self.action_sequence), "actions": results}
 
     def _update_execution_metrics(self, execution_time: float, success: bool) -> None:
         """Обновить метрики выполнения."""
@@ -182,11 +180,7 @@ class ProceduralPattern:
         # Комбинированная метрика: success_rate + automation_level + experience_factor
         experience_factor = min(1.0, self.total_executions / 10.0)  # Нормализация опыта
 
-        return (
-            self.success_rate * 0.5 +
-            self.automation_level * 0.3 +
-            experience_factor * 0.2
-        )
+        return self.success_rate * 0.5 + self.automation_level * 0.3 + experience_factor * 0.2
 
 
 @dataclass
@@ -194,6 +188,7 @@ class DecisionPattern:
     """
     Паттерн принятия решений - ассоциация между условиями и успешными решениями.
     """
+
     pattern_id: str
     conditions: Dict[str, Any]  # Условия ситуации
     decision: str  # Принятое решение
@@ -252,8 +247,12 @@ class ProceduralMemoryStore:
         self._decision_patterns: Dict[str, DecisionPattern] = {}
 
         # Индексы для быстрого поиска
-        self._action_sequences: Dict[Tuple[str, ...], List[str]] = defaultdict(list)  # action_types -> pattern_ids
-        self._trigger_conditions_index: Dict[str, List[str]] = defaultdict(list)  # condition_key -> pattern_ids
+        self._action_sequences: Dict[Tuple[str, ...], List[str]] = defaultdict(
+            list
+        )  # action_types -> pattern_ids
+        self._trigger_conditions_index: Dict[str, List[str]] = defaultdict(
+            list
+        )  # condition_key -> pattern_ids
 
         # Статистика
         self._stats = {
@@ -261,12 +260,10 @@ class ProceduralMemoryStore:
             "total_decision_patterns": 0,
             "automated_executions": 0,
             "manual_executions": 0,
-            "last_optimization": time.time()
+            "last_optimization": time.time(),
         }
 
-        self.logger.log_event({
-            "event_type": "procedural_store_initialized"
-        })
+        self.logger.log_event({"event_type": "procedural_store_initialized"})
 
     def add_pattern(self, pattern: ProceduralPattern) -> None:
         """
@@ -290,12 +287,14 @@ class ProceduralMemoryStore:
             # Обновляем индексы
             self._update_pattern_indexes(pattern)
 
-        self.logger.log_event({
-            "event_type": "procedural_pattern_added",
-            "pattern_id": pattern.pattern_id,
-            "pattern_name": pattern.name,
-            "automation_level": pattern.automation_level
-        })
+        self.logger.log_event(
+            {
+                "event_type": "procedural_pattern_added",
+                "pattern_id": pattern.pattern_id,
+                "pattern_name": pattern.name,
+                "automation_level": pattern.automation_level,
+            }
+        )
 
     def get_pattern(self, pattern_id: str) -> Optional[ProceduralPattern]:
         """
@@ -309,7 +308,9 @@ class ProceduralMemoryStore:
         """
         return self._patterns.get(pattern_id)
 
-    def find_applicable_patterns(self, context: Dict[str, Any]) -> List[Tuple[ProceduralPattern, float]]:
+    def find_applicable_patterns(
+        self, context: Dict[str, Any]
+    ) -> List[Tuple[ProceduralPattern, float]]:
         """
         Найти паттерны, применимые в текущем контексте.
 
@@ -353,20 +354,27 @@ class ProceduralMemoryStore:
             self._stats["automated_executions"] += 1
             result = best_pattern.execute(context)
 
-            self.logger.log_event({
-                "event_type": "procedural_pattern_automated_execution",
-                "pattern_id": best_pattern.pattern_id,
-                "relevance": relevance,
-                "success": result.get("success", False)
-            })
+            self.logger.log_event(
+                {
+                    "event_type": "procedural_pattern_automated_execution",
+                    "pattern_id": best_pattern.pattern_id,
+                    "relevance": relevance,
+                    "success": result.get("success", False),
+                }
+            )
 
             return result
         else:
             self._stats["manual_executions"] += 1
             return None
 
-    def learn_from_experience(self, context: Dict[str, Any], actions: List[Tuple[str, Dict[str, Any]]],
-                            outcome: str, success: bool) -> None:
+    def learn_from_experience(
+        self,
+        context: Dict[str, Any],
+        actions: List[Tuple[str, Dict[str, Any]]],
+        outcome: str,
+        success: bool,
+    ) -> None:
         """
         Извлечь урок из опыта выполнения действий.
 
@@ -384,7 +392,7 @@ class ProceduralMemoryStore:
             name=f"Learned pattern from {'successful' if success else 'failed'} experience",
             description=f"Pattern learned from experience with outcome: {outcome}",
             action_sequence=actions,
-            trigger_conditions=context.copy()
+            trigger_conditions=context.copy(),
         )
 
         # Если опыт успешный, сразу повышаем уровень автоматизации
@@ -400,18 +408,23 @@ class ProceduralMemoryStore:
         self.add_pattern(pattern)
 
         # Также сохраняем паттерн решений
-        self._learn_decision_pattern(context, actions[0][0] if actions else "unknown", outcome, success)
+        self._learn_decision_pattern(
+            context, actions[0][0] if actions else "unknown", outcome, success
+        )
 
-        self.logger.log_event({
-            "event_type": "procedural_learning_from_experience",
-            "pattern_id": pattern_id,
-            "success": success,
-            "outcome": outcome,
-            "actions_count": len(actions)
-        })
+        self.logger.log_event(
+            {
+                "event_type": "procedural_learning_from_experience",
+                "pattern_id": pattern_id,
+                "success": success,
+                "outcome": outcome,
+                "actions_count": len(actions),
+            }
+        )
 
-    def _learn_decision_pattern(self, conditions: Dict[str, Any], decision: str,
-                               outcome: str, success: bool) -> None:
+    def _learn_decision_pattern(
+        self, conditions: Dict[str, Any], decision: str, outcome: str, success: bool
+    ) -> None:
         """Извлечь паттерн принятия решений."""
         # Создаем хэш условий для индексации
         condition_hash = hash(frozenset(conditions.items()))
@@ -421,7 +434,7 @@ class ProceduralMemoryStore:
             conditions=conditions,
             decision=decision,
             outcome=outcome,
-            confidence=0.8 if success else 0.3
+            confidence=0.8 if success else 0.3,
         )
 
         self._decision_patterns[str(condition_hash)] = pattern
@@ -447,19 +460,23 @@ class ProceduralMemoryStore:
                 best_match = pattern
 
         if best_match:
-            self.logger.log_event({
-                "event_type": "decision_recommendation_given",
-                "pattern_id": best_match.pattern_id,
-                "recommended_decision": best_match.decision,
-                "confidence": best_match.confidence,
-                "match_score": best_score
-            })
+            self.logger.log_event(
+                {
+                    "event_type": "decision_recommendation_given",
+                    "pattern_id": best_match.pattern_id,
+                    "recommended_decision": best_match.decision,
+                    "confidence": best_match.confidence,
+                    "match_score": best_score,
+                }
+            )
 
             return best_match.decision
 
         return None
 
-    def _calculate_pattern_relevance(self, pattern: ProceduralPattern, context: Dict[str, Any]) -> float:
+    def _calculate_pattern_relevance(
+        self, pattern: ProceduralPattern, context: Dict[str, Any]
+    ) -> float:
         """
         Рассчитать релевантность паттерна для текущего контекста.
 
@@ -490,11 +507,7 @@ class ProceduralMemoryStore:
             recency_factor = 0.9 ** (time_since_last / 3600)
 
         # Комбинированная релевантность
-        relevance = (
-            condition_match * 0.4 +
-            effectiveness * 0.4 +
-            recency_factor * 0.2
-        )
+        relevance = condition_match * 0.4 + effectiveness * 0.4 + recency_factor * 0.2
 
         return relevance
 
@@ -538,10 +551,9 @@ class ProceduralMemoryStore:
         self._stats["last_optimization"] = time.time()
 
         if optimizations > 0:
-            self.logger.log_event({
-                "event_type": "procedural_patterns_optimized",
-                "optimizations": optimizations
-            })
+            self.logger.log_event(
+                {"event_type": "procedural_patterns_optimized", "optimizations": optimizations}
+            )
 
         return optimizations
 
@@ -572,8 +584,7 @@ class ProceduralMemoryStore:
         """
         total_executions = self._stats["automated_executions"] + self._stats["manual_executions"]
         automation_rate = (
-            self._stats["automated_executions"] / total_executions
-            if total_executions > 0 else 0
+            self._stats["automated_executions"] / total_executions if total_executions > 0 else 0
         )
 
         # Средняя эффективность паттернов
@@ -590,7 +601,7 @@ class ProceduralMemoryStore:
             "manual_executions": self._stats["manual_executions"],
             "automation_rate": automation_rate,
             "average_pattern_effectiveness": avg_effectiveness,
-            "last_optimization": self._stats["last_optimization"]
+            "last_optimization": self._stats["last_optimization"],
         }
 
     def clear_store(self) -> None:
@@ -604,9 +615,7 @@ class ProceduralMemoryStore:
             "total_decision_patterns": 0,
             "automated_executions": 0,
             "manual_executions": 0,
-            "last_optimization": time.time()
+            "last_optimization": time.time(),
         }
 
-        self.logger.log_event({
-            "event_type": "procedural_store_cleared"
-        })
+        self.logger.log_event({"event_type": "procedural_store_cleared"})

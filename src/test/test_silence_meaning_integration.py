@@ -29,7 +29,7 @@ class TestSilenceMeaningIntegration:
                 type="silence",
                 intensity=intensity,
                 timestamp=1234567890.0,
-                metadata={"detector_generated": True}
+                metadata={"detector_generated": True},
             )
 
             significance = engine.appraisal(event, self_state)
@@ -38,7 +38,9 @@ class TestSilenceMeaningIntegration:
             assert 0.0 <= significance <= 1.0, f"Invalid significance for {case_name}"
 
             # Проверяем что silence имеет умеренную значимость
-            assert significance >= 0.0, f"Silence should have non-negative significance for {case_name}"
+            assert (
+                significance >= 0.0
+            ), f"Silence should have non-negative significance for {case_name}"
 
     def test_silence_event_impact_model(self):
         """Тест расчета влияния события silence."""
@@ -50,7 +52,7 @@ class TestSilenceMeaningIntegration:
             type="silence",
             intensity=0.3,  # Комфортная тишина
             timestamp=1234567890.0,
-            metadata={"detector_generated": True}
+            metadata={"detector_generated": True},
         )
 
         significance = engine.appraisal(event, self_state)
@@ -73,10 +75,7 @@ class TestSilenceMeaningIntegration:
 
         # Комфортная тишина
         event = Event(
-            type="silence",
-            intensity=0.5,
-            timestamp=1234567890.0,
-            metadata={"is_comfortable": True}
+            type="silence", intensity=0.5, timestamp=1234567890.0, metadata={"is_comfortable": True}
         )
 
         significance = engine.appraisal(event, self_state)
@@ -96,7 +95,7 @@ class TestSilenceMeaningIntegration:
             type="silence",
             intensity=-0.3,
             timestamp=1234567890.0,
-            metadata={"is_comfortable": False}
+            metadata={"is_comfortable": False},
         )
 
         significance = engine.appraisal(event, self_state)
@@ -122,11 +121,7 @@ class TestSilenceMeaningIntegration:
         ]
 
         for intensity, case_name in test_cases:
-            event = Event(
-                type="silence",
-                intensity=intensity,
-                timestamp=1234567890.0
-            )
+            event = Event(type="silence", intensity=intensity, timestamp=1234567890.0)
 
             significance = engine.appraisal(event, self_state)
             impact = engine.impact_model(event, self_state, significance)
@@ -137,7 +132,9 @@ class TestSilenceMeaningIntegration:
             assert "integrity" in impact
 
             # Проверяем корректность расчетов
-            assert all(isinstance(v, (int, float)) for v in impact.values()), f"Invalid impact values for {case_name}"
+            assert all(
+                isinstance(v, (int, float)) for v in impact.values()
+            ), f"Invalid impact values for {case_name}"
 
     def test_silence_with_clarity_modifier(self):
         """Тест события silence с модификатором ясности."""
@@ -148,11 +145,7 @@ class TestSilenceMeaningIntegration:
         self_state.clarity_state = True
         self_state.clarity_modifier = 1.5
 
-        event = Event(
-            type="silence",
-            intensity=0.3,
-            timestamp=1234567890.0
-        )
+        event = Event(type="silence", intensity=0.3, timestamp=1234567890.0)
 
         significance_with_clarity = engine.appraisal(event, self_state)
 
@@ -177,11 +170,7 @@ class TestSilenceMeaningIntegration:
         self_state_bad.energy = 0.1
         self_state_bad.stability = 0.1
 
-        event = Event(
-            type="silence",
-            intensity=0.3,
-            timestamp=1234567890.0
-        )
+        event = Event(type="silence", intensity=0.3, timestamp=1234567890.0)
 
         sig_good = engine.appraisal(event, self_state_good)
         sig_bad = engine.appraisal(event, self_state_bad)
@@ -195,20 +184,12 @@ class TestSilenceMeaningIntegration:
         engine = MeaningEngine()
         self_state = SelfState()
 
-        event = Event(
-            type="silence",
-            intensity=0.5,
-            timestamp=1234567890.0
-        )
+        event = Event(type="silence", intensity=0.5, timestamp=1234567890.0)
 
         significance = engine.appraisal(event, self_state)
 
         # Создаем событие с той же интенсивностью но другим типом для сравнения
-        noise_event = Event(
-            type="noise",
-            intensity=0.5,
-            timestamp=1234567890.0
-        )
+        noise_event = Event(type="noise", intensity=0.5, timestamp=1234567890.0)
 
         noise_significance = engine.appraisal(noise_event, self_state)
 
@@ -225,7 +206,7 @@ class TestSilenceMeaningIntegration:
             type="silence",
             intensity=0.4,
             timestamp=1234567890.0,
-            metadata={"detector_generated": True, "silence_duration": 45.0}
+            metadata={"detector_generated": True, "silence_duration": 45.0},
         )
 
         # Полная обработка

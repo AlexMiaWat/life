@@ -15,22 +15,22 @@ from src.environment.event_queue import EventQueue
 class TestImpactAnalyzerIntegration:
     """Интеграционные тесты для ImpactAnalyzer"""
 
-    @patch('src.environment.impact_analyzer.MeaningEngine')
+    @patch("src.environment.impact_analyzer.MeaningEngine")
     def test_impact_analyzer_with_meaning_engine(self, mock_meaning_engine_class):
         """Интеграция ImpactAnalyzer с MeaningEngine"""
         # Настройка mock MeaningEngine с реалистичными данными
         mock_meaning_engine = Mock()
         mock_meaning_engine.analyze_meaning.side_effect = [
             {
-                'significance': 0.7,
-                'impact': {'energy': -0.2, 'stability': -0.1, 'integrity': 0.0},
-                'response_pattern': 'absorb'
+                "significance": 0.7,
+                "impact": {"energy": -0.2, "stability": -0.1, "integrity": 0.0},
+                "response_pattern": "absorb",
             },
             {
-                'significance': 0.4,
-                'impact': {'energy': -0.1, 'stability': 0.0, 'integrity': -0.05},
-                'response_pattern': 'ignore'
-            }
+                "significance": 0.4,
+                "impact": {"energy": -0.1, "stability": 0.0, "integrity": -0.05},
+                "response_pattern": "ignore",
+            },
         ]
         mock_meaning_engine_class.return_value = mock_meaning_engine
 
@@ -50,34 +50,34 @@ class TestImpactAnalyzerIntegration:
         mock_meaning_engine.analyze_meaning.assert_called_once()
         call_args = mock_meaning_engine.analyze_meaning.call_args[0]
         assert call_args[0] == event  # Событие передано корректно
-        assert hasattr(call_args[1], 'energy')  # Состояние передано
+        assert hasattr(call_args[1], "energy")  # Состояние передано
 
         # Проверяем результат
         assert isinstance(prediction, ImpactPrediction)
         assert prediction.meaning_significance == 0.7
         assert prediction.final_energy == 0.8
-        assert prediction.response_pattern == 'absorb'
+        assert prediction.response_pattern == "absorb"
 
-    @patch('src.environment.impact_analyzer.MeaningEngine')
+    @patch("src.environment.impact_analyzer.MeaningEngine")
     def test_batch_analysis_with_real_state_changes(self, mock_meaning_engine_class):
         """Интеграция пакетного анализа с реальными изменениями состояния"""
         mock_meaning_engine = Mock()
         mock_meaning_engine.analyze_meaning.side_effect = [
             {
-                'significance': 0.8,
-                'impact': {'energy': -0.3, 'stability': -0.2, 'integrity': -0.1},
-                'response_pattern': 'amplify'
+                "significance": 0.8,
+                "impact": {"energy": -0.3, "stability": -0.2, "integrity": -0.1},
+                "response_pattern": "amplify",
             },
             {
-                'significance': 0.5,
-                'impact': {'energy': 0.1, 'stability': 0.05, 'integrity': 0.0},
-                'response_pattern': 'absorb'
+                "significance": 0.5,
+                "impact": {"energy": 0.1, "stability": 0.05, "integrity": 0.0},
+                "response_pattern": "absorb",
             },
             {
-                'significance': 0.3,
-                'impact': {'energy': -0.05, 'stability': -0.1, 'integrity': 0.05},
-                'response_pattern': 'dampen'
-            }
+                "significance": 0.3,
+                "impact": {"energy": -0.05, "stability": -0.1, "integrity": 0.05},
+                "response_pattern": "dampen",
+            },
         ]
         mock_meaning_engine_class.return_value = mock_meaning_engine
 
@@ -93,7 +93,7 @@ class TestImpactAnalyzerIntegration:
         events = [
             Event(type="crisis", intensity=0.8),
             Event(type="reward", intensity=0.4),
-            Event(type="neutral", intensity=0.2)
+            Event(type="neutral", intensity=0.2),
         ]
 
         analysis = analyzer.analyze_batch_events(events, initial_state)
@@ -105,17 +105,17 @@ class TestImpactAnalyzerIntegration:
 
         # Проверяем кумулятивный эффект
         # crisis: -0.3, reward: +0.1, neutral: -0.05 = -0.25
-        assert abs(analysis.cumulative_impact['energy'] - (-0.25)) < 0.01
-        assert analysis.cumulative_impact['stability'] == -0.25  # -0.2 + 0.05 - 0.1
-        assert analysis.cumulative_impact['integrity'] == -0.05  # -0.1 + 0.0 + 0.05
+        assert abs(analysis.cumulative_impact["energy"] - (-0.25)) < 0.01
+        assert analysis.cumulative_impact["stability"] == -0.25  # -0.2 + 0.05 - 0.1
+        assert analysis.cumulative_impact["integrity"] == -0.05  # -0.1 + 0.0 + 0.05
 
         # Проверяем финальное состояние
-        assert abs(analysis.final_state['energy'] - 0.75) < 0.01  # 1.0 - 0.25
-        assert analysis.final_state['stability'] == 0.75
-        assert analysis.final_state['integrity'] == 0.95
+        assert abs(analysis.final_state["energy"] - 0.75) < 0.01  # 1.0 - 0.25
+        assert analysis.final_state["stability"] == 0.75
+        assert analysis.final_state["integrity"] == 0.95
 
         # Проверяем оценку риска для такого воздействия
-        assert analysis.risk_assessment in ['medium', 'high']
+        assert analysis.risk_assessment in ["medium", "high"]
 
     def test_impact_analyzer_with_event_queue(self):
         """Интеграция ImpactAnalyzer с EventQueue"""
@@ -126,7 +126,7 @@ class TestImpactAnalyzerIntegration:
         events = [
             Event(type="queue_test_1", intensity=0.6),
             Event(type="queue_test_2", intensity=0.4),
-            Event(type="queue_test_3", intensity=0.8)
+            Event(type="queue_test_3", intensity=0.8),
         ]
 
         for event in events:
@@ -150,14 +150,14 @@ class TestImpactAnalyzerIntegration:
             response_patterns = {pred.response_pattern for pred in analysis.predictions}
             assert len(response_patterns) >= 1  # Минимум один паттерн
 
-    @patch('src.environment.impact_analyzer.MeaningEngine')
+    @patch("src.environment.impact_analyzer.MeaningEngine")
     def test_impact_analyzer_cache_integration(self, mock_meaning_engine_class):
         """Интеграция кэширования с MeaningEngine"""
         mock_meaning_engine = Mock()
         mock_meaning_engine.analyze_meaning.return_value = {
-            'significance': 0.6,
-            'impact': {'energy': -0.15, 'stability': -0.1, 'integrity': 0.0},
-            'response_pattern': 'absorb'
+            "significance": 0.6,
+            "impact": {"energy": -0.15, "stability": -0.1, "integrity": 0.0},
+            "response_pattern": "absorb",
         }
         mock_meaning_engine_class.return_value = mock_meaning_engine
 
@@ -184,14 +184,15 @@ class TestImpactAnalyzerIntegration:
 
         # Проверяем статистику кэша
         stats = analyzer.get_cache_stats()
-        assert stats['current_size'] >= 1
-        assert stats['usage_percent'] > 0
+        assert stats["current_size"] >= 1
+        assert stats["usage_percent"] > 0
 
-    @patch('src.environment.impact_analyzer.MeaningEngine')
+    @patch("src.environment.impact_analyzer.MeaningEngine")
     def test_impact_analyzer_complex_scenario(self, mock_meaning_engine_class):
         """Комплексный сценарий интеграции со множеством компонентов"""
         # Настройка сложного сценария с различными типами событий
         call_count = 0
+
         def mock_analyze_meaning(event, state):
             nonlocal call_count
             call_count += 1
@@ -199,21 +200,21 @@ class TestImpactAnalyzerIntegration:
             # Разные ответы в зависимости от типа события
             if event.type == "crisis":
                 return {
-                    'significance': 0.9,
-                    'impact': {'energy': -0.4, 'stability': -0.3, 'integrity': -0.2},
-                    'response_pattern': 'amplify'
+                    "significance": 0.9,
+                    "impact": {"energy": -0.4, "stability": -0.3, "integrity": -0.2},
+                    "response_pattern": "amplify",
                 }
             elif event.type == "recovery":
                 return {
-                    'significance': 0.6,
-                    'impact': {'energy': 0.2, 'stability': 0.15, 'integrity': 0.1},
-                    'response_pattern': 'absorb'
+                    "significance": 0.6,
+                    "impact": {"energy": 0.2, "stability": 0.15, "integrity": 0.1},
+                    "response_pattern": "absorb",
                 }
             else:
                 return {
-                    'significance': 0.3,
-                    'impact': {'energy': -0.05, 'stability': 0.0, 'integrity': 0.02},
-                    'response_pattern': 'ignore'
+                    "significance": 0.3,
+                    "impact": {"energy": -0.05, "stability": 0.0, "integrity": 0.02},
+                    "response_pattern": "ignore",
                 }
 
         mock_meaning_engine = Mock()
@@ -230,11 +231,11 @@ class TestImpactAnalyzerIntegration:
 
         # Создаем последовательность событий, имитирующих кризис и восстановление
         events = [
-            Event(type="crisis", intensity=0.9),      # Сильный кризис
-            Event(type="neutral", intensity=0.3),     # Нейтральное событие
-            Event(type="recovery", intensity=0.7),    # Восстановление
-            Event(type="crisis", intensity=0.6),      # Слабый кризис
-            Event(type="recovery", intensity=0.5)     # Дополнительное восстановление
+            Event(type="crisis", intensity=0.9),  # Сильный кризис
+            Event(type="neutral", intensity=0.3),  # Нейтральное событие
+            Event(type="recovery", intensity=0.7),  # Восстановление
+            Event(type="crisis", intensity=0.6),  # Слабый кризис
+            Event(type="recovery", intensity=0.5),  # Дополнительное восстановление
         ]
 
         # Анализируем пакет
@@ -250,13 +251,13 @@ class TestImpactAnalyzerIntegration:
         # crisis 0.9: -0.4, neutral: -0.05, recovery 0.7: +0.2, crisis 0.6: -0.4, recovery 0.5: +0.2
         # Итого: -0.4 -0.05 +0.2 -0.4 +0.2 = -0.45
         expected_energy_change = -0.45
-        assert abs(analysis.cumulative_impact['energy'] - expected_energy_change) < 0.01
+        assert abs(analysis.cumulative_impact["energy"] - expected_energy_change) < 0.01
 
         # Финальное состояние: 0.7 - 0.45 = 0.25
-        assert abs(analysis.final_state['energy'] - 0.25) < 0.01
+        assert abs(analysis.final_state["energy"] - 0.25) < 0.01
 
         # Для такого сценария риск должен быть высоким
-        assert analysis.risk_assessment in ['high', 'critical']
+        assert analysis.risk_assessment in ["high", "critical"]
 
         # Проверяем разнообразие рекомендаций
         assert len(analysis.recommendations) >= 1
@@ -275,7 +276,7 @@ class TestImpactAnalyzerIntegration:
         analysis = analyzer.analyze_batch_events([], state)
         assert len(analysis.events) == 0
         assert len(analysis.predictions) == 0
-        assert analysis.cumulative_impact['energy'] == 0.0
+        assert analysis.cumulative_impact["energy"] == 0.0
 
         # Тест с None значениями (должен обрабатывать gracefully)
         try:
@@ -284,16 +285,16 @@ class TestImpactAnalyzerIntegration:
         except (AttributeError, TypeError):
             pass  # Ожидаемое поведение
 
-    @patch('src.environment.impact_analyzer.MeaningEngine')
+    @patch("src.environment.impact_analyzer.MeaningEngine")
     def test_impact_analyzer_performance_integration(self, mock_meaning_engine_class):
         """Интеграция тестирования производительности"""
         import time
 
         mock_meaning_engine = Mock()
         mock_meaning_engine.analyze_meaning.return_value = {
-            'significance': 0.5,
-            'impact': {'energy': -0.1, 'stability': 0.0, 'integrity': 0.0},
-            'response_pattern': 'absorb'
+            "significance": 0.5,
+            "impact": {"energy": -0.1, "stability": 0.0, "integrity": 0.0},
+            "response_pattern": "absorb",
         }
         mock_meaning_engine_class.return_value = mock_meaning_engine
 

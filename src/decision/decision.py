@@ -31,7 +31,7 @@ def _analyze_adaptation_history(self_state: SelfState) -> dict:
             "recent_changes_count": 0,
             "avg_change_magnitude": 0.0,
             "most_changed_param": None,
-            "adaptation_stability": "unknown"
+            "adaptation_stability": "unknown",
         }
 
     # Анализ последних 10 адаптаций
@@ -76,7 +76,11 @@ def _analyze_adaptation_history(self_state: SelfState) -> dict:
     avg_change_magnitude = total_magnitude / len(recent_history) if recent_history else 0.0
 
     # Наиболее изменяемый параметр
-    most_changed_param = max(param_change_counts.keys(), key=lambda k: param_change_counts[k]) if param_change_counts else None
+    most_changed_param = (
+        max(param_change_counts.keys(), key=lambda k: param_change_counts[k])
+        if param_change_counts
+        else None
+    )
 
     # Стабильность адаптаций
     if avg_change_magnitude < 0.02:
@@ -93,15 +97,12 @@ def _analyze_adaptation_history(self_state: SelfState) -> dict:
         "most_changed_param": most_changed_param,
         "adaptation_stability": adaptation_stability,
         "positive_changes": positive_changes,
-        "negative_changes": negative_changes
+        "negative_changes": negative_changes,
     }
 
 
 def _calculate_dynamic_threshold(
-    base_threshold: float,
-    sensitivity: float,
-    energy_level: str,
-    stability_level: str
+    base_threshold: float, sensitivity: float, energy_level: str, stability_level: str
 ) -> float:
     """
     Вычисление динамического порога на основе обученной чувствительности и состояния системы.
@@ -121,13 +122,13 @@ def _calculate_dynamic_threshold(
     # Модификаторы состояния системы
     energy_modifier = 0.8 if energy_level == "low" else 1.2
     stability_modifier = (
-        0.9 if stability_level == "low"
-        else 1.1 if stability_level == "high"
-        else 1.0
+        0.9 if stability_level == "low" else 1.1 if stability_level == "high" else 1.0
     )
 
     # Расчет адаптивного порога
-    adaptive_threshold = base_threshold * sensitivity_modifier * energy_modifier * stability_modifier
+    adaptive_threshold = (
+        base_threshold * sensitivity_modifier * energy_modifier * stability_modifier
+    )
 
     # Ограничение диапазона для стабильности
     return max(0.05, min(0.8, adaptive_threshold))
@@ -186,13 +187,10 @@ def _analyze_activated_memory(activated: List[MemoryEntry]) -> dict:
     total_weight = sum(entry.weight for entry in activated)
     if total_weight > 0:
         weighted_avg = (
-            sum(entry.meaning_significance * entry.weight for entry in activated)
-            / total_weight
+            sum(entry.meaning_significance * entry.weight for entry in activated) / total_weight
         )
     else:
-        weighted_avg = sum(entry.meaning_significance for entry in activated) / len(
-            activated
-        )
+        weighted_avg = sum(entry.meaning_significance for entry in activated) / len(activated)
 
     # Максимальная значимость
     max_sig = max(entry.meaning_significance for entry in activated)
@@ -228,25 +226,32 @@ def _analyze_system_context(self_state: SelfState, meaning: Meaning) -> dict:
     # Состояние системы
     energy_level = "low" if self_state.energy < 30 else "high"
     stability_level = (
-        "low"
-        if self_state.stability < 0.3
-        else "high"
-        if self_state.stability > 0.8
-        else "medium"
+        "low" if self_state.stability < 0.3 else "high" if self_state.stability > 0.8 else "medium"
     )
     integrity_level = "low" if self_state.integrity < 0.3 else "high"
 
     # Субъективное время
-    time_ratio = (
-        self_state.subjective_time / self_state.age if self_state.age > 0 else 1.0
-    )
+    time_ratio = self_state.subjective_time / self_state.age if self_state.age > 0 else 1.0
     time_perception = (
-        "accelerated"
-        if time_ratio > 1.1
-        else "normal"
-        if time_ratio > 0.9
-        else "slowed"
+        "accelerated" if time_ratio > 1.1 else "normal" if time_ratio > 0.9 else "slowed"
     )
+
+    # Циркадные ритмы
+    import math
+    circadian_phase_rad = self_state.circadian_phase
+    # Определяем текущую фазу циркадного ритма
+    if circadian_phase_rad < math.pi / 2:
+        circadian_phase = "dawn"  # Рассвет
+        circadian_modifier = 0.8  # Более осторожный
+    elif circadian_phase_rad < math.pi:
+        circadian_phase = "day"  # День
+        circadian_modifier = 1.2  # Более активный
+    elif circadian_phase_rad < 3 * math.pi / 2:
+        circadian_phase = "dusk"  # Закат
+        circadian_modifier = 0.9  # Умеренный
+    else:
+        circadian_phase = "night"  # Ночь
+        circadian_modifier = 0.7  # Консервативный
 
     # Модификаторы из параметров Learning/Adaptation
     adaptation_params = getattr(self_state, "adaptation_params", {})
@@ -269,23 +274,27 @@ def _analyze_system_context(self_state: SelfState, meaning: Meaning) -> dict:
     # Модификация чувствительности на основе тренда адаптаций
     adapted_sensitivity = base_sensitivity
     if adaptation_analysis["trend_direction"] == "increasing":
-        adapted_sensitivity = min(0.9, base_sensitivity * 1.2)  # Увеличение чувствительности при росте адаптаций
+        adapted_sensitivity = min(
+            0.9, base_sensitivity * 1.2
+        )  # Увеличение чувствительности при росте адаптаций
     elif adaptation_analysis["trend_direction"] == "decreasing":
-        adapted_sensitivity = max(0.1, base_sensitivity * 0.8)  # Уменьшение чувствительности при снижении адаптаций
+        adapted_sensitivity = max(
+            0.1, base_sensitivity * 0.8
+        )  # Уменьшение чувствительности при снижении адаптаций
 
     # Адаптивные пороги на основе чувствительности, состояния и истории адаптаций
     dynamic_ignore_threshold = _calculate_dynamic_threshold(
         base_threshold=0.1,
         sensitivity=adapted_sensitivity,
         energy_level=energy_level,
-        stability_level=stability_level
+        stability_level=stability_level,
     )
 
     dynamic_dampen_threshold = _calculate_dynamic_threshold(
         base_threshold=0.3,
         sensitivity=adapted_sensitivity,
         energy_level=energy_level,
-        stability_level=stability_level
+        stability_level=stability_level,
     )
 
     # Корректировка порогов на основе стабильности адаптаций
@@ -303,6 +312,10 @@ def _analyze_system_context(self_state: SelfState, meaning: Meaning) -> dict:
         "stability_level": stability_level,
         "integrity_level": integrity_level,
         "time_perception": time_perception,
+        "circadian_phase": circadian_phase,
+        "circadian_modifier": circadian_modifier,
+        "recovery_efficiency": self_state.recovery_efficiency,
+        "stability_modifier": self_state.stability_modifier,
         "behavior_thresholds": behavior_thresholds,
         "behavior_sensitivity": behavior_sensitivity,
         "behavior_coefficients": behavior_coefficients,
@@ -385,9 +398,7 @@ def _get_event_type_rules(meaning: Meaning) -> dict:
         },
     }
 
-    return rules.get(
-        event_type, {"can_amplify": True, "can_ignore": True, "prefer_absorb": True}
-    )
+    return rules.get(event_type, {"can_amplify": True, "can_ignore": True, "prefer_absorb": True})
 
 
 def _select_response_pattern(
@@ -409,6 +420,8 @@ def _select_response_pattern(
     stability_level = context_analysis["stability_level"]
     integrity_level = context_analysis["integrity_level"]
     time_perception = context_analysis["time_perception"]
+    circadian_phase = context_analysis["circadian_phase"]
+    circadian_modifier = context_analysis["circadian_modifier"]
     meaning_sig = context_analysis["meaning_significance"]
 
     # Параметры Learning/Adaptation
@@ -427,6 +440,19 @@ def _select_response_pattern(
     absorb_coeff = behavior_coefficients.get("absorb", response_coefficients.get("absorb", 1.0))
     amplify_coeff = behavior_coefficients.get("amplify", response_coefficients.get("amplify", 1.0))
     ignore_coeff = behavior_coefficients.get("ignore", response_coefficients.get("ignore", 0.0))
+
+    # Модификация коэффициентов на основе субъективного времени
+    # При ускоренном времени уменьшаем absorb/amplify для более консервативного поведения
+    # При замедленном времени увеличиваем absorb/amplify для более вдумчивого подхода
+    time_ratio = self_state.subjective_time / self_state.age if self_state.age > 0 else 1.0
+    if time_ratio > 1.1:  # Ускоренное восприятие
+        absorb_coeff *= 0.9
+        amplify_coeff *= 0.8
+        dampen_coeff *= 1.1
+    elif time_ratio < 0.9:  # Замедленное восприятие
+        absorb_coeff *= 1.2
+        amplify_coeff *= 1.1
+        dampen_coeff *= 0.9
 
     # Чувствительность к типу события для дополнительных модификаций
     event_sensitivity = behavior_sensitivity.get(event_type, 0.2)
@@ -472,13 +498,27 @@ def _select_response_pattern(
     # === Правило 4: Низкая стабильность - усиление положительных эффектов ===
     if stability_level == "low" and event_rules.get("can_amplify", True):
         amplify_threshold = dynamic_dampen_threshold * (1 + event_sensitivity)
-        if event_rules.get("positive_event", False) and meaning_sig > amplify_threshold and amplify_coeff > absorb_coeff:
+        if (
+            event_rules.get("positive_event", False)
+            and meaning_sig > amplify_threshold
+            and amplify_coeff > absorb_coeff
+        ):
             return "amplify"
 
-    # === Правило 5: Ускоренное восприятие времени - более осторожный ===
+    # === Правило 5: Восприятие времени влияет на пороги принятия решений ===
+    # Субъективное время напрямую влияет на чувствительность к изменениям
+    time_sensitivity_modifier = 1.0
     if time_perception == "accelerated":
-        accelerated_threshold = dynamic_dampen_threshold * 0.8  # Более строгий порог
+        # При ускоренном времени система более чувствительна, быстрее реагирует
+        time_sensitivity_modifier = 0.7  # Понижаем пороги для более быстрой реакции
+        accelerated_threshold = dynamic_dampen_threshold * time_sensitivity_modifier
         if weighted_avg > accelerated_threshold or meaning_sig > accelerated_threshold:
+            return "dampen"
+    elif time_perception == "slowed":
+        # При замедленном времени система более вдумчива, использует более строгие пороги
+        time_sensitivity_modifier = 1.3  # Повышаем пороги для более осторожных решений
+        slowed_threshold = dynamic_dampen_threshold * time_sensitivity_modifier
+        if weighted_avg > slowed_threshold or meaning_sig > slowed_threshold:
             return "dampen"
 
     # === Правило 6: Низкая целостность - осторожный подход ===
@@ -487,17 +527,52 @@ def _select_response_pattern(
         if weighted_avg > integrity_threshold or meaning_sig > integrity_threshold:
             return "dampen"
 
-    # === Правило 7: Специфические правила по типу события с учетом коэффициентов ===
+    # === Правило 7: Циркадные ритмы - модификация поведения по фазам ===
+    # Учитываем циркадную фазу для корректировки порогов и предпочтений
+    circadian_adjusted_ignore_threshold = dynamic_ignore_threshold * circadian_modifier
+    circadian_adjusted_dampen_threshold = dynamic_dampen_threshold * circadian_modifier
+
+    if circadian_phase == "dawn":
+        # Рассвет: более осторожный подход, пониженные пороги
+        if weighted_avg > circadian_adjusted_dampen_threshold * 0.9:
+            return "dampen"
+    elif circadian_phase == "day":
+        # День: более активный подход, повышенные пороги для действий
+        if (event_rules.get("can_amplify", True) and
+            event_rules.get("positive_event", False) and
+            meaning_sig > circadian_adjusted_dampen_threshold * 1.1 and
+            energy_level == "high"):
+            return "amplify"
+    elif circadian_phase == "dusk":
+        # Закат: умеренный подход, баланс между активностью и осторожностью
+        pass  # Используем базовые правила без модификации
+    elif circadian_phase == "night":
+        # Ночь: консервативный подход, пониженные пороги для игнорирования
+        if (weighted_avg < circadian_adjusted_ignore_threshold * 1.2 and
+            meaning_sig < circadian_adjusted_ignore_threshold * 1.2 and
+            event_rules.get("can_ignore", True)):
+            return "ignore"
+
+    # === Правило 8: Специфические правила по типу события с учетом коэффициентов ===
     if event_rules.get("prefer_dampen", False):
-        if weighted_avg > dynamic_dampen_threshold * dampen_coeff or meaning_sig > dynamic_dampen_threshold * dampen_coeff:
+        if (
+            weighted_avg > dynamic_dampen_threshold * dampen_coeff
+            or meaning_sig > dynamic_dampen_threshold * dampen_coeff
+        ):
             return "dampen"
 
-    if event_rules.get("prefer_absorb", False) and weighted_avg <= dynamic_dampen_threshold * absorb_coeff:
+    if (
+        event_rules.get("prefer_absorb", False)
+        and weighted_avg <= dynamic_dampen_threshold * absorb_coeff
+    ):
         return "absorb"
 
     if event_rules.get("can_ignore", True):
         ignore_threshold = event_rules.get("ignore_threshold", dynamic_ignore_threshold)
-        if weighted_avg < ignore_threshold * ignore_coeff and meaning_sig < ignore_threshold * ignore_coeff:
+        if (
+            weighted_avg < ignore_threshold * ignore_coeff
+            and meaning_sig < ignore_threshold * ignore_coeff
+        ):
             return "ignore"
 
     # === Правило 7.5: Контекстная осведомленность на основе истории адаптаций ===

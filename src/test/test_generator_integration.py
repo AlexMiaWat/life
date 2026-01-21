@@ -33,9 +33,7 @@ class TestGeneratorServerIntegration:
             "metadata": event.metadata,
         }
 
-        success, code, reason, body = send_event(
-            "localhost", server_setup["port"], payload
-        )
+        success, code, reason, body = send_event("localhost", server_setup["port"], payload)
 
         assert success is True
         assert code == 200
@@ -61,9 +59,7 @@ class TestGeneratorServerIntegration:
                 "metadata": event.metadata,
             }
 
-            success, code, reason, body = send_event(
-                "localhost", server_setup["port"], payload
-            )
+            success, code, reason, body = send_event("localhost", server_setup["port"], payload)
             assert success is True
             assert code == 200
 
@@ -88,9 +84,7 @@ class TestGeneratorServerIntegration:
                 "metadata": event.metadata,
             }
 
-            success, code, reason, body = send_event(
-                "localhost", server_setup["port"], payload
-            )
+            success, code, reason, body = send_event("localhost", server_setup["port"], payload)
             assert success is True
 
             if len(event_types) == 5:  # Все типы получены
@@ -137,9 +131,7 @@ class TestGeneratorServerIntegration:
             "metadata": event.metadata,
         }
 
-        success, code, reason, body = send_event(
-            "localhost", server_setup["port"], payload
-        )
+        success, code, reason, body = send_event("localhost", server_setup["port"], payload)
 
         assert success is True
 

@@ -1,0 +1,67 @@
+llm:
+  default_provider: openrouter
+  default_model: meta-llama/llama-3.2-1b-instruct
+  timeout: 200
+  retry_attempts: 1
+  strategy: best_of_two
+  model_roles:
+    primary:
+    - allenai/molmo-2-8b:free
+    - xiaomi/mimo-v2-flash:free
+    duplicate:
+    - liquid/lfm-2.5-1.2b-instruct:free
+    - nvidia/nemotron-3-nano-30b-a3b:free
+    reserve:
+    - liquid/lfm-2.5-1.2b-thinking:free
+    fallback:
+    - liquid/lfm-2.5-1.2b-instruct:free
+    - nvidia/nemotron-3-nano-30b-a3b:free
+  parallel:
+    enabled: true
+    models:
+    - allenai/molmo-2-8b:free
+    - xiaomi/mimo-v2-flash:free
+    evaluator_model: liquid/lfm-2.5-1.2b-instruct:free
+    selection_criteria:
+    - relevance
+    - completeness
+    - quality
+  _last_updated: '2026-01-21T19:15:00.000000'
+  _update_source: manual_free_models
+  _stats:
+    total_tested: 5
+    working_count: 5
+    fastest_model: allenai/molmo-2-8b:free
+providers:
+  openrouter:
+    base_url: https://openrouter.ai/api/v1
+    models:
+      allenai:
+      - name: allenai/molmo-2-8b:free
+        max_tokens: 1024
+        context_window: 4096
+        temperature: 0.7
+        top_p: 1.0
+      xiaomi:
+      - name: xiaomi/mimo-v2-flash:free
+        max_tokens: 1024
+        context_window: 4096
+        temperature: 0.7
+        top_p: 1.0
+      liquid:
+      - name: liquid/lfm-2.5-1.2b-instruct:free
+        max_tokens: 1024
+        context_window: 4096
+        temperature: 0.7
+        top_p: 1.0
+      - name: liquid/lfm-2.5-1.2b-thinking:free
+        max_tokens: 1024
+        context_window: 4096
+        temperature: 0.7
+        top_p: 1.0
+      nvidia:
+      - name: nvidia/nemotron-3-nano-30b-a3b:free
+        max_tokens: 1024
+        context_window: 4096
+        temperature: 0.7
+        top_p: 1.0

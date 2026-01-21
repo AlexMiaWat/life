@@ -223,22 +223,19 @@ class TestLearningEngine:
 
         # Проверяем, что обновленный параметр изменился
         assert (
-            self_state.learning_params["event_type_sensitivity"]["noise"]
-            == initial_noise + 0.005
+            self_state.learning_params["event_type_sensitivity"]["noise"] == initial_noise + 0.005
         )
 
         # Проверяем, что НЕ обновленные параметры сохранились
         assert (
-            self_state.learning_params["event_type_sensitivity"]["decay"]
-            == initial_decay
+            self_state.learning_params["event_type_sensitivity"]["decay"] == initial_decay
         ), "decay должен остаться прежним при частичном обновлении"
         assert (
             self_state.learning_params["significance_thresholds"]["noise"]
             == initial_significance_noise
         ), "significance_thresholds должны остаться прежними"
         assert (
-            self_state.learning_params["response_coefficients"]["dampen"]
-            == initial_dampen
+            self_state.learning_params["response_coefficients"]["dampen"] == initial_dampen
         ), "response_coefficients должны остаться прежними"
 
         # Проверяем, что все ключи верхнего уровня сохранились
@@ -376,13 +373,9 @@ class TestLearningEngine:
             # Learning вызывается раз в learning_interval тиков
             if tick % learning_interval == 0:
                 statistics = engine.process_statistics(self_state.memory)
-                new_params = engine.adjust_parameters(
-                    statistics, self_state.learning_params
-                )
+                new_params = engine.adjust_parameters(statistics, self_state.learning_params)
                 if new_params:
-                    engine.record_changes(
-                        self_state.learning_params, new_params, self_state
-                    )
+                    engine.record_changes(self_state.learning_params, new_params, self_state)
                 learning_calls += 1
 
         # Проверяем, что Learning вызывался примерно 2-3 раза за 200 тиков
@@ -538,13 +531,9 @@ class TestLearningIntegration:
             # Learning вызывается раз в learning_interval тиков
             if tick % learning_interval == 0:
                 statistics = engine.process_statistics(self_state.memory)
-                new_params = engine.adjust_parameters(
-                    statistics, self_state.learning_params
-                )
+                new_params = engine.adjust_parameters(statistics, self_state.learning_params)
                 if new_params:
-                    engine.record_changes(
-                        self_state.learning_params, new_params, self_state
-                    )
+                    engine.record_changes(self_state.learning_params, new_params, self_state)
                 learning_call_count += 1
 
         # Проверяем, что Learning вызывался несколько раз
@@ -574,8 +563,7 @@ class TestLearningIntegration:
         # Изменяем параметры
         new_params = {
             "event_type_sensitivity": {
-                "noise": self_state.learning_params["event_type_sensitivity"]["noise"]
-                + 0.005,
+                "noise": self_state.learning_params["event_type_sensitivity"]["noise"] + 0.005,
             }
         }
         engine.record_changes(self_state.learning_params, new_params, self_state)
@@ -904,9 +892,7 @@ class TestLearningStatic:
 
     def test_docstrings_presence(self):
         """Проверка наличия docstrings"""
-        assert (
-            LearningEngine.__doc__ is not None
-        ), "LearningEngine должен иметь docstring"
+        assert LearningEngine.__doc__ is not None, "LearningEngine должен иметь docstring"
 
         engine = LearningEngine()
         assert engine.process_statistics.__doc__ is not None
@@ -1091,13 +1077,9 @@ class TestLearningIntegrationExtended:
             # Learning вызывается раз в 75 тиков
             if tick % 75 == 0:
                 statistics = engine.process_statistics(self_state.memory)
-                new_params = engine.adjust_parameters(
-                    statistics, self_state.learning_params
-                )
+                new_params = engine.adjust_parameters(statistics, self_state.learning_params)
                 if new_params:
-                    engine.record_changes(
-                        self_state.learning_params, new_params, self_state
-                    )
+                    engine.record_changes(self_state.learning_params, new_params, self_state)
 
         # Проверяем, что Learning работал
         assert self_state.ticks == 150
@@ -1133,13 +1115,9 @@ class TestLearningIntegrationExtended:
 
         # Применяем Learning
         statistics = learning_engine.process_statistics(self_state.memory)
-        new_params = learning_engine.adjust_parameters(
-            statistics, self_state.learning_params
-        )
+        new_params = learning_engine.adjust_parameters(statistics, self_state.learning_params)
         if new_params:
-            learning_engine.record_changes(
-                self_state.learning_params, new_params, self_state
-            )
+            learning_engine.record_changes(self_state.learning_params, new_params, self_state)
 
         # Проверяем результат
         assert len(self_state.memory) == 3

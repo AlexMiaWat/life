@@ -256,9 +256,7 @@ class TestFeedbackIntegration:
         self_state.integrity = 0.9
 
         state_before = {"energy": 50.0, "stability": 0.8, "integrity": 0.9}
-        register_action(
-            "action_mem", "dampen", state_before, time.time(), pending_actions
-        )
+        register_action("action_mem", "dampen", state_before, time.time(), pending_actions)
 
         self_state.energy = 49.0
         pending_actions[0].check_after_ticks = 1

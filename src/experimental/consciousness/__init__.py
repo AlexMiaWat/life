@@ -14,19 +14,19 @@ from .parallel_engine import (
     SelfReflectionProcessor,
     MetaCognitionAnalyzer,
     StateTransitionManager,
-    ConsciousnessMetricsAggregator
+    ConsciousnessMetricsAggregator,
 )
 
 __all__ = [
     # Оригинальные компоненты
-    'ConsciousnessEngine',
-    'ConsciousnessMetrics',
-    'ConsciousnessStates',
+    "ConsciousnessEngine",
+    "ConsciousnessMetrics",
+    "ConsciousnessStates",
     # Многопоточная реализация
-    'ParallelConsciousnessEngine',
-    'NeuralActivityMonitor',
-    'SelfReflectionProcessor',
-    'MetaCognitionAnalyzer',
-    'StateTransitionManager',
-    'ConsciousnessMetricsAggregator'
+    "ParallelConsciousnessEngine",
+    "NeuralActivityMonitor",
+    "SelfReflectionProcessor",
+    "MetaCognitionAnalyzer",
+    "StateTransitionManager",
+    "ConsciousnessMetricsAggregator",
 ]

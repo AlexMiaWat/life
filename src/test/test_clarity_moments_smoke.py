@@ -18,6 +18,7 @@ class TestClarityMomentsSmoke:
         """Тест успешного импорта модуля."""
         try:
             from src.experimental import clarity_moments
+
             assert clarity_moments is not None
         except ImportError as e:
             pytest.fail(f"Не удалось импортировать модуль clarity_moments: {e}")
@@ -26,6 +27,7 @@ class TestClarityMomentsSmoke:
         """Тест успешного импорта класса ClarityMoments."""
         try:
             from src.experimental.clarity_moments import ClarityMoments
+
             assert ClarityMoments is not None
         except ImportError as e:
             pytest.fail(f"Не удалось импортировать класс ClarityMoments: {e}")
@@ -35,8 +37,8 @@ class TestClarityMomentsSmoke:
         clarity = ClarityMoments()
 
         assert clarity is not None
-        assert hasattr(clarity, '_last_check_tick')
-        assert hasattr(clarity, '_clarity_events_count')
+        assert hasattr(clarity, "_last_check_tick")
+        assert hasattr(clarity, "_clarity_events_count")
         assert clarity._clarity_events_count == 0
         assert clarity._last_check_tick == -ClarityMoments.CLARITY_CHECK_INTERVAL
 
@@ -49,11 +51,11 @@ class TestClarityMomentsSmoke:
 
     def test_constants_accessible(self):
         """Тест доступности констант."""
-        assert hasattr(ClarityMoments, 'CLARITY_STABILITY_THRESHOLD')
-        assert hasattr(ClarityMoments, 'CLARITY_ENERGY_THRESHOLD')
-        assert hasattr(ClarityMoments, 'CLARITY_DURATION_TICKS')
-        assert hasattr(ClarityMoments, 'CLARITY_CHECK_INTERVAL')
-        assert hasattr(ClarityMoments, 'CLARITY_SIGNIFICANCE_BOOST')
+        assert hasattr(ClarityMoments, "CLARITY_STABILITY_THRESHOLD")
+        assert hasattr(ClarityMoments, "CLARITY_ENERGY_THRESHOLD")
+        assert hasattr(ClarityMoments, "CLARITY_DURATION_TICKS")
+        assert hasattr(ClarityMoments, "CLARITY_CHECK_INTERVAL")
+        assert hasattr(ClarityMoments, "CLARITY_SIGNIFICANCE_BOOST")
 
         # Проверка разумных значений
         assert isinstance(ClarityMoments.CLARITY_STABILITY_THRESHOLD, float)
@@ -84,7 +86,7 @@ class TestClarityMomentsSmoke:
         self_state.energy = ClarityMoments.CLARITY_ENERGY_THRESHOLD + 0.1
         self_state.subjective_time = 100.0
 
-        with patch('time.time', return_value=123456.789):
+        with patch("time.time", return_value=123456.789):
             result = clarity.check_clarity_conditions(self_state)
 
         # Должен вернуть событие
@@ -102,9 +104,9 @@ class TestClarityMomentsSmoke:
         clarity.activate_clarity_moment(self_state)
 
         # Проверяем установку атрибутов
-        assert hasattr(self_state, 'clarity_state')
-        assert hasattr(self_state, 'clarity_duration')
-        assert hasattr(self_state, 'clarity_modifier')
+        assert hasattr(self_state, "clarity_state")
+        assert hasattr(self_state, "clarity_duration")
+        assert hasattr(self_state, "clarity_modifier")
 
     def test_update_clarity_state_basic(self):
         """Тест базового обновления состояния clarity."""
@@ -188,7 +190,7 @@ class TestClarityMomentsSmoke:
         self_state.subjective_time = 100.0
 
         # Последовательность вызовов должна пройти без исключений
-        with patch('time.time', return_value=123456.789):
+        with patch("time.time", return_value=123456.789):
             event = clarity.check_clarity_conditions(self_state)
 
         assert event is not None
@@ -236,7 +238,7 @@ class TestClarityMomentsSmoke:
         self_state.subjective_time = 100.0
 
         # Проверяем условия - должен вызвать логгер
-        with patch('time.time', return_value=123456.789):
+        with patch("time.time", return_value=123456.789):
             event = clarity.check_clarity_conditions(self_state)
 
         assert event is not None

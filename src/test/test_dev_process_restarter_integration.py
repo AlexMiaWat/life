@@ -67,9 +67,7 @@ class TestDevProcessRestarterIntegration:
 
                 # Сохраняем состояние
                 serializer = StateSerializer()
-                save_result = serializer.save_restart_state(
-                    self_state, event_queue, config
-                )
+                save_result = serializer.save_restart_state(self_state, event_queue, config)
                 assert save_result is True
                 assert os.path.exists(restart_file)
 
@@ -128,9 +126,7 @@ class TestDevProcessRestarterIntegration:
                     )
                     event_queue.push(event)
 
-                config = {
-                    "complex_config": {"nested": {"value": 123}, "list": [1, 2, 3]}
-                }
+                config = {"complex_config": {"nested": {"value": 123}, "list": [1, 2, 3]}}
 
                 # Сохраняем и загружаем
                 serializer = StateSerializer()
@@ -231,9 +227,7 @@ class TestDevProcessRestarterIntegration:
             sleep_time = min(timeout, 0.2) if timeout else 0.2
             time.sleep(sleep_time)
 
-        manager.register_component(
-            "slow_component", slow_shutdown, slow_join, timeout=0.05
-        )
+        manager.register_component("slow_component", slow_shutdown, slow_join, timeout=0.05)
 
         start_time = time.time()
         result = manager.initiate_shutdown()
@@ -305,9 +299,7 @@ class TestDevProcessRestarterIntegration:
                 config = {"integration_test": True}
 
                 # Сохраняем состояние через ProcessRestarter
-                save_result = restarter.save_state_for_restart(
-                    self_state, event_queue, config
-                )
+                save_result = restarter.save_state_for_restart(self_state, event_queue, config)
                 assert save_result is True
 
                 # Проверяем что файл создан
@@ -330,9 +322,7 @@ class TestDevProcessRestarterIntegration:
         with tempfile.TemporaryDirectory() as temp_dir:
             # Создаем копии файлов для отслеживания
             watched_files = []
-            for file_path in ProcessRestarter.FILES_TO_WATCH[
-                :2
-            ]:  # Только первые 2 для теста
+            for file_path in ProcessRestarter.FILES_TO_WATCH[:2]:  # Только первые 2 для теста
                 full_path = os.path.join(temp_dir, file_path)
                 os.makedirs(os.path.dirname(full_path), exist_ok=True)
                 with open(full_path, "w") as f:
@@ -417,9 +407,7 @@ class TestDevProcessRestarterIntegration:
                 config = {"restart_simulation": True}
 
                 # Шаг 3: Сохраняем состояние
-                save_result = restarter.save_state_for_restart(
-                    self_state, event_queue, config
-                )
+                save_result = restarter.save_state_for_restart(self_state, event_queue, config)
                 assert save_result is True
 
                 # Шаг 4: Имитируем обнаружение изменений в файлах
@@ -527,9 +515,7 @@ class TestDevProcessRestarterIntegration:
 
                     config = {"worker_id": worker_id}
 
-                    result = serializer.save_restart_state(
-                        mock_state, mock_queue, config
-                    )
+                    result = serializer.save_restart_state(mock_state, mock_queue, config)
                     results.append((worker_id, i, result))
             except Exception as e:
                 errors.append((worker_id, str(e)))

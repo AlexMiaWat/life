@@ -13,7 +13,7 @@ sys.path.insert(0, str(project_root / "src"))
 import pytest
 
 from src.memory.index_engine import MemoryIndexEngine, MemoryQuery
-from src.memory.types import MemoryEntry
+from src.memory.memory_types import MemoryEntry
 
 
 @pytest.mark.static
@@ -36,8 +36,9 @@ class TestMemoryIndexEngineStatic:
 
         # Проверяем константы модуля
         import src.memory.index_engine as index_module
-        assert hasattr(index_module, 'DEFAULT_MAX_CACHE_SIZE')
-        assert hasattr(index_module, 'DEFAULT_INDEX_UPDATE_BATCH_SIZE')
+
+        assert hasattr(index_module, "DEFAULT_MAX_CACHE_SIZE")
+        assert hasattr(index_module, "DEFAULT_INDEX_UPDATE_BATCH_SIZE")
 
     def test_memory_index_engine_constants(self):
         """Проверка констант MemoryIndexEngine"""
@@ -173,15 +174,17 @@ class TestMemoryIndexEngineStatic:
         source_code = inspect.getsource(MemoryIndexEngine)
 
         forbidden_patterns = [
-            "print(",      # Не используем print
-            "import os",   # Не используем os напрямую
+            "print(",  # Не используем print
+            "import os",  # Не используем os напрямую
             "import sys",  # Не используем sys напрямую
-            "eval(",       # Не используем eval
-            "exec(",       # Не используем exec
+            "eval(",  # Не используем eval
+            "exec(",  # Не используем exec
         ]
 
         for pattern in forbidden_patterns:
-            assert pattern not in source_code, f"Forbidden pattern '{pattern}' found in MemoryIndexEngine"
+            assert (
+                pattern not in source_code
+            ), f"Forbidden pattern '{pattern}' found in MemoryIndexEngine"
 
     def test_memory_index_engine_docstrings(self):
         """Проверка наличия docstrings в MemoryIndexEngine"""
@@ -265,7 +268,7 @@ class TestMemoryIndexEngineStatic:
             min_weight=0.0,
             max_weight=1.0,
             sort_by="timestamp",
-            sort_order="desc"
+            sort_order="desc",
         )
         assert valid_query is not None
 
@@ -352,7 +355,9 @@ class TestMemoryIndexEngineStatic:
         ]
 
         for method in forbidden_methods:
-            assert method.lower() not in source_code.lower(), f"MemoryIndexEngine не должен иметь метод {method}"
+            assert (
+                method.lower() not in source_code.lower()
+            ), f"MemoryIndexEngine не должен иметь метод {method}"
 
     def test_memory_index_engine_no_goals_or_rewards(self):
         """Проверка отсутствия целей и reward в MemoryIndexEngine"""
@@ -382,18 +387,25 @@ class TestMemoryIndexEngineStatic:
             if term == "rate":
                 # Проверяем что "rate" не используется как отдельный термин в коде
                 # (разрешаем только в названиях переменных)
-                lines_with_term = [line for line in source_clean.split('\n') if 'rate' in line.lower()]
+                lines_with_term = [
+                    line for line in source_clean.split("\n") if "rate" in line.lower()
+                ]
                 for line in lines_with_term:
                     # Разрешаем в контексте названий переменных
                     if any(var_name in line.lower() for var_name in ["cache_hit_rate", "rate ="]):
                         continue
                     # Проверяем что это не запрещенное использование
-                    if not any(allowed in line.lower() for allowed in ["cache_hit_rate", "hit_rate", "rate_min", "rate_max"]):
+                    if not any(
+                        allowed in line.lower()
+                        for allowed in ["cache_hit_rate", "hit_rate", "rate_min", "rate_max"]
+                    ):
                         # Это может быть в комментариях или документации - проверяем контекст
                         if not any(comment in line.lower() for comment in ["#", '"""', "'''"]):
                             assert False, f"Термин 'rate' найден в недопустимом контексте: {line}"
             else:
-                assert term.lower() not in source_clean.lower(), f"Термин {term} не должен использоваться в коде MemoryIndexEngine"
+                assert (
+                    term.lower() not in source_clean.lower()
+                ), f"Термин {term} не должен использоваться в коде MemoryIndexEngine"
 
 
 @pytest.mark.smoke
@@ -413,9 +425,7 @@ class TestMemoryIndexEngineSmoke:
 
         # С параметрами
         engine_custom = MemoryIndexEngine(
-            max_cache_size=500,
-            enable_composite_indexes=False,
-            enable_query_cache=False
+            max_cache_size=500, enable_composite_indexes=False, enable_query_cache=False
         )
         assert engine_custom is not None
         assert isinstance(engine_custom, MemoryIndexEngine)
@@ -537,9 +547,9 @@ class TestMemoryIndexEngineSmoke:
 
         # Разные timestamp
         entries = [
-            MemoryEntry("event", 0.5, 0.0),      # Минимальный timestamp
-            MemoryEntry("event", 0.5, 1000.0),   # Обычный timestamp
-            MemoryEntry("event", 0.5, 999999.0), # Большой timestamp
+            MemoryEntry("event", 0.5, 0.0),  # Минимальный timestamp
+            MemoryEntry("event", 0.5, 1000.0),  # Обычный timestamp
+            MemoryEntry("event", 0.5, 999999.0),  # Большой timestamp
         ]
 
         for entry in entries:
@@ -558,10 +568,7 @@ class TestMemoryIndexEngineSmoke:
     def test_memory_index_engine_disabled_features(self):
         """Дымовой тест с отключенными функциями"""
         # Отключаем composite indexes и query cache
-        engine = MemoryIndexEngine(
-            enable_composite_indexes=False,
-            enable_query_cache=False
-        )
+        engine = MemoryIndexEngine(enable_composite_indexes=False, enable_query_cache=False)
 
         entry = MemoryEntry("event", 0.5, 1000.0)
         engine.add_entry(entry)
@@ -684,7 +691,7 @@ class TestMemoryIndexEngineSmoke:
             min_significance=0.5,
             limit=50,
             sort_by="significance",
-            sort_order="asc"
+            sort_order="asc",
         )
         assert query_custom is not None
         assert isinstance(query_custom, MemoryQuery)
@@ -738,10 +745,7 @@ class TestMemoryIndexEngineSmoke:
     def test_memory_query_large_values(self):
         """Дымовой тест с большими значениями"""
         # Большие timestamp
-        query = MemoryQuery(
-            start_timestamp=999999999.0,
-            end_timestamp=9999999999.0
-        )
+        query = MemoryQuery(start_timestamp=999999999.0, end_timestamp=9999999999.0)
         assert query is not None
         assert isinstance(query.get_hash(), str)
 
@@ -754,7 +758,7 @@ class TestMemoryIndexEngineSmoke:
             start_timestamp=None,
             end_timestamp=None,
             min_weight=None,
-            max_weight=None
+            max_weight=None,
         )
         assert query is not None
         assert isinstance(query.get_hash(), str)
@@ -791,9 +795,7 @@ class TestMemoryIndexEngine:
         """Тест добавления и удаления записей"""
         engine = MemoryIndexEngine()
         entry = MemoryEntry(
-            event_type="test_event",
-            meaning_significance=0.8,
-            timestamp=time.time()
+            event_type="test_event", meaning_significance=0.8, timestamp=time.time()
         )
 
         # Добавляем запись
@@ -890,10 +892,7 @@ class TestMemoryIndexEngine:
             engine.add_entry(entry)
 
         # Ищем decay события с significance > 0.5
-        query = MemoryQuery(
-            event_type="decay",
-            min_significance=0.5
-        )
+        query = MemoryQuery(event_type="decay", min_significance=0.5)
         results = engine.search(query)
 
         assert len(results) == 2
@@ -958,10 +957,7 @@ class TestMemoryIndexEngine:
         engine = MemoryIndexEngine()
 
         # Создаем много записей
-        entries = [
-            MemoryEntry("event", 0.9 - i * 0.1, 1000.0 + i)
-            for i in range(10)
-        ]
+        entries = [MemoryEntry("event", 0.9 - i * 0.1, 1000.0 + i) for i in range(10)]
 
         for entry in entries:
             engine.add_entry(entry)
@@ -1027,9 +1023,7 @@ class TestMemoryIndexEngine:
             engine.add_entry(entry)
 
         # Тестируем фильтр по диапазону
-        filtered = engine._filter_by_timestamp_range(
-            engine.timestamp_entries, 1001.5, 1003.5
-        )
+        filtered = engine._filter_by_timestamp_range(engine.timestamp_entries, 1001.5, 1003.5)
 
         assert len(filtered) == 2  # timestamp 1002.0 и 1003.0
         assert filtered[0][0] == 1002.0
@@ -1043,10 +1037,7 @@ class TestMemoryQuery:
     def test_query_creation(self):
         """Тест создания запроса"""
         query = MemoryQuery(
-            event_type="decay",
-            min_significance=0.5,
-            start_timestamp=1000.0,
-            limit=10
+            event_type="decay", min_significance=0.5, start_timestamp=1000.0, limit=10
         )
 
         assert query.event_type == "decay"

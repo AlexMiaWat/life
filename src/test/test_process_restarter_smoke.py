@@ -331,9 +331,7 @@ class TestProcessRestarterSmoke:
         def worker(worker_id):
             try:
                 mock_state = Mock()
-                mock_state.to_dict.return_value = {
-                    f"worker_{worker_id}": f"value_{worker_id}"
-                }
+                mock_state.to_dict.return_value = {f"worker_{worker_id}": f"value_{worker_id}"}
 
                 mock_queue = Mock()
                 mock_queue.to_dict.return_value = [f"event_{worker_id}"]

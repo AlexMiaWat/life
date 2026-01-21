@@ -79,10 +79,7 @@ class TestActivateMemory:
         assert len(activated) == 5
         # Проверяем сортировку по убыванию
         for i in range(len(activated) - 1):
-            assert (
-                activated[i].meaning_significance
-                >= activated[i + 1].meaning_significance
-            )
+            assert activated[i].meaning_significance >= activated[i + 1].meaning_significance
 
     def test_activate_memory_limit_default(self):
         """Тест ограничения количества результатов (по умолчанию limit=3)"""

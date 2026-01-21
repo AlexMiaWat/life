@@ -13,13 +13,10 @@ from unittest.mock import Mock, patch
 
 # Добавляем src в путь
 import sys
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'src'))
 
-from src.observability.external_observer import (
-    ExternalObserver,
-    SystemMetrics,
-    BehaviorPattern
-)
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
+
+from src.observability.external_observer import ExternalObserver, SystemMetrics, BehaviorPattern
 from src.state.self_state import SelfState
 from src.observability.structured_logger import StructuredLogger
 from src.runtime.loop import run_loop
@@ -43,8 +40,7 @@ class TestExternalObserverIntegrationNew(unittest.TestCase):
 
         # Создаем observer с временными путями
         self.observer = ExternalObserver(
-            logs_directory=self.logs_dir,
-            snapshots_directory=self.snapshots_dir
+            logs_directory=self.logs_dir, snapshots_directory=self.snapshots_dir
         )
 
         # Создаем компоненты для интеграции
@@ -55,6 +51,7 @@ class TestExternalObserverIntegrationNew(unittest.TestCase):
         """Очистка после тестов."""
         # Удаляем временные файлы
         import shutil
+
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     def test_observe_from_logs_with_structured_logger(self):
@@ -69,29 +66,29 @@ class TestExternalObserverIntegrationNew(unittest.TestCase):
                 "event_type": "system_start",
                 "component": "runtime",
                 "cycle_count": 100,
-                "energy_level": 0.9
+                "energy_level": 0.9,
             },
             {
                 "timestamp": time.time() - 200,
                 "event_type": "adaptation_cycle",
                 "component": "adaptation",
                 "stability": 0.85,
-                "learning_effectiveness": 0.8
+                "learning_effectiveness": 0.8,
             },
             {
                 "timestamp": time.time() - 100,
                 "event_type": "error_occurred",
                 "component": "memory",
                 "error_count": 1,
-                "integrity_score": 0.95
-            }
+                "integrity_score": 0.95,
+            },
         ]
 
         # Создаем файл с логами
         log_file = self.logs_dir / "structured_log.jsonl"
-        with open(log_file, 'w') as f:
+        with open(log_file, "w") as f:
             for log_entry in test_logs:
-                f.write(json.dumps(log_entry) + '\n')
+                f.write(json.dumps(log_entry) + "\n")
 
         # Выполняем наблюдение
         start_time = time.time() - 600
@@ -120,7 +117,7 @@ class TestExternalObserverIntegrationNew(unittest.TestCase):
                 "memory_entries": 50,
                 "learning_effectiveness": 0.8,
                 "adaptation_rate": 0.7,
-                "error_count": 1
+                "error_count": 1,
             },
             {
                 "timestamp": time.time() - 100,
@@ -131,7 +128,7 @@ class TestExternalObserverIntegrationNew(unittest.TestCase):
                 "memory_entries": 75,
                 "learning_effectiveness": 0.82,
                 "adaptation_rate": 0.72,
-                "error_count": 2
+                "error_count": 2,
             },
             {
                 "timestamp": time.time(),
@@ -142,15 +139,15 @@ class TestExternalObserverIntegrationNew(unittest.TestCase):
                 "memory_entries": 100,
                 "learning_effectiveness": 0.85,
                 "adaptation_rate": 0.75,
-                "error_count": 3
-            }
+                "error_count": 3,
+            },
         ]
 
         # Создаем файлы снимков
         snapshot_paths = []
         for i, snapshot_data in enumerate(snapshots_data):
             snapshot_file = self.snapshots_dir / f"snapshot_{i}.json"
-            with open(snapshot_file, 'w') as f:
+            with open(snapshot_file, "w") as f:
                 json.dump(snapshot_data, f)
             snapshot_paths.append(snapshot_file)
 
@@ -222,19 +219,19 @@ class TestExternalObserverIntegrationNew(unittest.TestCase):
                     "event_type": "runtime_tick",
                     "component": "runtime",
                     "cycle_count": 10,
-                    "energy_level": 0.95
+                    "energy_level": 0.95,
                 },
                 {
                     "timestamp": time.time() - 3,
                     "event_type": "state_update",
                     "component": "self_state",
                     "stability": 0.9,
-                    "integrity": 0.98
-                }
+                    "integrity": 0.98,
+                },
             ]
-            with open(log_file, 'w') as f:
+            with open(log_file, "w") as f:
                 for log_entry in test_logs:
-                    f.write(json.dumps(log_entry) + '\n')
+                    f.write(json.dumps(log_entry) + "\n")
 
         report = self.observer.observe_from_logs(start_time, end_time)
 
@@ -253,15 +250,15 @@ class TestExternalObserverIntegrationNew(unittest.TestCase):
                         "timestamp": time.time() - 300,
                         "event_type": "session_start",
                         "cycle_count": 0,
-                        "energy_level": 1.0
+                        "energy_level": 1.0,
                     },
                     {
                         "timestamp": time.time() - 250,
                         "event_type": "normal_operation",
                         "cycle_count": 50,
-                        "energy_level": 0.95
-                    }
-                ]
+                        "energy_level": 0.95,
+                    },
+                ],
             },
             {
                 "session": 2,
@@ -270,34 +267,34 @@ class TestExternalObserverIntegrationNew(unittest.TestCase):
                         "timestamp": time.time() - 200,
                         "event_type": "session_start",
                         "cycle_count": 0,
-                        "energy_level": 1.0
+                        "energy_level": 1.0,
                     },
                     {
                         "timestamp": time.time() - 150,
                         "event_type": "high_load",
                         "cycle_count": 100,
-                        "energy_level": 0.7
+                        "energy_level": 0.7,
                     },
                     {
                         "timestamp": time.time() - 100,
                         "event_type": "recovery",
                         "cycle_count": 150,
-                        "energy_level": 0.85
-                    }
-                ]
-            }
+                        "energy_level": 0.85,
+                    },
+                ],
+            },
         ]
 
         # Создаем логи для каждой сессии
         for session_data in sessions_data:
             session_logs_file = self.logs_dir / f"session_{session_data['session']}_log.jsonl"
-            with open(session_logs_file, 'w') as f:
-                for log_entry in session_data['logs']:
-                    f.write(json.dumps(log_entry) + '\n')
+            with open(session_logs_file, "w") as f:
+                for log_entry in session_data["logs"]:
+                    f.write(json.dumps(log_entry) + "\n")
 
             # Выполняем наблюдение для каждой сессии
-            start_time = min(log['timestamp'] for log in session_data['logs']) - 10
-            end_time = max(log['timestamp'] for log in session_data['logs']) + 10
+            start_time = min(log["timestamp"] for log in session_data["logs"]) - 10
+            end_time = max(log["timestamp"] for log in session_data["logs"]) + 10
             report = self.observer.observe_from_logs(start_time, end_time)
 
             self.assertIsNotNone(report)
@@ -314,11 +311,11 @@ class TestExternalObserverIntegrationNew(unittest.TestCase):
         """Интеграционный тест обработки ошибок в наблюдателе."""
         # Создаем файл с некорректными данными
         corrupted_log_file = self.logs_dir / "corrupted_log.jsonl"
-        with open(corrupted_log_file, 'w') as f:
+        with open(corrupted_log_file, "w") as f:
             f.write("invalid json line 1\n")
-            f.write('{"valid": "json", "timestamp": ' + str(time.time()) + '}\n')
+            f.write('{"valid": "json", "timestamp": ' + str(time.time()) + "}\n")
             f.write("another invalid line\n")
-            f.write('{"another": "valid", "timestamp": ' + str(time.time()) + '}\n')
+            f.write('{"another": "valid", "timestamp": ' + str(time.time()) + "}\n")
 
         # Выполняем наблюдение - должно обработать ошибки gracefully
         start_time = time.time() - 100
@@ -340,7 +337,7 @@ class TestExternalObserverIntegrationNew(unittest.TestCase):
         report = self.observer.observe_from_logs(time.time() - 3600, time.time())
 
         # Сохраняем отчет
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             temp_file = f.name
 
         try:
@@ -350,13 +347,13 @@ class TestExternalObserverIntegrationNew(unittest.TestCase):
             self.assertTrue(Path(saved_path).exists())
 
             # Проверяем содержимое файла
-            with open(saved_path, 'r') as f:
+            with open(saved_path, "r") as f:
                 content = f.read()
                 self.assertIn("observation_period", content)
                 self.assertIn("metrics_summary", content)
 
             # Проверяем что можем загрузить и распарсить JSON
-            with open(saved_path, 'r') as f:
+            with open(saved_path, "r") as f:
                 loaded_data = json.load(f)
                 self.assertIsInstance(loaded_data, dict)
                 self.assertIn("observation_period", loaded_data)
@@ -373,29 +370,33 @@ class TestExternalObserverIntegrationNew(unittest.TestCase):
         # Паттерн 1: Периодические спады энергии
         base_time = time.time() - 1000
         for i in range(10):
-            pattern_logs.append({
-                "timestamp": base_time + i * 100,
-                "event_type": "energy_drop" if i % 3 == 0 else "normal_operation",
-                "cycle_count": i * 10,
-                "energy_level": 0.6 if i % 3 == 0 else 0.9,
-                "stability": 0.8
-            })
+            pattern_logs.append(
+                {
+                    "timestamp": base_time + i * 100,
+                    "event_type": "energy_drop" if i % 3 == 0 else "normal_operation",
+                    "cycle_count": i * 10,
+                    "energy_level": 0.6 if i % 3 == 0 else 0.9,
+                    "stability": 0.8,
+                }
+            )
 
         # Паттерн 2: Периодические пики активности обучения
         for i in range(8):
-            pattern_logs.append({
-                "timestamp": base_time + i * 120,
-                "event_type": "learning_burst" if i % 4 == 0 else "normal_operation",
-                "cycle_count": 100 + i * 5,
-                "learning_effectiveness": 0.95 if i % 4 == 0 else 0.7,
-                "adaptation_rate": 0.8
-            })
+            pattern_logs.append(
+                {
+                    "timestamp": base_time + i * 120,
+                    "event_type": "learning_burst" if i % 4 == 0 else "normal_operation",
+                    "cycle_count": 100 + i * 5,
+                    "learning_effectiveness": 0.95 if i % 4 == 0 else 0.7,
+                    "adaptation_rate": 0.8,
+                }
+            )
 
         # Сохраняем логи
         log_file = self.logs_dir / "pattern_log.jsonl"
-        with open(log_file, 'w') as f:
+        with open(log_file, "w") as f:
             for log_entry in pattern_logs:
-                f.write(json.dumps(log_entry) + '\n')
+                f.write(json.dumps(log_entry) + "\n")
 
         # Выполняем наблюдение
         start_time = base_time - 100
@@ -416,7 +417,7 @@ class TestExternalObserverIntegrationNew(unittest.TestCase):
         large_log_file = self.logs_dir / "large_log.jsonl"
         base_time = time.time() - 3600
 
-        with open(large_log_file, 'w') as f:
+        with open(large_log_file, "w") as f:
             for i in range(1000):  # 1000 записей
                 log_entry = {
                     "timestamp": base_time + i * 3.6,  # Равномерно распределены по часу
@@ -424,9 +425,9 @@ class TestExternalObserverIntegrationNew(unittest.TestCase):
                     "cycle_count": i,
                     "energy_level": 0.8 + 0.2 * (i % 2),  # Небольшая вариация
                     "stability": 0.85,
-                    "integrity": 0.9
+                    "integrity": 0.9,
                 }
-                f.write(json.dumps(log_entry) + '\n')
+                f.write(json.dumps(log_entry) + "\n")
 
         # Замеряем время выполнения наблюдения
         start_observation = time.time()
@@ -453,20 +454,20 @@ class TestExternalObserverIntegrationNew(unittest.TestCase):
                 "timestamp": base_time + 300,
                 "event_type": "log_event_1",
                 "energy_level": 0.9,
-                "stability": 0.85
+                "stability": 0.85,
             },
             {
                 "timestamp": base_time + 600,
                 "event_type": "log_event_2",
                 "energy_level": 0.8,
-                "learning_effectiveness": 0.75
-            }
+                "learning_effectiveness": 0.75,
+            },
         ]
 
         log_file = self.logs_dir / "mixed_log.jsonl"
-        with open(log_file, 'w') as f:
+        with open(log_file, "w") as f:
             for entry in log_entries:
-                f.write(json.dumps(entry) + '\n')
+                f.write(json.dumps(entry) + "\n")
 
         # Снимки
         snapshot_data = {
@@ -475,11 +476,11 @@ class TestExternalObserverIntegrationNew(unittest.TestCase):
             "energy_level": 0.85,
             "stability": 0.88,
             "memory_entries": 200,
-            "learning_effectiveness": 0.8
+            "learning_effectiveness": 0.8,
         }
 
         snapshot_file = self.snapshots_dir / "mixed_snapshot.json"
-        with open(snapshot_file, 'w') as f:
+        with open(snapshot_file, "w") as f:
             json.dump(snapshot_data, f)
 
         # Выполняем оба типа наблюдения
@@ -498,5 +499,5 @@ class TestExternalObserverIntegrationNew(unittest.TestCase):
         self.assertEqual(summary["total_observations"], 2)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

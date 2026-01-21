@@ -30,9 +30,7 @@ class PerformanceBaseline:
                 with open(self.baseline_file, "r", encoding="utf-8") as f:
                     return json.load(f)
             except Exception as e:
-                logger.warning(
-                    f"Не удалось загрузить baseline файл {self.baseline_file}: {e}"
-                )
+                logger.warning(f"Не удалось загрузить baseline файл {self.baseline_file}: {e}")
                 return {}
         return {}
 
@@ -42,9 +40,7 @@ class PerformanceBaseline:
             with open(self.baseline_file, "w", encoding="utf-8") as f:
                 json.dump(self.baselines, f, indent=2, ensure_ascii=False)
         except Exception as e:
-            logger.error(
-                f"Не удалось сохранить baseline файл {self.baseline_file}: {e}"
-            )
+            logger.error(f"Не удалось сохранить baseline файл {self.baseline_file}: {e}")
 
     def get_baseline(self, test_name: str, metric: str) -> Optional[float]:
         """Получить baseline значение для теста и метрики."""
@@ -109,21 +105,15 @@ class PerformanceBaseline:
             # Для времени: регрессия если текущее время > baseline * (1 + threshold/100)
             regression_threshold = baseline_value * (1 + threshold_percent / 100)
             is_regression = current_value > regression_threshold
-            deviation_percent = (
-                (current_value - baseline_value) / baseline_value
-            ) * 100
+            deviation_percent = ((current_value - baseline_value) / baseline_value) * 100
         elif metric in ["ticks_per_second"]:
             # Для производительности: регрессия если текущее значение < baseline * (1 - threshold/100)
             regression_threshold = baseline_value * (1 - threshold_percent / 100)
             is_regression = current_value < regression_threshold
-            deviation_percent = (
-                (baseline_value - current_value) / baseline_value
-            ) * 100
+            deviation_percent = ((baseline_value - current_value) / baseline_value) * 100
         else:
             # По умолчанию: регрессия если отклонение > threshold_percent
-            deviation_percent = (
-                abs((current_value - baseline_value) / baseline_value) * 100
-            )
+            deviation_percent = abs((current_value - baseline_value) / baseline_value) * 100
             is_regression = deviation_percent > threshold_percent
 
         if is_regression:

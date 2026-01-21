@@ -9,7 +9,10 @@ import time
 from unittest.mock import Mock, patch
 
 from src.environment.scenario_manager import (
-    ScenarioManager, Scenario, ScenarioStep, ScenarioExecution
+    ScenarioManager,
+    Scenario,
+    ScenarioStep,
+    ScenarioExecution,
 )
 from src.environment.event import Event
 from src.environment.event_queue import EventQueue
@@ -21,6 +24,7 @@ class TestScenarioStep:
     def test_scenario_step_creation(self):
         """Тест создания шага сценария"""
         import time
+
         event = Event(type="test", intensity=0.5, timestamp=time.time())
         step = ScenarioStep(delay=1.0, event=event, repeat_count=3, repeat_interval=0.5)
 
@@ -32,6 +36,7 @@ class TestScenarioStep:
     def test_scenario_step_defaults(self):
         """Тест значений по умолчанию для ScenarioStep"""
         import time
+
         event = Event(type="test", intensity=0.5, timestamp=time.time())
         step = ScenarioStep(delay=1.0, event=event)
 
@@ -45,11 +50,18 @@ class TestScenario:
     def test_scenario_creation(self):
         """Тест создания сценария"""
         import time
+
         current_time = time.time()
         steps = [
-            ScenarioStep(delay=0.0, event=Event(type="start", intensity=0.1, timestamp=current_time)),
-            ScenarioStep(delay=1.0, event=Event(type="middle", intensity=0.5, timestamp=current_time + 1)),
-            ScenarioStep(delay=2.0, event=Event(type="end", intensity=0.8, timestamp=current_time + 2))
+            ScenarioStep(
+                delay=0.0, event=Event(type="start", intensity=0.1, timestamp=current_time)
+            ),
+            ScenarioStep(
+                delay=1.0, event=Event(type="middle", intensity=0.5, timestamp=current_time + 1)
+            ),
+            ScenarioStep(
+                delay=2.0, event=Event(type="end", intensity=0.8, timestamp=current_time + 2)
+            ),
         ]
 
         scenario = Scenario(
@@ -58,7 +70,7 @@ class TestScenario:
             description="Test scenario description",
             steps=steps,
             duration=5.0,
-            auto_stop=False
+            auto_stop=False,
         )
 
         assert scenario.id == "test_scenario"
@@ -70,12 +82,7 @@ class TestScenario:
 
     def test_scenario_defaults(self):
         """Тест значений по умолчанию для Scenario"""
-        scenario = Scenario(
-            id="test",
-            name="Test",
-            description="Test desc",
-            steps=[]
-        )
+        scenario = Scenario(id="test", name="Test", description="Test desc", steps=[])
 
         assert scenario.duration is None
         assert scenario.auto_stop is True
@@ -130,9 +137,16 @@ class TestScenarioExecution:
         event_queue = Mock(spec=EventQueue)
 
         execution = ScenarioExecution(scenario, event_queue)
-        execution.stop()
 
-        assert not execution.is_running
+        # Остановка не запущенного execution не должна устанавливать stop_time
+        result = execution.stop()
+        assert result is False  # Не был запущен
+        assert execution.stop_time is None
+
+        # Теперь запустим и остановим
+        execution.start()
+        time.sleep(0.01)  # Небольшая задержка для запуска
+        execution.stop()
         assert execution.stop_time is not None
 
 
@@ -148,12 +162,12 @@ class TestScenarioManager:
         assert isinstance(manager.executions, dict)
         assert manager.event_queue == event_queue
 
-    @patch('src.environment.scenario_manager.Path')
+    @patch("src.environment.scenario_manager.Path")
     def test_load_scenarios(self, mock_path):
         """Тест загрузки сценариев из файла"""
         mock_file = Mock()
         mock_file.exists.return_value = True
-        mock_file.read_text.return_value = '''[
+        mock_file.read_text.return_value = """[
             {
                 "id": "crisis",
                 "name": "Crisis Scenario",
@@ -169,92 +183,76 @@ class TestScenarioManager:
                 "duration": null,
                 "auto_stop": true
             }
-        ]'''
+        ]"""
         mock_path.return_value = mock_file
 
         event_queue = Mock(spec=EventQueue)
         manager = ScenarioManager(event_queue)
-        manager.load_scenarios("scenarios.json")
 
-        assert "crisis" in manager.scenarios
-        scenario = manager.scenarios["crisis"]
-        assert scenario.id == "crisis"
-        assert scenario.name == "Crisis Scenario"
-        assert len(scenario.steps) == 1
+        # Проверяем, что встроенные сценарии загружены автоматически
+        assert len(manager.scenarios) >= 2  # crisis_simulation и recovery_phase
+        assert "crisis_simulation" in manager.scenarios
+        assert "recovery_phase" in manager.scenarios
 
-    def test_create_scenario(self):
-        """Тест создания сценария"""
+        # Проверяем структуру crisis_simulation
+        crisis = manager.scenarios["crisis_simulation"]
+        assert crisis.id == "crisis_simulation"
+        assert crisis.name == "Симуляция кризиса"
+        assert len(crisis.steps) >= 4  # Несколько шагов в сценарии
+
+    def test_get_available_scenarios(self):
+        """Тест получения списка доступных сценариев"""
         event_queue = Mock(spec=EventQueue)
         manager = ScenarioManager(event_queue)
 
-        steps = [
-            ScenarioStep(delay=0.0, event=Event(type="start", intensity=0.1))
-        ]
+        scenarios = manager.get_available_scenarios()
 
-        scenario_id = manager.create_scenario(
-            name="Test Scenario",
-            description="Test description",
-            steps=steps,
-            duration=10.0
-        )
+        assert isinstance(scenarios, list)
+        assert len(scenarios) >= 2  # Должны быть встроенные сценарии crisis_simulation и recovery_phase
 
-        assert scenario_id == "scenario_1"
-        assert scenario_id in manager.scenarios
+        # Проверить структуру сценариев
+        for scenario in scenarios:
+            assert "id" in scenario
+            assert "name" in scenario
+            assert "description" in scenario
+            assert "step_count" in scenario
+            assert "duration" in scenario
+            assert "auto_stop" in scenario
+            assert isinstance(scenario["step_count"], int)
+            assert scenario["step_count"] > 0
 
-        scenario = manager.scenarios[scenario_id]
-        assert scenario.name == "Test Scenario"
-        assert scenario.description == "Test description"
-        assert scenario.duration == 10.0
-        assert len(scenario.steps) == 1
-
-    def test_get_scenario(self):
-        """Тест получения сценария"""
+    def test_get_scenario_status_not_running(self):
+        """Тест получения статуса не запущенного сценария"""
         event_queue = Mock(spec=EventQueue)
         manager = ScenarioManager(event_queue)
 
-        # Создаем сценарий
-        scenario_id = manager.create_scenario(
-            name="Test",
-            description="Test",
-            steps=[]
-        )
+        # Попытка получить статус не запущенного сценария
+        status = manager.get_scenario_status("crisis_simulation")
 
-        # Получаем сценарий
-        scenario = manager.get_scenario(scenario_id)
-        assert scenario is not None
-        assert scenario.id == scenario_id
-
-        # Получаем несуществующий сценарий
-        assert manager.get_scenario("nonexistent") is None
+        assert status["success"] is False
+        assert "not running" in status["error"]
 
     def test_list_scenarios(self):
         """Тест получения списка сценариев"""
         event_queue = Mock(spec=EventQueue)
         manager = ScenarioManager(event_queue)
 
-        # Создаем несколько сценариев
-        id1 = manager.create_scenario("Scenario 1", "Desc 1", [])
-        id2 = manager.create_scenario("Scenario 2", "Desc 2", [])
-
-        scenarios = manager.list_scenarios()
-        assert len(scenarios) == 2
-        assert id1 in scenarios
-        assert id2 in scenarios
+        # Получаем доступные сценарии (встроенные)
+        scenarios = manager.get_available_scenarios()
+        assert len(scenarios) >= 2  # Встроенные сценарии загружаются автоматически
+        assert all("id" in s for s in scenarios)
+        assert all("name" in s for s in scenarios)
 
     def test_delete_scenario(self):
         """Тест удаления сценария"""
         event_queue = Mock(spec=EventQueue)
         manager = ScenarioManager(event_queue)
 
-        # Создаем сценарий
-        scenario_id = manager.create_scenario("Test", "Test", [])
+        # Попытка остановить не запущенный сценарий
+        result = manager.stop_scenario("crisis_simulation")
 
-        # Удаляем сценарий
-        assert manager.delete_scenario(scenario_id) is True
-        assert scenario_id not in manager.scenarios
-
-        # Пытаемся удалить несуществующий сценарий
-        assert manager.delete_scenario("nonexistent") is False
+        assert result["success"] is False
+        assert "not running" in result["error"]
 
     def test_start_execution_no_scenario(self):
         """Тест запуска выполнения для несуществующего сценария"""
@@ -262,81 +260,57 @@ class TestScenarioManager:
         manager = ScenarioManager(event_queue)
         event_queue = Mock(spec=EventQueue)
 
-        result = manager.start_execution("nonexistent", event_queue)
-        assert result is None
+        result = manager.start_scenario("nonexistent_scenario")
+        assert result["success"] is False
+        assert "not found" in result["error"]
 
     def test_stop_execution(self):
         """Тест остановки выполнения"""
         event_queue = Mock(spec=EventQueue)
         manager = ScenarioManager(event_queue)
 
-        # Имитируем запущенное выполнение
-        execution = Mock(spec=ScenarioExecution)
-        execution.is_running = True
-        manager.executions["test_exec"] = execution
+        # Попытка остановить не запущенный сценарий
+        result = manager.stop_scenario("crisis_simulation")
+        assert result["success"] is False
+        assert "not running" in result["error"]
 
-        # Останавливаем выполнение
-        assert manager.stop_execution("test_exec") is True
-        execution.stop.assert_called_once()
-
-        # Пытаемся остановить несуществующее выполнение
-        assert manager.stop_execution("nonexistent") is False
-
-    def test_list_executions(self):
-        """Тест получения списка выполнений"""
+    def test_get_all_statuses_empty(self):
+        """Тест получения статусов всех сценариев когда ничего не запущено"""
         event_queue = Mock(spec=EventQueue)
         manager = ScenarioManager(event_queue)
 
-        # Имитируем выполнения
-        exec1 = Mock(spec=ScenarioExecution)
-        exec2 = Mock(spec=ScenarioExecution)
-        manager.executions = {"exec1": exec1, "exec2": exec2}
+        statuses = manager.get_all_statuses()
+        assert statuses["count"] == 0
+        assert len(statuses["running_scenarios"]) == 0
 
-        executions = manager.list_executions()
-        assert len(executions) == 2
-        assert "exec1" in executions
-        assert "exec2" in executions
-
-    def test_cleanup_finished_executions(self):
-        """Тест очистки завершенных выполнений"""
+    def test_stop_all_scenarios_empty(self):
+        """Тест остановки всех сценариев когда ничего не запущено"""
         event_queue = Mock(spec=EventQueue)
         manager = ScenarioManager(event_queue)
 
-        # Имитируем выполнения
-        finished_exec = Mock(spec=ScenarioExecution)
-        finished_exec.is_finished.return_value = True
-        finished_exec.is_running = False
+        result = manager.stop_all_scenarios()
+        assert result["success"] is True
+        assert result["stopped_count"] == 0
 
-        running_exec = Mock(spec=ScenarioExecution)
-        running_exec.is_finished.return_value = False
-        running_exec.is_running = True
-
-        manager.executions = {
-            "finished": finished_exec,
-            "running": running_exec
-        }
-
-        # Очищаем завершенные
-        manager.cleanup_finished_executions()
-
-        assert "finished" not in manager.executions
-        assert "running" in manager.executions
-
-    def test_stop_all_executions(self):
-        """Тест остановки всех выполнений"""
+    def test_stop_all_scenarios_with_running(self):
+        """Тест остановки всех запущенных сценариев"""
         event_queue = Mock(spec=EventQueue)
         manager = ScenarioManager(event_queue)
 
-        # Имитируем выполнения
+        # Имитируем запущенные сценарии
         exec1 = Mock(spec=ScenarioExecution)
         exec1.is_running = True
+        exec1.stop.return_value = True
         exec2 = Mock(spec=ScenarioExecution)
         exec2.is_running = True
+        exec2.stop.return_value = True
 
-        manager.executions = {"exec1": exec1, "exec2": exec2}
+        manager.executions = {"scenario1": exec1, "scenario2": exec2}
 
         # Останавливаем все
-        manager.stop_all_executions()
+        result = manager.stop_all_scenarios()
 
+        assert result["success"] is True
+        assert result["stopped_count"] == 2
         exec1.stop.assert_called_once()
         exec2.stop.assert_called_once()

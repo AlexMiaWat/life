@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 from .index_engine import MemoryIndexEngine, MemoryQuery
-from .types import MemoryEntry
+from .memory_types import MemoryEntry
 
 # Папка для архивов
 ARCHIVE_DIR = Path("data/archive")
@@ -45,9 +45,7 @@ class ArchiveMemory:
             try:
                 with self.archive_file.open("r") as f:
                     data = json.load(f)
-                    self._entries = [
-                        MemoryEntry(**entry) for entry in data.get("entries", [])
-                    ]
+                    self._entries = [MemoryEntry(**entry) for entry in data.get("entries", [])]
                     # Индексируем загруженные записи
                     for entry in self._entries:
                         self._index_engine.add_entry(entry)
@@ -100,7 +98,7 @@ class ArchiveMemory:
             event_type=event_type,
             min_significance=min_significance,
             start_timestamp=start_timestamp,
-            end_timestamp=end_timestamp
+            end_timestamp=end_timestamp,
         )
         return self._index_engine.search(query)
 
@@ -164,9 +162,7 @@ class Memory(list):
         self.archive = archive
         self._max_size = 50  # Максимальный размер активной памяти
         self._min_weight_threshold = 0.1  # Порог веса для автоматического удаления
-        self._serialized_cache = (
-            None  # Кэш сериализованных записей для оптимизации snapshot
-        )
+        self._serialized_cache = None  # Кэш сериализованных записей для оптимизации snapshot
 
         # Индексный движок для быстрого поиска
         self._index_engine = MemoryIndexEngine()
@@ -227,9 +223,7 @@ class Memory(list):
         self._invalidate_cache()  # Инвалидируем кэш перед изменениями
 
         # Сначала удаляем записи с весом ниже порога
-        self[:] = [
-            entry for entry in self if entry.weight >= self._min_weight_threshold
-        ]
+        self[:] = [entry for entry in self if entry.weight >= self._min_weight_threshold]
 
         # Затем ограничиваем размер, удаляя записи с наименьшим весом
         if len(self) > self._max_size:
@@ -371,9 +365,7 @@ class Memory(list):
             entry.weight *= age_factor
 
             # Учитываем значимость (более значимые записи забываются медленнее)
-            significance_factor = (
-                0.5 + 0.5 * entry.meaning_significance
-            )  # От 0.5 до 1.0
+            significance_factor = 0.5 + 0.5 * entry.meaning_significance  # От 0.5 до 1.0
             entry.weight *= significance_factor
 
             # Ограничиваем минимальным весом

@@ -310,9 +310,7 @@ class TestProcessRestarterStatic:
         ]
 
         for forbidden in forbidden_imports:
-            assert (
-                forbidden not in source_code
-            ), f"Запрещенный импорт найден: {forbidden}"
+            assert forbidden not in source_code, f"Запрещенный импорт найден: {forbidden}"
 
     def test_architecture_compliance(self):
         """Проверка соответствия архитектуре dev-mode"""

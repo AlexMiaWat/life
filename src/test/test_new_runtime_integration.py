@@ -76,7 +76,10 @@ class TestNewFunctionalityIntegration:
         learning_engine.get_parameters.return_value = {"learning_rate": 0.12, "progress": 0.68}
 
         adaptation_manager = Mock()
-        adaptation_manager.get_parameters.return_value = {"adaptation_rate": 0.18, "stability": 0.79}
+        adaptation_manager.get_parameters.return_value = {
+            "adaptation_rate": 0.18,
+            "stability": 0.79,
+        }
 
         decision_engine = Mock()
         decision_engine.get_recent_decisions.return_value = [
@@ -92,7 +95,7 @@ class TestNewFunctionalityIntegration:
         report = monitor.analyze_snapshot(snapshot)
 
         # Сохранение и загрузка
-        with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix='.json') as f:
+        with tempfile.NamedTemporaryFile(mode="w+", delete=False, suffix=".json") as f:
             temp_path = f.name
 
         try:
@@ -107,6 +110,7 @@ class TestNewFunctionalityIntegration:
 
         finally:
             import os
+
             os.unlink(temp_path)
 
     def test_clarity_moments_integration_with_runtime(self):
@@ -118,7 +122,7 @@ class TestNewFunctionalityIntegration:
         for tick in range(50):
             self_state.ticks = tick
             self_state.stability = 0.82  # Высокая стабильность
-            self_state.energy = 0.78    # Высокая энергия
+            self_state.energy = 0.78  # Высокая энергия
             self_state.subjective_time = tick * 1.2
 
             # Проверяем условия активации
@@ -145,7 +149,7 @@ class TestNewFunctionalityIntegration:
         self_state.subjective_time_base_rate = 1.0
         self_state.last_event_intensity = 0.2
         self_state.stability = 0.88  # Высокая стабильность
-        self_state.energy = 0.82    # Высокая энергия
+        self_state.energy = 0.82  # Высокая энергия
         self_state.subjective_time_intensity_coeff = 0.1
         self_state.subjective_time_stability_coeff = 0.2
         self_state.subjective_time_energy_coeff = 0.05
@@ -213,7 +217,7 @@ class TestNewFunctionalityIntegration:
         self_state.energy = ClarityMoments.CLARITY_ENERGY_THRESHOLD + 0.1
         self_state.subjective_time = 100.0
 
-        with patch('time.time', return_value=123456.789):
+        with patch("time.time", return_value=123456.789):
             event = clarity.check_clarity_conditions(self_state)
 
         if event:
@@ -270,7 +274,10 @@ class TestNewFunctionalityIntegration:
         learning_engine.get_parameters.return_value = {"learning_rate": 0.1, "progress": 0.6}
 
         adaptation_manager = Mock()
-        adaptation_manager.get_parameters.return_value = {"adaptation_rate": 0.15, "stability": 0.75}
+        adaptation_manager.get_parameters.return_value = {
+            "adaptation_rate": 0.15,
+            "stability": 0.75,
+        }
 
         decision_engine = Mock()
         decision_engine.get_recent_decisions.return_value = [

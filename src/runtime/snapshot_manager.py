@@ -4,6 +4,7 @@ SnapshotManager: управление снапшотами состояния Li
 Инкапсулирует логику периодического сохранения снапшотов,
 изолируя I/O операции от основного runtime loop.
 """
+
 import logging
 from typing import Any, Callable, Dict, Optional
 
@@ -15,11 +16,11 @@ logger = logging.getLogger(__name__)
 class SnapshotManager:
     """
     Менеджер снапшотов состояния Life.
-    
+
     Управляет периодичностью создания снапшотов на основе количества тиков,
     изолирует обработку ошибок и I/O операции от основного цикла.
     """
-    
+
     def __init__(self, period_ticks: int, saver: Callable[[SelfState], None]):
         """
         Инициализация менеджера снапшотов.
@@ -43,41 +44,41 @@ class SnapshotManager:
         self.last_operation_success: Optional[bool] = None
         self.last_operation_error: Optional[str] = None
         self.last_operation_timestamp: Optional[float] = None
-    
+
     def should_snapshot(self, ticks: int) -> bool:
         """
         Проверяет, нужно ли делать снапшот на текущем тике.
-        
+
         Тик 0 исключен из снапшотов намеренно: при инициализации системы
         состояние еще не стабилизировалось, поэтому первый снапшот делается
         только после первого полного цикла (на тике period_ticks).
-        
+
         Args:
             ticks: Текущее количество тиков
-            
+
         Returns:
             True если нужно сделать снапшот, False иначе
         """
         return ticks > 0 and ticks % self.period_ticks == 0
-    
+
     def maybe_snapshot(self, self_state: SelfState) -> bool:
         """
         Делает снапшот, если нужно по периодичности.
-        
+
         Обрабатывает исключения внутри менеджера, не роняя основной цикл.
-        
+
         Args:
             self_state: Состояние Life для сохранения
-            
+
         Returns:
             True если снапшот был сделан, False иначе
-            
+
         Raises:
             ValueError: Если self_state равен None
         """
         if self_state is None:
             raise ValueError("self_state cannot be None")
-        
+
         import time
 
         if self.should_snapshot(self_state.ticks):

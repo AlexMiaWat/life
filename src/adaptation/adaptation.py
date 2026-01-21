@@ -58,9 +58,7 @@ class AdaptationManager:
         """Инициализация AdaptationManager с блокировкой для защиты от параллельных вызовов."""
         self._lock = threading.Lock()
 
-    def analyze_changes(
-        self, learning_params: Dict, adaptation_history: List[Dict]
-    ) -> Dict:
+    def analyze_changes(self, learning_params: Dict, adaptation_history: List[Dict]) -> Dict:
         """
         Анализирует изменения параметров от Learning.
 
@@ -95,9 +93,7 @@ class AdaptationManager:
                     changes = {}
 
                     # Сравниваем вложенные словари
-                    if isinstance(current_value_dict, dict) and isinstance(
-                        last_value_dict, dict
-                    ):
+                    if isinstance(current_value_dict, dict) and isinstance(last_value_dict, dict):
                         for param_name, current_value in current_value_dict.items():
                             if param_name in last_value_dict:
                                 last_value = last_value_dict[param_name]
@@ -202,55 +198,38 @@ class AdaptationManager:
         _check_forbidden_keys(actual_params)
 
         # 1. Адаптация чувствительности к типам событий
-        if (
-            "behavior_sensitivity" in actual_params
-            and actual_params["behavior_sensitivity"]
-        ):
+        if "behavior_sensitivity" in actual_params and actual_params["behavior_sensitivity"]:
             new_params["behavior_sensitivity"] = self._adapt_behavior_sensitivity(
                 learning_params, actual_params["behavior_sensitivity"]
             )
         else:
             # Инициализация, если параметр действительно отсутствует
-            new_params["behavior_sensitivity"] = self._init_behavior_sensitivity(
-                learning_params
-            )
+            new_params["behavior_sensitivity"] = self._init_behavior_sensitivity(learning_params)
 
         # 2. Адаптация порогов для реакций
-        if (
-            "behavior_thresholds" in actual_params
-            and actual_params["behavior_thresholds"]
-        ):
+        if "behavior_thresholds" in actual_params and actual_params["behavior_thresholds"]:
             new_params["behavior_thresholds"] = self._adapt_behavior_thresholds(
                 learning_params, actual_params["behavior_thresholds"]
             )
         else:
             # Инициализация, если параметр действительно отсутствует
-            new_params["behavior_thresholds"] = self._init_behavior_thresholds(
-                learning_params
-            )
+            new_params["behavior_thresholds"] = self._init_behavior_thresholds(learning_params)
 
         # 3. Адаптация коэффициентов для паттернов
-        if (
-            "behavior_coefficients" in actual_params
-            and actual_params["behavior_coefficients"]
-        ):
+        if "behavior_coefficients" in actual_params and actual_params["behavior_coefficients"]:
             new_params["behavior_coefficients"] = self._adapt_behavior_coefficients(
                 learning_params, actual_params["behavior_coefficients"]
             )
         else:
             # Инициализация, если параметр действительно отсутствует
-            new_params["behavior_coefficients"] = self._init_behavior_coefficients(
-                learning_params
-            )
+            new_params["behavior_coefficients"] = self._init_behavior_coefficients(learning_params)
 
         # ПРОВЕРКА: Убеждаемся, что изменения медленные (<= 0.01)
         # Используем actual_params для проверки, так как это актуальные значения
         for key, new_value_dict in new_params.items():
             if key in actual_params:
                 old_value_dict = actual_params[key]
-                if isinstance(new_value_dict, dict) and isinstance(
-                    old_value_dict, dict
-                ):
+                if isinstance(new_value_dict, dict) and isinstance(old_value_dict, dict):
                     for param_name, new_value in new_value_dict.items():
                         if param_name in old_value_dict:
                             old_value = old_value_dict[param_name]
@@ -380,9 +359,7 @@ class AdaptationManager:
         learning_coefficients = learning_params.get("response_coefficients", {})
         return learning_coefficients.copy()
 
-    def store_history(
-        self, old_params: Dict, new_params: Dict, self_state: "SelfState"
-    ) -> None:
+    def store_history(self, old_params: Dict, new_params: Dict, self_state: "SelfState") -> None:
         """
         Хранит историю адаптаций для обратимости.
 
@@ -404,9 +381,7 @@ class AdaptationManager:
             for key, new_value_dict in new_params.items():
                 if key in old_params:
                     old_value_dict = old_params[key]
-                    if isinstance(new_value_dict, dict) and isinstance(
-                        old_value_dict, dict
-                    ):
+                    if isinstance(new_value_dict, dict) and isinstance(old_value_dict, dict):
                         param_changes = {}
                         for param_name, new_value in new_value_dict.items():
                             if param_name in old_value_dict:
@@ -438,9 +413,7 @@ class AdaptationManager:
                 "old_params": old_params.copy(),
                 "new_params": new_params.copy(),
                 "changes": changes,
-                "learning_params_snapshot": getattr(
-                    self_state, "learning_params", {}
-                ).copy(),
+                "learning_params_snapshot": getattr(self_state, "learning_params", {}).copy(),
             }
 
             # Добавляем в историю
@@ -490,8 +463,11 @@ class AdaptationManager:
 
             # Проходим по истории в обратном порядке (от новых к старым)
             for entry in reversed(self_state.adaptation_history):
-                changes_count = sum(len(changes_dict) for changes_dict in entry.get("changes", {}).values()
-                                   if isinstance(changes_dict, dict))
+                changes_count = sum(
+                    len(changes_dict)
+                    for changes_dict in entry.get("changes", {}).values()
+                    if isinstance(changes_dict, dict)
+                )
 
                 time_diff = current_time - entry["timestamp"]
 
@@ -507,18 +483,23 @@ class AdaptationManager:
 
                 description = ", ".join(description_parts) if description_parts else "no changes"
 
-                options.append({
-                    "timestamp": entry["timestamp"],
-                    "tick": entry["tick"],
-                    "changes_count": changes_count,
-                    "time_diff_seconds": time_diff,
-                    "description": description
-                })
+                options.append(
+                    {
+                        "timestamp": entry["timestamp"],
+                        "tick": entry["tick"],
+                        "changes_count": changes_count,
+                        "time_diff_seconds": time_diff,
+                        "description": description,
+                    }
+                )
 
             return options
 
     def rollback_to_timestamp(
-        self, timestamp: float, self_state: "SelfState", structured_logger: Optional["StructuredLogger"] = None
+        self,
+        timestamp: float,
+        self_state: "SelfState",
+        structured_logger: Optional["StructuredLogger"] = None,
     ) -> Dict:
         """
         Откатывает параметры адаптации к состоянию на указанное время.
@@ -561,7 +542,7 @@ class AdaptationManager:
 
             # Ищем ближайшую запись к указанному timestamp
             closest_entry = None
-            min_diff = float('inf')
+            min_diff = float("inf")
 
             for entry in self_state.adaptation_history:
                 diff = abs(entry["timestamp"] - timestamp)
@@ -574,7 +555,9 @@ class AdaptationManager:
 
             # Проверяем, что откат назад во времени
             if closest_entry["timestamp"] > current_time:
-                raise ValueError(f"Запись из будущего: {closest_entry['timestamp']} > {current_time}")
+                raise ValueError(
+                    f"Запись из будущего: {closest_entry['timestamp']} > {current_time}"
+                )
 
             # Выполняем откат - восстанавливаем old_params из найденной записи
             rolled_back_params = closest_entry["old_params"].copy()
@@ -601,7 +584,7 @@ class AdaptationManager:
                 "rolled_back_params": rolled_back_params,
                 "target_timestamp": timestamp,
                 "actual_timestamp": closest_entry["timestamp"],
-                "tick": closest_entry["tick"]
+                "tick": closest_entry["tick"],
             }
 
             # Логируем откат через стандартный logger
@@ -616,7 +599,12 @@ class AdaptationManager:
 
             return rollback_result
 
-    def rollback_steps(self, steps: int, self_state: "SelfState", structured_logger: Optional["StructuredLogger"] = None) -> Dict:
+    def rollback_steps(
+        self,
+        steps: int,
+        self_state: "SelfState",
+        structured_logger: Optional["StructuredLogger"] = None,
+    ) -> Dict:
         """
         Откатывает параметры адаптации на указанное количество шагов назад.
 
@@ -643,14 +631,18 @@ class AdaptationManager:
 
             history_size = len(self_state.adaptation_history)
             if steps >= history_size:
-                raise ValueError(f"Недостаточно записей в истории: запрошено {steps}, доступно {history_size}")
+                raise ValueError(
+                    f"Недостаточно записей в истории: запрошено {steps}, доступно {history_size}"
+                )
 
             # Находим запись для отката (индекс с конца)
             target_index = history_size - steps - 1  # -1 потому что индекс с 0
             target_entry = self_state.adaptation_history[target_index]
 
             # Используем rollback_to_timestamp для выполнения отката
-            return self.rollback_to_timestamp(target_entry["timestamp"], self_state, structured_logger)
+            return self.rollback_to_timestamp(
+                target_entry["timestamp"], self_state, structured_logger
+            )
 
     def _validate_rollback_params(self, params: Dict) -> bool:
         """
@@ -747,7 +739,9 @@ class AdaptationManager:
 
         # Копируем event_type_sensitivity -> behavior_sensitivity
         if "event_type_sensitivity" in learning_params:
-            behavior_params["behavior_sensitivity"] = learning_params["event_type_sensitivity"].copy()
+            behavior_params["behavior_sensitivity"] = learning_params[
+                "event_type_sensitivity"
+            ].copy()
         else:
             # Fallback на значения по умолчанию
             behavior_params["behavior_sensitivity"] = {
@@ -760,7 +754,9 @@ class AdaptationManager:
 
         # Копируем significance_thresholds -> behavior_thresholds
         if "significance_thresholds" in learning_params:
-            behavior_params["behavior_thresholds"] = learning_params["significance_thresholds"].copy()
+            behavior_params["behavior_thresholds"] = learning_params[
+                "significance_thresholds"
+            ].copy()
         else:
             # Fallback на значения по умолчанию
             behavior_params["behavior_thresholds"] = {
@@ -773,7 +769,9 @@ class AdaptationManager:
 
         # Копируем response_coefficients -> behavior_coefficients
         if "response_coefficients" in learning_params:
-            behavior_params["behavior_coefficients"] = learning_params["response_coefficients"].copy()
+            behavior_params["behavior_coefficients"] = learning_params[
+                "response_coefficients"
+            ].copy()
         else:
             # Fallback на значения по умолчанию
             behavior_params["behavior_coefficients"] = {

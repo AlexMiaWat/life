@@ -59,9 +59,9 @@ class TestStatusRaceConditions:
                     {
                         "request_id": request_id,
                         "status_code": response.status_code,
-                        "ticks": response.json().get("ticks")
-                        if response.status_code == 200
-                        else None,
+                        "ticks": (
+                            response.json().get("ticks") if response.status_code == 200 else None
+                        ),
                         "timestamp": time.time(),
                     }
                 )
@@ -75,18 +75,18 @@ class TestStatusRaceConditions:
                     state,
                     lambda s: None,
                     0.01,  # tick_interval
-                    5,     # snapshot_period
+                    5,  # snapshot_period
                     stop_event,
                     event_queue,
-                    False, # disable_weakness_penalty
-                    False, # disable_structured_logging
-                    False, # disable_learning
-                    False, # disable_adaptation
+                    False,  # disable_weakness_penalty
+                    False,  # disable_structured_logging
+                    False,  # disable_learning
+                    False,  # disable_adaptation
                     True,  # disable_philosophical_analysis
-                    False, # disable_philosophical_reports
+                    False,  # disable_philosophical_reports
                     True,  # disable_clarity_moments
-                    10,    # log_flush_period_ticks
-                    False, # enable_profiling
+                    10,  # log_flush_period_ticks
+                    False,  # enable_profiling
                 )
             except Exception:
                 pass  # Игнорируем для теста
@@ -151,12 +151,12 @@ class TestStatusRaceConditions:
                 results.append(
                     {
                         "status_code": response.status_code,
-                        "energy": response.json().get("energy")
-                        if response.status_code == 200
-                        else None,
-                        "ticks": response.json().get("ticks")
-                        if response.status_code == 200
-                        else None,
+                        "energy": (
+                            response.json().get("energy") if response.status_code == 200 else None
+                        ),
+                        "ticks": (
+                            response.json().get("ticks") if response.status_code == 200 else None
+                        ),
                         "original_energy": original_energy,
                         "modified_energy": state.energy,
                     }
@@ -180,12 +180,8 @@ class TestStatusRaceConditions:
             thread.join(timeout=2.0)
 
         # Проверяем результаты
-        successful_reads = [
-            r for r in results if "status_code" in r and r["status_code"] == 200
-        ]
-        assert (
-            len(successful_reads) >= 8
-        ), f"Too few successful reads: {len(successful_reads)}"
+        successful_reads = [r for r in results if "status_code" in r and r["status_code"] == 200]
+        assert len(successful_reads) >= 8, f"Too few successful reads: {len(successful_reads)}"
 
         # Все успешные чтения должны возвращать консистентные данные
         for read in successful_reads:
@@ -281,27 +277,19 @@ class TestStatusRaceConditions:
         ), f"Too many failures: {len(error_results)}/{len(results)}"
 
         # Проверяем консистентность данных
-        ticks_values = [
-            r["ticks"] for r in successful_results if r["ticks"] is not None
-        ]
+        ticks_values = [r["ticks"] for r in successful_results if r["ticks"] is not None]
         if ticks_values:
             # Все ticks должны быть >= 0 и монотонно возрастать (runtime может стартовать с 0)
             min_ticks = min(ticks_values)
             max_ticks = max(ticks_values)
             assert min_ticks >= 0, f"Invalid ticks minimum: {min_ticks}"
             # Проверяем что значения разумны (не более 100 тиков прироста)
-            assert (
-                max_ticks - min_ticks <= 100
-            ), f"Too large ticks range: {max_ticks - min_ticks}"
+            assert max_ticks - min_ticks <= 100, f"Too large ticks range: {max_ticks - min_ticks}"
 
         # Проверяем что время ответа разумное (< 1 секунды)
         response_times = [r["response_time"] for r in successful_results]
-        avg_response_time = (
-            sum(response_times) / len(response_times) if response_times else 0
-        )
-        assert (
-            avg_response_time < 1.0
-        ), f"Average response time too high: {avg_response_time}"
+        avg_response_time = sum(response_times) / len(response_times) if response_times else 0
+        assert avg_response_time < 1.0, f"Average response time too high: {avg_response_time}"
 
     def test_status_read_during_archiving(self):
         """Чтение статуса во время операций архивации памяти"""
@@ -318,16 +306,12 @@ class TestStatusRaceConditions:
             entry = MemoryEntry(
                 event_type="test_event",
                 meaning_significance=0.1,
-                timestamp=time.time()
-                - 8 * 24 * 3600
-                + i,  # Старые записи для архивации
+                timestamp=time.time() - 8 * 24 * 3600 + i,  # Старые записи для архивации
                 subjective_timestamp=float(i),
             )
             state.memory.append(entry)
 
-        state.ticks = (
-            50  # Устанавливаем ticks чтобы trigger archiving (ARCHIVE_INTERVAL = 50)
-        )
+        state.ticks = 50  # Устанавливаем ticks чтобы trigger archiving (ARCHIVE_INTERVAL = 50)
         stop_event = threading.Event()
         event_queue = EventQueue()
 
@@ -340,9 +324,11 @@ class TestStatusRaceConditions:
                 results.append(
                     {
                         "status_code": response.status_code,
-                        "memory_length": len(response.json().get("memory", []))
-                        if response.status_code == 200
-                        else None,
+                        "memory_length": (
+                            len(response.json().get("memory", []))
+                            if response.status_code == 200
+                            else None
+                        ),
                         "archive_length": len(getattr(state, "archive_memory", [])),
                     }
                 )
@@ -421,9 +407,7 @@ class TestStatusRaceConditions:
             results.append(
                 {
                     "status_code": response.status_code,
-                    "ticks": response.json().get("ticks")
-                    if response.status_code == 200
-                    else None,
+                    "ticks": response.json().get("ticks") if response.status_code == 200 else None,
                 }
             )
         except Exception as e:
@@ -477,12 +461,10 @@ class TestStatusRaceConditions:
             results.append(
                 {
                     "status_code": response.status_code,
-                    "active": response.json().get("active")
-                    if response.status_code == 200
-                    else None,
-                    "ticks": response.json().get("ticks")
-                    if response.status_code == 200
-                    else None,
+                    "active": (
+                        response.json().get("active") if response.status_code == 200 else None
+                    ),
+                    "ticks": response.json().get("ticks") if response.status_code == 200 else None,
                 }
             )
         except Exception as e:
@@ -509,9 +491,7 @@ class TestStatusRaceConditions:
         headers = {}
 
         state = SelfState()
-        state.ticks = (
-            10  # Устанавливаем ticks чтобы trigger snapshot (snapshot_period=10)
-        )
+        state.ticks = 10  # Устанавливаем ticks чтобы trigger snapshot (snapshot_period=10)
         stop_event = threading.Event()
         event_queue = EventQueue()
 
@@ -575,9 +555,7 @@ class TestEventQueueTimingStress:
             """Интенсивная подача событий"""
             try:
                 for i in range(events_to_submit):
-                    event = Event(
-                        type=f"stress_{i}", intensity=0.1, timestamp=time.time()
-                    )
+                    event = Event(type=f"stress_{i}", intensity=0.1, timestamp=time.time())
                     event_queue.push(event)
                     submitted_count[0] += 1
                     # Минимальная задержка для имитации высокой частоты
@@ -594,19 +572,13 @@ class TestEventQueueTimingStress:
 
         # Проверяем результаты
         # Очередь имеет maxsize=100, поэтому не все события могут быть добавлены
-        assert (
-            submitted_count[0] >= 100
-        ), f"Failed to submit events: {submitted_count[0]}"
+        assert submitted_count[0] >= 100, f"Failed to submit events: {submitted_count[0]}"
         assert len(errors) == 0, f"Submission errors: {errors}"
 
         # Проверяем что очередь не превысила лимит (maxsize=100)
-        assert (
-            event_queue.size() <= 100
-        ), f"Queue exceeded maxsize: {event_queue.size()}"
+        assert event_queue.size() <= 100, f"Queue exceeded maxsize: {event_queue.size()}"
         # Но при этом должна содержать максимум возможных событий
-        assert (
-            event_queue.size() == 100
-        ), f"Queue should be at maxsize: {event_queue.size()}"
+        assert event_queue.size() == 100, f"Queue should be at maxsize: {event_queue.size()}"
 
     def test_queue_overflow_handling(self):
         """Обработка переполнения очереди (maxsize=100)"""
@@ -620,9 +592,7 @@ class TestEventQueueTimingStress:
 
         for i in range(overflow_count):
             try:
-                event = Event(
-                    type=f"overflow_{i}", intensity=0.1, timestamp=time.time()
-                )
+                event = Event(type=f"overflow_{i}", intensity=0.1, timestamp=time.time())
                 if event_queue.push(event):
                     successful_adds += 1
                 else:
@@ -768,9 +738,7 @@ class TestEventQueueTimingStress:
             try:
                 time.sleep(0.05)  # Небольшая задержка перед началом push
                 for i in range(20):
-                    event = Event(
-                        type=f"during_pop_{i}", intensity=0.1, timestamp=time.time()
-                    )
+                    event = Event(type=f"during_pop_{i}", intensity=0.1, timestamp=time.time())
                     event_queue.push(event)
                     time.sleep(0.01)
                 push_completed[0] = True
@@ -814,9 +782,7 @@ class TestEventQueueTimingStress:
         # Проверяем что pop_all корректно обработал конкурентные push
         first_pop = pop_results[0]
         if "popped_count" in first_pop:
-            assert (
-                first_pop["popped_count"] >= 0
-            )  # Может быть 0 если push еще не начался
+            assert first_pop["popped_count"] >= 0  # Может быть 0 если push еще не начался
 
     def test_race_between_empty_check_and_get_nowait(self):
         """Гонка между проверкой empty() и get_nowait()"""
@@ -849,9 +815,7 @@ class TestEventQueueTimingStress:
                             if events:
                                 results.append({"worker": worker_id, "got_event": True})
                             else:
-                                results.append(
-                                    {"worker": worker_id, "got_event": False}
-                                )
+                                results.append({"worker": worker_id, "got_event": False})
                     except Exception as e:
                         results.append({"worker": worker_id, "error": str(e)})
                         race_detected[0] = True  # Возможная race condition
@@ -875,9 +839,7 @@ class TestEventQueueTimingStress:
         got_events = [r for r in results if r.get("got_event")]
 
         # Должно быть не более одного успешного извлечения события
-        assert (
-            len(got_events) <= 1
-        ), f"Multiple workers got the same event: {got_events}"
+        assert len(got_events) <= 1, f"Multiple workers got the same event: {got_events}"
 
         # Остальные должны увидеть пустую очередь или ошибку race condition
         assert len(results) == 5, "Not all workers completed"
@@ -903,14 +865,10 @@ class TestEventQueueTimingStress:
                 # Во время "обработки" добавляем новые события
                 time.sleep(0.01)  # Имитируем обработку
                 for i in range(3):
-                    event = Event(
-                        type=f"added_during_{i}", intensity=0.1, timestamp=time.time()
-                    )
+                    event = Event(type=f"added_during_{i}", intensity=0.1, timestamp=time.time())
                     event_queue.push(event)
 
-                iteration_results.append(
-                    {"added_count": 3, "final_size": event_queue.size()}
-                )
+                iteration_results.append({"added_count": 3, "final_size": event_queue.size()})
 
             except Exception as e:
                 iteration_results.append({"error": str(e)})

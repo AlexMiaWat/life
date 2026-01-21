@@ -94,13 +94,9 @@ class TestNewFunctionalityIntegration:
         def monitor_with_checks(state):
             # Проверяем, что Meaning создает записи в Memory
             if hasattr(state, "memory") and state.memory:
-                memory_entries = [
-                    entry for entry in state.memory if entry.event_type != "feedback"
-                ]
+                memory_entries = [entry for entry in state.memory if entry.event_type != "feedback"]
                 if memory_entries:
-                    assert all(
-                        entry.meaning_significance >= 0 for entry in memory_entries
-                    )
+                    assert all(entry.meaning_significance >= 0 for entry in memory_entries)
 
         # Запускаем loop
         thread = threading.Thread(
@@ -185,9 +181,7 @@ class TestNewFunctionalityIntegration:
         )
         thread.start()
 
-        time.sleep(
-            0.3
-        )  # 300 тиков, должно быть несколько вызовов Learning (каждые 75 тиков)
+        time.sleep(0.3)  # 300 тиков, должно быть несколько вызовов Learning (каждые 75 тиков)
         stop_event.set()
         thread.join(timeout=1.0)
 
@@ -338,9 +332,7 @@ class TestNewFunctionalityIntegration:
         new_behavior_params = adaptation_manager.apply_adaptation(
             analysis, current_behavior_params, self_state
         )
-        adaptation_manager.store_history(
-            current_behavior_params, new_behavior_params, self_state
-        )
+        adaptation_manager.store_history(current_behavior_params, new_behavior_params, self_state)
 
         # Проверяем результаты
         assert statistics["total_entries"] == 13
@@ -427,9 +419,7 @@ class TestNewFunctionalityIntegration:
                 "old_params": {},
                 "new_params": {"behavior_sensitivity": {"noise": 0.5}},
                 "changes": {
-                    "behavior_sensitivity": {
-                        "noise": {"old": 0.4, "new": 0.5, "delta": 0.1}
-                    }
+                    "behavior_sensitivity": {"noise": {"old": 0.4, "new": 0.5, "delta": 0.1}}
                 },
                 "learning_params_snapshot": self_state.learning_params.copy(),
             }
@@ -442,9 +432,7 @@ class TestNewFunctionalityIntegration:
         # Проверяем восстановление
         assert loaded_state.learning_params["event_type_sensitivity"]["noise"] == 0.7
         assert len(loaded_state.adaptation_history) == 1
-        assert (
-            "behavior_sensitivity" in loaded_state.adaptation_history[0]["new_params"]
-        )
+        assert "behavior_sensitivity" in loaded_state.adaptation_history[0]["new_params"]
 
     # ============================================================================
     # Multithreading and Concurrency
@@ -537,9 +525,7 @@ class TestNewFunctionalityIntegration:
             nonlocal response_recorded
             # Проверяем, что система отреагировала на шок
             if hasattr(state, "memory"):
-                shock_entries = [
-                    entry for entry in state.memory if entry.event_type == "shock"
-                ]
+                shock_entries = [entry for entry in state.memory if entry.event_type == "shock"]
                 if shock_entries:
                     response_recorded = True
 
@@ -562,9 +548,7 @@ class TestNewFunctionalityIntegration:
         thread.join(timeout=1.0)
 
         # Проверяем полный цикл обработки
-        assert (
-            response_recorded or len(self_state.memory) >= 0
-        )  # Событие могло быть обработано
+        assert response_recorded or len(self_state.memory) >= 0  # Событие могло быть обработано
 
     def test_system_adaptation_over_time(self):
         """Тест адаптации системы со временем"""
@@ -572,9 +556,7 @@ class TestNewFunctionalityIntegration:
         stop_event = threading.Event()
 
         initial_energy = self_state.energy
-        initial_learning_noise = self_state.learning_params["event_type_sensitivity"][
-            "noise"
-        ]
+        initial_learning_noise = self_state.learning_params["event_type_sensitivity"]["noise"]
 
         # Запускаем систему на продолжительное время
         thread = threading.Thread(
@@ -592,9 +574,7 @@ class TestNewFunctionalityIntegration:
         assert hasattr(self_state, "adaptation_params")
 
         # Параметры могли измениться (или остаться теми же - зависит от данных)
-        final_learning_noise = self_state.learning_params["event_type_sensitivity"][
-            "noise"
-        ]
+        final_learning_noise = self_state.learning_params["event_type_sensitivity"]["noise"]
         # Не проверяем конкретные изменения, только что система функционирует
 
     def test_recovery_and_learning_from_experience(self):
@@ -619,16 +599,9 @@ class TestNewFunctionalityIntegration:
             nonlocal learning_adapted
             # Проверяем, что Learning отреагировал на паттерны
             if hasattr(state, "learning_params"):
-                noise_sensitivity = state.learning_params["event_type_sensitivity"][
-                    "noise"
-                ]
-                shock_sensitivity = state.learning_params["event_type_sensitivity"][
-                    "shock"
-                ]
-                if (
-                    abs(noise_sensitivity - 0.2) > 0.001
-                    or abs(shock_sensitivity - 0.2) > 0.001
-                ):
+                noise_sensitivity = state.learning_params["event_type_sensitivity"]["noise"]
+                shock_sensitivity = state.learning_params["event_type_sensitivity"]["shock"]
+                if abs(noise_sensitivity - 0.2) > 0.001 or abs(shock_sensitivity - 0.2) > 0.001:
                     learning_adapted = True
 
         # Запускаем цикл
@@ -743,10 +716,7 @@ class TestNewFunctionalityIntegration:
             assert isinstance(entry.timestamp, float), "timestamp должен быть float"
             assert entry.timestamp > 0, "timestamp должен быть положительным"
             # subjective_timestamp может быть установлен или нет
-            if (
-                hasattr(entry, "subjective_timestamp")
-                and entry.subjective_timestamp is not None
-            ):
+            if hasattr(entry, "subjective_timestamp") and entry.subjective_timestamp is not None:
                 assert isinstance(
                     entry.subjective_timestamp, float
                 ), "subjective_timestamp должен быть float"
@@ -787,9 +757,7 @@ class TestNewFunctionalityIntegration:
         thread.join(timeout=1.0)
 
         # Проверяем Feedback записи
-        feedback_entries = [
-            entry for entry in self_state.memory if entry.event_type == "feedback"
-        ]
+        feedback_entries = [entry for entry in self_state.memory if entry.event_type == "feedback"]
         if feedback_entries:
             for entry in feedback_entries:
                 assert hasattr(
@@ -837,12 +805,8 @@ class TestNewFunctionalityIntegration:
         assert hasattr(
             loaded_state, "subjective_time"
         ), "Загруженное состояние должно иметь subjective_time"
-        assert isinstance(
-            loaded_state.subjective_time, float
-        ), "subjective_time должен быть float"
-        assert (
-            loaded_state.subjective_time >= 0.0
-        ), "subjective_time должен быть положительным"
+        assert isinstance(loaded_state.subjective_time, float), "subjective_time должен быть float"
+        assert loaded_state.subjective_time >= 0.0, "subjective_time должен быть положительным"
         # Субъективное время сохраняется (может быть изменено системой, но должно сохраниться текущее значение)
 
     def test_subjective_time_runtime_dynamics_integration(self):
@@ -912,12 +876,10 @@ class TestNewFunctionalityIntegration:
 
         from api import app
 
-        client = TestClient(app, timeout=10.0)
+        client = TestClient(app)
 
         # Получаем токен
-        login_response = client.post(
-            "/token", data={"username": "admin", "password": "admin123"}
-        )
+        login_response = client.post("/token", data={"username": "admin", "password": "admin123"})
         assert login_response.status_code == 200
         token = login_response.json()["access_token"]
         headers = {"Authorization": f"Bearer {token}"}
@@ -949,9 +911,7 @@ class TestNewFunctionalityIntegration:
 
         # Все API запросы должны быть успешными
         successful_requests = [r for r in api_results if r == 200]
-        assert (
-            len(successful_requests) >= 3
-        ), f"Слишком много неудачных API запросов: {api_results}"
+        assert len(successful_requests) >= 3, f"Слишком много неудачных API запросов: {api_results}"
 
     @pytest.mark.skip(reason="API tests are outdated")
     def test_thread_safety_event_submission_during_runtime_integration(self):
@@ -960,7 +920,7 @@ class TestNewFunctionalityIntegration:
 
         from api import app
 
-        client = TestClient(app, timeout=10.0)
+        client = TestClient(app)
 
         # Регистрируем пользователя
         user_data = {
@@ -1007,9 +967,7 @@ class TestNewFunctionalityIntegration:
 
         # Все отправки событий должны быть успешными
         successful_events = [r for r in event_results if r == 200]
-        assert (
-            len(successful_events) == 3
-        ), f"Не все события отправлены успешно: {event_results}"
+        assert len(successful_events) == 3, f"Не все события отправлены успешно: {event_results}"
 
     def test_thread_safety_state_consistency_integration(self):
         """Интеграционный тест консистентности состояния при конкурентном доступе"""
@@ -1028,9 +986,7 @@ class TestNewFunctionalityIntegration:
                 try:
                     # Имитируем get_safe_status_dict
                     snapshot = state.get_safe_status_dict()
-                    access_log.append(
-                        ("read", reader_id, snapshot["ticks"], snapshot["energy"])
-                    )
+                    access_log.append(("read", reader_id, snapshot["ticks"], snapshot["energy"]))
                     time.sleep(0.001)
                 except Exception as e:
                     access_log.append(("read_error", reader_id, str(e)))
@@ -1084,9 +1040,7 @@ class TestNewFunctionalityIntegration:
 
         # Добавляем начальные записи
         for i in range(3):
-            entry = MemoryEntry(
-                event_type="noise", meaning_significance=0.3, timestamp=float(i)
-            )
+            entry = MemoryEntry(event_type="noise", meaning_significance=0.3, timestamp=float(i))
             memory.append(entry)
 
         operations_log = []
@@ -1150,12 +1104,10 @@ class TestNewFunctionalityIntegration:
 
         from api import app
 
-        client = TestClient(app, timeout=10.0)
+        client = TestClient(app)
 
         # Получаем токен
-        login_response = client.post(
-            "/token", data={"username": "admin", "password": "admin123"}
-        )
+        login_response = client.post("/token", data={"username": "admin", "password": "admin123"})
         assert login_response.status_code == 200
         token = login_response.json()["access_token"]
         headers = {"Authorization": f"Bearer {token}"}
@@ -1202,9 +1154,7 @@ class TestNewFunctionalityIntegration:
         assert len(valid_reads) > 0, "API должен возвращать subjective_time"
 
         # Все значения должны быть положительными
-        assert all(
-            st >= 0 for st in valid_reads
-        ), "subjective_time должен быть положительным"
+        assert all(st >= 0 for st in valid_reads), "subjective_time должен быть положительным"
 
     @pytest.mark.skip(reason="API tests are outdated")
     def test_full_system_new_functionality_integration(self):
@@ -1214,7 +1164,7 @@ class TestNewFunctionalityIntegration:
         from api import app
         from src.feedback import register_action
 
-        client = TestClient(app, timeout=10.0)
+        client = TestClient(app)
 
         # Создаем пользователя
         user_data = {
@@ -1280,9 +1230,7 @@ class TestNewFunctionalityIntegration:
         assert isinstance(
             status_data["subjective_time"], (int, float)
         ), "subjective_time должен быть числом"
-        assert (
-            status_data["subjective_time"] >= 0
-        ), "subjective_time должен быть положительным"
+        assert status_data["subjective_time"] >= 0, "subjective_time должен быть положительным"
 
         stop_event.set()
         runtime_thread.join(timeout=1.0)
@@ -1296,12 +1244,9 @@ class TestNewFunctionalityIntegration:
         memory_with_subjective = [
             entry
             for entry in state.memory
-            if hasattr(entry, "subjective_timestamp")
-            and entry.subjective_timestamp is not None
+            if hasattr(entry, "subjective_timestamp") and entry.subjective_timestamp is not None
         ]
-        assert (
-            len(memory_with_subjective) > 0
-        ), "Должны быть записи памяти с subjective_timestamp"
+        assert len(memory_with_subjective) > 0, "Должны быть записи памяти с subjective_timestamp"
 
     # ============================================================================
     # MCP Index Engine Integration
@@ -1368,14 +1313,10 @@ class TestNewFunctionalityIntegration:
             assert len(results) >= 1  # документы, содержащие "search"
 
             # Тестируем разные режимы поиска
-            and_results = engine.search_in_directory(
-                docs_dir, "api authentication", mode="AND"
-            )
+            and_results = engine.search_in_directory(docs_dir, "api authentication", mode="AND")
             assert len(and_results) >= 1
 
-            or_results = engine.search_in_directory(
-                docs_dir, "system modular", mode="OR"
-            )
+            or_results = engine.search_in_directory(docs_dir, "system modular", mode="OR")
             assert len(or_results) >= 1  # architecture.md содержит оба слова
 
             # Тестируем поиск по TODO
@@ -1422,9 +1363,7 @@ class TestNewFunctionalityIntegration:
                 content = f"# Document {i}\nThis is test content for document number {i}.\nKeywords: test, performance, search, indexing."
                 (docs_dir / f"doc_{i:03d}.md").write_text(content, encoding="utf-8")
 
-            engine = IndexEngine(
-                docs_dir, Path(tempfile.mkdtemp()), Path(tempfile.mkdtemp())
-            )
+            engine = IndexEngine(docs_dir, Path(tempfile.mkdtemp()), Path(tempfile.mkdtemp()))
 
             # Замеряем время индексации
             start_time = time.time()
@@ -1432,9 +1371,7 @@ class TestNewFunctionalityIntegration:
             index_time = time.time() - start_time
 
             # Проверяем, что индексация была reasonably быстрой (< 1 секунды для 50 файлов)
-            assert (
-                index_time < 1.0
-            ), f"Индексация заняла слишком много времени: {index_time}s"
+            assert index_time < 1.0, f"Индексация заняла слишком много времени: {index_time}s"
 
             # Замеряем время поиска
             search_start = time.time()
@@ -1444,9 +1381,7 @@ class TestNewFunctionalityIntegration:
             search_time = time.time() - search_start
 
             # Поиск должен быть быстрым (< 0.1 секунды)
-            assert (
-                search_time < 0.1
-            ), f"Поиск занял слишком много времени: {search_time}s"
+            assert search_time < 0.1, f"Поиск занял слишком много времени: {search_time}s"
             assert len(results) == 50  # Все документы содержат "performance"
 
             # Тестируем LRU кэширование
@@ -1482,9 +1417,7 @@ class TestNewFunctionalityIntegration:
 
         try:
             # Создаем файлы с проблемами
-            (docs_dir / "valid.md").write_text(
-                "# Valid Document\nNormal content", encoding="utf-8"
-            )
+            (docs_dir / "valid.md").write_text("# Valid Document\nNormal content", encoding="utf-8")
 
             # Файл с неподдерживаемой кодировкой (имитация)
             (docs_dir / "binary.md").write_bytes(
@@ -1495,9 +1428,7 @@ class TestNewFunctionalityIntegration:
             big_content = "x" * (10 * 1024 * 1024 + 1)  # > 10MB
             (docs_dir / "huge.md").write_text(big_content, encoding="utf-8")
 
-            engine = IndexEngine(
-                docs_dir, todo_dir, src_dir, max_file_size=10 * 1024 * 1024
-            )
+            engine = IndexEngine(docs_dir, todo_dir, src_dir, max_file_size=10 * 1024 * 1024)
 
             # Индексация должна обработать ошибки gracefully
             engine.initialize()
@@ -1619,9 +1550,7 @@ class TestNewFunctionalityIntegration:
         assert response.status_code == 401
 
         # Проверяем что можем получить новый токен
-        login_response = client.post(
-            "/token", data={"username": "admin", "password": "admin123"}
-        )
+        login_response = client.post("/token", data={"username": "admin", "password": "admin123"})
         assert login_response.status_code == 200
 
         new_token = login_response.json()["access_token"]
@@ -1682,9 +1611,7 @@ class TestNewFunctionalityIntegration:
         client = TestClient(app)
 
         # Получаем токен
-        login_response = client.post(
-            "/token", data={"username": "admin", "password": "admin123"}
-        )
+        login_response = client.post("/token", data={"username": "admin", "password": "admin123"})
         token = login_response.json()["access_token"]
         headers = {"Authorization": f"Bearer {token}"}
 
@@ -1798,9 +1725,7 @@ class TestNewFunctionalityIntegration:
         assert all(field in min_data for field in extended_fields)
 
         # Тестируем статус с лимитами
-        limited_response = client.get(
-            "/status?memory_limit=5&events_limit=3", headers=headers
-        )
+        limited_response = client.get("/status?memory_limit=5&events_limit=3", headers=headers)
         assert limited_response.status_code == 200
 
     @pytest.mark.skip(reason="API tests are outdated")
@@ -1813,9 +1738,7 @@ class TestNewFunctionalityIntegration:
         client = TestClient(app)
 
         # Получаем токен
-        login_response = client.post(
-            "/token", data={"username": "admin", "password": "admin123"}
-        )
+        login_response = client.post("/token", data={"username": "admin", "password": "admin123"})
         token = login_response.json()["access_token"]
         headers = {"Authorization": f"Bearer {token}"}
 
@@ -1974,21 +1897,15 @@ class TestNewFunctionalityIntegration:
         thread.join(timeout=1.0)
 
         # Проверяем, что в памяти есть запись с subjective_timestamp
-        memory_entries = [
-            entry for entry in self_state.memory if entry.event_type == "shock"
-        ]
+        memory_entries = [entry for entry in self_state.memory if entry.event_type == "shock"]
         assert len(memory_entries) > 0, "Должна быть запись о событии shock в памяти"
 
         entry = memory_entries[0]
-        assert (
-            entry.subjective_timestamp is not None
-        ), "subjective_timestamp должен быть установлен"
+        assert entry.subjective_timestamp is not None, "subjective_timestamp должен быть установлен"
         assert isinstance(
             entry.subjective_timestamp, float
         ), "subjective_timestamp должен быть float"
-        assert (
-            entry.subjective_timestamp > 0
-        ), "subjective_timestamp должен быть положительным"
+        assert entry.subjective_timestamp > 0, "subjective_timestamp должен быть положительным"
 
     def test_subjective_time_feedback_memory_integration(self):
         """Интеграционный тест записи субъективного времени в Feedback записи"""
@@ -2028,9 +1945,7 @@ class TestNewFunctionalityIntegration:
         thread.join(timeout=1.0)
 
         # Проверяем, что система работает (Feedback может создаваться или не создаваться в зависимости от условий)
-        feedback_entries = [
-            entry for entry in self_state.memory if entry.event_type == "feedback"
-        ]
+        feedback_entries = [entry for entry in self_state.memory if entry.event_type == "feedback"]
 
         # Если Feedback записи создались, проверяем их структуру
         if feedback_entries:
@@ -2041,23 +1956,15 @@ class TestNewFunctionalityIntegration:
             assert isinstance(
                 entry.subjective_timestamp, float
             ), "subjective_timestamp должен быть float"
-            assert (
-                entry.subjective_timestamp > 0
-            ), "subjective_timestamp должен быть положительным"
+            assert entry.subjective_timestamp > 0, "subjective_timestamp должен быть положительным"
 
             # Проверяем структуру feedback_data
-            assert (
-                entry.feedback_data is not None
-            ), "Feedback запись должна иметь feedback_data"
-            assert (
-                "action_id" in entry.feedback_data
-            ), "feedback_data должен содержать action_id"
+            assert entry.feedback_data is not None, "Feedback запись должна иметь feedback_data"
+            assert "action_id" in entry.feedback_data, "feedback_data должен содержать action_id"
         else:
             # Если Feedback не создался, проверяем что система все равно работает
             assert hasattr(self_state, "memory"), "Memory должна существовать"
-            assert hasattr(
-                self_state, "learning_params"
-            ), "Learning params должны существовать"
+            assert hasattr(self_state, "learning_params"), "Learning params должны существовать"
 
     def test_subjective_time_monotonic_in_memory(self):
         """Интеграционный тест монотонности субъективного времени в памяти"""
@@ -2066,10 +1973,7 @@ class TestNewFunctionalityIntegration:
         stop_event = threading.Event()
 
         # Добавляем несколько событий
-        events = [
-            Event(type="noise", intensity=0.3, timestamp=time.time() + i)
-            for i in range(3)
-        ]
+        events = [Event(type="noise", intensity=0.3, timestamp=time.time() + i) for i in range(3)]
         for event in events:
             event_queue.push(event)
 
@@ -2308,9 +2212,7 @@ class TestNewFunctionalityIntegration:
         assert "energy" in penalty
         assert "stability" in penalty
         assert "integrity" in penalty
-        assert all(
-            v < 0 for v in penalty.values()
-        ), "Все штрафы должны быть отрицательными"
+        assert all(v < 0 for v in penalty.values()), "Все штрафы должны быть отрицательными"
 
     def test_runtime_managers_cooperation_integration(self):
         """Интеграционный тест cooperation всех runtime managers"""
@@ -2395,17 +2297,13 @@ class TestNewFunctionalityIntegration:
             assert os.path.exists(snapshot_file), "Снапшоты должны создаваться"
             with open(snapshot_file, "r") as f:
                 content = f.read()
-                assert (
-                    "snapshot_at_tick" in content
-                ), "Снапшот должен содержать информацию о тике"
+                assert "snapshot_at_tick" in content, "Снапшот должен содержать информацию о тике"
 
             # Проверяем работу LogManager
             assert len(flush_calls) > 0, "Flush должен вызываться"
 
             # Проверяем работу LifePolicy
-            assert life_policy.is_weak(
-                self_state
-            ), "Система должна войти в состояние слабости"
+            assert life_policy.is_weak(self_state), "Система должна войти в состояние слабости"
 
             # Проверяем cooperation - flush перед снапшотом должен происходить
             flush_before_snapshot = any(
@@ -2433,9 +2331,7 @@ class TestNewFunctionalityIntegration:
 
         # Тестируем SnapshotManager error handling
         self_state.ticks = 2
-        result1 = snapshot_manager.maybe_snapshot(
-            self_state
-        )  # Должен упасть и вернуть False
+        result1 = snapshot_manager.maybe_snapshot(self_state)  # Должен упасть и вернуть False
         assert result1 is False
         assert snapshot_manager.was_last_operation_successful() is False
 
@@ -2446,9 +2342,7 @@ class TestNewFunctionalityIntegration:
 
         # Тестируем LogManager error handling
         self_state.ticks = 2
-        log_manager.maybe_flush(
-            self_state, phase="tick"
-        )  # Должен упасть, но не ронять систему
+        log_manager.maybe_flush(self_state, phase="tick")  # Должен упасть, но не ронять систему
 
         self_state.ticks = 4
         log_manager.maybe_flush(self_state, phase="tick")  # Должен отработать
@@ -2592,7 +2486,7 @@ class TestNewFunctionalityIntegration:
             type="clarity_moment",
             intensity=0.8,
             timestamp=clarity_event["timestamp"],
-            metadata=clarity_event["data"]
+            metadata=clarity_event["data"],
         )
         event_queue.push(event)
 
@@ -2685,14 +2579,14 @@ class TestNewFunctionalityIntegration:
             "type": "clarity_moment",
             "data": {"clarity_id": 1},
             "timestamp": time.time(),
-            "subjective_timestamp": self_state.subjective_time
+            "subjective_timestamp": self_state.subjective_time,
         }
 
         memory_entry = MemoryEntry(
             event_type=clarity_event["type"],
             meaning_significance=0.9,  # Высокая значимость
             timestamp=clarity_event["timestamp"],
-            subjective_timestamp=clarity_event["subjective_timestamp"]
+            subjective_timestamp=clarity_event["subjective_timestamp"],
         )
 
         # Сохраняем в память
@@ -2770,7 +2664,7 @@ class TestNewFunctionalityIntegration:
             type=clarity_event["type"],
             intensity=0.8,
             timestamp=clarity_event["timestamp"],
-            metadata=clarity_event["data"]
+            metadata=clarity_event["data"],
         )
 
         # Добавляем в очередь событий
@@ -2778,11 +2672,7 @@ class TestNewFunctionalityIntegration:
 
         # Добавляем обычные события для сравнения
         for i in range(3):
-            noise_event = Event(
-                type="noise",
-                intensity=0.3 + i * 0.1,
-                timestamp=time.time() + i
-            )
+            noise_event = Event(type="noise", intensity=0.3 + i * 0.1, timestamp=time.time() + i)
             event_queue.push(noise_event)
 
         # Проверяем что все события в очереди
@@ -2821,7 +2711,7 @@ class TestNewFunctionalityIntegration:
             "clarity_state": self_state.clarity_state,
             "clarity_duration": self_state.clarity_duration,
             "clarity_modifier": self_state.clarity_modifier,
-            "clarity_events_count": clarity_moments._clarity_events_count
+            "clarity_events_count": clarity_moments._clarity_events_count,
         }
 
         # Сохраняем в файл
@@ -2903,12 +2793,18 @@ class TestNewFunctionalityIntegration:
         # Проверяем что операции выполняются достаточно быстро
         # check_clarity_conditions должен выполняться менее 1ms в среднем
         avg_check_time = check_time / iterations
-        assert avg_check_time < 0.001, f"check_clarity_conditions too slow: {avg_check_time:.6f}s per call"
+        assert (
+            avg_check_time < 0.001
+        ), f"check_clarity_conditions too slow: {avg_check_time:.6f}s per call"
 
         # update_clarity_state должен выполняться менее 0.1ms в среднем
         avg_update_time = update_time / iterations
-        assert avg_update_time < 0.0001, f"update_clarity_state too slow: {avg_update_time:.6f}s per call"
+        assert (
+            avg_update_time < 0.0001
+        ), f"update_clarity_state too slow: {avg_update_time:.6f}s per call"
 
         # Общее время выполнения всех операций должно быть разумным
         total_time = check_time + update_time
-        assert total_time < 1.0, f"Total time too high: {total_time:.3f}s for {iterations*2} operations"
+        assert (
+            total_time < 1.0
+        ), f"Total time too high: {total_time:.3f}s for {iterations*2} operations"

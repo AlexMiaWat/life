@@ -33,7 +33,8 @@ class TestAdaptiveThresholdsIntegration:
             "memory_entries": memory_entries,
             "total_memory_entries": len(memory_entries),
             "average_weight": sum(weights) / len(weights),
-            "weight_variance": sum((w - (sum(weights) / len(weights))) ** 2 for w in weights) / len(weights)
+            "weight_variance": sum((w - (sum(weights) / len(weights))) ** 2 for w in weights)
+            / len(weights),
         }
 
         thresholds = engine.calculate_adaptive_thresholds(statistics)
@@ -59,17 +60,18 @@ class TestAdaptiveThresholdsIntegration:
         # Создаем состояние системы в различных условиях
         states = [
             {"energy": 0.9, "stability": 0.95, "integrity": 0.9},  # Стабильное состояние
-            {"energy": 0.5, "stability": 0.6, "integrity": 0.7},   # Нестабильное состояние
-            {"energy": 0.2, "stability": 0.3, "integrity": 0.4}    # Критическое состояние
+            {"energy": 0.5, "stability": 0.6, "integrity": 0.7},  # Нестабильное состояние
+            {"energy": 0.2, "stability": 0.3, "integrity": 0.4},  # Критическое состояние
         ]
 
         for state_data in states:
             # Создаем статистику с учетом состояния системы
             statistics = {
                 "memory_entries": [Mock(weight=0.5) for _ in range(10)],
-                "stability_volatility": 1.0 - state_data["stability"],  # Волатильность = 1 - стабильность
+                "stability_volatility": 1.0
+                - state_data["stability"],  # Волатильность = 1 - стабильность
                 "feedback_efficiency": min(1.0, state_data["energy"] * state_data["integrity"]),
-                "time_pattern_strength": state_data["stability"] * 0.8
+                "time_pattern_strength": state_data["stability"] * 0.8,
             }
 
             thresholds = engine.calculate_adaptive_thresholds(statistics)
@@ -83,8 +85,9 @@ class TestAdaptiveThresholdsIntegration:
 
             # Проверяем наличие всех типов порогов
             expected_keys = [
-                "high_frequency_threshold", "low_frequency_threshold",
-                "learning_rate_multiplier"
+                "high_frequency_threshold",
+                "low_frequency_threshold",
+                "learning_rate_multiplier",
             ]
 
             for key in expected_keys:
@@ -97,10 +100,10 @@ class TestAdaptiveThresholdsIntegration:
 
         # Создаем статистику с различными паттернами feedback
         feedback_patterns = {
-            "success": 50,    # Много успешных исходов
-            "failure": 10,    # Мало неудач
-            "timeout": 5,     # Некоторые таймауты
-            "error": 2        # Мало ошибок
+            "success": 50,  # Много успешных исходов
+            "failure": 10,  # Мало неудач
+            "timeout": 5,  # Некоторые таймауты
+            "error": 2,  # Мало ошибок
         }
 
         statistics = {
@@ -108,7 +111,7 @@ class TestAdaptiveThresholdsIntegration:
             "feedback_pattern_counts": feedback_patterns,
             "total_feedback_events": sum(feedback_patterns.values()),
             "feedback_success_rate": feedback_patterns["success"] / sum(feedback_patterns.values()),
-            "feedback_efficiency": 0.85
+            "feedback_efficiency": 0.85,
         }
 
         thresholds = engine.calculate_adaptive_thresholds(statistics)
@@ -145,47 +148,43 @@ class TestAdaptiveThresholdsIntegration:
                 Mock(weight=0.4, significance=0.5),
                 Mock(weight=0.6, significance=0.7),
                 Mock(weight=0.8, significance=0.8),
-                Mock(weight=0.9, significance=0.9)
+                Mock(weight=0.9, significance=0.9),
             ],
-
             # Статистика типов событий
-            "event_type_counts": {
-                "positive": 25,
-                "negative": 15,
-                "neutral": 30,
-                "crisis": 5
-            },
+            "event_type_counts": {"positive": 25, "negative": 15, "neutral": 30, "crisis": 5},
             "event_type_total_significance": {
-                "positive": 15.0,   # avg = 0.6
-                "negative": 7.5,    # avg = 0.5
-                "neutral": 12.0,    # avg = 0.4
-                "crisis": 4.0       # avg = 0.8
+                "positive": 15.0,  # avg = 0.6
+                "negative": 7.5,  # avg = 0.5
+                "neutral": 12.0,  # avg = 0.4
+                "crisis": 4.0,  # avg = 0.8
             },
-
             # Паттерны feedback
             "feedback_pattern_counts": {
                 "learn_success": 40,
                 "learn_failure": 8,
                 "adapt_success": 25,
-                "adapt_failure": 12
+                "adapt_failure": 12,
             },
-
             # Метрики состояния
-            "stability_volatility": 0.25,      # Относительно стабильная система
-            "feedback_efficiency": 0.75,       # Хорошая эффективность feedback
-            "time_pattern_strength": 0.65,     # Умеренная сила временных паттернов
-            "temporal_consistency": 0.7        # Хорошая временная согласованность
+            "stability_volatility": 0.25,  # Относительно стабильная система
+            "feedback_efficiency": 0.75,  # Хорошая эффективность feedback
+            "time_pattern_strength": 0.65,  # Умеренная сила временных паттернов
+            "temporal_consistency": 0.7,  # Хорошая временная согласованность
         }
 
         thresholds = engine.calculate_adaptive_thresholds(statistics)
 
         # Проверяем комплексный расчет всех порогов
         required_thresholds = [
-            "high_frequency_threshold", "low_frequency_threshold",
-            "high_significance_threshold", "low_significance_threshold",
-            "high_pattern_frequency_threshold", "low_pattern_frequency_threshold",
-            "learning_rate_multiplier", "feedback_learning_boost",
-            "temporal_adaptation_factor"
+            "high_frequency_threshold",
+            "low_frequency_threshold",
+            "high_significance_threshold",
+            "low_significance_threshold",
+            "high_pattern_frequency_threshold",
+            "low_pattern_frequency_threshold",
+            "learning_rate_multiplier",
+            "feedback_learning_boost",
+            "temporal_adaptation_factor",
         ]
 
         for threshold_name in required_thresholds:
@@ -195,7 +194,7 @@ class TestAdaptiveThresholdsIntegration:
 
         # Проверяем логику адаптации для стабильной системы
         assert thresholds["learning_rate_multiplier"] < 1.2  # Не слишком агрессивное обучение
-        assert thresholds["feedback_learning_boost"] > 1.0   # Положительный буст от feedback
+        assert thresholds["feedback_learning_boost"] > 1.0  # Положительный буст от feedback
         assert thresholds["temporal_adaptation_factor"] > 1.0  # Использование временных паттернов
 
     def test_adaptive_thresholds_dynamic_adaptation(self):
@@ -206,7 +205,7 @@ class TestAdaptiveThresholdsIntegration:
         stable_stats = {
             "memory_entries": [Mock(weight=0.7) for _ in range(10)],
             "stability_volatility": 0.1,
-            "feedback_efficiency": 0.9
+            "feedback_efficiency": 0.9,
         }
 
         stable_thresholds = engine.calculate_adaptive_thresholds(stable_stats)
@@ -215,21 +214,33 @@ class TestAdaptiveThresholdsIntegration:
         unstable_stats = {
             "memory_entries": [Mock(weight=0.3) for _ in range(10)],
             "stability_volatility": 0.8,
-            "feedback_efficiency": 0.4
+            "feedback_efficiency": 0.4,
         }
 
         unstable_thresholds = engine.calculate_adaptive_thresholds(unstable_stats)
 
         # Проверяем адаптацию к изменившимся условиям
         # В нестабильном состоянии обучение должно ускориться
-        assert unstable_thresholds["learning_rate_multiplier"] > stable_thresholds["learning_rate_multiplier"]
+        assert (
+            unstable_thresholds["learning_rate_multiplier"]
+            > stable_thresholds["learning_rate_multiplier"]
+        )
 
         # Эффективность feedback влияет на буст
-        assert unstable_thresholds["feedback_learning_boost"] < stable_thresholds["feedback_learning_boost"]
+        assert (
+            unstable_thresholds["feedback_learning_boost"]
+            < stable_thresholds["feedback_learning_boost"]
+        )
 
         # Пороги частоты должны адаптироваться к распределению весов
-        assert unstable_thresholds["high_frequency_threshold"] < stable_thresholds["high_frequency_threshold"]
-        assert unstable_thresholds["low_frequency_threshold"] < stable_thresholds["low_frequency_threshold"]
+        assert (
+            unstable_thresholds["high_frequency_threshold"]
+            < stable_thresholds["high_frequency_threshold"]
+        )
+        assert (
+            unstable_thresholds["low_frequency_threshold"]
+            < stable_thresholds["low_frequency_threshold"]
+        )
 
     def test_adaptive_thresholds_with_learning_history(self):
         """Интеграция с историей обучения"""
@@ -239,16 +250,17 @@ class TestAdaptiveThresholdsIntegration:
         learning_history = [
             {"period": "initial", "success_rate": 0.6, "adaptation_speed": 0.8},
             {"period": "learning", "success_rate": 0.75, "adaptation_speed": 0.9},
-            {"period": "mature", "success_rate": 0.85, "adaptation_speed": 0.95}
+            {"period": "mature", "success_rate": 0.85, "adaptation_speed": 0.95},
         ]
 
         # Создаем статистику на основе истории обучения
         statistics = {
             "memory_entries": [Mock(weight=0.8) for _ in range(15)],
             "learning_success_trend": [h["success_rate"] for h in learning_history],
-            "adaptation_effectiveness": sum(h["adaptation_speed"] for h in learning_history) / len(learning_history),
+            "adaptation_effectiveness": sum(h["adaptation_speed"] for h in learning_history)
+            / len(learning_history),
             "stability_volatility": 0.2,
-            "feedback_efficiency": 0.8
+            "feedback_efficiency": 0.8,
         }
 
         thresholds = engine.calculate_adaptive_thresholds(statistics)
@@ -280,7 +292,7 @@ class TestAdaptiveThresholdsIntegration:
 
         # Тест с некорректными данными
         invalid_stats = {
-            "memory_entries": [Mock(weight=float('nan'))],  # Некорректные данные
+            "memory_entries": [Mock(weight=float("nan"))],  # Некорректные данные
         }
 
         # Должен обработать ошибку gracefully
@@ -306,7 +318,7 @@ class TestAdaptiveThresholdsIntegration:
             "feedback_pattern_counts": {f"pattern_{i}": 5 + i for i in range(15)},
             "stability_volatility": 0.3,
             "feedback_efficiency": 0.7,
-            "time_pattern_strength": 0.6
+            "time_pattern_strength": 0.6,
         }
 
         # Замеряем время расчета

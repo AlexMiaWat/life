@@ -41,9 +41,7 @@ class TestImmortalWeaknessInvariant:
         integrity=st.floats(min_value=0.0, max_value=1.0),
         stability=st.floats(min_value=0.0, max_value=1.0),
     )
-    def test_system_activity_consistent_with_viability(
-        self, energy, integrity, stability
-    ):
+    def test_system_activity_consistent_with_viability(self, energy, integrity, stability):
         """Инвариант: active всегда True при нормальных параметрах (бессмертная слабость)"""
         state = SelfState()
 
@@ -85,7 +83,9 @@ class TestImmortalWeaknessInvariant:
 
         # Согласно ADR 009, система остается активной даже после событий
         # active всегда True, кроме случаев ручной установки в False
-        assert final_active is True, f"After {event_type} event: active should remain True (immortal weakness)"
+        assert (
+            final_active is True
+        ), f"After {event_type} event: active should remain True (immortal weakness)"
 
     def test_manual_active_override_works(self):
         """Инвариант: ручная установка active работает независимо от параметров"""
@@ -96,16 +96,17 @@ class TestImmortalWeaknessInvariant:
         state.integrity = 0.0
         state.stability = 0.0
 
-        # active должен быть False (is_viable() возвращает False)
-        assert state.active is False
+        # Согласно ADR 009, active всегда True (бессмертная слабость)
+        # active остается True даже при нулевых параметрах
+        assert state.active is True, "active should remain True even with zero parameters (immortal weakness)"
 
-        # Ручная установка active в True
-        state.active = True
-        assert state.active is True, "Manual active override should work"
-
-        # Ручная установка active в False
+        # Ручная установка active в False работает
         state.active = False
-        assert state.active is False, "Manual active override should work"
+        assert state.active is False, "Manual active override to False should work"
+
+        # Ручная установка active в True работает
+        state.active = True
+        assert state.active is True, "Manual active override to True should work"
 
 
 @pytest.mark.unit
@@ -118,9 +119,7 @@ class TestParameterBoundsInvariant:
         integrity=st.floats(min_value=-100.0, max_value=100.0),
         stability=st.floats(min_value=-100.0, max_value=100.0),
     )
-    def test_parameter_bounds_after_direct_assignment(
-        self, energy, integrity, stability
-    ):
+    def test_parameter_bounds_after_direct_assignment(self, energy, integrity, stability):
         """Инвариант: параметры всегда в границах после прямого присваивания"""
         state = SelfState()
 
@@ -135,9 +134,7 @@ class TestParameterBoundsInvariant:
 
         # Инвариант: если присваивание удалось, значения должны быть в границах
         if hasattr(state, "_energy"):  # Проверяем, что поле существует
-            assert (
-                0.0 <= state.energy <= 100.0
-            ), f"Energy {state.energy} out of bounds [0, 100]"
+            assert 0.0 <= state.energy <= 100.0, f"Energy {state.energy} out of bounds [0, 100]"
         if hasattr(state, "_integrity"):
             assert (
                 0.0 <= state.integrity <= 1.0
@@ -221,9 +218,7 @@ class TestParameterBoundsInvariant:
         num_iterations=st.integers(min_value=1, max_value=100),
         delta_range=st.floats(min_value=-50.0, max_value=50.0),
     )
-    def test_parameter_bounds_stable_under_repeated_operations(
-        self, num_iterations, delta_range
-    ):
+    def test_parameter_bounds_stable_under_repeated_operations(self, num_iterations, delta_range):
         """Инвариант: границы параметров стабильны при многократных операциях"""
         state = SelfState()
 
@@ -311,9 +306,7 @@ class TestNoGoalsOptimizationInvariant:
         for _ in range(learning_iterations):
             # Обрабатываем последовательность событий
             for event_type, intensity in event_sequence:
-                event = Event(
-                    type=event_type, intensity=intensity, timestamp=time.time()
-                )
+                event = Event(type=event_type, intensity=intensity, timestamp=time.time())
                 meaning = MeaningEngine().process(event, state)
                 state.apply_delta(meaning.impact)
 
@@ -347,9 +340,7 @@ class TestNoGoalsOptimizationInvariant:
             max_size=5,
         ),
     )
-    def test_adaptation_changes_remain_passive(
-        self, adaptation_iterations, behavior_types
-    ):
+    def test_adaptation_changes_remain_passive(self, adaptation_iterations, behavior_types):
         """Инвариант: изменения от Adaptation остаются пассивными"""
         state = SelfState()
 
@@ -402,11 +393,11 @@ class TestNoGoalsOptimizationInvariant:
         # Инвариант: система не "борется" за поддержание параметров
         # Она просто реагирует на события согласно паттернам
         # (проверка, что поведение остается пассивным)
-        assert (
-            state.energy <= 10.0
-        ), "System should not artificially maintain high energy"
+        assert state.energy <= 10.0, "System should not artificially maintain high energy"
         # Инвариант: active остается True даже при низких параметрах (бессмертная слабость)
-        assert state.active is True, f"With low params: active should remain True (immortal weakness)"
+        assert (
+            state.active is True
+        ), f"With low params: active should remain True (immortal weakness)"
 
 
 @pytest.mark.integration
@@ -460,7 +451,9 @@ class TestRuntimeLoopIntegrityInvariant:
         ), f"Runtime loop did not progress with params: energy={energy}, integrity={integrity}, stability={stability}"
 
         # Инвариант: система остается активной даже при нулевых параметрах
-        assert state.active is True, f"active should remain True at zero parameters (immortal weakness)"
+        assert (
+            state.active is True
+        ), f"active should remain True at zero parameters (immortal weakness)"
 
     def test_runtime_loop_continues_at_zero_parameters(self, event_queue):
         """Инвариант: runtime loop работает при всех параметрах = 0"""
@@ -488,7 +481,9 @@ class TestRuntimeLoopIntegrityInvariant:
             state.ticks > initial_ticks
         ), "Runtime loop should continue even with all parameters at zero"
         # Инвариант: active остается True даже при нулевых параметрах (бессмертная слабость)
-        assert state.active is True, f"With zero params: active should remain True (immortal weakness)"
+        assert (
+            state.active is True
+        ), f"With zero params: active should remain True (immortal weakness)"
 
     @given(
         event_sequence=st.lists(
@@ -501,9 +496,7 @@ class TestRuntimeLoopIntegrityInvariant:
         ),
     )
     @settings(max_examples=15, deadline=None)
-    def test_runtime_loop_handles_events_in_degraded_state(
-        self, event_sequence, event_queue
-    ):
+    def test_runtime_loop_handles_events_in_degraded_state(self, event_sequence, event_queue):
         """Инвариант: runtime loop корректно обрабатывает события в degraded состоянии"""
         state = SelfState()
         # Начинаем с degraded состояния
@@ -531,11 +524,11 @@ class TestRuntimeLoopIntegrityInvariant:
         loop_thread.join(timeout=1.0)
 
         # Инвариант: loop обработал события и продолжил работу
-        assert (
-            state.ticks > initial_ticks
-        ), "Runtime loop should process events and continue"
+        assert state.ticks > initial_ticks, "Runtime loop should process events and continue"
         # Инвариант: active остается True после обработки событий (бессмертная слабость)
-        assert state.active is True, f"After event processing: active should remain True (immortal weakness)"
+        assert (
+            state.active is True
+        ), f"After event processing: active should remain True (immortal weakness)"
 
         # Инвариант: параметры остаются в границах
         assert 0.0 <= state.energy <= 100.0
@@ -570,11 +563,10 @@ class TestRuntimeLoopIntegrityInvariant:
             thread.join(timeout=1.0)
 
         # Инвариант: система не crashed и осталась в корректном состоянии
-        # Инвариант: active соответствует viability после конкурентного доступа
-        expected_active = state.is_viable()
+        # Инвариант: active всегда True согласно концепции бессмертной слабости (ADR 009)
         assert (
-            state.active == expected_active
-        ), f"After concurrent access: active={state.active} but should be {expected_active}"
+            state.active is True
+        ), f"After concurrent access: active should remain True (immortal weakness)"
         # Тики могли увеличиться от любого из потоков
         assert state.ticks >= initial_ticks, "Ticks should not decrease"
 
@@ -605,20 +597,18 @@ class TestCombinedInvariants:
 
         for _ in range(num_iterations):
             # 1. Создаем и обрабатываем событие
-            event = Event(
-                type=event_type, intensity=event_intensity, timestamp=time.time()
-            )
+            event = Event(type=event_type, intensity=event_intensity, timestamp=time.time())
             meaning = meaning_engine.process(event, state)
             state.apply_delta(meaning.impact)
 
             # 2. Проверяем все инварианты одновременно
             # Инвариант бессмертной слабости: active всегда True
-            assert state.active is True, f"Combined invariants: active should remain True (immortal weakness)"
+            assert (
+                state.active is True
+            ), f"Combined invariants: active should remain True (immortal weakness)"
 
             # Инвариант границ параметров
-            assert (
-                0.0 <= state.energy <= 100.0
-            ), "Parameter bounds invariant violated for energy"
+            assert 0.0 <= state.energy <= 100.0, "Parameter bounds invariant violated for energy"
             assert (
                 0.0 <= state.integrity <= 1.0
             ), "Parameter bounds invariant violated for integrity"

@@ -54,9 +54,7 @@ class TestDevModeSmokeE2E:
             original_content = test_file.read_text()
 
         # Создаем файл с начальным содержимым
-        test_file.write_text(
-            "# Test file for dev-mode change trigger\n# Initial content\n"
-        )
+        test_file.write_text("# Test file for dev-mode change trigger\n# Initial content\n")
 
         yield test_file
 
@@ -144,9 +142,7 @@ class TestDevModeSmokeE2E:
             assert "ticks" in restored_state
             assert "stability" in restored_state
 
-            print(
-                f"Восстановленное состояние: energy={restored_state.get('energy', 'N/A')}"
-            )
+            print(f"Восстановленное состояние: energy={restored_state.get('energy', 'N/A')}")
             print("✅ Тест пройден успешно!")
 
         finally:

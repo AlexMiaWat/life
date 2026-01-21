@@ -29,11 +29,12 @@ class TestParallelConsciousnessAPI:
             decision_history_provider=lambda: [],
             behavior_patterns_provider=lambda: [],
             cognitive_processes_provider=lambda: [],
-            optimization_history_provider=lambda: []
+            optimization_history_provider=lambda: [],
         )
 
         # Импортируем и устанавливаем глобальную переменную
         import src.main_server_api
+
         src.main_server_api.global_consciousness_engine = self.consciousness_engine
 
     def teardown_method(self):
@@ -43,6 +44,7 @@ class TestParallelConsciousnessAPI:
 
         # Очищаем глобальную переменную
         import src.main_server_api
+
         src.main_server_api.global_consciousness_engine = None
 
     def test_api_status_endpoint(self):
@@ -96,8 +98,12 @@ class TestParallelConsciousnessAPI:
 
         # Проверяем метрики
         metrics = response_data["metrics"]
-        required_metrics = ["consciousness_level", "self_reflection_score",
-                          "meta_cognition_depth", "current_state"]
+        required_metrics = [
+            "consciousness_level",
+            "self_reflection_score",
+            "meta_cognition_depth",
+            "current_state",
+        ]
         for metric in required_metrics:
             assert metric in metrics
 
@@ -145,11 +151,11 @@ class TestParallelConsciousnessAPI:
 
         # Проверяем, что все процессы присутствуют
         expected_processes = [
-            'neural_activity_monitor',
-            'self_reflection_processor',
-            'meta_cognition_analyzer',
-            'state_transition_manager',
-            'consciousness_metrics_aggregator'
+            "neural_activity_monitor",
+            "self_reflection_processor",
+            "meta_cognition_analyzer",
+            "state_transition_manager",
+            "consciousness_metrics_aggregator",
         ]
 
         for process_name in expected_processes:
@@ -273,6 +279,7 @@ class TestParallelConsciousnessAPI:
         """Тест API endpoints когда движок не запущен."""
         # Очищаем глобальную переменную
         import src.main_server_api
+
         src.main_server_api.global_consciousness_engine = None
 
         from src.main_server_api import LifeHandler
@@ -315,6 +322,7 @@ class TestParallelConsciousnessAPI:
 
         # Устанавливаем как глобальный
         import src.main_server_api
+
         src.main_server_api.global_consciousness_engine = mock_sequential_engine
 
         from src.main_server_api import LifeHandler

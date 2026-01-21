@@ -22,9 +22,7 @@ class StructuredLogger:
     Logs key processing stages in JSONL format for analysis and debugging.
     """
 
-    def __init__(
-        self, log_file: str = "data/structured_log.jsonl", enabled: bool = True
-    ):
+    def __init__(self, log_file: str = "data/structured_log.jsonl", enabled: bool = True):
         """
         Initialize structured logger.
 
@@ -198,9 +196,7 @@ class StructuredLogger:
 
         self._write_log_entry(entry)
 
-    def log_tick_end(
-        self, tick_number: int, duration_ms: float, events_processed: int
-    ) -> None:
+    def log_tick_end(self, tick_number: int, duration_ms: float, events_processed: int) -> None:
         """
         Log end of a tick for performance monitoring.
 
@@ -220,9 +216,7 @@ class StructuredLogger:
 
         self._write_log_entry(entry)
 
-    def log_error(
-        self, stage: str, error: Exception, correlation_id: Optional[str] = None
-    ) -> None:
+    def log_error(self, stage: str, error: Exception, correlation_id: Optional[str] = None) -> None:
         """
         Log errors in processing stages.
 

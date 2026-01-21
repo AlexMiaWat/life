@@ -24,6 +24,7 @@ class SensoryEntry:
 
     Содержит сырое событие и метаданные для управления временем жизни.
     """
+
     event: Event
     entry_timestamp: float  # Время добавления в буфер
     ttl_seconds: float = 2.0  # Время жизни по умолчанию (2 секунды)
@@ -58,7 +59,7 @@ class SensoryBuffer:
         self,
         buffer_size: int = DEFAULT_BUFFER_SIZE,
         default_ttl: float = DEFAULT_TTL_SECONDS,
-        logger: Optional[StructuredLogger] = None
+        logger: Optional[StructuredLogger] = None,
     ):
         """
         Инициализация сенсорного буфера.
@@ -81,11 +82,13 @@ class SensoryBuffer:
         self._total_entries_processed = 0
         self._last_cleanup_time = time.time()
 
-        self.logger.log_event({
-            "event_type": "sensory_buffer_initialized",
-            "buffer_size": buffer_size,
-            "default_ttl": default_ttl
-        })
+        self.logger.log_event(
+            {
+                "event_type": "sensory_buffer_initialized",
+                "buffer_size": buffer_size,
+                "default_ttl": default_ttl,
+            }
+        )
 
     def add_event(self, event: Event, custom_ttl: Optional[float] = None) -> None:
         """
@@ -98,11 +101,7 @@ class SensoryBuffer:
         ttl = custom_ttl if custom_ttl is not None else self.default_ttl
         entry_timestamp = time.time()
 
-        entry = SensoryEntry(
-            event=event,
-            entry_timestamp=entry_timestamp,
-            ttl_seconds=ttl
-        )
+        entry = SensoryEntry(event=event, entry_timestamp=entry_timestamp, ttl_seconds=ttl)
 
         # Добавляем в буфер (deque автоматически удалит старые записи при переполнении)
         self._buffer.append(entry)
@@ -110,13 +109,15 @@ class SensoryBuffer:
 
         # Логируем добавление события (только значимые события)
         if abs(event.intensity) > 0.1:  # Фильтр для значимых событий
-            self.logger.log_event({
-                "event_type": "sensory_event_added",
-                "event_type": event.type,
-                "event_intensity": event.intensity,
-                "buffer_size_current": len(self._buffer),
-                "ttl": ttl
-            })
+            self.logger.log_event(
+                {
+                    "event_type": "sensory_event_added",
+                    "event_type": event.type,
+                    "event_intensity": event.intensity,
+                    "buffer_size_current": len(self._buffer),
+                    "ttl": ttl,
+                }
+            )
 
     def get_events_for_processing(self, max_events: Optional[int] = None) -> List[Event]:
         """
@@ -154,11 +155,13 @@ class SensoryBuffer:
                 pass
 
         if events_to_process:
-            self.logger.log_event({
-                "event_type": "sensory_events_processed",
-                "events_count": len(events_to_process),
-                "buffer_size_after": len(self._buffer)
-            })
+            self.logger.log_event(
+                {
+                    "event_type": "sensory_events_processed",
+                    "events_count": len(events_to_process),
+                    "buffer_size_after": len(self._buffer),
+                }
+            )
 
         return events_to_process
 
@@ -214,11 +217,13 @@ class SensoryBuffer:
         self._total_entries_expired += expired_count
 
         if expired_count > 0:
-            self.logger.log_event({
-                "event_type": "sensory_buffer_cleanup",
-                "expired_count": expired_count,
-                "buffer_size_after": len(self._buffer)
-            })
+            self.logger.log_event(
+                {
+                    "event_type": "sensory_buffer_cleanup",
+                    "expired_count": expired_count,
+                    "buffer_size_after": len(self._buffer),
+                }
+            )
 
         return expired_count
 
@@ -251,7 +256,7 @@ class SensoryBuffer:
             "avg_ttl_remaining": avg_ttl_remaining,
             "min_ttl_remaining": min_ttl_remaining,
             "max_ttl_remaining": max_ttl_remaining,
-            "oldest_entry_age": ttl_stats[-1] - self.default_ttl if ttl_stats else 0.0
+            "oldest_entry_age": ttl_stats[-1] - self.default_ttl if ttl_stats else 0.0,
         }
 
     def clear_buffer(self) -> None:
@@ -259,10 +264,9 @@ class SensoryBuffer:
         cleared_count = len(self._buffer)
         self._buffer.clear()
 
-        self.logger.log_event({
-            "event_type": "sensory_buffer_cleared",
-            "cleared_count": cleared_count
-        })
+        self.logger.log_event(
+            {"event_type": "sensory_buffer_cleared", "cleared_count": cleared_count}
+        )
 
     def is_empty(self) -> bool:
         """

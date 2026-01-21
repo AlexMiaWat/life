@@ -4,9 +4,10 @@ import time
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Any, Dict
 
-from src.memory.memory import ArchiveMemory, Memory, MemoryEntry
+from src.memory.memory import ArchiveMemory, Memory
+from src.memory.memory_types import MemoryEntry
 from src.validation.field_validator import FieldValidator
 
 # Папка для снимков
@@ -29,21 +30,22 @@ class ParameterChange:
 
     Используется для анализа эволюции параметров Life со временем.
     """
+
     timestamp: float
     tick: int
     parameter_name: str
-    old_value: any
-    new_value: any
-    reason: str  # Причина изменения: "delta_application", "learning_update", "adaptation_update", etc.
-    context: dict = field(default_factory=dict)  # Дополнительная информация о изменении
+    old_value: Any
+    new_value: Any
+    reason: (
+        str  # Причина изменения: "delta_application", "learning_update", "adaptation_update", etc.
+    )
+    context: Dict[str, Any] = field(default_factory=dict)  # Дополнительная информация о изменении
 
 
 @dataclass
 class SelfState:
     # Thread-safety lock для API доступа
-    _api_lock: threading.RLock = field(
-        default_factory=threading.RLock, init=False, repr=False
-    )
+    _api_lock: threading.RLock = field(default_factory=threading.RLock, init=False, repr=False)
 
     life_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     birth_timestamp: float = field(default_factory=time.time)
@@ -62,12 +64,15 @@ class SelfState:
     last_significance: float = 0.0
     energy_history: list = field(default_factory=list)
     stability_history: list = field(default_factory=list)
-    parameter_history: list[ParameterChange] = field(default_factory=list)  # История изменений всех параметров для анализа эволюции
-    planning: dict = field(default_factory=dict)
-    intelligence: dict = field(default_factory=dict)
+    parameter_history: list[ParameterChange] = field(
+        default_factory=list
+    )  # История изменений всех параметров для анализа эволюции
+    planning: Dict[str, Any] = field(default_factory=dict)
+    intelligence: Dict[str, Any] = field(default_factory=dict)
     memory: Optional[Memory] = field(default=None)  # Активная память с поддержкой архивации
     archive_memory: ArchiveMemory = field(
-        default_factory=lambda: ArchiveMemory(load_existing=False, ignore_existing_file=True), init=False
+        default_factory=lambda: ArchiveMemory(load_existing=False, ignore_existing_file=True),
+        init=False,
     )  # Архивная память (не сериализуется в snapshot напрямую)
 
     # Внутренние флаги для контроля инициализации и логирования
@@ -98,7 +103,9 @@ class SelfState:
 
     # === Internal rhythms parameters ===
     circadian_phase: float = 0.0  # Фаза циркадного ритма [0, 2π]
-    circadian_period: float = 24.0 * 3600.0  # Период в секундах (24 часа)
+    circadian_period: float = 24.0 * 3600.0  # Базовый период в секундах (24 часа)
+    circadian_adaptivity: float = 0.5  # Адаптивность циркадного ритма [0.0, 1.0]
+    day_length_modifier: float = 1.0  # Модификатор длины дня [0.5, 2.0]
     recovery_efficiency: float = 1.0  # Эффективность восстановления [0.4, 1.6]
     stability_modifier: float = 1.0  # Модификатор стабильности [0.7, 1.3]
 
@@ -163,29 +170,55 @@ class SelfState:
         # Предварительно определенный набор безопасных полей для копирования
         safe_fields = {
             # Identity
-            "life_id", "birth_timestamp",
+            "life_id",
+            "birth_timestamp",
             # Temporal
-            "age", "ticks", "subjective_time",
+            "age",
+            "ticks",
+            "subjective_time",
             # Vital
-            "energy", "integrity", "stability",
+            "energy",
+            "integrity",
+            "stability",
             # Internal dynamics
-            "fatigue", "tension",
+            "fatigue",
+            "tension",
             # Cognitive layers
-            "intelligence", "planning",
+            "intelligence",
+            "planning",
             # Learning & Adaptation
-            "learning_params", "adaptation_params", "adaptation_history",
-            "parameter_history", "learning_params_history", "adaptation_params_history",
+            "learning_params",
+            "adaptation_params",
+            "adaptation_history",
+            "parameter_history",
+            "learning_params_history",
+            "adaptation_params_history",
             # Subjective time
-            "subjective_time_base_rate", "subjective_time_rate_min", "subjective_time_rate_max",
-            "subjective_time_intensity_coeff", "subjective_time_stability_coeff",
-            "subjective_time_energy_coeff", "subjective_time_intensity_smoothing",
-            "last_event_intensity", "time_ratio_history",
+            "subjective_time_base_rate",
+            "subjective_time_rate_min",
+            "subjective_time_rate_max",
+            "subjective_time_intensity_coeff",
+            "subjective_time_stability_coeff",
+            "subjective_time_energy_coeff",
+            "subjective_time_intensity_smoothing",
+            "last_event_intensity",
+            "time_ratio_history",
             # Rhythms
-            "circadian_phase", "circadian_period", "recovery_efficiency", "stability_modifier",
+            "circadian_phase",
+            "circadian_period",
+            "circadian_adaptivity",
+            "day_length_modifier",
+            "recovery_efficiency",
+            "stability_modifier",
             # Experimental
-            "echo_count", "last_echo_time", "clarity_state", "clarity_duration", "clarity_modifier",
+            "echo_count",
+            "last_echo_time",
+            "clarity_state",
+            "clarity_duration",
+            "clarity_modifier",
             # Control
-            "active", "last_significance"
+            "active",
+            "last_significance",
         }
 
         state_dict = {}
@@ -209,9 +242,7 @@ class SelfState:
         memory_limit = limits.get("memory_limit")
         if memory_limit is not None and self.memory is not None:
             # Используем кэшированную сериализацию
-            memory_entries = (
-                list(self.memory)[-memory_limit:] if memory_limit > 0 else []
-            )
+            memory_entries = list(self.memory)[-memory_limit:] if memory_limit > 0 else []
             state_dict["memory"] = [
                 {
                     "event_type": entry.event_type,
@@ -239,20 +270,32 @@ class SelfState:
         # stability_history
         stability_history_limit = limits.get("stability_history_limit")
         if stability_history_limit is not None and stability_history_limit > 0:
-            if "stability_history" in state_dict and isinstance(state_dict["stability_history"], list):
-                state_dict["stability_history"] = state_dict["stability_history"][-stability_history_limit:]
+            if "stability_history" in state_dict and isinstance(
+                state_dict["stability_history"], list
+            ):
+                state_dict["stability_history"] = state_dict["stability_history"][
+                    -stability_history_limit:
+                ]
 
         # adaptation_history
         adaptation_history_limit = limits.get("adaptation_history_limit")
         if adaptation_history_limit is not None and adaptation_history_limit > 0:
-            if "adaptation_history" in state_dict and isinstance(state_dict["adaptation_history"], list):
-                state_dict["adaptation_history"] = state_dict["adaptation_history"][-adaptation_history_limit:]
+            if "adaptation_history" in state_dict and isinstance(
+                state_dict["adaptation_history"], list
+            ):
+                state_dict["adaptation_history"] = state_dict["adaptation_history"][
+                    -adaptation_history_limit:
+                ]
 
         # parameter_history
         parameter_history_limit = limits.get("parameter_history_limit")
         if parameter_history_limit is not None and parameter_history_limit > 0:
-            if "parameter_history" in state_dict and isinstance(state_dict["parameter_history"], list):
-                state_dict["parameter_history"] = state_dict["parameter_history"][-parameter_history_limit:]
+            if "parameter_history" in state_dict and isinstance(
+                state_dict["parameter_history"], list
+            ):
+                state_dict["parameter_history"] = state_dict["parameter_history"][
+                    -parameter_history_limit:
+                ]
         else:
             # По умолчанию не включаем parameter_history (слишком много данных)
             state_dict.pop("parameter_history", None)
@@ -260,8 +303,12 @@ class SelfState:
         # learning_params_history
         learning_params_history_limit = limits.get("learning_params_history_limit")
         if learning_params_history_limit is not None and learning_params_history_limit > 0:
-            if "learning_params_history" in state_dict and isinstance(state_dict["learning_params_history"], list):
-                state_dict["learning_params_history"] = state_dict["learning_params_history"][-learning_params_history_limit:]
+            if "learning_params_history" in state_dict and isinstance(
+                state_dict["learning_params_history"], list
+            ):
+                state_dict["learning_params_history"] = state_dict["learning_params_history"][
+                    -learning_params_history_limit:
+                ]
         else:
             # По умолчанию не включаем learning_params_history
             state_dict.pop("learning_params_history", None)
@@ -269,17 +316,19 @@ class SelfState:
         # adaptation_params_history
         adaptation_params_history_limit = limits.get("adaptation_params_history_limit")
         if adaptation_params_history_limit is not None and adaptation_params_history_limit > 0:
-            if "adaptation_params_history" in state_dict and isinstance(state_dict["adaptation_params_history"], list):
-                state_dict["adaptation_params_history"] = state_dict["adaptation_params_history"][-adaptation_params_history_limit:]
+            if "adaptation_params_history" in state_dict and isinstance(
+                state_dict["adaptation_params_history"], list
+            ):
+                state_dict["adaptation_params_history"] = state_dict["adaptation_params_history"][
+                    -adaptation_params_history_limit:
+                ]
         else:
             # По умолчанию не включаем adaptation_params_history
             state_dict.pop("adaptation_params_history", None)
 
         return state_dict
 
-    def _validate_field(
-        self, field_name: str, value: float, clamp: bool = False
-    ) -> float:
+    def _validate_field(self, field_name: str, value: float, clamp: bool = False) -> float:
         """
         Валидация значения поля с учетом его границ.
 
@@ -303,9 +352,7 @@ class SelfState:
             if file_size >= MAX_LOG_FILE_SIZE:
                 # Создаем резервную копию с timestamp
                 timestamp = int(time.time())
-                backup_file = (
-                    STATE_CHANGES_LOG_DIR / f"state_changes_{timestamp}.jsonl.backup"
-                )
+                backup_file = STATE_CHANGES_LOG_DIR / f"state_changes_{timestamp}.jsonl.backup"
                 STATE_CHANGES_LOG_FILE.rename(backup_file)
                 # Создаем новый пустой файл
                 STATE_CHANGES_LOG_FILE.touch()
@@ -316,9 +363,7 @@ class SelfState:
             # Игнорируем ошибки ротации, чтобы не нарушать работу системы
             pass
 
-    def _cleanup_old_backups(
-        self, max_age_days: int = 30, max_backups: int = 10
-    ) -> None:
+    def _cleanup_old_backups(self, max_age_days: int = 30, max_backups: int = 10) -> None:
         """
         Очистка старых резервных копий логов
 
@@ -328,9 +373,7 @@ class SelfState:
         """
         try:
             # Находим все резервные копии
-            backup_files = list(
-                STATE_CHANGES_LOG_DIR.glob("state_changes_*.jsonl.backup")
-            )
+            backup_files = list(STATE_CHANGES_LOG_DIR.glob("state_changes_*.jsonl.backup"))
 
             if not backup_files:
                 return
@@ -367,7 +410,9 @@ class SelfState:
         """Проверка, является ли поле критичным (vital параметры)"""
         return field_name in ["energy", "integrity", "stability"]
 
-    def _record_parameter_change(self, parameter_name: str, old_value, new_value, reason: str, context: dict = None) -> None:
+    def _record_parameter_change(
+        self, parameter_name: str, old_value, new_value, reason: str, context: dict = None
+    ) -> None:
         """
         Записывает изменение параметра в parameter_history для анализа эволюции.
 
@@ -388,7 +433,7 @@ class SelfState:
             old_value=old_value,
             new_value=new_value,
             reason=reason,
-            context=context
+            context=context,
         )
 
         # Thread-safe добавление в историю
@@ -466,7 +511,7 @@ class SelfState:
         # Для потокобезопасности используем блокировку при изменении состояния
         # Исключаем внутренние поля и поля, которые не влияют на консистентность
         # Валидация должна работать всегда для новых объектов
-        if name not in ["activated_memory", "last_pattern"] and not getattr(
+        if name not in ["activated_memory", "last_pattern", "parameter_history"] and not getattr(
             self, "_loading_from_snapshot", False
         ):
             # Используем RLock для потокобезопасности изменений состояния
@@ -507,6 +552,8 @@ class SelfState:
                     "last_event_intensity",
                     "circadian_phase",
                     "circadian_period",
+                    "circadian_adaptivity",
+                    "day_length_modifier",
                     "recovery_efficiency",
                     "stability_modifier",
                     "last_echo_time",
@@ -539,13 +586,11 @@ class SelfState:
                 and name in ["life_id", "birth_timestamp"]
                 and not getattr(self, "_loading_from_snapshot", False)
             ):
-                raise AttributeError(
-                    f"Cannot modify immutable field '{name}' after initialization"
-                )
+                raise AttributeError(f"Cannot modify immutable field '{name}' after initialization")
 
             # Получаем старое значение для логирования (безопасно)
             old_value = None
-            if is_initialized:
+            if is_initialized and name != "parameter_history":  # Избегаем рекурсии при логировании
                 try:
                     old_value = object.__getattribute__(self, name)
                 except AttributeError:
@@ -568,7 +613,14 @@ class SelfState:
                 "subjective_time_energy_coeff",
                 "subjective_time_intensity_smoothing",
                 "last_event_intensity",
-                "ticks",
+                "circadian_phase",
+                "circadian_period",
+                "circadian_adaptivity",
+                "day_length_modifier",
+                "recovery_efficiency",
+                "stability_modifier",
+                "echo_count",
+                "last_echo_time",
             ]:
                 value = self._validate_field(name, value, clamp=False)
 
@@ -576,7 +628,7 @@ class SelfState:
             object.__setattr__(self, name, value)
 
             # Логируем изменение (только после инициализации и если значение изменилось)
-            if is_initialized and old_value is not None and old_value != value:
+            if is_initialized and name != "parameter_history" and old_value is not None and old_value != value:
                 self._log_change(name, old_value, value)
                 # Инвалидируем кэш API при изменении состояния
                 self._invalidate_api_cache()
@@ -584,9 +636,7 @@ class SelfState:
             # Active обновляется только при явном изменении или в специальных случаях
             # Не автоматически при изменении vital параметров
 
-    activated_memory: list = field(
-        default_factory=list
-    )  # Transient, не сохраняется в snapshot
+    activated_memory: list = field(default_factory=list)  # Transient, не сохраняется в snapshot
     last_pattern: str = ""  # Transient, последний выбранный паттерн decision
 
     @property
@@ -628,33 +678,43 @@ class SelfState:
         }
     )  # Параметры для Learning (Этап 14)
     adaptation_params: dict = field(
-        default_factory=lambda: __import__('src.adaptation.adaptation', fromlist=['AdaptationManager']).AdaptationManager()._init_behavior_params_from_learning({
-            "event_type_sensitivity": {
-                "noise": 0.2,
-                "decay": 0.2,
-                "recovery": 0.2,
-                "shock": 0.2,
-                "idle": 0.2,
-            },
-            "significance_thresholds": {
-                "noise": 0.1,
-                "decay": 0.1,
-                "recovery": 0.1,
-                "shock": 0.1,
-                "idle": 0.1,
-            },
-            "response_coefficients": {
-                "dampen": 0.5,
-                "absorb": 1.0,
-                "ignore": 0.0,
-            },
-        })
+        default_factory=lambda: __import__(
+            "src.adaptation.adaptation", fromlist=["AdaptationManager"]
+        )
+        .AdaptationManager()
+        ._init_behavior_params_from_learning(
+            {
+                "event_type_sensitivity": {
+                    "noise": 0.2,
+                    "decay": 0.2,
+                    "recovery": 0.2,
+                    "shock": 0.2,
+                    "idle": 0.2,
+                },
+                "significance_thresholds": {
+                    "noise": 0.1,
+                    "decay": 0.1,
+                    "recovery": 0.1,
+                    "shock": 0.1,
+                    "idle": 0.1,
+                },
+                "response_coefficients": {
+                    "dampen": 0.5,
+                    "absorb": 1.0,
+                    "ignore": 0.0,
+                },
+            }
+        )
     )  # Параметры поведения для Adaptation (Этап 15)
     adaptation_history: list = field(
         default_factory=list
     )  # История адаптаций для обратимости (Этап 15)
-    learning_params_history: list = field(default_factory=list)  # История изменений learning_params для анализа эволюции
-    adaptation_params_history: list = field(default_factory=list)  # История изменений adaptation_params для анализа эволюции
+    learning_params_history: list = field(
+        default_factory=list
+    )  # История изменений learning_params для анализа эволюции
+    adaptation_params_history: list = field(
+        default_factory=list
+    )  # История изменений adaptation_params для анализа эволюции
 
     # === Subjective time aliases ===
     @property
@@ -782,7 +842,10 @@ class SelfState:
                                 current,
                                 clamped_value,
                                 "delta_application",
-                                context={"delta_value": delta, "clamped": clamped_value != new_value}
+                                context={
+                                    "delta_value": delta,
+                                    "clamped": clamped_value != new_value,
+                                },
                             )
                     else:
                         # Для нечисловых полей операция сложения не поддерживается
@@ -831,33 +894,78 @@ class SelfState:
 
     def update_circadian_rhythm(self, dt: float) -> None:
         """
-        Обновить фазу циркадного ритма и связанные параметры.
+        Обновить адаптивный циркадный ритм с 4 фазами: рассвет/день/закат/ночь.
 
-        Фаза циркадного ритма изменяется со скоростью 2π/(24 часа) = π/(12 часов).
-        Recovery efficiency достигает пика днем (фаза π/2), минимум ночью (фаза 3π/2).
-        Stability modifier достигает пика ночью (фаза π), минимум днем (фаза 0).
+        Длина "дня" адаптируется на основе стабильности и энергии системы.
+        При высокой стабильности и энергии - более короткие циклы (активность).
+        При низкой стабильности и энергии - более длинные циклы (восстановление).
+
+        4 фазы ритма:
+        - Рассвет (0-π/2): постепенное увеличение активности
+        - День (π/2-π): максимальная активность и эффективность восстановления
+        - Закат (π-3π/2): постепенное снижение активности
+        - Ночь (3π/2-2π): минимальная активность, максимальная стабильность
 
         Args:
             dt: Время в секундах, прошедшее с последнего обновления
         """
         import math
 
-        # Обновляем фазу ритма
-        phase_increment = (dt / self.circadian_period) * 2 * math.pi
+        # === Адаптивный расчет длины "дня" ===
+        # Базовый период: 24 часа
+        base_period = 24.0 * 3600.0
+
+        # Модификатор на основе состояния системы
+        # При высокой стабильности (>0.8) и энергии (>70) - укорачиваем цикл (активность)
+        # При низкой стабильности (<0.3) или энергии (<30) - удлиняем цикл (восстановление)
+        stability_factor = max(0.5, min(2.0, 1.0 / max(0.1, self.stability)))
+        energy_factor = max(0.5, min(2.0, 100.0 / max(10.0, self.energy)))
+
+        # Комбинированный фактор (среднее арифметическое)
+        state_factor = (stability_factor + energy_factor) / 2.0
+
+        # Адаптивный период с учетом circadian_adaptivity
+        # При adaptivity=0: фиксированный период, при adaptivity=1: максимальная адаптация
+        adaptive_period = base_period * (
+            1.0 + self.circadian_adaptivity * (state_factor - 1.0)
+        ) * self.day_length_modifier
+
+        # Ограничиваем период разумными пределами: 6-72 часа
+        adaptive_period = max(6*3600, min(72*3600, adaptive_period))
+
+        # === Обновление фазы ритма ===
+        phase_increment = (dt / adaptive_period) * 2 * math.pi
         self.circadian_phase += phase_increment
         self.circadian_phase %= 2 * math.pi  # Нормализация в диапазон [0, 2π]
 
-        # Обновляем эффективность восстановления
-        # Пик днем (фаза π/2), минимум ночью (фаза 3π/2)
-        # Диапазон: 0.4 + 0.6 * sin(фаза + π/2) = [0.4, 1.0] с пиком в π/2
-        raw_recovery = 0.4 + 0.6 * math.sin(self.circadian_phase + math.pi / 2)
-        self.recovery_efficiency = max(0.4, min(1.0, raw_recovery))
+        # === Расчет коэффициентов для 4 фаз ===
+        phase_rad = self.circadian_phase
 
-        # Обновляем модификатор стабильности
-        # Пик ночью (фаза π), минимум днем (фаза 0)
-        # Диапазон: 0.7 + 0.6 * sin(фаза) = [0.7, 1.3] с пиком в π
-        raw_stability = 0.7 + 0.6 * math.sin(self.circadian_phase)
-        self.stability_modifier = max(0.7, min(1.3, raw_stability))
+        # Определяем текущую фазу
+        if phase_rad < math.pi / 2:
+            # Фаза 1: Рассвет (0-π/2) - постепенное увеличение активности
+            phase_progress = phase_rad / (math.pi / 2)  # [0, 1]
+            recovery_coeff = 0.5 + 0.3 * phase_progress  # [0.5, 0.8]
+            stability_coeff = 0.8 + 0.1 * phase_progress  # [0.8, 0.9]
+        elif phase_rad < math.pi:
+            # Фаза 2: День (π/2-π) - максимальная активность
+            phase_progress = (phase_rad - math.pi/2) / (math.pi / 2)  # [0, 1]
+            recovery_coeff = 0.8 + 0.2 * phase_progress  # [0.8, 1.0]
+            stability_coeff = 0.9 - 0.1 * phase_progress  # [0.9, 0.8]
+        elif phase_rad < 3 * math.pi / 2:
+            # Фаза 3: Закат (π-3π/2) - постепенное снижение активности
+            phase_progress = (phase_rad - math.pi) / (math.pi / 2)  # [0, 1]
+            recovery_coeff = 1.0 - 0.3 * phase_progress  # [1.0, 0.7]
+            stability_coeff = 0.8 + 0.1 * phase_progress  # [0.8, 0.9]
+        else:
+            # Фаза 4: Ночь (3π/2-2π) - восстановление и стабилизация
+            phase_progress = (phase_rad - 3*math.pi/2) / (math.pi / 2)  # [0, 1]
+            recovery_coeff = 0.7 - 0.3 * phase_progress  # [0.7, 0.4]
+            stability_coeff = 0.9 + 0.1 * phase_progress  # [0.9, 1.0]
+
+        # Применяем коэффициенты с учетом состояния системы
+        self.recovery_efficiency = max(0.4, min(1.6, recovery_coeff))
+        self.stability_modifier = max(0.7, min(1.3, stability_coeff))
 
     def trigger_memory_echo(self, memory) -> Optional[MemoryEntry]:
         """
@@ -959,10 +1067,7 @@ class SelfState:
         with self._api_lock:
             # Проверяем кэш (TTL = 0.1 секунды для API)
             current_time = time.time()
-            if (
-                cache_key in self._api_cache
-                and (current_time - self._api_cache_timestamp) < 0.1
-            ):
+            if cache_key in self._api_cache and (current_time - self._api_cache_timestamp) < 0.1:
                 # Возвращаем копию из кэша
                 return self._api_cache[cache_key].copy()
 
@@ -991,6 +1096,8 @@ class SelfState:
                     "subjective_time_intensity_coeff",
                     "subjective_time_stability_coeff",
                     "subjective_time_energy_coeff",
+                    "circadian_adaptivity",
+                    "day_length_modifier",
                 ]
                 for field_name in optional_fields:
                     state_dict.pop(field_name, None)
@@ -1009,9 +1116,7 @@ class SelfState:
         memory_limit = limits.get("memory_limit")
         if memory_limit is not None and self.memory is not None:
             # Ограничиваем количество записей памяти
-            memory_entries = (
-                list(self.memory)[-memory_limit:] if memory_limit > 0 else []
-            )
+            memory_entries = list(self.memory)[-memory_limit:] if memory_limit > 0 else []
             state_dict["memory"] = [
                 {
                     "event_type": entry.event_type,
@@ -1029,24 +1134,16 @@ class SelfState:
         # Ограничиваем размер других больших полей
         events_limit = limits.get("events_limit")
         if events_limit is not None and events_limit > 0:
-            if "recent_events" in state_dict and isinstance(
-                state_dict["recent_events"], list
-            ):
-                state_dict["recent_events"] = state_dict["recent_events"][
-                    -events_limit:
-                ]
+            if "recent_events" in state_dict and isinstance(state_dict["recent_events"], list):
+                state_dict["recent_events"] = state_dict["recent_events"][-events_limit:]
         else:
             # По умолчанию не включаем recent_events
             state_dict.pop("recent_events", None)
 
         energy_history_limit = limits.get("energy_history_limit")
         if energy_history_limit is not None and energy_history_limit > 0:
-            if "energy_history" in state_dict and isinstance(
-                state_dict["energy_history"], list
-            ):
-                state_dict["energy_history"] = state_dict["energy_history"][
-                    -energy_history_limit:
-                ]
+            if "energy_history" in state_dict and isinstance(state_dict["energy_history"], list):
+                state_dict["energy_history"] = state_dict["energy_history"][-energy_history_limit:]
         else:
             # По умолчанию не включаем energy_history
             state_dict.pop("energy_history", None)
@@ -1090,6 +1187,8 @@ class SelfState:
                 "subjective_time_intensity_coeff",
                 "subjective_time_stability_coeff",
                 "subjective_time_energy_coeff",
+                "circadian_adaptivity",
+                "day_length_modifier",
             ]
             for field_name in optional_fields:
                 state_dict.pop(field_name, None)
@@ -1111,8 +1210,11 @@ class SelfState:
         # Исключаем большие структуры для уменьшения размера файла
         # Эти данные могут быть восстановлены из логов или не критичны для перезапуска
         large_fields_to_exclude = [
-            "energy_history", "stability_history", "time_ratio_history",
-            "adaptation_history", "recent_events"
+            "energy_history",
+            "stability_history",
+            "time_ratio_history",
+            "adaptation_history",
+            "recent_events",
         ]
         for field in large_fields_to_exclude:
             snapshot.pop(field, None)
@@ -1148,9 +1250,7 @@ class SelfState:
         }
 
         if not isinstance(params, dict):
-            logger.warning(
-                "learning_params не является словарем, используем значения по умолчанию"
-            )
+            logger.warning("learning_params не является словарем, используем значения по умолчанию")
             return self._get_default_learning_params()
 
         validated_params = {}
@@ -1160,9 +1260,7 @@ class SelfState:
                 logger.warning(
                     f"Отсутствует секция {section_name} в learning_params, используем значения по умолчанию"
                 )
-                validated_params[section_name] = self._get_default_learning_params()[
-                    section_name
-                ]
+                validated_params[section_name] = self._get_default_learning_params()[section_name]
                 continue
 
             section = params[section_name]
@@ -1170,9 +1268,7 @@ class SelfState:
                 logger.warning(
                     f"Секция {section_name} не является словарем, используем значения по умолчанию"
                 )
-                validated_params[section_name] = self._get_default_learning_params()[
-                    section_name
-                ]
+                validated_params[section_name] = self._get_default_learning_params()[section_name]
                 continue
 
             validated_section = {}
@@ -1181,9 +1277,7 @@ class SelfState:
                     logger.warning(
                         f"Отсутствует ключ {key} в секции {section_name}, используем значение по умолчанию"
                     )
-                    validated_section[key] = self._get_default_learning_params()[
-                        section_name
-                    ][key]
+                    validated_section[key] = self._get_default_learning_params()[section_name][key]
                     continue
 
                 value = section[key]
@@ -1191,9 +1285,7 @@ class SelfState:
                     logger.warning(
                         f"Значение {key} в секции {section_name} не является числом ({type(value)}), используем значение по умолчанию"
                     )
-                    validated_section[key] = self._get_default_learning_params()[
-                        section_name
-                    ][key]
+                    validated_section[key] = self._get_default_learning_params()[section_name][key]
                     continue
 
                 # Валидация диапазонов
@@ -1250,9 +1342,7 @@ class SelfState:
                 logger.warning(
                     f"Отсутствует секция {section_name} в adaptation_params, используем значения по умолчанию"
                 )
-                validated_params[section_name] = self._get_default_adaptation_params()[
-                    section_name
-                ]
+                validated_params[section_name] = self._get_default_adaptation_params()[section_name]
                 continue
 
             section = params[section_name]
@@ -1260,9 +1350,7 @@ class SelfState:
                 logger.warning(
                     f"Секция {section_name} не является словарем, используем значения по умолчанию"
                 )
-                validated_params[section_name] = self._get_default_adaptation_params()[
-                    section_name
-                ]
+                validated_params[section_name] = self._get_default_adaptation_params()[section_name]
                 continue
 
             validated_section = {}
@@ -1271,9 +1359,9 @@ class SelfState:
                     logger.warning(
                         f"Отсутствует ключ {key} в секции {section_name}, используем значение по умолчанию"
                     )
-                    validated_section[key] = self._get_default_adaptation_params()[
-                        section_name
-                    ][key]
+                    validated_section[key] = self._get_default_adaptation_params()[section_name][
+                        key
+                    ]
                     continue
 
                 value = section[key]
@@ -1281,9 +1369,9 @@ class SelfState:
                     logger.warning(
                         f"Значение {key} в секции {section_name} не является числом ({type(value)}), используем значение по умолчанию"
                     )
-                    validated_section[key] = self._get_default_adaptation_params()[
-                        section_name
-                    ][key]
+                    validated_section[key] = self._get_default_adaptation_params()[section_name][
+                        key
+                    ]
                     continue
 
                 # Валидация диапазонов (такие же как для learning)
@@ -1378,10 +1466,7 @@ class SelfState:
                         if line.strip():
                             try:
                                 entry = json.loads(line)
-                                if (
-                                    filter_by_life_id
-                                    and entry.get("life_id") != self.life_id
-                                ):
+                                if filter_by_life_id and entry.get("life_id") != self.life_id:
                                     continue
                                 history.append(entry)
                             except (json.JSONDecodeError, KeyError):
@@ -1418,20 +1503,14 @@ class SelfState:
                         while b"\n" in buffer:
                             line, buffer = buffer.rsplit(b"\n", 1)
                             if line.strip():
-                                lines_found.append(
-                                    line.decode("utf-8", errors="ignore")
-                                )
+                                lines_found.append(line.decode("utf-8", errors="ignore"))
 
                     # Обрабатываем оставшийся буфер
                     if buffer.strip():
                         lines_found.append(buffer.decode("utf-8", errors="ignore"))
 
                     # Берем последние limit строк (они в обратном порядке)
-                    lines_found = (
-                        lines_found[-limit:]
-                        if len(lines_found) > limit
-                        else lines_found
-                    )
+                    lines_found = lines_found[-limit:] if len(lines_found) > limit else lines_found
 
                     # Парсим строки и фильтруем
                     for line in reversed(
@@ -1440,10 +1519,7 @@ class SelfState:
                         if line.strip():
                             try:
                                 entry = json.loads(line)
-                                if (
-                                    filter_by_life_id
-                                    and entry.get("life_id") != self.life_id
-                                ):
+                                if filter_by_life_id and entry.get("life_id") != self.life_id:
                                     continue
                                 history.append(entry)
                                 # Останавливаемся, когда собрали достаточно записей
@@ -1467,10 +1543,11 @@ class SelfState:
         latest = snapshots[-1]
 
         import logging
+
         logger = logging.getLogger(__name__)
 
         try:
-            with latest.open("r", encoding='utf-8') as f:
+            with latest.open("r", encoding="utf-8") as f:
                 data = json.load(f)
         except (json.JSONDecodeError, UnicodeDecodeError) as e:
             logger.error(f"Failed to parse snapshot file {latest}: {e}")
@@ -1479,12 +1556,14 @@ class SelfState:
                 prev_snapshot = snapshots[-2]
                 logger.warning(f"Trying previous snapshot: {prev_snapshot}")
                 try:
-                    with prev_snapshot.open("r", encoding='utf-8') as f:
+                    with prev_snapshot.open("r", encoding="utf-8") as f:
                         data = json.load(f)
                     logger.info(f"Successfully loaded previous snapshot: {prev_snapshot}")
                 except (json.JSONDecodeError, UnicodeDecodeError) as e2:
                     logger.error(f"Previous snapshot also corrupted: {e2}")
-                    raise RuntimeError(f"All available snapshots are corrupted. Latest: {e}, Previous: {e2}")
+                    raise RuntimeError(
+                        f"All available snapshots are corrupted. Latest: {e}, Previous: {e2}"
+                    )
             else:
                 raise RuntimeError(f"Snapshot file corrupted and no backup available: {e}")
 
@@ -1574,15 +1653,21 @@ class SelfState:
 
         # Финальная валидация загруженного состояния
         if state.energy < 0 or state.energy > 100:
-            logger.warning(f"Invalid energy value in snapshot: {state.energy}, clamping to [0, 100]")
+            logger.warning(
+                f"Invalid energy value in snapshot: {state.energy}, clamping to [0, 100]"
+            )
             state.energy = max(0, min(100, state.energy))
 
         if state.integrity < 0 or state.integrity > 1:
-            logger.warning(f"Invalid integrity value in snapshot: {state.integrity}, clamping to [0, 1]")
+            logger.warning(
+                f"Invalid integrity value in snapshot: {state.integrity}, clamping to [0, 1]"
+            )
             state.integrity = max(0, min(1, state.integrity))
 
         if state.stability < 0 or state.stability > 1:
-            logger.warning(f"Invalid stability value in snapshot: {state.stability}, clamping to [0, 1]")
+            logger.warning(
+                f"Invalid stability value in snapshot: {state.stability}, clamping to [0, 1]"
+            )
             state.stability = max(0, min(1, state.stability))
 
         if state.ticks < 0:
@@ -1602,7 +1687,9 @@ def create_initial_state() -> SelfState:
     # ArchiveMemory() по умолчанию имеет load_existing=False, что подходит для новой сессии
     state = SelfState()
     # Убеждаемся, что ArchiveMemory пустая согласно плану восстановления
-    assert state.archive_memory.size() == 0, f"ArchiveMemory should be empty on initialization, but has {state.archive_memory.size()} entries"
+    assert (
+        state.archive_memory.size() == 0
+    ), f"ArchiveMemory should be empty on initialization, but has {state.archive_memory.size()} entries"
     return state
 
 
@@ -1643,7 +1730,7 @@ def save_snapshot(state: SelfState, compress_large: bool = True):
 
             # Проверяем размер данных для решения о компрессии
             json_str = json.dumps(snapshot, separators=(",", ":"), default=str)
-            data_size = len(json_str.encode('utf-8'))
+            data_size = len(json_str.encode("utf-8"))
 
             # Компрессия для больших файлов (>50KB)
             if compress_large and data_size > 50 * 1024:
@@ -1651,7 +1738,7 @@ def save_snapshot(state: SelfState, compress_large: bool = True):
                 compressed_temp = SNAPSHOT_DIR / f"snapshot_{tick:06d}.tmp.gz"
 
                 # Пишем сжатый файл
-                with gzip.open(compressed_temp, 'wt', encoding='utf-8', compresslevel=6) as f:
+                with gzip.open(compressed_temp, "wt", encoding="utf-8", compresslevel=6) as f:
                     f.write(json_str)
 
                 # Атомарное переименование сжатого файла
@@ -1664,7 +1751,7 @@ def save_snapshot(state: SelfState, compress_large: bool = True):
                 # Создаем символическую ссылку для обратной совместимости
                 try:
                     if not filename.exists():
-                        filename.symlink_to(compressed_filename.name + '.gz')
+                        filename.symlink_to(compressed_filename.name + ".gz")
                 except OSError:
                     # Игнорируем ошибки создания symlink (например, на Windows)
                     pass
@@ -1685,7 +1772,9 @@ def save_snapshot(state: SelfState, compress_large: bool = True):
         if logging_was_enabled:
             state.enable_logging()
 
-    def get_parameter_evolution(self, parameter_name: str, time_range: tuple = None) -> list[ParameterChange]:
+    def get_parameter_evolution(
+        self, parameter_name: str, time_range: tuple = None
+    ) -> list[ParameterChange]:
         """
         Получить эволюцию конкретного параметра за заданный период времени.
 
@@ -1697,11 +1786,17 @@ def save_snapshot(state: SelfState, compress_large: bool = True):
             Список изменений параметра в хронологическом порядке
         """
         with self._api_lock:
-            changes = [change for change in self.parameter_history if change.parameter_name == parameter_name]
+            changes = [
+                change
+                for change in self.parameter_history
+                if change.parameter_name == parameter_name
+            ]
 
             if time_range:
                 start_time, end_time = time_range
-                changes = [change for change in changes if start_time <= change.timestamp <= end_time]
+                changes = [
+                    change for change in changes if start_time <= change.timestamp <= end_time
+                ]
 
             return sorted(changes, key=lambda x: x.timestamp)
 
@@ -1720,7 +1815,9 @@ def save_snapshot(state: SelfState, compress_large: bool = True):
 
         with self._api_lock:
             # Фильтруем изменения за временное окно
-            recent_changes = [change for change in self.parameter_history if change.timestamp >= window_start]
+            recent_changes = [
+                change for change in self.parameter_history if change.timestamp >= window_start
+            ]
 
             trends = {}
             for change in recent_changes:
@@ -1731,7 +1828,7 @@ def save_snapshot(state: SelfState, compress_large: bool = True):
                         "first_value": None,
                         "last_value": None,
                         "avg_change_rate": 0.0,
-                        "trend_direction": "stable"
+                        "trend_direction": "stable",
                     }
 
                 trends[param]["changes_count"] += 1
@@ -1742,10 +1839,16 @@ def save_snapshot(state: SelfState, compress_large: bool = True):
 
             # Вычисляем тренды
             for param, data in trends.items():
-                if data["changes_count"] > 1 and data["first_value"] is not None and data["last_value"] is not None:
+                if (
+                    data["changes_count"] > 1
+                    and data["first_value"] is not None
+                    and data["last_value"] is not None
+                ):
                     try:
                         # Простая оценка направления тренда
-                        if isinstance(data["first_value"], (int, float)) and isinstance(data["last_value"], (int, float)):
+                        if isinstance(data["first_value"], (int, float)) and isinstance(
+                            data["last_value"], (int, float)
+                        ):
                             delta = data["last_value"] - data["first_value"]
                             if delta > 0.01:
                                 data["trend_direction"] = "increasing"
@@ -1758,7 +1861,9 @@ def save_snapshot(state: SelfState, compress_large: bool = True):
 
         return trends
 
-    def get_parameter_correlations(self, param1: str, param2: str, time_window: float = 3600.0) -> dict:
+    def get_parameter_correlations(
+        self, param1: str, param2: str, time_window: float = 3600.0
+    ) -> dict:
         """
         Анализировать корреляции между изменениями двух параметров.
 
@@ -1774,8 +1879,16 @@ def save_snapshot(state: SelfState, compress_large: bool = True):
         window_start = current_time - time_window
 
         with self._api_lock:
-            changes1 = [c for c in self.parameter_history if c.parameter_name == param1 and c.timestamp >= window_start]
-            changes2 = [c for c in self.parameter_history if c.parameter_name == param2 and c.timestamp >= window_start]
+            changes1 = [
+                c
+                for c in self.parameter_history
+                if c.parameter_name == param1 and c.timestamp >= window_start
+            ]
+            changes2 = [
+                c
+                for c in self.parameter_history
+                if c.parameter_name == param2 and c.timestamp >= window_start
+            ]
 
             if not changes1 or not changes2:
                 return {"correlation": 0.0, "sample_size": 0}
@@ -1795,7 +1908,7 @@ def save_snapshot(state: SelfState, compress_large: bool = True):
             return {
                 "correlation": correlation,
                 "sample_size": total_pairs,
-                "joint_changes": joint_changes
+                "joint_changes": joint_changes,
             }
 
     def get_vital_parameters_trends(self, time_window: float = 3600.0) -> dict:
@@ -1817,8 +1930,11 @@ def save_snapshot(state: SelfState, compress_large: bool = True):
             trends = {}
 
             for param in vital_params:
-                changes = [c for c in self.parameter_history
-                          if c.parameter_name == param and c.timestamp >= window_start]
+                changes = [
+                    c
+                    for c in self.parameter_history
+                    if c.parameter_name == param and c.timestamp >= window_start
+                ]
 
                 if not changes:
                     trends[param] = {
@@ -1827,7 +1943,7 @@ def save_snapshot(state: SelfState, compress_large: bool = True):
                         "trend": "no_data",
                         "avg_change_rate": 0.0,
                         "min_value": getattr(self, param, None),
-                        "max_value": getattr(self, param, None)
+                        "max_value": getattr(self, param, None),
                     }
                     continue
 
@@ -1835,7 +1951,11 @@ def save_snapshot(state: SelfState, compress_large: bool = True):
                 changes.sort(key=lambda x: x.timestamp)
 
                 # Вычисляем статистику
-                first_value = changes[0].old_value if changes[0].old_value is not None else changes[0].new_value
+                first_value = (
+                    changes[0].old_value
+                    if changes[0].old_value is not None
+                    else changes[0].new_value
+                )
                 last_value = changes[-1].new_value
                 min_value = min(c.new_value for c in changes)
                 max_value = max(c.new_value for c in changes)
@@ -1863,7 +1983,7 @@ def save_snapshot(state: SelfState, compress_large: bool = True):
                     "min_value": min_value,
                     "max_value": max_value,
                     "first_value": first_value,
-                    "last_value": last_value
+                    "last_value": last_value,
                 }
 
         return trends
@@ -1887,8 +2007,11 @@ def save_snapshot(state: SelfState, compress_large: bool = True):
             trends = {}
 
             for param in internal_params:
-                changes = [c for c in self.parameter_history
-                          if c.parameter_name == param and c.timestamp >= window_start]
+                changes = [
+                    c
+                    for c in self.parameter_history
+                    if c.parameter_name == param and c.timestamp >= window_start
+                ]
 
                 if not changes:
                     trends[param] = {
@@ -1896,7 +2019,7 @@ def save_snapshot(state: SelfState, compress_large: bool = True):
                         "changes_count": 0,
                         "trend": "no_data",
                         "volatility": 0.0,
-                        "avg_value": getattr(self, param, None)
+                        "avg_value": getattr(self, param, None),
                     }
                     continue
 
@@ -1934,7 +2057,7 @@ def save_snapshot(state: SelfState, compress_large: bool = True):
                     "changes_count": len(changes),
                     "trend": trend,
                     "volatility": volatility,
-                    "avg_value": mean
+                    "avg_value": mean,
                 }
 
         return trends
@@ -1958,7 +2081,7 @@ def load_snapshot(tick: int) -> SelfState:
                 data = json.load(f)
         # Проверяем сжатый файл
         elif compressed_filename.exists():
-            with gzip.open(compressed_filename, 'rt', encoding='utf-8') as f:
+            with gzip.open(compressed_filename, "rt", encoding="utf-8") as f:
                 data = json.load(f)
         else:
             raise FileNotFoundError(f"Snapshot {tick} не найден")

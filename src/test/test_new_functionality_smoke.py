@@ -434,9 +434,7 @@ class TestNewFunctionalitySmoke:
     def test_meaning_engine_low_significance_ignore(self):
         """Дымовой тест игнорирования событий с низкой значимостью"""
         engine = MeaningEngine()
-        event = Event(
-            type="idle", intensity=0.01, timestamp=1.0
-        )  # Низкая интенсивность
+        event = Event(type="idle", intensity=0.01, timestamp=1.0)  # Низкая интенсивность
         self_state = {"energy": 100.0, "stability": 1.0, "integrity": 1.0}
 
         meaning = engine.process(event, self_state)
@@ -478,9 +476,7 @@ class TestNewFunctionalitySmoke:
         new_behavior_params = adaptation_manager.apply_adaptation(
             analysis, current_behavior_params, self_state
         )
-        adaptation_manager.store_history(
-            current_behavior_params, new_behavior_params, self_state
-        )
+        adaptation_manager.store_history(current_behavior_params, new_behavior_params, self_state)
 
         # Проверяем, что все прошло без ошибок
         assert isinstance(self_state.learning_params, dict)
@@ -509,9 +505,7 @@ class TestNewFunctionalitySmoke:
 
         # Learning обрабатывает данные
         statistics = learning_engine.process_statistics(self_state.memory)
-        new_params = learning_engine.adjust_parameters(
-            statistics, self_state.learning_params
-        )
+        new_params = learning_engine.adjust_parameters(statistics, self_state.learning_params)
 
         # Проверяем, что все прошло без ошибок
         assert statistics["total_entries"] >= 0
@@ -555,9 +549,7 @@ class TestNewFunctionalitySmoke:
         new_behavior_params = adaptation_manager.apply_adaptation(
             analysis, current_behavior_params, self_state
         )
-        adaptation_manager.store_history(
-            current_behavior_params, new_behavior_params, self_state
-        )
+        adaptation_manager.store_history(current_behavior_params, new_behavior_params, self_state)
 
         # Проверяем, что вся цепочка работает
         assert len(self_state.memory) >= 1
@@ -580,9 +572,7 @@ class TestNewFunctionalitySmoke:
         statistics = learning_engine.process_statistics(self_state.memory)
         assert statistics["total_entries"] == 0
 
-        new_params = learning_engine.adjust_parameters(
-            statistics, self_state.learning_params
-        )
+        new_params = learning_engine.adjust_parameters(statistics, self_state.learning_params)
         assert isinstance(new_params, dict)
 
         analysis = adaptation_manager.analyze_changes(
@@ -659,9 +649,7 @@ class TestNewFunctionalitySmoke:
         assert entry.subjective_timestamp == 50.0
 
         # Создаем запись без субъективного времени (обратная совместимость)
-        entry_compat = MemoryEntry(
-            event_type="noise", meaning_significance=0.5, timestamp=100.0
-        )
+        entry_compat = MemoryEntry(event_type="noise", meaning_significance=0.5, timestamp=100.0)
         assert entry_compat.subjective_timestamp is None
 
     def test_subjective_time_boundary_values_smoke(self):
@@ -829,9 +817,7 @@ class TestNewFunctionalitySmoke:
         statistics = learning_engine.process_statistics(state.memory)
         assert statistics["total_entries"] == 1
 
-        new_params = learning_engine.adjust_parameters(
-            statistics, state.learning_params
-        )
+        new_params = learning_engine.adjust_parameters(statistics, state.learning_params)
         assert isinstance(new_params, dict)
 
     def test_subjective_time_with_adaptation_smoke(self):
@@ -1131,9 +1117,7 @@ class TestNewFunctionalitySmoke:
         assert user.disabled is False
 
         # UserCreate
-        user_create = UserCreate(
-            username="test", email="test@example.com", password="pass"
-        )
+        user_create = UserCreate(username="test", email="test@example.com", password="pass")
         assert user_create.username == "test"
         assert user_create.password == "pass"
 
@@ -1529,12 +1513,8 @@ class TestNewFunctionalitySmoke:
         penalty = policy.weakness_penalty(1.0)
         # Штраф должен быть больше чем с параметрами по умолчанию
         assert abs(penalty["energy"] - (-0.05)) < 1e-10  # penalty_k * dt
-        assert (
-            abs(penalty["stability"] - (-0.15)) < 1e-10
-        )  # penalty_k * dt * stability_multiplier
-        assert (
-            abs(penalty["integrity"] - (-0.075)) < 1e-10
-        )  # penalty_k * dt * integrity_multiplier
+        assert abs(penalty["stability"] - (-0.15)) < 1e-10  # penalty_k * dt * stability_multiplier
+        assert abs(penalty["integrity"] - (-0.075)) < 1e-10  # penalty_k * dt * integrity_multiplier
 
     def test_runtime_managers_integration_smoke(self):
         """Дымовой тест интеграции runtime managers"""
@@ -1808,10 +1788,10 @@ class TestNewFunctionalitySmoke:
 
         # Граничные значения порогов
         test_cases = [
-            (0.8, 0.7, True),   # Точные пороги
-            (0.79, 0.7, False), # Ниже stability
-            (0.8, 0.69, False), # Ниже energy
-            (0.9, 0.9, True),   # Выше порогов
+            (0.8, 0.7, True),  # Точные пороги
+            (0.79, 0.7, False),  # Ниже stability
+            (0.8, 0.69, False),  # Ниже energy
+            (0.9, 0.9, True),  # Выше порогов
         ]
 
         for i, (stability, energy, should_activate) in enumerate(test_cases):
@@ -1826,9 +1806,13 @@ class TestNewFunctionalitySmoke:
 
             result = clarity_moments.check_clarity_conditions(state)
             if should_activate:
-                assert result is not None, f"Expected activation for stability={stability}, energy={energy}"
+                assert (
+                    result is not None
+                ), f"Expected activation for stability={stability}, energy={energy}"
             else:
-                assert result is None, f"Unexpected activation for stability={stability}, energy={energy}"
+                assert (
+                    result is None
+                ), f"Unexpected activation for stability={stability}, energy={energy}"
 
     def test_clarity_moments_full_lifecycle_smoke(self):
         """Дымовой тест полного жизненного цикла ClarityMoments"""

@@ -229,9 +229,7 @@ class TestTechnicalBehaviorMonitor:
         assert "overall_performance" in analysis
 
         # Общая производительность должна быть взвешенным средним
-        expected_overall = (
-            0.8 * 0.25 + 0.6 * 0.25 + 0.05 * 0.25 + 0.85 * 0.25
-        )
+        expected_overall = 0.8 * 0.25 + 0.6 * 0.25 + 0.05 * 0.25 + 0.85 * 0.25
         assert abs(analysis["overall_performance"] - expected_overall) < 0.001
 
     def test_analyze_stability(self):
@@ -408,7 +406,7 @@ class TestTechnicalBehaviorMonitor:
         )
 
         # Сохраняем во временный файл
-        with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix='.json') as f:
+        with tempfile.NamedTemporaryFile(mode="w+", delete=False, suffix=".json") as f:
             temp_path = f.name
 
         try:
@@ -427,6 +425,7 @@ class TestTechnicalBehaviorMonitor:
 
         finally:
             import os
+
             os.unlink(temp_path)
 
     def test_save_report_error_handling(self):
@@ -508,7 +507,13 @@ class TestTechnicalBehaviorMonitor:
         assert "overall_trend" in trends
 
         # Все тренды должны быть улучшающимися (direction = "improving")
-        for trend_key in ["performance_trend", "stability_trend", "adaptability_trend", "integrity_trend", "overall_trend"]:
+        for trend_key in [
+            "performance_trend",
+            "stability_trend",
+            "adaptability_trend",
+            "integrity_trend",
+            "overall_trend",
+        ]:
             assert trends[trend_key]["direction"] == "improving"
 
     def test_calculate_trend_stable(self):

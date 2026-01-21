@@ -7,7 +7,9 @@ import json
 from unittest.mock import Mock, patch, mock_open
 
 from src.environment.environment_config import (
-    EnvironmentConfigManager, EnvironmentConfig, EventTypeConfig
+    EnvironmentConfigManager,
+    EnvironmentConfig,
+    EventTypeConfig,
 )
 
 
@@ -33,11 +35,7 @@ class TestEnvironmentConfigManagerSmoke:
         assert isinstance(config, EnvironmentConfig)
 
         # Обновление конфигурации
-        updates = {
-            "activity_level": 1.5,
-            "crisis_mode": True,
-            "crisis_probability": 0.2
-        }
+        updates = {"activity_level": 1.5, "crisis_mode": True, "crisis_probability": 0.2}
 
         manager.update_config(updates)
         assert manager.config.activity_level == 1.5
@@ -66,7 +64,7 @@ class TestEnvironmentConfigManagerSmoke:
             "weight": 2.0,
             "intensity_min": 0.3,
             "intensity_max": 0.9,
-            "description": "Updated positive events"
+            "description": "Updated positive events",
         }
 
         manager.update_event_type_config("positive", updates)
@@ -125,7 +123,7 @@ class TestEnvironmentConfigManagerSmoke:
         manager.disable_crisis_mode()
         assert manager.config.crisis_mode is False
 
-    @patch('src.environment.environment_config.Path')
+    @patch("src.environment.environment_config.Path")
     def test_config_persistence(self, mock_path):
         """Тест сохранения и загрузки конфигурации"""
         mock_file = Mock()
@@ -142,9 +140,9 @@ class TestEnvironmentConfigManagerSmoke:
                     "weight": 1.5,
                     "intensity_min": 0.0,
                     "intensity_max": 1.0,
-                    "description": "Custom event type"
+                    "description": "Custom event type",
                 }
-            }
+            },
         }
 
         mock_file.exists.return_value = True
@@ -160,14 +158,14 @@ class TestEnvironmentConfigManagerSmoke:
         assert not manager.is_dirty
 
         # Тест сохранения
-        with patch('builtins.open', mock_open()) as mock_file_open:
+        with patch("builtins.open", mock_open()) as mock_file_open:
             manager.save_config("test_config.json")
             assert not manager.is_dirty
 
             # Проверяем, что файл был открыт для записи
             mock_file_open.assert_called()
 
-    @patch('src.environment.environment_config.Path')
+    @patch("src.environment.environment_config.Path")
     def test_config_file_not_exists(self, mock_path):
         """Тест загрузки при отсутствии файла конфигурации"""
         mock_file = Mock()
@@ -198,11 +196,11 @@ class TestEnvironmentConfigManagerSmoke:
         # Проверяем структуру каждого типа
         for event_type, config in event_types.items():
             assert isinstance(config, EventTypeConfig)
-            assert hasattr(config, 'enabled')
-            assert hasattr(config, 'weight')
-            assert hasattr(config, 'intensity_min')
-            assert hasattr(config, 'intensity_max')
-            assert hasattr(config, 'description')
+            assert hasattr(config, "enabled")
+            assert hasattr(config, "weight")
+            assert hasattr(config, "intensity_min")
+            assert hasattr(config, "intensity_max")
+            assert hasattr(config, "description")
 
     def test_custom_event_type_creation(self):
         """Тест создания пользовательского типа события"""
@@ -214,7 +212,7 @@ class TestEnvironmentConfigManagerSmoke:
             "weight": 3.0,
             "intensity_min": 0.2,
             "intensity_max": 0.8,
-            "description": "Custom high-priority event"
+            "description": "Custom high-priority event",
         }
 
         manager.update_event_type_config("high_priority", custom_updates)
@@ -255,10 +253,10 @@ class TestEnvironmentConfigManagerSmoke:
                     "weight": 1.2,
                     "intensity_min": 0.1,
                     "intensity_max": 0.9,
-                    "description": "Test event"
+                    "description": "Test event",
                 }
             },
-            "custom_weights": {"special": 2.0}
+            "custom_weights": {"special": 2.0},
         }
 
         config = EnvironmentConfig.from_dict(config_dict)
@@ -300,7 +298,7 @@ class TestEnvironmentConfigManagerSmoke:
         assert not manager.is_dirty
 
         # После загрузки чистая
-        with patch('src.environment.environment_config.Path') as mock_path:
+        with patch("src.environment.environment_config.Path") as mock_path:
             mock_file = Mock()
             mock_file.exists.return_value = True
             mock_file.read_text.return_value = '{"activity_level": 1.0}'

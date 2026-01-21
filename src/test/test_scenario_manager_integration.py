@@ -25,7 +25,7 @@ class TestScenarioManagerIntegration:
         steps = [
             ScenarioStep(delay=0.01, event=Event(type="integration_test_1", intensity=0.3)),
             ScenarioStep(delay=0.02, event=Event(type="integration_test_2", intensity=0.6)),
-            ScenarioStep(delay=0.03, event=Event(type="integration_test_3", intensity=0.9))
+            ScenarioStep(delay=0.03, event=Event(type="integration_test_3", intensity=0.9)),
         ]
 
         scenario_id = manager.create_scenario("Integration Test", "Full integration test", steps)
@@ -60,7 +60,7 @@ class TestScenarioManagerIntegration:
 
         steps = [
             ScenarioStep(delay=0.01, event=crisis_event),
-            ScenarioStep(delay=0.05, event=recovery_event)
+            ScenarioStep(delay=0.05, event=recovery_event),
         ]
 
         scenario_id = manager.create_scenario("State Impact Test", "Test state changes", steps)
@@ -90,7 +90,7 @@ class TestScenarioManagerIntegration:
         for i in range(3):
             steps = [
                 ScenarioStep(delay=0.01, event=Event(type=f"concurrent_{i}_1", intensity=0.3)),
-                ScenarioStep(delay=0.02, event=Event(type=f"concurrent_{i}_2", intensity=0.6))
+                ScenarioStep(delay=0.02, event=Event(type=f"concurrent_{i}_2", intensity=0.6)),
             ]
             scenario_id = manager.create_scenario(f"Concurrent {i}", f"Concurrent test {i}", steps)
             scenarios.append(scenario_id)
@@ -125,7 +125,7 @@ class TestScenarioManagerIntegration:
         steps = [
             ScenarioStep(delay=0.05, event=Event(type="timing_1", intensity=0.5)),
             ScenarioStep(delay=0.10, event=Event(type="timing_2", intensity=0.5)),
-            ScenarioStep(delay=0.15, event=Event(type="timing_3", intensity=0.5))
+            ScenarioStep(delay=0.15, event=Event(type="timing_3", intensity=0.5)),
         ]
 
         scenario_id = manager.create_scenario("Timing Test", "Test execution timing", steps)
@@ -157,7 +157,9 @@ class TestScenarioManagerIntegration:
         # Создаем и выполняем несколько сценариев
         for i in range(5):
             steps = [ScenarioStep(delay=0.01, event=Event(type=f"cleanup_{i}", intensity=0.4))]
-            scenario_id = manager.create_scenario(f"Cleanup {i}", f"Cleanup test {i}", steps, duration=0.05)
+            scenario_id = manager.create_scenario(
+                f"Cleanup {i}", f"Cleanup test {i}", steps, duration=0.05
+            )
             manager.start_execution(scenario_id, event_queue)
 
         # Ждем завершения всех сценариев
@@ -174,7 +176,7 @@ class TestScenarioManagerIntegration:
         events = event_queue.get_all()
         assert len(events) >= 5
 
-    @patch('src.environment.scenario_manager.threading.Thread')
+    @patch("src.environment.scenario_manager.threading.Thread")
     def test_scenario_execution_threading_integration(self, mock_thread):
         """Интеграция с threading для параллельного выполнения"""
         # Настраиваем mock для отслеживания вызовов
@@ -209,11 +211,13 @@ class TestScenarioManagerIntegration:
                 delay=0.01,
                 event=Event(type="repeat_test", intensity=0.5),
                 repeat_count=3,
-                repeat_interval=0.02
+                repeat_interval=0.02,
             )
         ]
 
-        scenario_id = manager.create_scenario("Repeat Test", "Test event repetition", steps, duration=0.2)
+        scenario_id = manager.create_scenario(
+            "Repeat Test", "Test event repetition", steps, duration=0.2
+        )
         execution_id = manager.start_execution(scenario_id, event_queue)
 
         # Ждем выполнения
@@ -265,10 +269,9 @@ class TestScenarioManagerIntegration:
         # Создаем сценарий с множеством событий
         steps = []
         for i in range(10):
-            steps.append(ScenarioStep(
-                delay=0.005,
-                event=Event(type=f"capacity_test_{i}", intensity=0.5)
-            ))
+            steps.append(
+                ScenarioStep(delay=0.005, event=Event(type=f"capacity_test_{i}", intensity=0.5))
+            )
 
         scenario_id = manager.create_scenario("Capacity Test", "Test queue capacity", steps)
         execution_id = manager.start_execution(scenario_id, event_queue)
@@ -290,7 +293,9 @@ class TestScenarioManagerIntegration:
         event_queue = EventQueue()
 
         steps = [ScenarioStep(delay=0.05, event=Event(type="state_test", intensity=0.5))]
-        scenario_id = manager.create_scenario("State Test", "Test state transitions", steps, duration=0.1)
+        scenario_id = manager.create_scenario(
+            "State Test", "Test state transitions", steps, duration=0.1
+        )
 
         # Запускаем выполнение
         execution_id = manager.start_execution(scenario_id, event_queue)
@@ -319,7 +324,9 @@ class TestScenarioManagerIntegration:
         scenario_ids = []
         for i in range(3):
             steps = [ScenarioStep(delay=0.01, event=Event(type=f"lifecycle_{i}", intensity=0.4))]
-            scenario_id = manager.create_scenario(f"Lifecycle {i}", f"Full lifecycle test {i}", steps)
+            scenario_id = manager.create_scenario(
+                f"Lifecycle {i}", f"Full lifecycle test {i}", steps
+            )
             scenario_ids.append(scenario_id)
 
         # 2. Проверка создания

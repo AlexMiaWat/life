@@ -11,7 +11,10 @@ from pathlib import Path
 import tempfile
 
 from src.observability.external_observer import (
-    ExternalObserver, SystemMetrics, BehaviorPattern, ObservationReport
+    ExternalObserver,
+    SystemMetrics,
+    BehaviorPattern,
+    ObservationReport,
 )
 from src.observability.reporting import ReportGenerator
 
@@ -49,15 +52,13 @@ class TestReportGenerator:
                 )
             ],
             trends={"energy_level": "stable", "integrity_score": "improving"},
-            anomalies=[{
-                "type": "minor_anomaly",
-                "description": "Minor issue detected",
-                "severity": "low"
-            }],
+            anomalies=[
+                {"type": "minor_anomaly", "description": "Minor issue detected", "severity": "low"}
+            ],
             recommendations=[
                 "Continue monitoring system health",
-                "Review energy consumption patterns"
-            ]
+                "Review energy consumption patterns",
+            ],
         )
 
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -81,7 +82,7 @@ class TestReportGenerator:
             assert "stable" in content  # trend
             assert "monitoring system health" in content  # recommendation
 
-    @patch('src.observability.reporting.MATPLOTLIB_AVAILABLE', False)
+    @patch("src.observability.reporting.MATPLOTLIB_AVAILABLE", False)
     def test_generate_html_report_without_matplotlib(self):
         """Тест генерации отчета без matplotlib."""
         generator = ReportGenerator()
@@ -92,7 +93,7 @@ class TestReportGenerator:
             behavior_patterns=[],
             trends={},
             anomalies=[],
-            recommendations=[]
+            recommendations=[],
         )
 
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -111,29 +112,23 @@ class TestReportGenerator:
             ObservationReport(
                 observation_period=(1000, 2000),
                 metrics_summary=SystemMetrics(
-                    cycle_count=100,
-                    integrity_score=0.9,
-                    energy_level=0.8,
-                    error_count=2
+                    cycle_count=100, integrity_score=0.9, energy_level=0.8, error_count=2
                 ),
                 behavior_patterns=[],
                 trends={},
                 anomalies=[],
-                recommendations=[]
+                recommendations=[],
             ),
             ObservationReport(
                 observation_period=(2000, 3000),
                 metrics_summary=SystemMetrics(
-                    cycle_count=150,
-                    integrity_score=0.92,
-                    energy_level=0.82,
-                    error_count=1
+                    cycle_count=150, integrity_score=0.92, energy_level=0.82, error_count=1
                 ),
                 behavior_patterns=[],
                 trends={},
                 anomalies=[],
-                recommendations=[]
-            )
+                recommendations=[],
+            ),
         ]
 
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -168,11 +163,13 @@ class TestReportGenerator:
             behavior_patterns=[],
             trends={},
             anomalies=[],
-            recommendations=[]
+            recommendations=[],
         )
 
         # Мокаем генерацию графиков для имитации ошибки
-        with patch.object(generator, '_generate_charts', side_effect=Exception("Chart generation failed")):
+        with patch.object(
+            generator, "_generate_charts", side_effect=Exception("Chart generation failed")
+        ):
             with tempfile.TemporaryDirectory() as temp_dir:
                 output_path = Path(temp_dir) / "test_report.html"
 
@@ -188,9 +185,9 @@ class TestReportGenerator:
         generator = ReportGenerator()
 
         # Мокаем загрузку шаблона для возврата встроенного
-        with patch.object(generator, '_load_template') as mock_load:
+        with patch.object(generator, "_load_template") as mock_load:
             mock_template = Mock()
-            mock_template.render.return_value="<html>Test</html>"
+            mock_template.render.return_value = "<html>Test</html>"
             mock_load.return_value = mock_template
 
             report = ObservationReport(
@@ -199,7 +196,7 @@ class TestReportGenerator:
                 behavior_patterns=[],
                 trends={},
                 anomalies=[],
-                recommendations=[]
+                recommendations=[],
             )
 
             with tempfile.TemporaryDirectory() as temp_dir:
@@ -218,28 +215,22 @@ class TestReportGenerator:
         reports = [
             ObservationReport(
                 observation_period=(1000, 2000),
-                metrics_summary=SystemMetrics(
-                    integrity_score=0.8,
-                    energy_level=0.9,
-                    error_count=5
-                ),
+                metrics_summary=SystemMetrics(integrity_score=0.8, energy_level=0.9, error_count=5),
                 behavior_patterns=[],
                 trends={},
                 anomalies=[],
-                recommendations=[]
+                recommendations=[],
             ),
             ObservationReport(
                 observation_period=(2000, 3000),
                 metrics_summary=SystemMetrics(
-                    integrity_score=0.85,
-                    energy_level=0.87,
-                    error_count=3
+                    integrity_score=0.85, energy_level=0.87, error_count=3
                 ),
                 behavior_patterns=[],
                 trends={},
                 anomalies=[],
-                recommendations=[]
-            )
+                recommendations=[],
+            ),
         ]
 
         trends = generator._analyze_trends_over_time(reports)
@@ -263,28 +254,20 @@ class TestReportGenerator:
         reports = [
             ObservationReport(
                 observation_period=(1000, 2000),
-                metrics_summary=SystemMetrics(
-                    cycle_count=100,
-                    integrity_score=0.8,
-                    error_count=5
-                ),
+                metrics_summary=SystemMetrics(cycle_count=100, integrity_score=0.8, error_count=5),
                 behavior_patterns=[],
                 trends={},
                 anomalies=[],
-                recommendations=[]
+                recommendations=[],
             ),
             ObservationReport(
                 observation_period=(2000, 3000),
-                metrics_summary=SystemMetrics(
-                    cycle_count=150,
-                    integrity_score=0.9,
-                    error_count=3
-                ),
+                metrics_summary=SystemMetrics(cycle_count=150, integrity_score=0.9, error_count=3),
                 behavior_patterns=[],
                 trends={},
                 anomalies=[],
-                recommendations=[]
-            )
+                recommendations=[],
+            ),
         ]
 
         averages = generator._calculate_average_metrics(reports)
@@ -311,18 +294,17 @@ class TestReportIntegration:
         observer = ExternalObserver()
 
         # Мокаем методы для предсказуемого тестирования
-        with patch.object(observer, '_extract_metrics_from_logs') as mock_extract, \
-             patch.object(observer, '_analyze_behavior_patterns') as mock_analyze, \
-             patch.object(observer, '_calculate_trends') as mock_trends, \
-             patch.object(observer, '_detect_anomalies') as mock_anomalies, \
-             patch.object(observer, '_generate_recommendations') as mock_recommendations:
+        with (
+            patch.object(observer, "_extract_metrics_from_logs") as mock_extract,
+            patch.object(observer, "_analyze_behavior_patterns") as mock_analyze,
+            patch.object(observer, "_calculate_trends") as mock_trends,
+            patch.object(observer, "_detect_anomalies") as mock_anomalies,
+            patch.object(observer, "_generate_recommendations") as mock_recommendations,
+        ):
 
             # Настраиваем mock-данные
             mock_extract.return_value = SystemMetrics(
-                cycle_count=500,
-                integrity_score=0.88,
-                energy_level=0.92,
-                error_count=1
+                cycle_count=500, integrity_score=0.88, energy_level=0.92, error_count=1
             )
             mock_analyze.return_value = []
             mock_trends.return_value = {"integrity_score": "stable"}
@@ -375,7 +357,7 @@ class TestReportIntegration:
             ],
             trends={},
             anomalies=[],
-            recommendations=[]
+            recommendations=[],
         )
 
         with tempfile.TemporaryDirectory() as temp_dir:

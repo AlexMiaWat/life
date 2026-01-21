@@ -33,7 +33,7 @@ class TestAdaptiveThresholds:
             Mock(weight=0.2),
             Mock(weight=0.3),
             Mock(weight=0.4),
-            Mock(weight=0.5)
+            Mock(weight=0.5),
         ]
 
         statistics = {"memory_entries": memory_entries}
@@ -42,7 +42,7 @@ class TestAdaptiveThresholds:
 
         # Среднее = 0.3, std ≈ 0.141
         expected_high_freq = min(0.8, max(0.05, 0.3 + 0.141))  # ≈ 0.441
-        expected_low_freq = max(0.05, min(0.8, 0.3 - 0.141))   # ≈ 0.159
+        expected_low_freq = max(0.05, min(0.8, 0.3 - 0.141))  # ≈ 0.159
 
         assert "high_frequency_threshold" in thresholds
         assert "low_frequency_threshold" in thresholds
@@ -80,19 +80,21 @@ class TestAdaptiveThresholds:
             "event_type_total_significance": {
                 "positive": 3.0,  # avg = 0.6
                 "negative": 1.8,  # avg = 0.6
-                "neutral": 0.8    # avg = 0.4
-            }
+                "neutral": 0.8,  # avg = 0.4
+            },
         }
 
         thresholds = engine.calculate_adaptive_thresholds(statistics)
 
         # Средняя значимость = 0.6, std ≈ 0.1
         expected_high_sig = min(0.9, max(0.1, 0.6 + 0.1 * 0.5))  # ≈ 0.65
-        expected_low_sig = max(0.1, min(0.9, 0.6 - 0.1 * 0.5))   # ≈ 0.55
+        expected_low_sig = max(0.1, min(0.9, 0.6 - 0.1 * 0.5))  # ≈ 0.55
 
         assert "high_significance_threshold" in thresholds
         assert "low_significance_threshold" in thresholds
-        assert thresholds["high_significance_threshold"] == pytest.approx(expected_high_sig, rel=1e-3)
+        assert thresholds["high_significance_threshold"] == pytest.approx(
+            expected_high_sig, rel=1e-3
+        )
         assert thresholds["low_significance_threshold"] == pytest.approx(expected_low_sig, rel=1e-3)
 
     def test_calculate_adaptive_thresholds_significance_bounds(self):
@@ -102,7 +104,7 @@ class TestAdaptiveThresholds:
         # Очень маленькая значимость
         statistics = {
             "event_type_counts": {"event": 1},
-            "event_type_total_significance": {"event": 0.05}
+            "event_type_total_significance": {"event": 0.05},
         }
 
         thresholds = engine.calculate_adaptive_thresholds(statistics)
@@ -113,7 +115,7 @@ class TestAdaptiveThresholds:
         # Очень большая значимость
         statistics = {
             "event_type_counts": {"event": 1},
-            "event_type_total_significance": {"event": 0.95}
+            "event_type_total_significance": {"event": 0.95},
         }
 
         thresholds = engine.calculate_adaptive_thresholds(statistics)
@@ -125,34 +127,30 @@ class TestAdaptiveThresholds:
         """Тест расчета порогов паттернов"""
         engine = LearningEngine()
 
-        statistics = {
-            "feedback_pattern_counts": {
-                "pattern1": 10,
-                "pattern2": 20,
-                "pattern3": 30
-            }
-        }
+        statistics = {"feedback_pattern_counts": {"pattern1": 10, "pattern2": 20, "pattern3": 30}}
 
         thresholds = engine.calculate_adaptive_thresholds(statistics)
 
         # Частоты: 10/60≈0.167, 20/60≈0.333, 30/60≈0.5
         # Среднее ≈ 0.333, std ≈ 0.167
         expected_high_pat = min(0.8, max(0.05, 0.333 + 0.167))  # ≈ 0.5
-        expected_low_pat = max(0.05, min(0.8, 0.333 - 0.167))   # ≈ 0.166
+        expected_low_pat = max(0.05, min(0.8, 0.333 - 0.167))  # ≈ 0.166
 
         assert "high_pattern_frequency_threshold" in thresholds
         assert "low_pattern_frequency_threshold" in thresholds
-        assert thresholds["high_pattern_frequency_threshold"] == pytest.approx(expected_high_pat, rel=1e-3)
-        assert thresholds["low_pattern_frequency_threshold"] == pytest.approx(expected_low_pat, rel=1e-3)
+        assert thresholds["high_pattern_frequency_threshold"] == pytest.approx(
+            expected_high_pat, rel=1e-3
+        )
+        assert thresholds["low_pattern_frequency_threshold"] == pytest.approx(
+            expected_low_pat, rel=1e-3
+        )
 
     def test_calculate_adaptive_thresholds_pattern_bounds(self):
         """Тест ограничения порогов паттернов в допустимых границах"""
         engine = LearningEngine()
 
         # Очень маленькие частоты паттернов
-        statistics = {
-            "feedback_pattern_counts": {"pattern": 1}
-        }
+        statistics = {"feedback_pattern_counts": {"pattern": 1}}
 
         thresholds = engine.calculate_adaptive_thresholds(statistics)
 
@@ -166,7 +164,7 @@ class TestAdaptiveThresholds:
         # Стабильная система (низкая волатильность)
         statistics = {
             "memory_entries": [Mock(weight=0.5), Mock(weight=0.5), Mock(weight=0.5)],
-            "stability_volatility": 0.1  # Низкая волатильность
+            "stability_volatility": 0.1,  # Низкая волатильность
         }
 
         thresholds = engine.calculate_adaptive_thresholds(statistics)
@@ -191,7 +189,7 @@ class TestAdaptiveThresholds:
         statistics = {
             "memory_entries": [Mock(weight=0.5)],
             "feedback_efficiency": 0.9,  # Высокая эффективность
-            "feedback_success_rate": 0.85
+            "feedback_success_rate": 0.85,
         }
 
         thresholds = engine.calculate_adaptive_thresholds(statistics)
@@ -213,7 +211,7 @@ class TestAdaptiveThresholds:
         statistics = {
             "memory_entries": [Mock(weight=0.5)],
             "time_pattern_strength": 0.7,  # Сильные временные паттерны
-            "temporal_consistency": 0.8
+            "temporal_consistency": 0.8,
         }
 
         thresholds = engine.calculate_adaptive_thresholds(statistics)
@@ -227,26 +225,33 @@ class TestAdaptiveThresholds:
 
         statistics = {
             "memory_entries": [
-                Mock(weight=0.3), Mock(weight=0.4), Mock(weight=0.5),
-                Mock(weight=0.6), Mock(weight=0.7)
+                Mock(weight=0.3),
+                Mock(weight=0.4),
+                Mock(weight=0.5),
+                Mock(weight=0.6),
+                Mock(weight=0.7),
             ],
             "event_type_counts": {"positive": 3, "negative": 2},
             "event_type_total_significance": {"positive": 1.8, "negative": 1.0},
             "feedback_pattern_counts": {"pat1": 5, "pat2": 10, "pat3": 15},
             "stability_volatility": 0.3,
             "feedback_efficiency": 0.75,
-            "time_pattern_strength": 0.6
+            "time_pattern_strength": 0.6,
         }
 
         thresholds = engine.calculate_adaptive_thresholds(statistics)
 
         # Проверяем, что все типы порогов рассчитаны
         expected_keys = [
-            "high_frequency_threshold", "low_frequency_threshold",
-            "high_significance_threshold", "low_significance_threshold",
-            "high_pattern_frequency_threshold", "low_pattern_frequency_threshold",
-            "learning_rate_multiplier", "feedback_learning_boost",
-            "temporal_adaptation_factor"
+            "high_frequency_threshold",
+            "low_frequency_threshold",
+            "high_significance_threshold",
+            "low_significance_threshold",
+            "high_pattern_frequency_threshold",
+            "low_pattern_frequency_threshold",
+            "learning_rate_multiplier",
+            "feedback_learning_boost",
+            "temporal_adaptation_factor",
         ]
 
         for key in expected_keys:
@@ -259,11 +264,7 @@ class TestAdaptiveThresholds:
         engine = LearningEngine()
 
         # Пустые массивы
-        statistics = {
-            "memory_entries": [],
-            "event_type_counts": {},
-            "feedback_pattern_counts": {}
-        }
+        statistics = {"memory_entries": [], "event_type_counts": {}, "feedback_pattern_counts": {}}
 
         thresholds = engine.calculate_adaptive_thresholds(statistics)
 
@@ -274,7 +275,7 @@ class TestAdaptiveThresholds:
         statistics = {
             "memory_entries": [Mock(weight=0.0)],
             "event_type_counts": {"event": 0},
-            "event_type_total_significance": {"event": 0.0}
+            "event_type_total_significance": {"event": 0.0},
         }
 
         thresholds = engine.calculate_adaptive_thresholds(statistics)

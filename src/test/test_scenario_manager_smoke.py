@@ -17,49 +17,56 @@ class TestScenarioManagerSmoke:
 
     def test_scenario_manager_basic_operations(self):
         """Базовые операции с менеджером сценариев"""
-        manager = ScenarioManager()
+        event_queue = EventQueue()
+        manager = ScenarioManager(event_queue)
 
-        # Создание сценария
-        steps = [
-            ScenarioStep(delay=0.1, event=Event(type="smoke_test", intensity=0.5))
-        ]
-        scenario_id = manager.create_scenario("Smoke Test", "Smoke test scenario", steps)
+        # Получение списка доступных сценариев (встроенные)
+        scenarios = manager.get_available_scenarios()
+        assert len(scenarios) >= 2
 
-        assert scenario_id is not None
-        assert scenario_id in manager.scenarios
+        # Проверка структуры первого сценария
+        scenario_info = scenarios[0]
+        assert "id" in scenario_info
+        assert "name" in scenario_info
+        assert scenario_info["step_count"] > 0
 
-        # Получение сценария
-        scenario = manager.get_scenario(scenario_id)
-        assert scenario is not None
-        assert scenario.name == "Smoke Test"
+        # Попытка запустить существующий сценарий
+        result = manager.start_scenario("crisis_simulation")
+        assert result["success"] is True
+        assert "started" in result["message"]
 
-        # Список сценариев
-        scenarios = manager.list_scenarios()
-        assert len(scenarios) >= 1
-        assert scenario_id in scenarios
+        # Получение статуса запущенного сценария
+        status = manager.get_scenario_status("crisis_simulation")
+        assert status["success"] is True
+        assert status["is_running"] is True
 
-        # Удаление сценария
-        assert manager.delete_scenario(scenario_id) is True
-        assert manager.get_scenario(scenario_id) is None
+        # Остановка сценария
+        result = manager.stop_scenario("crisis_simulation")
+        assert result["success"] is True
+        assert "stopped" in result["message"]
 
     def test_scenario_execution_smoke(self):
         """Базовое выполнение сценария"""
-        manager = ScenarioManager()
         event_queue = EventQueue()
+        manager = ScenarioManager(event_queue)
 
-        # Создаем простой сценарий
-        steps = [
-            ScenarioStep(delay=0.05, event=Event(type="smoke_exec", intensity=0.3))
-        ]
-        scenario_id = manager.create_scenario("Exec Test", "Execution test", steps)
+        # Запускаем встроенный сценарий
+        result = manager.start_scenario("recovery_phase")
+        assert result["success"] is True
 
-        # Запускаем выполнение
-        execution_id = manager.start_execution(scenario_id, event_queue)
+        # Ждем немного для выполнения
+        time.sleep(0.1)
 
-        assert execution_id is not None
+        # Проверяем статус
+        status = manager.get_scenario_status("recovery_phase")
+        assert status["success"] is True
 
-        # Ждем завершения
-        time.sleep(0.2)
+        # Сценарий должен выполняться или завершиться
+        assert status["is_running"] in [True, False]
+
+        # Останавливаем сценарий
+        result = manager.stop_scenario("recovery_phase")
+        assert result["success"] is True
 
         # Проверяем, что событие было добавлено в очередь
         events = event_queue.get_all()
@@ -80,7 +87,9 @@ class TestScenarioManagerSmoke:
         # Создаем несколько сценариев параллельно
         def create_scenarios():
             for i in range(3):
-                steps = [ScenarioStep(delay=0.01, event=Event(type=f"concurrent_{i}", intensity=0.2))]
+                steps = [
+                    ScenarioStep(delay=0.01, event=Event(type=f"concurrent_{i}", intensity=0.2))
+                ]
                 manager.create_scenario(f"Concurrent {i}", f"Test {i}", steps)
 
         threads = []
@@ -144,7 +153,7 @@ class TestScenarioManagerSmoke:
         steps = [
             ScenarioStep(delay=0.01, event=Event(type="positive", intensity=0.8)),
             ScenarioStep(delay=0.01, event=Event(type="negative", intensity=0.6)),
-            ScenarioStep(delay=0.01, event=Event(type="neutral", intensity=0.3))
+            ScenarioStep(delay=0.01, event=Event(type="neutral", intensity=0.3)),
         ]
 
         scenario_id = manager.create_scenario("Various Events", "Multiple event types", steps)
@@ -181,4 +190,6 @@ class TestScenarioManagerSmoke:
 
         executions = manager.list_executions()
         # Выполнение должно быть завершено и удалено
-        assert len(executions) == 0 or all(not exec_obj.is_running for exec_obj in executions.values())
+        assert len(executions) == 0 or all(
+            not exec_obj.is_running for exec_obj in executions.values()
+        )

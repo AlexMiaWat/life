@@ -26,7 +26,7 @@ class TestParameterHistory:
             old_value=90.0,
             new_value=85.0,
             reason="delta_application",
-            context={"source": "event"}
+            context={"source": "event"},
         )
 
         assert change.timestamp == 1234567890.0
@@ -102,7 +102,7 @@ class TestParameterHistory:
 
         # Проверяем, что изменения последовательны
         for i in range(1, len(energy_evolution)):
-            prev_change = energy_evolution[i-1]
+            prev_change = energy_evolution[i - 1]
             curr_change = energy_evolution[i]
             assert curr_change.old_value == prev_change.new_value
 
@@ -114,7 +114,7 @@ class TestParameterHistory:
         # Создаем изменения в разных направлениях
         state.apply_delta({"energy": -5.0})  # Уменьшение
         time.sleep(0.01)  # Небольшая задержка для разных timestamp
-        state.apply_delta({"energy": 3.0})   # Увеличение
+        state.apply_delta({"energy": 3.0})  # Увеличение
 
         # Получаем тренды
         trends = state.get_evolution_trends(time_window=1.0)
@@ -173,9 +173,7 @@ class TestParameterHistory:
         assert "parameter_history" not in state_dict_default
 
         # Проверяем работу с лимитами
-        state_dict_limited = state.get_safe_status_dict(
-            limits={"parameter_history_limit": 10}
-        )
+        state_dict_limited = state.get_safe_status_dict(limits={"parameter_history_limit": 10})
         assert "parameter_history" in state_dict_limited
         assert len(state_dict_limited["parameter_history"]) <= 10
 
@@ -194,7 +192,7 @@ class TestLearningParamsHistory:
         statistics = {
             "event_counts": {"noise": 100, "decay": 50},
             "avg_significance": {"noise": 0.3, "decay": 0.4},
-            "response_patterns": {"ignore": 10, "dampen": 20, "absorb": 5}
+            "response_patterns": {"ignore": 10, "dampen": 20, "absorb": 5},
         }
 
         old_params = state.learning_params.copy()
@@ -225,7 +223,7 @@ class TestLearningParamsHistory:
         statistics = {
             "event_counts": {"noise": 100},
             "avg_significance": {"noise": 0.3},
-            "response_patterns": {"ignore": 10, "dampen": 20}
+            "response_patterns": {"ignore": 10, "dampen": 20},
         }
 
         for i in range(120):  # Больше лимита 100
@@ -248,7 +246,7 @@ class TestAdaptationParamsHistory:
         # Создаем тестовые данные
         analysis = {
             "learning_changes": {"event_type_sensitivity": {"noise": 0.01}},
-            "current_behavior": state.adaptation_params.copy()
+            "current_behavior": state.adaptation_params.copy(),
         }
 
         old_params = state.adaptation_params.copy()
@@ -271,8 +269,10 @@ class TestAdaptationParamsHistory:
             "tick": 100,
             "old_params": {"behavior_sensitivity": {"noise": 0.2}},
             "new_params": {"behavior_sensitivity": {"noise": 0.21}},
-            "changes": {"behavior_sensitivity": {"old_value": {"noise": 0.2}, "new_value": {"noise": 0.21}}},
-            "learning_params_snapshot": {}
+            "changes": {
+                "behavior_sensitivity": {"old_value": {"noise": 0.2}, "new_value": {"noise": 0.21}}
+            },
+            "learning_params_snapshot": {},
         }
 
         if not hasattr(state, "adaptation_params_history"):
@@ -284,6 +284,13 @@ class TestAdaptationParamsHistory:
         assert len(state.adaptation_params_history) == 1
         entry = state.adaptation_params_history[0]
 
-        required_keys = ["timestamp", "tick", "old_params", "new_params", "changes", "learning_params_snapshot"]
+        required_keys = [
+            "timestamp",
+            "tick",
+            "old_params",
+            "new_params",
+            "changes",
+            "learning_params_snapshot",
+        ]
         for key in required_keys:
             assert key in entry

@@ -29,9 +29,7 @@ class StateSerializer:
         self._lock = threading.Lock()
         os.makedirs("data", exist_ok=True)
 
-    def save_restart_state(
-        self, self_state: Any, event_queue: Any, config: Dict[str, Any]
-    ) -> bool:
+    def save_restart_state(self, self_state: Any, event_queue: Any, config: Dict[str, Any]) -> bool:
         """
         Сохраняет состояние системы для восстановления после перезапуска.
 
@@ -48,12 +46,8 @@ class StateSerializer:
                 state_data = {
                     "restart_marker": True,
                     "timestamp": time.time(),
-                    "self_state": self_state.to_dict()
-                    if hasattr(self_state, "to_dict")
-                    else {},
-                    "event_queue": event_queue.to_dict()
-                    if hasattr(event_queue, "to_dict")
-                    else [],
+                    "self_state": self_state.to_dict() if hasattr(self_state, "to_dict") else {},
+                    "event_queue": event_queue.to_dict() if hasattr(event_queue, "to_dict") else [],
                     "config": config,
                 }
 
@@ -259,9 +253,7 @@ class ProcessRestarter:
         """
         Регистрирует компонент для graceful shutdown.
         """
-        self._shutdown_manager.register_component(
-            component_name, shutdown_func, join_func, timeout
-        )
+        self._shutdown_manager.register_component(component_name, shutdown_func, join_func, timeout)
 
     def save_state_for_restart(
         self, self_state: Any, event_queue: Any, config: Dict[str, Any]
@@ -269,9 +261,7 @@ class ProcessRestarter:
         """
         Сохраняет состояние системы перед перезапуском.
         """
-        return self._state_serializer.save_restart_state(
-            self_state, event_queue, config
-        )
+        return self._state_serializer.save_restart_state(self_state, event_queue, config)
 
     def _restart_process(self):
         """Перезапускает процесс с сохранением аргументов командной строки."""

@@ -88,9 +88,7 @@ class TestNewFunctionalityStatic:
 
         # adjust_parameters
         sig = inspect.signature(engine.adjust_parameters)
-        assert (
-            len(sig.parameters) == 2
-        )  # statistics + current_params (self не учитывается)
+        assert len(sig.parameters) == 2  # statistics + current_params (self не учитывается)
         assert "statistics" in sig.parameters
         assert "current_params" in sig.parameters
 
@@ -256,18 +254,14 @@ class TestNewFunctionalityStatic:
 
         # impact_model
         sig = inspect.signature(engine.impact_model)
-        assert (
-            len(sig.parameters) == 3
-        )  # event + self_state + significance (self не учитывается)
+        assert len(sig.parameters) == 3  # event + self_state + significance (self не учитывается)
         assert "event" in sig.parameters
         assert "self_state" in sig.parameters
         assert "significance" in sig.parameters
 
         # response_pattern
         sig = inspect.signature(engine.response_pattern)
-        assert (
-            len(sig.parameters) == 3
-        )  # event + self_state + significance (self не учитывается)
+        assert len(sig.parameters) == 3  # event + self_state + significance (self не учитывается)
         assert "event" in sig.parameters
         assert "self_state" in sig.parameters
         assert "significance" in sig.parameters
@@ -343,9 +337,7 @@ class TestNewFunctionalityStatic:
         ]
 
         for method in forbidden_methods:
-            assert (
-                method not in methods
-            ), f"LearningEngine не должен иметь метод {method}"
+            assert method not in methods, f"LearningEngine не должен иметь метод {method}"
 
     def test_adaptation_no_optimization_methods(self):
         """Проверка отсутствия методов оптимизации в Adaptation"""
@@ -374,9 +366,7 @@ class TestNewFunctionalityStatic:
         ]
 
         for method in forbidden_methods:
-            assert (
-                method not in methods
-            ), f"AdaptationManager не должен иметь метод {method}"
+            assert method not in methods, f"AdaptationManager не должен иметь метод {method}"
 
     def test_learning_no_goals_or_rewards(self):
         """Проверка отсутствия целей и reward в Learning"""
@@ -694,18 +684,12 @@ class TestNewFunctionalityStatic:
         assert MeaningEngine.__bases__ == (
             object,
         ), "MeaningEngine должен наследоваться только от object"
-        assert Meaning.__bases__ == (
-            object,
-        ), "Meaning должен наследоваться только от object"
+        assert Meaning.__bases__ == (object,), "Meaning должен наследоваться только от object"
 
     def test_docstrings_presence(self):
         """Проверка наличия docstrings"""
-        assert (
-            LearningEngine.__doc__ is not None
-        ), "LearningEngine должен иметь docstring"
-        assert (
-            AdaptationManager.__doc__ is not None
-        ), "AdaptationManager должен иметь docstring"
+        assert LearningEngine.__doc__ is not None, "LearningEngine должен иметь docstring"
+        assert AdaptationManager.__doc__ is not None, "AdaptationManager должен иметь docstring"
         assert MeaningEngine.__doc__ is not None, "MeaningEngine должен иметь docstring"
         assert Meaning.__doc__ is not None, "Meaning должен иметь docstring"
 
@@ -828,9 +812,7 @@ class TestNewFunctionalityStatic:
         assert isinstance(entry.subjective_timestamp, (int, float, type(None)))
 
         # Проверяем обратную совместимость (None значение)
-        entry_compat = MemoryEntry(
-            event_type="noise", meaning_significance=0.5, timestamp=100.0
-        )
+        entry_compat = MemoryEntry(event_type="noise", meaning_significance=0.5, timestamp=100.0)
         assert entry_compat.subjective_timestamp is None
 
     # ============================================================================
@@ -1387,7 +1369,9 @@ class TestNewFunctionalityStatic:
         # Проверяем что константы являются числами
         for const in required_constants:
             value = getattr(ClarityMoments, const)
-            assert isinstance(value, (int, float)), f"Constant {const} is not a number: {type(value)}"
+            assert isinstance(
+                value, (int, float)
+            ), f"Constant {const} is not a number: {type(value)}"
 
     def test_clarity_moments_constants_values(self):
         """Проверка значений констант ClarityMoments"""
@@ -1402,7 +1386,9 @@ class TestNewFunctionalityStatic:
 
         # Проверяем логические соотношения
         assert ClarityMoments.CLARITY_SIGNIFICANCE_BOOST > 1.0  # Должен усиливать
-        assert ClarityMoments.CLARITY_DURATION_TICKS >= ClarityMoments.CLARITY_CHECK_INTERVAL  # Длительность >= интервала проверки
+        assert (
+            ClarityMoments.CLARITY_DURATION_TICKS >= ClarityMoments.CLARITY_CHECK_INTERVAL
+        )  # Длительность >= интервала проверки
 
     def test_clarity_moments_method_signatures(self):
         """Проверка сигнатур методов ClarityMoments"""
@@ -1532,15 +1518,17 @@ class TestNewFunctionalityStatic:
 
         # Запрещенные паттерны
         forbidden_patterns = [
-            "print(",      # Не используем print
-            "import os",   # Не используем os напрямую
+            "print(",  # Не используем print
+            "import os",  # Не используем os напрямую
             "import sys",  # Не используем sys напрямую
-            "eval(",       # Не используем eval
-            "exec(",       # Не используем exec
+            "eval(",  # Не используем eval
+            "exec(",  # Не используем exec
         ]
 
         for pattern in forbidden_patterns:
-            assert pattern not in source_code, f"Forbidden pattern '{pattern}' found in ClarityMoments"
+            assert (
+                pattern not in source_code
+            ), f"Forbidden pattern '{pattern}' found in ClarityMoments"
 
     def test_clarity_moments_event_structure(self):
         """Проверка структуры события clarity_moment"""
@@ -1606,8 +1594,12 @@ class TestNewFunctionalityStatic:
         source = inspect.getsource(cm_module)
 
         for forbidden in forbidden_imports:
-            assert f"import {forbidden}" not in source, f"Forbidden import '{forbidden}' in clarity_moments"
-            assert f"from {forbidden}" not in source, f"Forbidden import 'from {forbidden}' in clarity_moments"
+            assert (
+                f"import {forbidden}" not in source
+            ), f"Forbidden import '{forbidden}' in clarity_moments"
+            assert (
+                f"from {forbidden}" not in source
+            ), f"Forbidden import 'from {forbidden}' in clarity_moments"
 
     def test_clarity_moments_constants_immutability(self):
         """Проверка неизменности констант ClarityMoments"""
@@ -1642,7 +1634,9 @@ class TestNewFunctionalityStatic:
         # Проверяем что константы не изменились
         for name, original_value in original_values.items():
             current_value = getattr(ClarityMoments, name)
-            assert current_value == original_value, f"Constant {name} changed: {original_value} -> {current_value}"
+            assert (
+                current_value == original_value
+            ), f"Constant {name} changed: {original_value} -> {current_value}"
 
     def test_clarity_moments_state_fields_consistency(self):
         """Проверка一致ности полей состояния clarity в SelfState"""

@@ -24,7 +24,7 @@ from src.observability.external_observer import (
     ExternalObserver,
     SystemMetrics,
     BehaviorPattern,
-    ObservationReport
+    ObservationReport,
 )
 
 
@@ -50,8 +50,7 @@ class TestExternalObserverSmoke:
         custom_snapshots = Path("/custom/snapshots")
 
         observer = ExternalObserver(
-            logs_directory=custom_logs,
-            snapshots_directory=custom_snapshots
+            logs_directory=custom_logs, snapshots_directory=custom_snapshots
         )
 
         assert observer.logs_directory == custom_logs
@@ -60,11 +59,13 @@ class TestExternalObserverSmoke:
     def test_observe_from_logs_minimal_call(self):
         """Дымовой тест observe_from_logs с минимальными параметрами"""
         # Мокаем внутренние методы для предотвращения реального чтения файлов
-        with patch.object(self.observer, '_extract_metrics_from_logs') as mock_extract, \
-             patch.object(self.observer, '_analyze_behavior_patterns') as mock_analyze, \
-             patch.object(self.observer, '_calculate_trends') as mock_trends, \
-             patch.object(self.observer, '_detect_anomalies') as mock_anomalies, \
-             patch.object(self.observer, '_generate_recommendations') as mock_recommendations:
+        with (
+            patch.object(self.observer, "_extract_metrics_from_logs") as mock_extract,
+            patch.object(self.observer, "_analyze_behavior_patterns") as mock_analyze,
+            patch.object(self.observer, "_calculate_trends") as mock_trends,
+            patch.object(self.observer, "_detect_anomalies") as mock_anomalies,
+            patch.object(self.observer, "_generate_recommendations") as mock_recommendations,
+        ):
 
             # Настраиваем mock'и
             mock_extract.return_value = SystemMetrics()
@@ -84,11 +85,13 @@ class TestExternalObserverSmoke:
 
     def test_observe_from_logs_default_times(self):
         """Дымовой тест observe_from_logs с параметрами по умолчанию"""
-        with patch.object(self.observer, '_extract_metrics_from_logs') as mock_extract, \
-             patch.object(self.observer, '_analyze_behavior_patterns') as mock_analyze, \
-             patch.object(self.observer, '_calculate_trends') as mock_trends, \
-             patch.object(self.observer, '_detect_anomalies') as mock_anomalies, \
-             patch.object(self.observer, '_generate_recommendations') as mock_recommendations:
+        with (
+            patch.object(self.observer, "_extract_metrics_from_logs") as mock_extract,
+            patch.object(self.observer, "_analyze_behavior_patterns") as mock_analyze,
+            patch.object(self.observer, "_calculate_trends") as mock_trends,
+            patch.object(self.observer, "_detect_anomalies") as mock_anomalies,
+            patch.object(self.observer, "_generate_recommendations") as mock_recommendations,
+        ):
 
             mock_extract.return_value = SystemMetrics()
             mock_analyze.return_value = []
@@ -105,11 +108,15 @@ class TestExternalObserverSmoke:
 
     def test_observe_from_snapshots_minimal_call(self):
         """Дымовой тест observe_from_snapshots с минимальными данными"""
-        with patch.object(self.observer, '_extract_metrics_from_snapshots') as mock_extract, \
-             patch.object(self.observer, '_analyze_snapshot_patterns') as mock_analyze, \
-             patch.object(self.observer, '_calculate_snapshot_trends') as mock_trends, \
-             patch.object(self.observer, '_detect_snapshot_anomalies') as mock_anomalies, \
-             patch.object(self.observer, '_generate_snapshot_recommendations') as mock_recommendations:
+        with (
+            patch.object(self.observer, "_extract_metrics_from_snapshots") as mock_extract,
+            patch.object(self.observer, "_analyze_snapshot_patterns") as mock_analyze,
+            patch.object(self.observer, "_calculate_snapshot_trends") as mock_trends,
+            patch.object(self.observer, "_detect_snapshot_anomalies") as mock_anomalies,
+            patch.object(
+                self.observer, "_generate_snapshot_recommendations"
+            ) as mock_recommendations,
+        ):
 
             mock_extract.return_value = SystemMetrics()
             mock_analyze.return_value = []
@@ -132,10 +139,10 @@ class TestExternalObserverSmoke:
             behavior_patterns=[],
             trends={},
             anomalies=[],
-            recommendations=[]
+            recommendations=[],
         )
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             temp_path = Path(f.name)
 
         try:
@@ -173,7 +180,7 @@ class TestExternalObserverSmoke:
                 behavior_patterns=[],
                 trends={},
                 anomalies=[],
-                recommendations=[]
+                recommendations=[],
             )
             self.observer.observation_history.append(report)
 
@@ -187,11 +194,13 @@ class TestExternalObserverSmoke:
 
     def test_observe_from_logs_with_realistic_data(self):
         """Дымовой тест observe_from_logs с реалистичными данными"""
-        with patch.object(self.observer, '_extract_metrics_from_logs') as mock_extract, \
-             patch.object(self.observer, '_analyze_behavior_patterns') as mock_analyze, \
-             patch.object(self.observer, '_calculate_trends') as mock_trends, \
-             patch.object(self.observer, '_detect_anomalies') as mock_anomalies, \
-             patch.object(self.observer, '_generate_recommendations') as mock_recommendations:
+        with (
+            patch.object(self.observer, "_extract_metrics_from_logs") as mock_extract,
+            patch.object(self.observer, "_analyze_behavior_patterns") as mock_analyze,
+            patch.object(self.observer, "_calculate_trends") as mock_trends,
+            patch.object(self.observer, "_detect_anomalies") as mock_anomalies,
+            patch.object(self.observer, "_generate_recommendations") as mock_recommendations,
+        ):
 
             # Создаем реалистичные mock данные
             metrics = SystemMetrics(
@@ -206,7 +215,7 @@ class TestExternalObserverSmoke:
                 energy_level=0.88,
                 action_count=250,
                 event_processing_rate=2.5,
-                state_change_frequency=1.8
+                state_change_frequency=1.8,
             )
 
             patterns = [
@@ -216,13 +225,16 @@ class TestExternalObserverSmoke:
                     frequency=0.75,
                     impact_score=0.8,
                     first_observed=time.time() - 3600,
-                    last_observed=time.time()
+                    last_observed=time.time(),
                 )
             ]
 
             mock_extract.return_value = metrics
             mock_analyze.return_value = patterns
-            mock_trends.return_value = {"energy_level": "stable", "learning_effectiveness": "improving"}
+            mock_trends.return_value = {
+                "energy_level": "stable",
+                "learning_effectiveness": "improving",
+            }
             mock_anomalies.return_value = []
             mock_recommendations.return_value = ["System performing well"]
 
@@ -238,11 +250,15 @@ class TestExternalObserverSmoke:
 
     def test_observe_from_snapshots_with_files(self):
         """Дымовой тест observe_from_snapshots с тестовыми файлами"""
-        with patch.object(self.observer, '_extract_metrics_from_snapshots') as mock_extract, \
-             patch.object(self.observer, '_analyze_snapshot_patterns') as mock_analyze, \
-             patch.object(self.observer, '_calculate_snapshot_trends') as mock_trends, \
-             patch.object(self.observer, '_detect_snapshot_anomalies') as mock_anomalies, \
-             patch.object(self.observer, '_generate_snapshot_recommendations') as mock_recommendations:
+        with (
+            patch.object(self.observer, "_extract_metrics_from_snapshots") as mock_extract,
+            patch.object(self.observer, "_analyze_snapshot_patterns") as mock_analyze,
+            patch.object(self.observer, "_calculate_snapshot_trends") as mock_trends,
+            patch.object(self.observer, "_detect_snapshot_anomalies") as mock_anomalies,
+            patch.object(
+                self.observer, "_generate_snapshot_recommendations"
+            ) as mock_recommendations,
+        ):
 
             mock_extract.return_value = SystemMetrics()
             mock_analyze.return_value = []
@@ -259,13 +275,9 @@ class TestExternalObserverSmoke:
                 snapshot1_data = {
                     "timestamp": time.time() - 100,
                     "cycle_count": 50,
-                    "memory_count": 25
+                    "memory_count": 25,
                 }
-                snapshot2_data = {
-                    "timestamp": time.time(),
-                    "cycle_count": 100,
-                    "memory_count": 50
-                }
+                snapshot2_data = {"timestamp": time.time(), "cycle_count": 100, "memory_count": 50}
 
                 snapshot1_path.write_text(str(snapshot1_data).replace("'", '"'))
                 snapshot2_path.write_text(str(snapshot2_data).replace("'", '"'))
@@ -280,11 +292,13 @@ class TestExternalObserverSmoke:
         """Дымовой тест workflow с множественными наблюдениями"""
         # Выполняем несколько наблюдений
         for i in range(3):
-            with patch.object(self.observer, '_extract_metrics_from_logs') as mock_extract, \
-                 patch.object(self.observer, '_analyze_behavior_patterns') as mock_analyze, \
-                 patch.object(self.observer, '_calculate_trends') as mock_trends, \
-                 patch.object(self.observer, '_detect_anomalies') as mock_anomalies, \
-                 patch.object(self.observer, '_generate_recommendations') as mock_recommendations:
+            with (
+                patch.object(self.observer, "_extract_metrics_from_logs") as mock_extract,
+                patch.object(self.observer, "_analyze_behavior_patterns") as mock_analyze,
+                patch.object(self.observer, "_calculate_trends") as mock_trends,
+                patch.object(self.observer, "_detect_anomalies") as mock_anomalies,
+                patch.object(self.observer, "_generate_recommendations") as mock_recommendations,
+            ):
 
                 metrics = SystemMetrics(cycle_count=100 * (i + 1))
                 mock_extract.return_value = metrics
@@ -307,7 +321,9 @@ class TestExternalObserverSmoke:
     def test_error_handling_in_observation(self):
         """Дымовой тест обработки ошибок при наблюдении"""
         # Мокаем метод извлечения метрик для генерации ошибки
-        with patch.object(self.observer, '_extract_metrics_from_logs', side_effect=Exception("Test error")):
+        with patch.object(
+            self.observer, "_extract_metrics_from_logs", side_effect=Exception("Test error")
+        ):
             start_time = time.time() - 3600
             end_time = time.time()
 
@@ -329,7 +345,7 @@ class TestExternalObserverSmoke:
             uptime_seconds=3600.0,
             learning_effectiveness=0.85,
             error_count=5,
-            energy_level=0.9
+            energy_level=0.9,
         )
 
         pattern = BehaviorPattern(
@@ -338,7 +354,7 @@ class TestExternalObserverSmoke:
             frequency=0.8,
             impact_score=0.7,
             first_observed=time.time() - 1000,
-            last_observed=time.time()
+            last_observed=time.time(),
         )
 
         report = ObservationReport(
@@ -347,7 +363,7 @@ class TestExternalObserverSmoke:
             behavior_patterns=[pattern],
             trends={"energy_level": "stable"},
             anomalies=[{"type": "high_error_rate"}],
-            recommendations=["Check error handling"]
+            recommendations=["Check error handling"],
         )
 
         # Проверяем сериализацию
@@ -366,7 +382,7 @@ class TestExternalObserverSmoke:
             behavior_patterns=[],  # Пустой список
             trends={},  # Пустой словарь
             anomalies=[],  # Пустой список
-            recommendations=[]  # Пустой список
+            recommendations=[],  # Пустой список
         )
 
         # Должен сериализоваться без ошибок
@@ -386,7 +402,7 @@ class TestExternalObserverSmoke:
             learning_effectiveness=1.0,  # Максимум
             error_count=0,  # Минимум
             energy_level=0.0,  # Минимум
-            integrity_score=1.0  # Максимум
+            integrity_score=1.0,  # Максимум
         )
 
         # Должен работать без ошибок
@@ -396,7 +412,7 @@ class TestExternalObserverSmoke:
             behavior_patterns=[],
             trends={},
             anomalies=[],
-            recommendations=[]
+            recommendations=[],
         )
 
         data = report.to_dict()
@@ -409,11 +425,13 @@ class TestExternalObserverSmoke:
         initial_history_length = len(self.observer.observation_history)
 
         # Выполняем наблюдение
-        with patch.object(self.observer, '_extract_metrics_from_logs') as mock_extract, \
-             patch.object(self.observer, '_analyze_behavior_patterns') as mock_analyze, \
-             patch.object(self.observer, '_calculate_trends') as mock_trends, \
-             patch.object(self.observer, '_detect_anomalies') as mock_anomalies, \
-             patch.object(self.observer, '_generate_recommendations') as mock_recommendations:
+        with (
+            patch.object(self.observer, "_extract_metrics_from_logs") as mock_extract,
+            patch.object(self.observer, "_analyze_behavior_patterns") as mock_analyze,
+            patch.object(self.observer, "_calculate_trends") as mock_trends,
+            patch.object(self.observer, "_detect_anomalies") as mock_anomalies,
+            patch.object(self.observer, "_generate_recommendations") as mock_recommendations,
+        ):
 
             mock_extract.return_value = SystemMetrics()
             mock_analyze.return_value = []
@@ -442,7 +460,7 @@ class TestExternalObserverSmoke:
             frequency=0.5,
             impact_score=0.5,
             first_observed=before - 100,
-            last_observed=before
+            last_observed=before,
         )
         report = ObservationReport(
             observation_period=(before - 3600, before),
@@ -450,7 +468,7 @@ class TestExternalObserverSmoke:
             behavior_patterns=[pattern],
             trends={},
             anomalies=[],
-            recommendations=[]
+            recommendations=[],
         )
 
         after = time.time()

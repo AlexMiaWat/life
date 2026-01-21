@@ -50,7 +50,7 @@ class TestCheckClarityConditions:
         self_state = Mock()
         self_state.ticks = 0
         self_state.stability = 0.5  # Ниже порога
-        self_state.energy = 0.6     # Ниже порога
+        self_state.energy = 0.6  # Ниже порога
 
         result = clarity.check_clarity_conditions(self_state)
 
@@ -76,7 +76,7 @@ class TestCheckClarityConditions:
         self_state = Mock()
         self_state.ticks = ClarityMoments.CLARITY_CHECK_INTERVAL
         self_state.stability = 0.7  # Ниже порога 0.8
-        self_state.energy = 0.9     # Выше порога
+        self_state.energy = 0.9  # Выше порога
 
         result = clarity.check_clarity_conditions(self_state)
 
@@ -88,7 +88,7 @@ class TestCheckClarityConditions:
         self_state = Mock()
         self_state.ticks = ClarityMoments.CLARITY_CHECK_INTERVAL
         self_state.stability = 0.9  # Выше порога
-        self_state.energy = 0.6     # Ниже порога 0.7
+        self_state.energy = 0.6  # Ниже порога 0.7
 
         result = clarity.check_clarity_conditions(self_state)
 
@@ -114,16 +114,18 @@ class TestCheckClarityConditions:
         clarity = ClarityMoments()
         self_state = Mock()
         # Используем configure_mock для правильной работы
-        self_state.configure_mock(**{
-            'ticks': ClarityMoments.CLARITY_CHECK_INTERVAL,  # ticks = 10
-            'stability': 0.85,  # Выше порога 0.8
-            'energy': 0.75,     # Выше порога 0.7
-            'subjective_time': 123.45,
-            'clarity_state': False
-        })
+        self_state.configure_mock(
+            **{
+                "ticks": ClarityMoments.CLARITY_CHECK_INTERVAL,  # ticks = 10
+                "stability": 0.85,  # Выше порога 0.8
+                "energy": 0.75,  # Выше порога 0.7
+                "subjective_time": 123.45,
+                "clarity_state": False,
+            }
+        )
 
         # _last_check_tick = -10, так что ticks - _last_check_tick = 10 - (-10) = 20 >= 10
-        with patch('time.time', return_value=123456.789):
+        with patch("time.time", return_value=123456.789):
             result = clarity.check_clarity_conditions(self_state)
 
         assert result is not None
@@ -144,28 +146,24 @@ class TestCheckClarityConditions:
         """Тест нескольких успешных активаций."""
         clarity = ClarityMoments()
         self_state = Mock()
-        self_state.configure_mock(**{'subjective_time': 100.0, 'clarity_state': False})
+        self_state.configure_mock(**{"subjective_time": 100.0, "clarity_state": False})
 
         # Первая активация
-        self_state.configure_mock(**{
-            'ticks': ClarityMoments.CLARITY_CHECK_INTERVAL,
-            'stability': 0.9,
-            'energy': 0.8
-        })
+        self_state.configure_mock(
+            **{"ticks": ClarityMoments.CLARITY_CHECK_INTERVAL, "stability": 0.9, "energy": 0.8}
+        )
 
         result1 = clarity.check_clarity_conditions(self_state)
         assert result1 is not None
         assert result1["data"]["clarity_id"] == 1
 
         # Имитируем завершение первого момента
-        self_state.configure_mock(**{'clarity_state': False})
+        self_state.configure_mock(**{"clarity_state": False})
 
         # Вторая активация
-        self_state.configure_mock(**{
-            'ticks': ClarityMoments.CLARITY_CHECK_INTERVAL * 2,
-            'stability': 0.9,
-            'energy': 0.8
-        })
+        self_state.configure_mock(
+            **{"ticks": ClarityMoments.CLARITY_CHECK_INTERVAL * 2, "stability": 0.9, "energy": 0.8}
+        )
         result2 = clarity.check_clarity_conditions(self_state)
         assert result2 is not None
         assert result2["data"]["clarity_id"] == 2
@@ -189,7 +187,7 @@ class TestActivateClarityMoment:
 
     def test_activate_clarity_moment_logger_called(self):
         """Тест что логгер вызывается при активации."""
-        with patch('src.experimental.clarity_moments.logger') as mock_logger:
+        with patch("src.experimental.clarity_moments.logger") as mock_logger:
             clarity = ClarityMoments()
             self_state = Mock()
 
@@ -284,7 +282,7 @@ class TestDeactivateClarityMoment:
 
     def test_deactivate_clarity_moment_logger_called(self):
         """Тест что логгер вызывается при деактивации."""
-        with patch('src.experimental.clarity_moments.logger') as mock_logger:
+        with patch("src.experimental.clarity_moments.logger") as mock_logger:
             clarity = ClarityMoments()
             self_state = Mock()
             self_state.clarity_state = True
@@ -325,7 +323,7 @@ class TestGetClarityModifier:
         clarity = ClarityMoments()
         self_state = Mock()
         # Настраиваем getattr для возврата False при отсутствии атрибута
-        self_state.configure_mock(**{'clarity_state': False})
+        self_state.configure_mock(**{"clarity_state": False})
 
         modifier = clarity.get_clarity_modifier(self_state)
 
@@ -360,7 +358,7 @@ class TestIsClarityActive:
         clarity = ClarityMoments()
         self_state = Mock()
         # Настраиваем getattr для возврата False при отсутствии атрибута
-        self_state.configure_mock(**{'clarity_state': False})
+        self_state.configure_mock(**{"clarity_state": False})
 
         result = clarity.is_clarity_active(self_state)
 
@@ -414,10 +412,7 @@ class TestGetClarityStatus:
         clarity._clarity_events_count = 0
         self_state = Mock()
         # Настраиваем атрибуты
-        self_state.configure_mock(**{
-            'clarity_state': False,
-            'clarity_duration': 0
-        })
+        self_state.configure_mock(**{"clarity_state": False, "clarity_duration": 0})
 
         status = clarity.get_clarity_status(self_state)
 
@@ -501,10 +496,26 @@ class TestClarityMomentsIntegration:
 
         test_cases = [
             # Граничные значения
-            (ClarityMoments.CLARITY_STABILITY_THRESHOLD, ClarityMoments.CLARITY_ENERGY_THRESHOLD, True),
-            (ClarityMoments.CLARITY_STABILITY_THRESHOLD - 0.01, ClarityMoments.CLARITY_ENERGY_THRESHOLD, False),
-            (ClarityMoments.CLARITY_STABILITY_THRESHOLD, ClarityMoments.CLARITY_ENERGY_THRESHOLD - 0.01, False),
-            (ClarityMoments.CLARITY_STABILITY_THRESHOLD + 0.01, ClarityMoments.CLARITY_ENERGY_THRESHOLD + 0.01, True),
+            (
+                ClarityMoments.CLARITY_STABILITY_THRESHOLD,
+                ClarityMoments.CLARITY_ENERGY_THRESHOLD,
+                True,
+            ),
+            (
+                ClarityMoments.CLARITY_STABILITY_THRESHOLD - 0.01,
+                ClarityMoments.CLARITY_ENERGY_THRESHOLD,
+                False,
+            ),
+            (
+                ClarityMoments.CLARITY_STABILITY_THRESHOLD,
+                ClarityMoments.CLARITY_ENERGY_THRESHOLD - 0.01,
+                False,
+            ),
+            (
+                ClarityMoments.CLARITY_STABILITY_THRESHOLD + 0.01,
+                ClarityMoments.CLARITY_ENERGY_THRESHOLD + 0.01,
+                True,
+            ),
         ]
 
         for stability, energy, should_activate in test_cases:
@@ -513,9 +524,13 @@ class TestClarityMomentsIntegration:
 
             result = clarity.check_clarity_conditions(self_state)
             if should_activate:
-                assert result is not None, f"Should activate with stability={stability}, energy={energy}"
+                assert (
+                    result is not None
+                ), f"Should activate with stability={stability}, energy={energy}"
             else:
-                assert result is None, f"Should not activate with stability={stability}, energy={energy}"
+                assert (
+                    result is None
+                ), f"Should not activate with stability={stability}, energy={energy}"
 
     def test_clarity_state_persistence(self):
         """Тест сохранения состояния clarity между вызовами."""

@@ -289,7 +289,5 @@ class TestDevProcessRestarterStatic:
         # Все пути должны быть относительными и начинаться с src/
         for file_path in ProcessRestarter.FILES_TO_WATCH:
             assert file_path.startswith("src/"), f"Invalid file path: {file_path}"
-            assert not file_path.startswith(
-                "/"
-            ), f"Absolute path not allowed: {file_path}"
+            assert not file_path.startswith("/"), f"Absolute path not allowed: {file_path}"
             assert ".." not in file_path, f"Parent directory not allowed: {file_path}"

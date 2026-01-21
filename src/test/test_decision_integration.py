@@ -170,9 +170,7 @@ class TestDecisionIntegration:
         state.clarity_state = True
         state.clarity_modifier = 1.5
 
-        meaning = Meaning(
-            significance=0.6, impact={"stability": +0.1, "integrity": +0.05}
-        )
+        meaning = Meaning(significance=0.6, impact={"stability": +0.1, "integrity": +0.05})
         meaning.event_type = "cognitive_clarity"
 
         pattern = decide_response(state, meaning)
@@ -185,9 +183,7 @@ class TestDecisionIntegration:
 
         # Создаем записи с разными весами (имитируя долгосрочную память)
         recent_high_weight = MemoryEntry("shock", 0.9, time.time(), weight=2.0)
-        old_low_weight = MemoryEntry(
-            "shock", 0.8, time.time() - 3600, weight=0.3
-        )  # 1 час назад
+        old_low_weight = MemoryEntry("shock", 0.8, time.time() - 3600, weight=0.3)  # 1 час назад
 
         state.activated_memory = [recent_high_weight, old_low_weight]
 
@@ -204,9 +200,7 @@ class TestDecisionIntegration:
         state.integrity = 0.3  # Низкая целостность
         state.energy = 40
 
-        meaning = Meaning(
-            significance=0.85, impact={"integrity": -0.1, "stability": -0.2}
-        )
+        meaning = Meaning(significance=0.85, impact={"integrity": -0.1, "stability": -0.2})
         meaning.event_type = "existential_void"
 
         pattern = decide_response(state, meaning)
@@ -262,9 +256,7 @@ class TestDecisionIntegration:
             meaning.event_type = event_type
 
             pattern = decide_response(state, meaning)
-            assert (
-                pattern in expected_patterns
-            ), f"Unexpected pattern {pattern} for {event_type}"
+            assert pattern in expected_patterns, f"Unexpected pattern {pattern} for {event_type}"
 
 
 if __name__ == "__main__":

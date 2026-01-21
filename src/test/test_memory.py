@@ -83,9 +83,7 @@ class TestMemoryEntry:
     def test_memory_entry_significance_range(self):
         """Тест создания MemoryEntry с разными значениями significance"""
         for sig in [0.0, 0.1, 0.5, 0.9, 1.0]:
-            entry = MemoryEntry(
-                event_type="test", meaning_significance=sig, timestamp=time.time()
-            )
+            entry = MemoryEntry(event_type="test", meaning_significance=sig, timestamp=time.time())
             assert entry.meaning_significance == sig
 
 
@@ -103,9 +101,7 @@ class TestMemory:
     def test_memory_append_single(self):
         """Тест добавления одного элемента"""
         memory = Memory()
-        entry = MemoryEntry(
-            event_type="test", meaning_significance=0.5, timestamp=time.time()
-        )
+        entry = MemoryEntry(event_type="test", meaning_significance=0.5, timestamp=time.time())
         memory.append(entry)
         assert len(memory) == 1
         assert memory[0] == entry
@@ -480,9 +476,7 @@ class TestArchiveMemory:
     def test_archive_memory_add_entry(self, temp_archive):
         """Тест добавления записи в архив"""
         archive = temp_archive
-        entry = MemoryEntry(
-            event_type="test", meaning_significance=0.5, timestamp=time.time()
-        )
+        entry = MemoryEntry(event_type="test", meaning_significance=0.5, timestamp=time.time())
         archive.add_entry(entry)
         assert archive.size() == 1
         assert archive.get_all_entries()[0] == entry
@@ -747,9 +741,7 @@ class TestMemoryArchive:
             memory.archive_old_entries(min_weight=1.5)
 
         # Некорректный min_significance
-        with pytest.raises(
-            ValueError, match="min_significance должен быть в диапазоне"
-        ):
+        with pytest.raises(ValueError, match="min_significance должен быть в диапазоне"):
             memory.archive_old_entries(min_significance=-0.1)
 
     def test_archive_old_entries_error_handling(self, temp_memory):
@@ -770,9 +762,7 @@ class TestMemoryArchive:
 
         # Если сохранение прошло успешно, запись должна быть в архиве
         # Если произошла ошибка, запись должна остаться в памяти
-        assert (
-            archived_count >= 0
-        )  # Может быть 0 или 1 в зависимости от успешности сохранения
+        assert archived_count >= 0  # Может быть 0 или 1 в зависимости от успешности сохранения
 
     def test_archive_old_entries_empty_memory(self, temp_memory):
         """Тест архивации для пустой памяти"""
@@ -833,9 +823,7 @@ class TestMemoryStatistics:
         assert stats["active_entries"] == 3
         assert stats["event_types"]["shock"] == 2
         assert stats["event_types"]["noise"] == 1
-        assert stats["avg_significance"] == pytest.approx(
-            (0.8 + 0.3 + 0.6) / 3, abs=0.01
-        )
+        assert stats["avg_significance"] == pytest.approx((0.8 + 0.3 + 0.6) / 3, abs=0.01)
         assert stats["oldest_timestamp"] is not None
         assert stats["newest_timestamp"] is not None
 
@@ -901,10 +889,7 @@ class TestMemoryIndexing:
             memory.append(entry)
 
         # Ищем decay события с significance > 0.5
-        query = MemoryQuery(
-            event_type="decay",
-            min_significance=0.5
-        )
+        query = MemoryQuery(event_type="decay", min_significance=0.5)
         results = memory.search_entries(query)
 
         assert len(results) == 2

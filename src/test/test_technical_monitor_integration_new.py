@@ -14,7 +14,8 @@ from unittest.mock import Mock, MagicMock
 
 # Добавляем src в путь
 import sys
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'src'))
+
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
 from src.technical_monitor import TechnicalBehaviorMonitor
 from src.state.self_state import SelfState
@@ -46,12 +47,12 @@ class TestTechnicalMonitorIntegrationNew(unittest.TestCase):
         # Создаем mock decision engine для полной интеграции
         mock_decision_engine = Mock()
         mock_decision_engine.get_recent_decisions.return_value = [
-            {'timestamp': time.time(), 'type': 'adaptation', 'data': {'intensity': 0.5}}
+            {"timestamp": time.time(), "type": "adaptation", "data": {"intensity": 0.5}}
         ]
         mock_decision_engine.get_statistics.return_value = {
-            'total_decisions': 1,
-            'average_time': 0.015,
-            'accuracy': 0.85
+            "total_decisions": 1,
+            "average_time": 0.015,
+            "accuracy": 0.85,
         }
 
         # Захватываем снимок с реальными компонентами
@@ -60,7 +61,7 @@ class TestTechnicalMonitorIntegrationNew(unittest.TestCase):
             memory=self.memory,
             learning_engine=self.learning_engine,
             adaptation_manager=self.adaptation_manager,
-            decision_engine=mock_decision_engine
+            decision_engine=mock_decision_engine,
         )
 
         # Проверяем структуру снимка
@@ -72,21 +73,21 @@ class TestTechnicalMonitorIntegrationNew(unittest.TestCase):
         self.assertIsInstance(snapshot.decision_history, list)
 
         # Проверяем наличие ключевых метрик
-        self.assertIn('life_id', snapshot.self_state)
-        self.assertIn('energy', snapshot.self_state)
-        self.assertIn('stability', snapshot.self_state)
-        self.assertIn('integrity', snapshot.self_state)
+        self.assertIn("life_id", snapshot.self_state)
+        self.assertIn("energy", snapshot.self_state)
+        self.assertIn("stability", snapshot.self_state)
+        self.assertIn("integrity", snapshot.self_state)
 
         # Проверяем статистику памяти
-        self.assertIn('total_entries', snapshot.memory_stats)
+        self.assertIn("total_entries", snapshot.memory_stats)
 
         # Проверяем параметры обучения
-        self.assertIn('MAX_PARAMETER_DELTA', snapshot.learning_params)
-        self.assertIn('MIN_PARAMETER_DELTA', snapshot.learning_params)
+        self.assertIn("MAX_PARAMETER_DELTA", snapshot.learning_params)
+        self.assertIn("MIN_PARAMETER_DELTA", snapshot.learning_params)
 
         # Проверяем параметры адаптации
-        self.assertIn('MAX_ADAPTATION_DELTA', snapshot.adaptation_params)
-        self.assertIn('MIN_ADAPTATION_DELTA', snapshot.adaptation_params)
+        self.assertIn("MAX_ADAPTATION_DELTA", snapshot.adaptation_params)
+        self.assertIn("MIN_ADAPTATION_DELTA", snapshot.adaptation_params)
 
         # Проверяем историю решений
         self.assertEqual(len(snapshot.decision_history), 1)
@@ -96,13 +97,13 @@ class TestTechnicalMonitorIntegrationNew(unittest.TestCase):
         # Создаем mock decision engine
         mock_decision_engine = Mock()
         mock_decision_engine.get_recent_decisions.return_value = [
-            {'timestamp': i * 1000, 'type': 'adaptation' if i % 2 == 0 else 'learning', 'data': {}}
+            {"timestamp": i * 1000, "type": "adaptation" if i % 2 == 0 else "learning", "data": {}}
             for i in range(10)
         ]
         mock_decision_engine.get_statistics.return_value = {
-            'total_decisions': 10,
-            'average_time': 0.012,
-            'accuracy': 0.88
+            "total_decisions": 10,
+            "average_time": 0.012,
+            "accuracy": 0.88,
         }
 
         # Захватываем и анализируем снимок
@@ -111,7 +112,7 @@ class TestTechnicalMonitorIntegrationNew(unittest.TestCase):
             memory=self.memory,
             learning_engine=self.learning_engine,
             adaptation_manager=self.adaptation_manager,
-            decision_engine=mock_decision_engine
+            decision_engine=mock_decision_engine,
         )
 
         report = self.monitor.analyze_snapshot(snapshot)
@@ -126,12 +127,12 @@ class TestTechnicalMonitorIntegrationNew(unittest.TestCase):
         self.assertIsInstance(report.overall_assessment, dict)
 
         # Проверяем наличие ключевых метрик
-        self.assertIn('overall_performance', report.performance)
-        self.assertIn('overall_stability', report.stability)
-        self.assertIn('overall_adaptability', report.adaptability)
-        self.assertIn('overall_integrity', report.integrity)
-        self.assertIn('overall_score', report.overall_assessment)
-        self.assertIn('status', report.overall_assessment)
+        self.assertIn("overall_performance", report.performance)
+        self.assertIn("overall_stability", report.stability)
+        self.assertIn("overall_adaptability", report.adaptability)
+        self.assertIn("overall_integrity", report.integrity)
+        self.assertIn("overall_score", report.overall_assessment)
+        self.assertIn("status", report.overall_assessment)
 
         # Проверяем диапазоны значений (0.0 - 1.0)
         for metric_name, metric_value in report.performance.items():
@@ -144,7 +145,7 @@ class TestTechnicalMonitorIntegrationNew(unittest.TestCase):
                 self.assertGreaterEqual(metric_value, 0.0, f"Metric {metric_name} < 0")
                 self.assertLessEqual(metric_value, 1.0, f"Metric {metric_name} > 1")
 
-        overall_score = report.overall_assessment['overall_score']
+        overall_score = report.overall_assessment["overall_score"]
         self.assertGreaterEqual(overall_score, 0.0)
         self.assertLessEqual(overall_score, 1.0)
 
@@ -180,14 +181,14 @@ class TestTechnicalMonitorIntegrationNew(unittest.TestCase):
         # Теперь тестируем монитор с обновленным состоянием
         mock_decision_engine = Mock()
         mock_decision_engine.get_recent_decisions.return_value = []
-        mock_decision_engine.get_statistics.return_value = {'total_decisions': 0}
+        mock_decision_engine.get_statistics.return_value = {"total_decisions": 0}
 
         snapshot = self.monitor.capture_system_snapshot(
             self_state=self.self_state,
             memory=self.memory,
             learning_engine=self.learning_engine,
             adaptation_manager=self.adaptation_manager,
-            decision_engine=mock_decision_engine
+            decision_engine=mock_decision_engine,
         )
 
         # Проверяем что snapshot содержит актуальное состояние
@@ -207,13 +208,13 @@ class TestTechnicalMonitorIntegrationNew(unittest.TestCase):
             memory=self.memory,
             learning_engine=self.learning_engine,
             adaptation_manager=self.adaptation_manager,
-            decision_engine=mock_decision_engine
+            decision_engine=mock_decision_engine,
         )
 
         original_report = self.monitor.analyze_snapshot(snapshot)
 
         # Сохраняем отчет
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             temp_file = f.name
 
         try:
@@ -225,13 +226,13 @@ class TestTechnicalMonitorIntegrationNew(unittest.TestCase):
             # Проверяем, что данные совпадают
             self.assertIsNotNone(loaded_report)
             self.assertAlmostEqual(
-                original_report.overall_assessment['overall_score'],
-                loaded_report.overall_assessment['overall_score'],
-                places=5
+                original_report.overall_assessment["overall_score"],
+                loaded_report.overall_assessment["overall_score"],
+                places=5,
             )
             self.assertEqual(
-                original_report.overall_assessment['status'],
-                loaded_report.overall_assessment['status']
+                original_report.overall_assessment["status"],
+                loaded_report.overall_assessment["status"],
             )
 
             # Проверяем структуру загруженного отчета
@@ -251,9 +252,9 @@ class TestTechnicalMonitorIntegrationNew(unittest.TestCase):
         mock_decision_engine = Mock()
         mock_decision_engine.get_recent_decisions.return_value = []
         mock_decision_engine.get_statistics.return_value = {
-            'total_decisions': 5,
-            'average_time': 0.01,
-            'accuracy': 0.8
+            "total_decisions": 5,
+            "average_time": 0.01,
+            "accuracy": 0.8,
         }
 
         # Создаем базовый снимок
@@ -262,7 +263,7 @@ class TestTechnicalMonitorIntegrationNew(unittest.TestCase):
             memory=self.memory,
             learning_engine=self.learning_engine,
             adaptation_manager=self.adaptation_manager,
-            decision_engine=mock_decision_engine
+            decision_engine=mock_decision_engine,
         )
 
         # Создаем несколько отчетов с небольшими изменениями
@@ -273,14 +274,16 @@ class TestTechnicalMonitorIntegrationNew(unittest.TestCase):
             modified_self_state.age = 100.0 + i * 10
             modified_self_state.ticks = 1000 + i * 100
             modified_self_state.energy = min(1.0, 0.8 - i * 0.05)  # Постепенное снижение энергии
-            modified_self_state.stability = min(1.0, 0.9 + i * 0.02)  # Постепенное улучшение стабильности
+            modified_self_state.stability = min(
+                1.0, 0.9 + i * 0.02
+            )  # Постепенное улучшение стабильности
 
             modified_snapshot = self.monitor.capture_system_snapshot(
                 self_state=modified_self_state,
                 memory=self.memory,
                 learning_engine=self.learning_engine,
                 adaptation_manager=self.adaptation_manager,
-                decision_engine=mock_decision_engine
+                decision_engine=mock_decision_engine,
             )
 
             report = self.monitor.analyze_snapshot(modified_snapshot)
@@ -294,19 +297,22 @@ class TestTechnicalMonitorIntegrationNew(unittest.TestCase):
 
         # Проверяем структуру трендов
         self.assertIsInstance(trends, dict)
-        self.assertNotIn('error', trends)  # Не должно быть ошибки
+        self.assertNotIn("error", trends)  # Не должно быть ошибки
 
         expected_trend_keys = [
-            'performance_trend', 'stability_trend',
-            'adaptability_trend', 'integrity_trend', 'overall_trend'
+            "performance_trend",
+            "stability_trend",
+            "adaptability_trend",
+            "integrity_trend",
+            "overall_trend",
         ]
 
         for key in expected_trend_keys:
             self.assertIn(key, trends)
             trend_data = trends[key]
             self.assertIsInstance(trend_data, dict)
-            self.assertIn('direction', trend_data)
-            self.assertIn('magnitude', trend_data)
+            self.assertIn("direction", trend_data)
+            self.assertIn("magnitude", trend_data)
 
     def test_monitor_with_memory_operations(self):
         """Интеграционный тест монитора с операциями памяти."""
@@ -318,7 +324,7 @@ class TestTechnicalMonitorIntegrationNew(unittest.TestCase):
                 type="test_event",
                 intensity=0.5 + i * 0.05,
                 timestamp=time.time() + i,
-                metadata={"test_id": i}
+                metadata={"test_id": i},
             )
             meaning = self.memory.process_event(event, self.self_state)
             self.memory.store_memory(event, meaning, self.self_state)
@@ -334,19 +340,19 @@ class TestTechnicalMonitorIntegrationNew(unittest.TestCase):
             memory=self.memory,
             learning_engine=self.learning_engine,
             adaptation_manager=self.adaptation_manager,
-            decision_engine=mock_decision_engine
+            decision_engine=mock_decision_engine,
         )
 
         # Проверяем что память содержит записи
-        self.assertIn('total_entries', snapshot.memory_stats)
-        self.assertGreaterEqual(snapshot.memory_stats['total_entries'], 10)
+        self.assertIn("total_entries", snapshot.memory_stats)
+        self.assertGreaterEqual(snapshot.memory_stats["total_entries"], 10)
 
         # Анализируем снимок
         report = self.monitor.analyze_snapshot(snapshot)
 
         # Проверяем что анализ учитывает данные памяти
         self.assertIsInstance(report.integrity, dict)
-        self.assertIn('memory_integrity', report.integrity)
+        self.assertIn("memory_integrity", report.integrity)
 
     def test_monitor_with_learning_adaptation_cycle(self):
         """Интеграционный тест монитора с циклом обучения и адаптации."""
@@ -358,7 +364,7 @@ class TestTechnicalMonitorIntegrationNew(unittest.TestCase):
             event = Event(
                 type="adaptation_test",
                 intensity=0.3 + cycle * 0.1,
-                timestamp=time.time() + cycle * 10
+                timestamp=time.time() + cycle * 10,
             )
 
             # Обрабатываем через компоненты
@@ -366,12 +372,12 @@ class TestTechnicalMonitorIntegrationNew(unittest.TestCase):
 
             # Обновляем обучение
             statistics = self.learning_engine.process_statistics(
-                [{'event': event, 'meaning': meaning}]
+                [{"event": event, "meaning": meaning}]
             )
             current_params = {
-                'event_type_sensitivity': {'adaptation_test': 0.5},
-                'significance_thresholds': {},
-                'response_coefficients': {}
+                "event_type_sensitivity": {"adaptation_test": 0.5},
+                "significance_thresholds": {},
+                "response_coefficients": {},
             }
             new_params = self.learning_engine.adjust_parameters(statistics, current_params)
             self.learning_engine.record_changes(current_params, new_params, self.self_state)
@@ -392,7 +398,7 @@ class TestTechnicalMonitorIntegrationNew(unittest.TestCase):
             memory=self.memory,
             learning_engine=self.learning_engine,
             adaptation_manager=self.adaptation_manager,
-            decision_engine=mock_decision_engine
+            decision_engine=mock_decision_engine,
         )
 
         # Анализируем
@@ -403,10 +409,11 @@ class TestTechnicalMonitorIntegrationNew(unittest.TestCase):
         self.assertIsInstance(report.performance, dict)
 
         # Проверяем наличие метрик адаптации
-        self.assertIn('learning_adaptation_effectiveness', report.adaptability)
+        self.assertIn("learning_adaptation_effectiveness", report.adaptability)
 
     def test_error_handling_with_real_components(self):
         """Тест обработки ошибок с реальными компонентами."""
+
         # Создаем компоненты, которые могут вызывать ошибки
         class FailingMemory:
             def get_statistics(self):
@@ -427,13 +434,13 @@ class TestTechnicalMonitorIntegrationNew(unittest.TestCase):
             memory=FailingMemory(),
             learning_engine=FailingLearningEngine(),
             adaptation_manager=self.adaptation_manager,
-            decision_engine=mock_decision_engine
+            decision_engine=mock_decision_engine,
         )
 
         # Проверяем, что система справилась с ошибками
         self.assertIsNotNone(snapshot)
-        self.assertEqual(snapshot.memory_stats, {'error': 'Memory failure'})
-        self.assertEqual(snapshot.learning_params, {'error': 'Learning engine failure'})
+        self.assertEqual(snapshot.memory_stats, {"error": "Memory failure"})
+        self.assertEqual(snapshot.learning_params, {"error": "Learning engine failure"})
 
         # Анализируем снимок
         report = self.monitor.analyze_snapshot(snapshot)
@@ -441,8 +448,8 @@ class TestTechnicalMonitorIntegrationNew(unittest.TestCase):
         # Проверяем, что анализ прошел успешно несмотря на ошибки
         self.assertIsNotNone(report)
         self.assertIsInstance(report.overall_assessment, dict)
-        self.assertIn('overall_score', report.overall_assessment)
+        self.assertIn("overall_score", report.overall_assessment)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

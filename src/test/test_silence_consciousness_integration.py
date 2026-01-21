@@ -30,13 +30,21 @@ class TestSilenceConsciousnessIntegration:
         # История событий с silence
         event_history_with_silence = [
             Event(type="noise", intensity=0.1, timestamp=1234567890.0),
-            Event(type="silence", intensity=0.3, timestamp=1234567890.1,
-                  metadata={"detector_generated": True}),
+            Event(
+                type="silence",
+                intensity=0.3,
+                timestamp=1234567890.1,
+                metadata={"detector_generated": True},
+            ),
         ]
 
         # Рассчитываем уровень сознания
-        level_no_silence = engine.calculate_consciousness_level(self_state, event_history_no_silence)
-        level_with_silence = engine.calculate_consciousness_level(self_state, event_history_with_silence)
+        level_no_silence = engine.calculate_consciousness_level(
+            self_state, event_history_no_silence
+        )
+        level_with_silence = engine.calculate_consciousness_level(
+            self_state, event_history_with_silence
+        )
 
         # События silence должны влиять на уровень сознания
         assert isinstance(level_no_silence, (int, float))
@@ -53,22 +61,42 @@ class TestSilenceConsciousnessIntegration:
 
         # История с комфортной тишиной
         comfortable_silence_events = [
-            Event(type="silence", intensity=0.5, timestamp=1234567890.0,
-                  metadata={"is_comfortable": True}),
-            Event(type="silence", intensity=0.4, timestamp=1234567890.1,
-                  metadata={"is_comfortable": True}),
+            Event(
+                type="silence",
+                intensity=0.5,
+                timestamp=1234567890.0,
+                metadata={"is_comfortable": True},
+            ),
+            Event(
+                type="silence",
+                intensity=0.4,
+                timestamp=1234567890.1,
+                metadata={"is_comfortable": True},
+            ),
         ]
 
         # История с тревожной тишиной
         disturbing_silence_events = [
-            Event(type="silence", intensity=-0.3, timestamp=1234567890.0,
-                  metadata={"is_comfortable": False}),
-            Event(type="silence", intensity=-0.2, timestamp=1234567890.1,
-                  metadata={"is_comfortable": False}),
+            Event(
+                type="silence",
+                intensity=-0.3,
+                timestamp=1234567890.0,
+                metadata={"is_comfortable": False},
+            ),
+            Event(
+                type="silence",
+                intensity=-0.2,
+                timestamp=1234567890.1,
+                metadata={"is_comfortable": False},
+            ),
         ]
 
-        level_comfortable = engine.calculate_consciousness_level(self_state, comfortable_silence_events)
-        level_disturbing = engine.calculate_consciousness_level(self_state, disturbing_silence_events)
+        level_comfortable = engine.calculate_consciousness_level(
+            self_state, comfortable_silence_events
+        )
+        level_disturbing = engine.calculate_consciousness_level(
+            self_state, disturbing_silence_events
+        )
 
         # Комфортная тишина должна давать более высокий уровень сознания
         assert level_comfortable >= level_disturbing
@@ -80,19 +108,33 @@ class TestSilenceConsciousnessIntegration:
         # Тестируем различные комбинации событий silence
         test_cases = [
             ([], 0.0, "no_silence"),
-            ([Event(type="silence", intensity=0.5, timestamp=1234567890.0)], 0.4, "single_comfortable"),
-            ([Event(type="silence", intensity=-0.3, timestamp=1234567890.0)], 0.09, "single_disturbing"),
-            ([
-                Event(type="silence", intensity=0.4, timestamp=1234567890.0),
-                Event(type="silence", intensity=0.6, timestamp=1234567890.1),
-            ], 0.4, "multiple_comfortable"),
+            (
+                [Event(type="silence", intensity=0.5, timestamp=1234567890.0)],
+                0.4,
+                "single_comfortable",
+            ),
+            (
+                [Event(type="silence", intensity=-0.3, timestamp=1234567890.0)],
+                0.09,
+                "single_disturbing",
+            ),
+            (
+                [
+                    Event(type="silence", intensity=0.4, timestamp=1234567890.0),
+                    Event(type="silence", intensity=0.6, timestamp=1234567890.1),
+                ],
+                0.4,
+                "multiple_comfortable",
+            ),
         ]
 
         for event_history, expected_min, case_name in test_cases:
             factor = engine._calculate_silence_consciousness_factor(event_history)
 
             assert 0.0 <= factor <= 1.0, f"Invalid factor for {case_name}"
-            assert factor >= expected_min, f"Factor too low for {case_name}: {factor} < {expected_min}"
+            assert (
+                factor >= expected_min
+            ), f"Factor too low for {case_name}: {factor} < {expected_min}"
 
     def test_silence_influences_self_reflection(self):
         """Тест влияния тишины на саморефлексию."""
@@ -119,8 +161,12 @@ class TestSilenceConsciousnessIntegration:
         self_state = SelfState()
 
         event_history = [
-            Event(type="silence", intensity=0.3, timestamp=1234567890.0,
-                  metadata={"detector_generated": True}),
+            Event(
+                type="silence",
+                intensity=0.3,
+                timestamp=1234567890.0,
+                metadata={"detector_generated": True},
+            ),
         ]
 
         # Многократные расчеты для заполнения истории
@@ -132,8 +178,8 @@ class TestSilenceConsciousnessIntegration:
 
         # Проверяем структуру snapshots
         for snapshot in engine._consciousness_history:
-            assert hasattr(snapshot, 'consciousness_level')
-            assert hasattr(snapshot, 'timestamp')
+            assert hasattr(snapshot, "consciousness_level")
+            assert hasattr(snapshot, "timestamp")
             assert 0.0 <= snapshot.consciousness_level <= 1.0
 
     def test_silence_with_various_energy_levels(self):
@@ -167,22 +213,28 @@ class TestSilenceConsciousnessIntegration:
         assert factor_empty == 0.0
 
         # Только события не-silence
-        factor_no_silence = engine._calculate_silence_consciousness_factor([
-            Event(type="noise", intensity=0.1, timestamp=1234567890.0),
-            Event(type="decay", intensity=0.2, timestamp=1234567890.1),
-        ])
+        factor_no_silence = engine._calculate_silence_consciousness_factor(
+            [
+                Event(type="noise", intensity=0.1, timestamp=1234567890.0),
+                Event(type="decay", intensity=0.2, timestamp=1234567890.1),
+            ]
+        )
         assert factor_no_silence == 0.0
 
         # Максимальная интенсивность комфортной тишины
-        factor_max_comfortable = engine._calculate_silence_consciousness_factor([
-            Event(type="silence", intensity=0.6, timestamp=1234567890.0),
-        ])
+        factor_max_comfortable = engine._calculate_silence_consciousness_factor(
+            [
+                Event(type="silence", intensity=0.6, timestamp=1234567890.0),
+            ]
+        )
         assert factor_max_comfortable <= 0.48  # 0.6 * 0.8 = 0.48
 
         # Минимальная интенсивность тревожной тишины
-        factor_min_disturbing = engine._calculate_silence_consciousness_factor([
-            Event(type="silence", intensity=-0.05, timestamp=1234567890.0),
-        ])
+        factor_min_disturbing = engine._calculate_silence_consciousness_factor(
+            [
+                Event(type="silence", intensity=-0.05, timestamp=1234567890.0),
+            ]
+        )
         assert factor_min_disturbing <= 0.015  # -(-0.05) * 0.3 = 0.015
 
     def test_consciousness_trend_with_silence(self):

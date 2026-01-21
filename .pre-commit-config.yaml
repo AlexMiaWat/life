@@ -18,13 +18,12 @@ repos:
       - id: black
         language_version: python3.10
 
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.9
+  - repo: https://github.com/pylint-dev/pylint
+    rev: v3.0.3
     hooks:
-      - id: ruff
-        args: [--fix, --ignore=E402]
-      # ruff-format отключен, используется black для форматирования
-      # - id: ruff-format
+      - id: pylint
+        args: [--rcfile=pyproject.toml]
+        files: ^src/
 
   - repo: https://github.com/pycqa/isort
     rev: 5.13.2

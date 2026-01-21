@@ -35,9 +35,7 @@ class FieldValidator:
     INT_FIELDS = ["ticks", "clarity_duration"]
 
     @classmethod
-    def validate_field(
-        cls, field_name: str, value: float, clamp: bool = False
-    ) -> float:
+    def validate_field(cls, field_name: str, value: float, clamp: bool = False) -> float:
         """
         Валидация значения поля с учетом его границ.
 

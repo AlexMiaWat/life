@@ -31,9 +31,7 @@ class TestSubjectiveTimeModel:
             rate_min=state.subjective_time_rate_min,
             rate_max=state.subjective_time_rate_max,
         )
-        assert (
-            state.subjective_time_rate_min <= rate_hi <= state.subjective_time_rate_max
-        )
+        assert state.subjective_time_rate_min <= rate_hi <= state.subjective_time_rate_max
 
         rate_lo = compute_subjective_time_rate(
             base_rate=state.subjective_time_base_rate,
@@ -46,9 +44,7 @@ class TestSubjectiveTimeModel:
             rate_min=state.subjective_time_rate_min,
             rate_max=state.subjective_time_rate_max,
         )
-        assert (
-            state.subjective_time_rate_min <= rate_lo <= state.subjective_time_rate_max
-        )
+        assert state.subjective_time_rate_min <= rate_lo <= state.subjective_time_rate_max
 
     def test_subjective_time_is_monotonic_for_positive_dt(self):
         state = SelfState()
@@ -210,11 +206,7 @@ class TestSubjectiveTimeModel:
             rate_min=state.subjective_time_rate_min,
             rate_max=state.subjective_time_rate_max,
         )
-        assert (
-            state.subjective_time_rate_min
-            <= rate_clamped_high
-            <= state.subjective_time_rate_max
-        )
+        assert state.subjective_time_rate_min <= rate_clamped_high <= state.subjective_time_rate_max
 
         rate_clamped_low = compute_subjective_time_rate(
             base_rate=state.subjective_time_base_rate,
@@ -227,11 +219,7 @@ class TestSubjectiveTimeModel:
             rate_min=state.subjective_time_rate_min,
             rate_max=state.subjective_time_rate_max,
         )
-        assert (
-            state.subjective_time_rate_min
-            <= rate_clamped_low
-            <= state.subjective_time_rate_max
-        )
+        assert state.subjective_time_rate_min <= rate_clamped_low <= state.subjective_time_rate_max
 
     def test_boundary_rate_min_max_values(self):
         """Тест на граничные значения rate_min и rate_max"""
@@ -352,11 +340,7 @@ class TestSubjectiveTimeModel:
             rate_max=state.subjective_time_rate_max,
         )
         assert isinstance(rate_from_string, float)
-        assert (
-            state.subjective_time_rate_min
-            <= rate_from_string
-            <= state.subjective_time_rate_max
-        )
+        assert state.subjective_time_rate_min <= rate_from_string <= state.subjective_time_rate_max
 
     def test_extreme_coefficient_values(self):
         """Тест на экстремальные значения коэффициентов"""
@@ -374,9 +358,7 @@ class TestSubjectiveTimeModel:
             rate_min=state.subjective_time_rate_min,
             rate_max=state.subjective_time_rate_max,
         )
-        assert (
-            rate_zero_coeffs == state.subjective_time_base_rate
-        )  # Должен вернуться base_rate
+        assert rate_zero_coeffs == state.subjective_time_base_rate  # Должен вернуться base_rate
 
         # Очень большие коэффициенты
         rate_big_coeffs = compute_subjective_time_rate(
@@ -391,11 +373,7 @@ class TestSubjectiveTimeModel:
             rate_max=state.subjective_time_rate_max,
         )
         # Должен быть clamped к границам
-        assert (
-            state.subjective_time_rate_min
-            <= rate_big_coeffs
-            <= state.subjective_time_rate_max
-        )
+        assert state.subjective_time_rate_min <= rate_big_coeffs <= state.subjective_time_rate_max
 
     def test_zero_and_negative_base_rate(self):
         """Тест на нулевой и отрицательный base_rate"""
@@ -503,10 +481,7 @@ class TestSubjectiveTimeIntegration:
 
         # Субъективное время должно быть не больше физического
         # (из-за ограничений rate_max)
-        assert (
-            total_subjective_time
-            <= total_physical_time * state.subjective_time_rate_max
-        )
+        assert total_subjective_time <= total_physical_time * state.subjective_time_rate_max
 
     def test_subjective_time_feedback_integration(self):
         """Тест интеграции субъективного времени с Feedback"""
@@ -533,9 +508,7 @@ class TestSubjectiveTimeIntegration:
         # (в реальном коде это происходит в loop.py)
         if hasattr(state, "memory"):
             # Ищем Feedback записи
-            feedback_entries = [
-                entry for entry in state.memory if entry.event_type == "feedback"
-            ]
+            feedback_entries = [entry for entry in state.memory if entry.event_type == "feedback"]
 
             # Если есть Feedback, проверяем что subjective_timestamp может быть установлен
             for entry in feedback_entries:
@@ -574,15 +547,11 @@ class TestSubjectiveTimeIntegration:
             rates.append((rate, desc))
 
             # Проверяем границы
-            assert (
-                state.subjective_time_rate_min <= rate <= state.subjective_time_rate_max
-            )
+            assert state.subjective_time_rate_min <= rate <= state.subjective_time_rate_max
 
         # Все скорости должны быть в разумных пределах
         for rate, desc in rates:
-            assert (
-                0.1 <= rate <= 3.0
-            ), f"Скорость {rate} для '{desc}' вне разумных пределов"
+            assert 0.1 <= rate <= 3.0, f"Скорость {rate} для '{desc}' вне разумных пределов"
 
     def test_subjective_time_persistence_in_snapshots(self):
         """Тест сохранения субъективного времени в снапшотах"""

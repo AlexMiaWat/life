@@ -197,7 +197,9 @@ class TestPerformanceBaseline:
             baseline.set_baseline("test_func", "ticks_per_second", 100.0)
 
             # Проверяем регрессию (80.0 < 100.0 * 0.9)
-            result = baseline.check_regression("test_func", "ticks_per_second", 80.0, threshold_percent=10.0)
+            result = baseline.check_regression(
+                "test_func", "ticks_per_second", 80.0, threshold_percent=10.0
+            )
 
             assert result["is_regression"] is True
             assert result["baseline_value"] == 100.0
@@ -222,6 +224,7 @@ class TestPerformanceBaseline:
 
             # Обновляем глобальный объект для теста
             import src.test.performance_baseline
+
             src.test.performance_baseline.performance_baseline = baseline
 
             # Вызываем функцию обновления
@@ -251,6 +254,7 @@ class TestPerformanceBaseline:
 
             # Обновляем глобальный объект
             import src.test.performance_baseline
+
             src.test.performance_baseline.performance_baseline = baseline
 
             # Принудительно обновляем
@@ -279,6 +283,7 @@ class TestPerformanceBaseline:
 
             # Обновляем глобальный объект
             import src.test.performance_baseline
+
             src.test.performance_baseline.performance_baseline = baseline
 
             # Имитируем значительное улучшение (>20%)
@@ -307,6 +312,7 @@ class TestPerformanceBaseline:
 
             # Обновляем глобальный объект
             import src.test.performance_baseline
+
             src.test.performance_baseline.performance_baseline = baseline
 
             # Незначительное изменение (<20%)

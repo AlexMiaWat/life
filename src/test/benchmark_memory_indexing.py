@@ -16,7 +16,7 @@ sys.path.insert(0, str(project_root / "src"))
 
 from memory.memory import ArchiveMemory
 from memory.index_engine import MemoryIndexEngine, MemoryQuery
-from memory.types import MemoryEntry
+from src.memory.memory_types import MemoryEntry
 from runtime.performance_metrics import performance_metrics
 
 
@@ -37,7 +37,7 @@ def generate_test_entries(count: int) -> list[MemoryEntry]:
             event_type=event_type,
             meaning_significance=significance,
             timestamp=timestamp,
-            weight=weight
+            weight=weight,
         )
         entries.append(entry)
 
@@ -56,16 +56,21 @@ def benchmark_linear_search(entries: list[MemoryEntry], queries: list[MemoryQuer
         # Линейный поиск (имитация старого подхода)
         results = []
         for entry in entries:
-            if (query.event_type is None or entry.event_type == query.event_type) and \
-               (query.min_significance is None or entry.meaning_significance >= query.min_significance) and \
-               (query.start_timestamp is None or entry.timestamp >= query.start_timestamp) and \
-               (query.end_timestamp is None or entry.timestamp <= query.end_timestamp):
+            if (
+                (query.event_type is None or entry.event_type == query.event_type)
+                and (
+                    query.min_significance is None
+                    or entry.meaning_significance >= query.min_significance
+                )
+                and (query.start_timestamp is None or entry.timestamp >= query.start_timestamp)
+                and (query.end_timestamp is None or entry.timestamp <= query.end_timestamp)
+            ):
                 results.append(entry)
 
         # Сортировка и лимит
         if query.sort_by == "significance":
             results.sort(key=lambda x: x.meaning_significance, reverse=(query.sort_order == "desc"))
-        results = results[:query.limit]
+        results = results[: query.limit]
 
         end_time = time.perf_counter()
         search_times.append(end_time - start_time)
@@ -77,7 +82,7 @@ def benchmark_linear_search(entries: list[MemoryEntry], queries: list[MemoryQuer
         "queries_count": len(queries),
         "avg_search_time": avg_search_time,
         "total_search_time": sum(search_times),
-        "results_per_query": len(results) if 'results' in locals() else 0
+        "results_per_query": len(results) if "results" in locals() else 0,
     }
 
 
@@ -119,8 +124,10 @@ def benchmark_indexed_search(entries: list[MemoryEntry], queries: list[MemoryQue
         "index_build_time": index_build_time,
         "avg_search_time": avg_search_time,
         "total_search_time": sum(search_times),
-        "cache_hit_rate": cache_hits / (cache_hits + cache_misses) if (cache_hits + cache_misses) > 0 else 0,
-        "results_per_query": len(results) if 'results' in locals() else 0
+        "cache_hit_rate": (
+            cache_hits / (cache_hits + cache_misses) if (cache_hits + cache_misses) > 0 else 0
+        ),
+        "results_per_query": len(results) if "results" in locals() else 0,
     }
 
 
@@ -130,20 +137,21 @@ def generate_test_queries(count: int, entries: list[MemoryEntry]) -> list[Memory
     event_types = list(set(entry.event_type for entry in entries))
 
     for _ in range(count):
-        query_type = random.choice(["event_type_only", "complex", "time_range", "significance_only"])
+        query_type = random.choice(
+            ["event_type_only", "complex", "time_range", "significance_only"]
+        )
 
         if query_type == "event_type_only":
-            query = MemoryQuery(
-                event_type=random.choice(event_types),
-                limit=random.randint(5, 50)
-            )
+            query = MemoryQuery(event_type=random.choice(event_types), limit=random.randint(5, 50))
         elif query_type == "complex":
             query = MemoryQuery(
                 event_type=random.choice(event_types) if random.random() > 0.3 else None,
                 min_significance=random.uniform(0.3, 0.8) if random.random() > 0.4 else None,
-                start_timestamp=min(e.timestamp for e in entries) if random.random() > 0.5 else None,
+                start_timestamp=(
+                    min(e.timestamp for e in entries) if random.random() > 0.5 else None
+                ),
                 end_timestamp=max(e.timestamp for e in entries) if random.random() > 0.5 else None,
-                limit=random.randint(5, 50)
+                limit=random.randint(5, 50),
             )
         elif query_type == "time_range":
             timestamps = sorted([e.timestamp for e in entries])
@@ -152,12 +160,11 @@ def generate_test_queries(count: int, entries: list[MemoryEntry]) -> list[Memory
             query = MemoryQuery(
                 start_timestamp=timestamps[start_idx],
                 end_timestamp=timestamps[end_idx],
-                limit=random.randint(5, 50)
+                limit=random.randint(5, 50),
             )
         else:  # significance_only
             query = MemoryQuery(
-                min_significance=random.uniform(0.2, 0.9),
-                limit=random.randint(5, 50)
+                min_significance=random.uniform(0.2, 0.9), limit=random.randint(5, 50)
             )
 
         queries.append(query)
@@ -213,7 +220,7 @@ def run_realistic_benchmark():
         "search_time": search_time,
         "avg_query_time": avg_query_time,
         "qps": len(repeated_queries) / search_time,
-        "cache_hit_rate": stats['cache_hit_rate']
+        "cache_hit_rate": stats["cache_hit_rate"],
     }
 
 
@@ -243,9 +250,13 @@ def run_benchmark():
         # Вывод результатов
         print("\n📈 РЕЗУЛЬТАТЫ:")
         print(f"Линейный поиск:     {linear_results['avg_search_time']:.4f}s среднее время запроса")
-        print(f"Индексированный:    {indexed_results['avg_search_time']:.4f}s среднее время запроса")
+        print(
+            f"Индексированный:    {indexed_results['avg_search_time']:.4f}s среднее время запроса"
+        )
         print(f"Время построения индекса: {indexed_results['index_build_time']:.4f}s")
-        print(f"Ускорение поиска:   {linear_results['avg_search_time'] / indexed_results['avg_search_time']:.1f}x")
+        print(
+            f"Ускорение поиска:   {linear_results['avg_search_time'] / indexed_results['avg_search_time']:.1f}x"
+        )
         print(f"Кэш hit rate:       {indexed_results['cache_hit_rate']:.1%}")
 
         # Детальная статистика индекса
@@ -264,8 +275,12 @@ def run_benchmark():
 
     # Итоговые выводы
     print("\n🎯 ВЫВОДЫ:")
-    print("Для небольших объемов данных (1k-5k) линейный поиск может быть быстрее из-за overhead индексов")
-    print("Для больших объемов данных с повторяющимися запросами индексы дают значительное преимущество")
+    print(
+        "Для небольших объемов данных (1k-5k) линейный поиск может быть быстрее из-за overhead индексов"
+    )
+    print(
+        "Для больших объемов данных с повторяющимися запросами индексы дают значительное преимущество"
+    )
     print(f"В реалистичном сценарии: {realistic_results['qps']:.1f} запросов/сек")
     print(f"Кэш hit rate: {realistic_results['cache_hit_rate']:.1%}")
     print("Индексы особенно эффективны для поиска по event_type и range запросов")

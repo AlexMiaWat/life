@@ -8,7 +8,7 @@ def activate_memory(
     current_event_type: str,
     memory: List[MemoryEntry],
     limit: Optional[int] = None,
-    self_state: Optional[SelfState] = None
+    self_state: Optional[SelfState] = None,
 ) -> List[MemoryEntry]:
     """
     Минимальная активация: возвращает топ-N воспоминаний с совпадающим event_type,
@@ -25,9 +25,7 @@ def activate_memory(
     # Расчет лимита активации с учетом субъективного времени
     if limit is None and self_state is not None:
         # Динамический расчет лимита на основе субъективного времени
-        time_ratio = (
-            self_state.subjective_time / self_state.age if self_state.age > 0 else 1.0
-        )
+        time_ratio = self_state.subjective_time / self_state.age if self_state.age > 0 else 1.0
 
         if time_ratio >= 1.1:
             # Ускоренное восприятие времени - активировать больше воспоминаний (система внимательнее)

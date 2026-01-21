@@ -83,9 +83,7 @@ class MCPClient:
 
     def call_tool(self, tool_name: str, arguments: dict) -> dict:
         """Вызов инструмента MCP сервера"""
-        return self.send_request(
-            "tools/call", {"name": tool_name, "arguments": arguments}
-        )
+        return self.send_request("tools/call", {"name": tool_name, "arguments": arguments})
 
     def stop(self):
         """Остановка MCP сервера"""
@@ -134,9 +132,7 @@ def test_mcp_api():
             content = result["result"].get("content", [])
             if content and isinstance(content, list) and len(content) > 0:
                 text = (
-                    content[0].get("text", "")
-                    if isinstance(content[0], dict)
-                    else str(content[0])
+                    content[0].get("text", "") if isinstance(content[0], dict) else str(content[0])
                 )
                 print(f"[OK] Результат получен ({len(text)} символов)")
                 print(f"   Первые 100 символов: {text[:100]}...")
@@ -152,9 +148,7 @@ def test_mcp_api():
             content = result["result"].get("content", [])
             if content:
                 text = (
-                    content[0].get("text", "")
-                    if isinstance(content[0], dict)
-                    else str(content[0])
+                    content[0].get("text", "") if isinstance(content[0], dict) else str(content[0])
                 )
                 print("[OK] Результат получен")
                 print(f"   Первые 150 символов: {text[:150]}...")
@@ -170,9 +164,7 @@ def test_mcp_api():
             content = result["result"].get("content", [])
             if content:
                 text = (
-                    content[0].get("text", "")
-                    if isinstance(content[0], dict)
-                    else str(content[0])
+                    content[0].get("text", "") if isinstance(content[0], dict) else str(content[0])
                 )
                 print("[OK] Результат получен")
                 print(f"   Первые 150 символов: {text[:150]}...")

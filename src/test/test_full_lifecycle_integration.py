@@ -143,10 +143,10 @@ class TestEnvironmentLayerIntegration:
 
         # Проверяем, что события имеют корректные атрибуты
         for event in popped_events:
-            assert hasattr(event, 'type')
-            assert hasattr(event, 'intensity')
-            assert hasattr(event, 'timestamp')
-            assert event.type in ['noise', 'shock', 'recovery', 'decay']
+            assert hasattr(event, "type")
+            assert hasattr(event, "intensity")
+            assert hasattr(event, "timestamp")
+            assert event.type in ["noise", "shock", "recovery", "decay"]
             assert -1.0 <= event.intensity <= 1.0
             assert isinstance(event.timestamp, (int, float))
 
@@ -172,7 +172,7 @@ class TestEnvironmentLayerIntegration:
         loop_thread = threading.Thread(
             target=run_loop,
             args=(self_state, dummy_monitor, 0.01, 100, stop_event, event_queue),
-            daemon=True
+            daemon=True,
         )
         loop_thread.start()
 
@@ -188,10 +188,10 @@ class TestEnvironmentLayerIntegration:
         # Событие могло быть добавлено в память или повлиять на состояние
         # Проверяем, что что-то изменилось
         state_changed = (
-            len(self_state.memory) != initial_memory_size or
-            self_state.energy != 50.0 or  # начальное значение
-            self_state.stability != 0.8 or
-            self_state.integrity != 0.9
+            len(self_state.memory) != initial_memory_size
+            or self_state.energy != 50.0  # начальное значение
+            or self_state.stability != 0.8
+            or self_state.integrity != 0.9
         )
         assert state_changed, "Система должна отреагировать на событие"
 
@@ -226,7 +226,7 @@ class TestRuntimeCoreIntegration:
         loop_thread = threading.Thread(
             target=run_loop,
             args=(self_state, dummy_monitor, 0.01, 100, stop_event, event_queue),
-            daemon=True
+            daemon=True,
         )
         loop_thread.start()
 
@@ -282,17 +282,11 @@ class TestRuntimeCoreIntegration:
         log_file = tmp_path / "test_structured_log.jsonl"
 
         # Создаем менеджер
-        log_manager = LogManager(
-            flush_policy=FlushPolicy(max_buffer_size=5, flush_interval=0.1)
-        )
+        log_manager = LogManager(flush_policy=FlushPolicy(max_buffer_size=5, flush_interval=0.1))
 
         # Имитируем логирование в цикле
         for i in range(10):
-            log_entry = {
-                "tick": i,
-                "event": "test_event",
-                "timestamp": time.time()
-            }
+            log_entry = {"tick": i, "event": "test_event", "timestamp": time.time()}
             log_manager.log_structured(log_entry)
             time.sleep(0.01)
 
@@ -301,7 +295,7 @@ class TestRuntimeCoreIntegration:
 
         # Проверяем, что логи записаны
         assert log_file.exists()
-        with open(log_file, 'r') as f:
+        with open(log_file, "r") as f:
             lines = f.readlines()
             assert len(lines) >= 5, f"Expected at least 5 log lines, got {len(lines)}"
 
@@ -374,10 +368,11 @@ class TestPerceptionLayerIntegration:
         # Добавляем значимое событие в память
         if meaning.significance > 0:
             from src.memory.memory import MemoryEntry
+
             entry = MemoryEntry(
                 event_type=event.type,
                 meaning_significance=meaning.significance,
-                timestamp=event.timestamp
+                timestamp=event.timestamp,
             )
             memory.append(entry)
 
@@ -432,10 +427,11 @@ class TestPerceptionLayerIntegration:
             # 2. Сохраняем в память если значимо
             if meaning.significance > 0:
                 from src.memory.memory import MemoryEntry
+
                 entry = MemoryEntry(
                     event_type=event.type,
                     meaning_significance=meaning.significance,
-                    timestamp=event.timestamp
+                    timestamp=event.timestamp,
                 )
                 memory.append(entry)
 
@@ -480,10 +476,7 @@ class TestCognitiveLayerIntegration:
     @pytest.fixture
     def feedback(self):
         """Фикстура для функций feedback"""
-        return {
-            'register_action': register_action,
-            'observe_consequences': observe_consequences
-        }
+        return {"register_action": register_action, "observe_consequences": observe_consequences}
 
     @pytest.fixture
     def memory(self):
@@ -505,10 +498,9 @@ class TestCognitiveLayerIntegration:
 
         # Создаем тестовое meaning для принятия решения
         from src.meaning.meaning import Meaning
+
         test_meaning = Meaning(
-            significance=0.7,
-            impact={'energy': -0.1, 'stability': 0.05},
-            response_pattern="dampen"
+            significance=0.7, impact={"energy": -0.1, "stability": 0.05}, response_pattern="dampen"
         )
 
         # Принимаем решение
@@ -535,23 +527,24 @@ class TestCognitiveLayerIntegration:
         # Проверяем, что состояние могло измениться
         # Это упрощенная версия теста
 
-    def test_cognitive_cycle_integration(self, self_state, decision_maker, action_executor, feedback, memory):
+    def test_cognitive_cycle_integration(
+        self, self_state, decision_maker, action_executor, feedback, memory
+    ):
         """Тест полного когнитивного цикла"""
         # Имитируем полный цикл: Decision -> Action -> Feedback
 
         # 1. Создаем тестовое meaning
         from src.meaning.meaning import Meaning
+
         test_meaning = Meaning(
-            significance=0.6,
-            impact={'energy': -0.05, 'stability': 0.02},
-            response_pattern="absorb"
+            significance=0.6, impact={"energy": -0.05, "stability": 0.02}, response_pattern="absorb"
         )
 
         # 2. Запоминаем состояние до действия
         state_before = {
-            'energy': self_state.energy,
-            'stability': self_state.stability,
-            'integrity': self_state.integrity
+            "energy": self_state.energy,
+            "stability": self_state.stability,
+            "integrity": self_state.integrity,
         }
 
         # 3. Принимаем решение и выполняем действие
@@ -560,9 +553,9 @@ class TestCognitiveLayerIntegration:
 
         # 4. Проверяем, что состояние могло измениться
         state_after = {
-            'energy': self_state.energy,
-            'stability': self_state.stability,
-            'integrity': self_state.integrity
+            "energy": self_state.energy,
+            "stability": self_state.stability,
+            "integrity": self_state.integrity,
         }
 
         # Проверяем целостность цикла
@@ -571,9 +564,9 @@ class TestCognitiveLayerIntegration:
 
         # Состояние могло измениться
         state_changed = (
-            state_before['energy'] != state_after['energy'] or
-            state_before['stability'] != state_after['stability'] or
-            state_before['integrity'] != state_after['integrity']
+            state_before["energy"] != state_after["energy"]
+            or state_before["stability"] != state_after["stability"]
+            or state_before["integrity"] != state_after["integrity"]
         )
         # Действие могло не изменить состояние, поэтому проверяем только структуру
 
@@ -612,16 +605,18 @@ class TestLearningLayerIntegration:
         # Имитируем процесс обучения
         # Добавляем статистику событий
         mock_statistics = {
-            'event_counts': {'shock': 10, 'noise': 20, 'recovery': 15},
-            'response_patterns': {'pattern_1': 0.6, 'pattern_2': 0.4},
-            'success_rates': {'pattern_1': 0.8, 'pattern_2': 0.7}
+            "event_counts": {"shock": 10, "noise": 20, "recovery": 15},
+            "response_patterns": {"pattern_1": 0.6, "pattern_2": 0.4},
+            "success_rates": {"pattern_1": 0.8, "pattern_2": 0.7},
         }
 
         # Обучаемся на статистике
         learning_engine.process_statistics(mock_statistics)
 
         # Получаем обновленные параметры обучения
-        learning_params = learning_engine.adjust_parameters(mock_statistics, self_state.learning_params)
+        learning_params = learning_engine.adjust_parameters(
+            mock_statistics, self_state.learning_params
+        )
 
         # Адаптируемся к изменениям
         adaptation_manager.analyze_changes(learning_params)
@@ -630,9 +625,9 @@ class TestLearningLayerIntegration:
         adaptation_manager.apply_adaptation(adaptation_manager.analyze_changes(learning_params))
 
         # Проверяем, что параметры обновлены
-        assert hasattr(self_state, 'learning_params')
-        assert hasattr(self_state, 'adaptation_params')
-        assert hasattr(self_state, 'adaptation_history')
+        assert hasattr(self_state, "learning_params")
+        assert hasattr(self_state, "adaptation_params")
+        assert hasattr(self_state, "adaptation_history")
 
     def test_planning_intelligence_integration(self, self_state, planning, intelligence):
         """Тест интеграции Planning с Intelligence"""
@@ -647,7 +642,7 @@ class TestLearningLayerIntegration:
         assert isinstance(metrics, dict)
 
         # Проверяем наличие основных метрик
-        expected_metrics = ['energy', 'stability', 'integrity', 'active', 'ticks']
+        expected_metrics = ["energy", "stability", "integrity", "active", "ticks"]
         for metric in expected_metrics:
             assert metric in metrics, f"Missing metric: {metric}"
 
@@ -660,26 +655,30 @@ class TestLearningLayerIntegration:
         # Много итераций обучения
         for i in range(10):
             mock_stats = {
-                'event_counts': {'shock': 5 + i, 'noise': 10 + i, 'recovery': 8 + i},
-                'response_patterns': {f'pattern_{j}': 0.1 * (j + 1) for j in range(3)},
-                'success_rates': {f'pattern_{j}': 0.5 + 0.05 * j for j in range(3)}
+                "event_counts": {"shock": 5 + i, "noise": 10 + i, "recovery": 8 + i},
+                "response_patterns": {f"pattern_{j}": 0.1 * (j + 1) for j in range(3)},
+                "success_rates": {f"pattern_{j}": 0.5 + 0.05 * j for j in range(3)},
             }
 
             # Обучение
             learning_engine.process_statistics(mock_stats)
-            new_learning_params = learning_engine.adjust_parameters(mock_stats, self_state.learning_params)
+            new_learning_params = learning_engine.adjust_parameters(
+                mock_stats, self_state.learning_params
+            )
 
             # Адаптация
             adaptation_manager.analyze_changes(new_learning_params)
-            adaptation_manager.apply_adaptation(adaptation_manager.analyze_changes(new_learning_params))
+            adaptation_manager.apply_adaptation(
+                adaptation_manager.analyze_changes(new_learning_params)
+            )
 
             # Небольшая задержка для реализма
             time.sleep(0.001)
 
         # Проверяем, что система эволюционировала
         params_changed = (
-            self_state.learning_params != initial_learning_params or
-            self_state.adaptation_params != initial_adaptation_params
+            self_state.learning_params != initial_learning_params
+            or self_state.adaptation_params != initial_adaptation_params
         )
         # Параметры могут не измениться значительно за короткий тест
 
@@ -711,9 +710,9 @@ class TestMonitoringLayerIntegration:
 
         # Проверяем, что мониторинг не сломал состояние
         assert self_state is not None
-        assert hasattr(self_state, 'energy')
-        assert hasattr(self_state, 'stability')
-        assert hasattr(self_state, 'integrity')
+        assert hasattr(self_state, "energy")
+        assert hasattr(self_state, "stability")
+        assert hasattr(self_state, "integrity")
 
     def test_structured_logger_runtime_integration(self, self_state, structured_logger):
         """Тест интеграции StructuredLogger с runtime"""
@@ -721,30 +720,34 @@ class TestMonitoringLayerIntegration:
         correlation_id = "test_correlation_123"
 
         # Логируем различные стадии
-        structured_logger.log_event("meaning_processing", {
-            "correlation_id": correlation_id,
-            "event_type": "shock",
-            "significance": 0.8,
-            "state_energy": self_state.energy
-        })
+        structured_logger.log_event(
+            "meaning_processing",
+            {
+                "correlation_id": correlation_id,
+                "event_type": "shock",
+                "significance": 0.8,
+                "state_energy": self_state.energy,
+            },
+        )
 
-        structured_logger.log_event("decision_making", {
-            "correlation_id": correlation_id,
-            "pattern": "defensive_response",
-            "confidence": 0.7
-        })
+        structured_logger.log_event(
+            "decision_making",
+            {"correlation_id": correlation_id, "pattern": "defensive_response", "confidence": 0.7},
+        )
 
-        structured_logger.log_event("action_execution", {
-            "correlation_id": correlation_id,
-            "action_type": "energy_conservation",
-            "intensity": 0.6
-        })
+        structured_logger.log_event(
+            "action_execution",
+            {
+                "correlation_id": correlation_id,
+                "action_type": "energy_conservation",
+                "intensity": 0.6,
+            },
+        )
 
-        structured_logger.log_event("feedback_observation", {
-            "correlation_id": correlation_id,
-            "feedback_delay": 0.05,
-            "state_change": 0.1
-        })
+        structured_logger.log_event(
+            "feedback_observation",
+            {"correlation_id": correlation_id, "feedback_delay": 0.05, "state_change": 0.1},
+        )
 
         # Принудительно сбрасываем логи
         structured_logger.flush()
@@ -754,12 +757,13 @@ class TestMonitoringLayerIntegration:
         assert log_file.exists()
 
         # Читаем и проверяем логи
-        with open(log_file, 'r') as f:
+        with open(log_file, "r") as f:
             lines = f.readlines()
             assert len(lines) >= 4  # Минимум 4 события
 
             # Парсим JSON и проверяем структуру
             import json
+
             for line in lines:
                 log_entry = json.loads(line.strip())
                 assert "event" in log_entry
@@ -779,13 +783,16 @@ class TestMonitoringLayerIntegration:
         tick_duration = time.time() - tick_start
 
         # Логируем метрики
-        structured_logger.log_performance("tick_completed", {
-            "tick_duration": tick_duration,
-            "queue_size": 0,
-            "events_processed": 1,
-            "memory_size": len(self_state.memory),
-            "final_energy": self_state.energy
-        })
+        structured_logger.log_performance(
+            "tick_completed",
+            {
+                "tick_duration": tick_duration,
+                "queue_size": 0,
+                "events_processed": 1,
+                "memory_size": len(self_state.memory),
+                "final_energy": self_state.energy,
+            },
+        )
 
         structured_logger.flush()
 
@@ -793,11 +800,12 @@ class TestMonitoringLayerIntegration:
         log_file = Path(structured_logger.log_file)
         assert log_file.exists()
 
-        with open(log_file, 'r') as f:
+        with open(log_file, "r") as f:
             lines = f.readlines()
             assert len(lines) >= 1
 
             import json
+
             log_entry = json.loads(lines[0].strip())
             assert log_entry["event"] == "tick_completed"
             assert "tick_duration" in log_entry["data"]
@@ -839,11 +847,14 @@ class TestFullLifecycleIntegration:
         event_queue.push(birth_event)
 
         # Логируем начало жизни
-        structured_logger.log_event("system_birth", {
-            "initial_energy": self_state.energy,
-            "initial_stability": self_state.stability,
-            "initial_integrity": self_state.integrity
-        })
+        structured_logger.log_event(
+            "system_birth",
+            {
+                "initial_energy": self_state.energy,
+                "initial_stability": self_state.stability,
+                "initial_integrity": self_state.integrity,
+            },
+        )
 
         # Проверяем, что система 'родилась' правильно
         assert not event_queue.is_empty()
@@ -880,28 +891,35 @@ class TestFullLifecycleIntegration:
         assert len(events) == 1
         current_event = events[0]
 
-        structured_logger.log_event("event_received", {
-            "correlation_id": correlation_id,
-            "event_type": current_event.type,
-            "intensity": current_event.intensity
-        })
+        structured_logger.log_event(
+            "event_received",
+            {
+                "correlation_id": correlation_id,
+                "event_type": current_event.type,
+                "intensity": current_event.intensity,
+            },
+        )
 
         # 2. Обрабатываем восприятие
         meaning = meaning_engine.process(current_event, self_state)
 
-        structured_logger.log_event("meaning_processed", {
-            "correlation_id": correlation_id,
-            "significance": meaning.significance,
-            "impact_energy": meaning.impact.get('energy', 0)
-        })
+        structured_logger.log_event(
+            "meaning_processed",
+            {
+                "correlation_id": correlation_id,
+                "significance": meaning.significance,
+                "impact_energy": meaning.impact.get("energy", 0),
+            },
+        )
 
         # 3. Сохраняем в память если значимо
         if meaning.significance > 0:
             from src.memory.memory import MemoryEntry
+
             entry = MemoryEntry(
                 event_type=current_event.type,
                 meaning_significance=meaning.significance,
-                timestamp=current_event.timestamp
+                timestamp=current_event.timestamp,
             )
             memory.append(entry)
 
@@ -914,36 +932,45 @@ class TestFullLifecycleIntegration:
         # 6. Принимаем решение
         pattern = decision_maker(self_state, meaning)
 
-        structured_logger.log_event("decision_made", {
-            "correlation_id": correlation_id,
-            "pattern_type": pattern,
-            "activated_memory_count": len(activated)
-        })
+        structured_logger.log_event(
+            "decision_made",
+            {
+                "correlation_id": correlation_id,
+                "pattern_type": pattern,
+                "activated_memory_count": len(activated),
+            },
+        )
 
         # 7. Выполняем действие
         action_executor(pattern, self_state)
 
-        structured_logger.log_event("action_executed", {
-            "correlation_id": correlation_id,
-            "action_type": pattern,
-            "action_intensity": 0.5  # Заглушка
-        })
+        structured_logger.log_event(
+            "action_executed",
+            {
+                "correlation_id": correlation_id,
+                "action_type": pattern,
+                "action_intensity": 0.5,  # Заглушка
+            },
+        )
 
         # 8. Имитируем задержку feedback
         time.sleep(0.01)
 
         # 9. Получаем feedback (упрощенная версия)
         feedback_data = {
-            'timestamp': time.time(),
-            'action_timestamp': time.time() - 0.01,
-            'feedback_delay': 0.01
+            "timestamp": time.time(),
+            "action_timestamp": time.time() - 0.01,
+            "feedback_delay": 0.01,
         }
 
-        structured_logger.log_event("feedback_received", {
-            "correlation_id": correlation_id,
-            "feedback_timestamp": feedback_data['timestamp'],
-            "action_feedback_delay": feedback_data['feedback_delay']
-        })
+        structured_logger.log_event(
+            "feedback_received",
+            {
+                "correlation_id": correlation_id,
+                "feedback_timestamp": feedback_data["timestamp"],
+                "action_feedback_delay": feedback_data["feedback_delay"],
+            },
+        )
 
         # Сбрасываем логи
         structured_logger.flush()
@@ -951,11 +978,11 @@ class TestFullLifecycleIntegration:
         # Проверяем целостность цикла
         assert len(memory) >= 0  # Память могла быть обновлена
         assert feedback_data is not None
-        assert 'timestamp' in feedback_data
+        assert "timestamp" in feedback_data
 
         # Проверяем логи
         assert log_file.exists()
-        with open(log_file, 'r') as f:
+        with open(log_file, "r") as f:
             lines = f.readlines()
             assert len(lines) >= 5  # Минимум 5 этапов логирования
 
@@ -995,40 +1022,49 @@ class TestFullLifecycleIntegration:
                 # Сохраняем значимые события
                 if meaning.significance > 0:
                     from src.memory.memory import MemoryEntry
+
                     entry = MemoryEntry(
                         event_type=evt.type,
                         meaning_significance=meaning.significance,
-                        timestamp=evt.timestamp
+                        timestamp=evt.timestamp,
                     )
                     memory.append(entry)
 
             # Каждые 5 циклов запускаем обучение
             if cycle % 5 == 0 and cycle > 0:
                 mock_stats = {
-                    'event_counts': {'shock': 5, 'noise': 5, 'recovery': 5, 'decay': 5},
-                    'response_patterns': {'adaptive': 0.6, 'conservative': 0.4},
-                    'success_rates': {'adaptive': 0.7, 'conservative': 0.8}
+                    "event_counts": {"shock": 5, "noise": 5, "recovery": 5, "decay": 5},
+                    "response_patterns": {"adaptive": 0.6, "conservative": 0.4},
+                    "success_rates": {"adaptive": 0.7, "conservative": 0.8},
                 }
 
                 learning_engine.process_statistics(mock_stats)
-                new_params = learning_engine.adjust_parameters(mock_stats, self_state.learning_params)
+                new_params = learning_engine.adjust_parameters(
+                    mock_stats, self_state.learning_params
+                )
 
                 adaptation_manager.analyze_changes(new_params)
                 adaptation_manager.apply_adaptation(adaptation_manager.analyze_changes(new_params))
 
-                structured_logger.log_event("learning_cycle", {
-                    "cycle": cycle,
-                    "memory_size": len(memory),
-                    "learning_evolution": "params_updated"
-                })
+                structured_logger.log_event(
+                    "learning_cycle",
+                    {
+                        "cycle": cycle,
+                        "memory_size": len(memory),
+                        "learning_evolution": "params_updated",
+                    },
+                )
 
             # Логируем прогресс
-            structured_logger.log_event("development_tick", {
-                "cycle": cycle,
-                "energy": self_state.energy,
-                "memory_size": len(memory),
-                "ticks": self_state.ticks
-            })
+            structured_logger.log_event(
+                "development_tick",
+                {
+                    "cycle": cycle,
+                    "energy": self_state.energy,
+                    "memory_size": len(memory),
+                    "ticks": self_state.ticks,
+                },
+            )
 
             # Небольшая задержка
             time.sleep(0.001)
@@ -1042,7 +1078,7 @@ class TestFullLifecycleIntegration:
 
         # Проверяем логи развития
         assert log_file.exists()
-        with open(log_file, 'r') as f:
+        with open(log_file, "r") as f:
             lines = f.readlines()
             assert len(lines) >= 20  # Минимум 20 записей о развитии
 
@@ -1056,10 +1092,10 @@ class TestFullLifecycleIntegration:
         self_state.integrity = 0.95
 
         initial_state = {
-            'energy': self_state.energy,
-            'stability': self_state.stability,
-            'integrity': self_state.integrity,
-            'active': self_state.active
+            "energy": self_state.energy,
+            "stability": self_state.stability,
+            "integrity": self_state.integrity,
+            "active": self_state.active,
         }
 
         # Имитируем процесс деградации
@@ -1079,9 +1115,9 @@ class TestFullLifecycleIntegration:
                 break
 
         # Проверяем, что система деградировала
-        assert self_state.energy < initial_state['energy']
-        assert self_state.stability < initial_state['stability']
-        assert self_state.integrity < initial_state['integrity']
+        assert self_state.energy < initial_state["energy"]
+        assert self_state.stability < initial_state["stability"]
+        assert self_state.integrity < initial_state["integrity"]
 
         # Система должна 'умереть' при нулевых параметрах
         assert self_state.active is False

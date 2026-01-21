@@ -47,9 +47,7 @@ class TestSelfStatePropertyBased:
         integrity_delta=st.floats(min_value=-2.0, max_value=2.0),
         stability_delta=st.floats(min_value=-2.0, max_value=2.0),
     )
-    def test_apply_delta_always_clamps(
-        self, energy_delta, integrity_delta, stability_delta
-    ):
+    def test_apply_delta_always_clamps(self, energy_delta, integrity_delta, stability_delta):
         """Свойство: apply_delta всегда ограничивает значения границами"""
         state = SelfState()
 
@@ -138,9 +136,7 @@ class TestMemoryPropertyBased:
             expected_entries = entries[-last_n:]
             actual_entries = list(memory)[-last_n:]
 
-            for i, (expected, actual) in enumerate(
-                zip(expected_entries, actual_entries)
-            ):
+            for i, (expected, actual) in enumerate(zip(expected_entries, actual_entries)):
                 assert (
                     actual.event_type == expected[0]
                 ), f"Order mismatch at position {i}: expected {expected[0]}, got {actual.event_type}"

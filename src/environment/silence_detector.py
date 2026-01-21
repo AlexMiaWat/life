@@ -21,6 +21,7 @@ class SilenceState:
     """
     Состояние детектора тишины.
     """
+
     last_event_timestamp: float  # Время последнего события
     silence_start_timestamp: Optional[float] = None  # Начало текущего периода тишины
     silence_events_generated: int = 0  # Количество сгенерированных событий silence
@@ -61,11 +62,13 @@ class SilenceDetector:
         self._last_check_timestamp = time.time()
         self._last_silence_event_timestamp = 0.0
 
-        self.logger.log_event({
-            "event_type": "silence_detector_initialized",
-            "silence_threshold": self.SILENCE_THRESHOLD_SECONDS,
-            "check_interval": self.SILENCE_CHECK_INTERVAL_SECONDS
-        })
+        self.logger.log_event(
+            {
+                "event_type": "silence_detector_initialized",
+                "silence_threshold": self.SILENCE_THRESHOLD_SECONDS,
+                "check_interval": self.SILENCE_CHECK_INTERVAL_SECONDS,
+            }
+        )
 
     def update_last_event_time(self, event_timestamp: Optional[float] = None) -> None:
         """
@@ -82,11 +85,13 @@ class SilenceDetector:
             silence_duration = current_time - self.state.silence_start_timestamp
             self.state.total_silence_duration += silence_duration
 
-            self.logger.log_event({
-                "event_type": "silence_period_ended",
-                "silence_duration": silence_duration,
-                "total_silence_duration": self.state.total_silence_duration
-            })
+            self.logger.log_event(
+                {
+                    "event_type": "silence_period_ended",
+                    "silence_duration": silence_duration,
+                    "total_silence_duration": self.state.total_silence_duration,
+                }
+            )
 
         self.state.silence_start_timestamp = None
 
@@ -119,8 +124,13 @@ class SilenceDetector:
         time_since_last_event = current_time - self.state.last_event_timestamp
 
         # Если тишина только началась, отмечаем начало периода
-        if self.state.silence_start_timestamp is None and time_since_last_event >= self.SILENCE_THRESHOLD_SECONDS:
-            self.state.silence_start_timestamp = self.state.last_event_timestamp + self.SILENCE_THRESHOLD_SECONDS
+        if (
+            self.state.silence_start_timestamp is None
+            and time_since_last_event >= self.SILENCE_THRESHOLD_SECONDS
+        ):
+            self.state.silence_start_timestamp = (
+                self.state.last_event_timestamp + self.SILENCE_THRESHOLD_SECONDS
+            )
 
         # Проверяем, достаточно ли длительная тишина
         if time_since_last_event >= self.SILENCE_THRESHOLD_SECONDS:
@@ -133,12 +143,14 @@ class SilenceDetector:
             self._last_silence_event_timestamp = current_time
             self.state.silence_events_generated += 1
 
-            self.logger.log_event({
-                "event_type": "silence_event_generated",
-                "silence_duration": silence_duration,
-                "event_intensity": event.intensity,
-                "total_silence_events": self.state.silence_events_generated
-            })
+            self.logger.log_event(
+                {
+                    "event_type": "silence_event_generated",
+                    "silence_duration": silence_duration,
+                    "event_intensity": event.intensity,
+                    "total_silence_events": self.state.silence_events_generated,
+                }
+            )
 
             return event
 
@@ -160,6 +172,7 @@ class SilenceDetector:
         comfort_probability = min(0.7, silence_duration / 300.0)  # 70% при 5+ минутах тишины
 
         import random
+
         is_comfortable = random.random() < comfort_probability
 
         if is_comfortable:
@@ -175,15 +188,10 @@ class SilenceDetector:
             "is_comfortable": is_comfortable,
             "comfort_probability": comfort_probability,
             "detector_generated": True,
-            "source": "silence_detector"
+            "source": "silence_detector",
         }
 
-        return Event(
-            type="silence",
-            intensity=intensity,
-            timestamp=current_time,
-            metadata=metadata
-        )
+        return Event(type="silence", intensity=intensity, timestamp=current_time, metadata=metadata)
 
     def get_silence_status(self) -> Dict[str, Any]:
         """
@@ -207,7 +215,7 @@ class SilenceDetector:
             "silence_events_generated": self.state.silence_events_generated,
             "total_silence_duration": self.state.total_silence_duration,
             "is_silence_active": current_silence_duration > 0,
-            "threshold_reached": current_silence_duration >= self.SILENCE_THRESHOLD_SECONDS
+            "threshold_reached": current_silence_duration >= self.SILENCE_THRESHOLD_SECONDS,
         }
 
     def reset_detector(self) -> None:
@@ -216,9 +224,7 @@ class SilenceDetector:
         self._last_check_timestamp = time.time()
         self._last_silence_event_timestamp = 0.0
 
-        self.logger.log_event({
-            "event_type": "silence_detector_reset"
-        })
+        self.logger.log_event({"event_type": "silence_detector_reset"})
 
     def get_performance_stats(self) -> Dict[str, Any]:
         """
@@ -232,8 +238,9 @@ class SilenceDetector:
             "total_silence_duration": self.state.total_silence_duration,
             "average_silence_duration": (
                 self.state.total_silence_duration / max(1, self.state.silence_events_generated)
-                if self.state.silence_events_generated > 0 else 0.0
+                if self.state.silence_events_generated > 0
+                else 0.0
             ),
             "silence_threshold": self.SILENCE_THRESHOLD_SECONDS,
-            "check_interval": self.SILENCE_CHECK_INTERVAL_SECONDS
+            "check_interval": self.SILENCE_CHECK_INTERVAL_SECONDS,
         }

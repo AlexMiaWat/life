@@ -6,6 +6,7 @@ Unit-тесты для менеджеров runtime loop: SnapshotManager, LogMa
 - Отсутствие регрессий поведения
 - Корректность политик и расчетов
 """
+
 import sys
 from pathlib import Path
 from unittest.mock import Mock, call
@@ -366,12 +367,8 @@ class TestLogManager:
 
         # Flush должен быть только в фазе after_snapshot, но не в фазе tick
         # (т.к. не прошло достаточно тиков для периодического flush)
-        assert (
-            flush_count_after_snapshot == 1
-        ), "Должен быть flush в фазе after_snapshot"
-        assert (
-            flush_count_after_tick == 1
-        ), "Не должно быть дополнительного flush в фазе tick"
+        assert flush_count_after_snapshot == 1, "Должен быть flush в фазе after_snapshot"
+        assert flush_count_after_tick == 1, "Не должно быть дополнительного flush в фазе tick"
 
 
 @pytest.mark.unit
@@ -487,14 +484,10 @@ class TestLifePolicy:
         with pytest.raises(ValueError, match="penalty_k must be non-negative"):
             LifePolicy(penalty_k=-0.1)
 
-        with pytest.raises(
-            ValueError, match="stability_multiplier must be non-negative"
-        ):
+        with pytest.raises(ValueError, match="stability_multiplier must be non-negative"):
             LifePolicy(stability_multiplier=-1.0)
 
-        with pytest.raises(
-            ValueError, match="integrity_multiplier must be non-negative"
-        ):
+        with pytest.raises(ValueError, match="integrity_multiplier must be non-negative"):
             LifePolicy(integrity_multiplier=-1.0)
 
         # Нулевые значения должны быть допустимы
@@ -613,9 +606,7 @@ class TestRuntimeLoopDelegation:
 
         # Проверяем, что flush был вызван перед снапшотом на тике 10
         # (flush вызывается на каждом тике в фазе before_snapshot, но нас интересует тик 10)
-        assert (
-            flush_fn.call_count >= 2
-        )  # Минимум 2 flush (перед и после снапшота на тике 10)
+        assert flush_fn.call_count >= 2  # Минимум 2 flush (перед и после снапшота на тике 10)
 
         # Проверяем, что saver был вызван только на тике 10
         assert saver.call_count == 1
@@ -644,9 +635,7 @@ class TestRunLoopDelegation:
         stop_event = threading.Event()
 
         # Патчим создание SnapshotManager в run_loop
-        with patch(
-            "src.runtime.loop.SnapshotManager", return_value=snapshot_manager_spy
-        ):
+        with patch("src.runtime.loop.SnapshotManager", return_value=snapshot_manager_spy):
             # Запускаем run_loop в отдельном потоке на несколько тиков
             loop_thread = threading.Thread(
                 target=run_loop,
@@ -671,9 +660,7 @@ class TestRunLoopDelegation:
 
         # Проверяем, что вызовы были с правильным аргументом (self_state)
         for call_args in snapshot_manager_spy.maybe_snapshot.call_args_list:
-            assert (
-                call_args[0][0] == self_state
-            ), "maybe_snapshot должен вызываться с self_state"
+            assert call_args[0][0] == self_state, "maybe_snapshot должен вызываться с self_state"
 
     def test_run_loop_delegates_to_log_manager(self):
         """Тест: run_loop делегирует вызовы LogManager в правильных фазах"""
@@ -713,21 +700,15 @@ class TestRunLoopDelegation:
         ), "maybe_flush должен вызываться в run_loop"
 
         # Проверяем, что были вызовы в разных фазах
-        phases_called = [
-            call[1]["phase"] for call in log_manager_spy.maybe_flush.call_args_list
-        ]
+        phases_called = [call[1]["phase"] for call in log_manager_spy.maybe_flush.call_args_list]
 
         # Должны быть вызовы в фазе "before_snapshot" и "tick"
-        assert (
-            "before_snapshot" in phases_called
-        ), "Должен быть вызов в фазе before_snapshot"
+        assert "before_snapshot" in phases_called, "Должен быть вызов в фазе before_snapshot"
         assert "tick" in phases_called, "Должен быть вызов в фазе tick"
 
         # Проверяем, что вызовы были с правильным аргументом (self_state)
         for call_args in log_manager_spy.maybe_flush.call_args_list:
-            assert (
-                call_args[0][0] == self_state
-            ), "maybe_flush должен вызываться с self_state"
+            assert call_args[0][0] == self_state, "maybe_flush должен вызываться с self_state"
 
     def test_run_loop_delegates_to_life_policy(self):
         """Тест: run_loop делегирует проверку слабости LifePolicy"""
@@ -781,9 +762,7 @@ class TestRunLoopDelegation:
 
         # Проверяем, что вызовы были с правильными аргументами
         for call_args in life_policy_spy.is_weak.call_args_list:
-            assert (
-                call_args[0][0] == self_state
-            ), "is_weak должен вызываться с self_state"
+            assert call_args[0][0] == self_state, "is_weak должен вызываться с self_state"
 
 
 @pytest.mark.unit

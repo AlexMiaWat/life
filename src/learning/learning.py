@@ -76,7 +76,7 @@ class LearningEngine:
 
     # Границы безопасности для адаптивных порогов
     MIN_FREQUENCY_THRESHOLD = 0.05  # Минимальный порог частоты
-    MAX_FREQUENCY_THRESHOLD = 0.8   # Максимальный порог частоты
+    MAX_FREQUENCY_THRESHOLD = 0.8  # Максимальный порог частоты
     MIN_SIGNIFICANCE_THRESHOLD = 0.1  # Минимальный порог значимости
     MAX_SIGNIFICANCE_THRESHOLD = 0.9  # Максимальный порог значимости
 
@@ -142,9 +142,7 @@ class LearningEngine:
                     state_delta = entry.feedback_data.get("state_delta", {})
                     for key in ["energy", "stability", "integrity"]:
                         if key in state_delta:
-                            statistics["feedback_state_deltas"][key].append(
-                                state_delta[key]
-                            )
+                            statistics["feedback_state_deltas"][key].append(state_delta[key])
 
         return statistics
 
@@ -174,11 +172,11 @@ class LearningEngine:
             # Адаптивные пороги частоты на основе распределения весов
             thresholds["high_frequency_threshold"] = min(
                 self.MAX_FREQUENCY_THRESHOLD,
-                max(self.MIN_FREQUENCY_THRESHOLD, weights_mean + weights_std)
+                max(self.MIN_FREQUENCY_THRESHOLD, weights_mean + weights_std),
             )
             thresholds["low_frequency_threshold"] = max(
                 self.MIN_FREQUENCY_THRESHOLD,
-                min(self.MAX_FREQUENCY_THRESHOLD, weights_mean - weights_std)
+                min(self.MAX_FREQUENCY_THRESHOLD, weights_mean - weights_std),
             )
 
         # Анализ значимостей для порогов значимости
@@ -196,11 +194,11 @@ class LearningEngine:
 
             thresholds["high_significance_threshold"] = min(
                 self.MAX_SIGNIFICANCE_THRESHOLD,
-                max(self.MIN_SIGNIFICANCE_THRESHOLD, sig_mean + sig_std * 0.5)
+                max(self.MIN_SIGNIFICANCE_THRESHOLD, sig_mean + sig_std * 0.5),
             )
             thresholds["low_significance_threshold"] = max(
                 self.MIN_SIGNIFICANCE_THRESHOLD,
-                min(self.MAX_SIGNIFICANCE_THRESHOLD, sig_mean - sig_std * 0.5)
+                min(self.MAX_SIGNIFICANCE_THRESHOLD, sig_mean - sig_std * 0.5),
             )
 
         # Анализ паттернов для порогов паттернов
@@ -213,15 +211,17 @@ class LearningEngine:
 
             if pattern_freqs:
                 pat_mean = sum(pattern_freqs) / len(pattern_freqs)
-                pat_std = (sum((p - pat_mean) ** 2 for p in pattern_freqs) / len(pattern_freqs)) ** 0.5
+                pat_std = (
+                    sum((p - pat_mean) ** 2 for p in pattern_freqs) / len(pattern_freqs)
+                ) ** 0.5
 
                 thresholds["high_pattern_frequency_threshold"] = min(
                     self.MAX_FREQUENCY_THRESHOLD,
-                    max(self.MIN_FREQUENCY_THRESHOLD, pat_mean + pat_std)
+                    max(self.MIN_FREQUENCY_THRESHOLD, pat_mean + pat_std),
                 )
                 thresholds["low_pattern_frequency_threshold"] = max(
                     self.MIN_FREQUENCY_THRESHOLD,
-                    min(self.MAX_FREQUENCY_THRESHOLD, pat_mean - pat_std)
+                    min(self.MAX_FREQUENCY_THRESHOLD, pat_mean - pat_std),
                 )
 
         # Адаптация скорости изменения на основе стабильности
@@ -269,7 +269,9 @@ class LearningEngine:
         if significances:
             sig_mean = sum(significances) / len(significances)
             if sig_mean > 0:
-                sig_std = (sum((s - sig_mean) ** 2 for s in significances) / len(significances)) ** 0.5
+                sig_std = (
+                    sum((s - sig_mean) ** 2 for s in significances) / len(significances)
+                ) ** 0.5
                 cv_significances = sig_std / sig_mean
 
         # Комбинированный фактор стабильности
@@ -304,14 +306,10 @@ class LearningEngine:
         """
         # ВАЛИДАЦИЯ: Проверяем входные параметры
         if not isinstance(current_params, dict):
-            raise TypeError(
-                f"current_params должен быть словарем, получен {type(current_params)}"
-            )
+            raise TypeError(f"current_params должен быть словарем, получен {type(current_params)}")
 
         if not isinstance(statistics, dict):
-            raise TypeError(
-                f"statistics должен быть словарем, получен {type(statistics)}"
-            )
+            raise TypeError(f"statistics должен быть словарем, получен {type(statistics)}")
 
         # Для edge case с пустым словарем - возвращаем пустые изменения
         if not current_params:
@@ -328,9 +326,7 @@ class LearningEngine:
             for param_name, param_value in value_dict.items():
                 # Проверяем границы значений [0.0, 1.0]
                 if not isinstance(param_value, (int, float)):
-                    logger.warning(
-                        f"Параметр {key}.{param_name} должен быть числом, пропускаем"
-                    )
+                    logger.warning(f"Параметр {key}.{param_name} должен быть числом, пропускаем")
                     continue
 
                 # Нормализуем значение до диапазона [0.0, 1.0]
@@ -361,9 +357,7 @@ class LearningEngine:
 
         # 2. Изменение порогов значимости
         if "significance_thresholds" in current_params:
-            new_params[
-                "significance_thresholds"
-            ] = self._adjust_significance_thresholds(
+            new_params["significance_thresholds"] = self._adjust_significance_thresholds(
                 statistics, current_params["significance_thresholds"]
             )
         else:
@@ -408,9 +402,7 @@ class LearningEngine:
             direction = (
                 1.0
                 if frequency > self.HIGH_FREQUENCY_THRESHOLD
-                else -1.0
-                if frequency < self.LOW_FREQUENCY_THRESHOLD
-                else 0.0
+                else -1.0 if frequency < self.LOW_FREQUENCY_THRESHOLD else 0.0
             )
 
             # Медленное изменение: максимум 0.01
@@ -491,9 +483,7 @@ class LearningEngine:
             direction = (
                 1.0
                 if frequency > self.HIGH_PATTERN_FREQUENCY_THRESHOLD
-                else -1.0
-                if frequency < self.LOW_PATTERN_FREQUENCY_THRESHOLD
-                else 0.0
+                else -1.0 if frequency < self.LOW_PATTERN_FREQUENCY_THRESHOLD else 0.0
             )
 
             # Медленное изменение: максимум 0.01
@@ -508,9 +498,7 @@ class LearningEngine:
 
         return new_coefficients
 
-    def record_changes(
-        self, old_params: Dict, new_params: Dict, self_state: "SelfState"
-    ) -> None:
+    def record_changes(self, old_params: Dict, new_params: Dict, self_state: "SelfState") -> None:
         """
         Фиксирует изменения параметров без интерпретации.
 
@@ -543,10 +531,7 @@ class LearningEngine:
                             delta = abs(new_value - old_value)
                             # Проверка: изменения не должны превышать MAX_PARAMETER_DELTA
                             # Используем константу для допуска проверки
-                            if (
-                                delta
-                                > self.MAX_PARAMETER_DELTA + self._VALIDATION_TOLERANCE
-                            ):
+                            if delta > self.MAX_PARAMETER_DELTA + self._VALIDATION_TOLERANCE:
                                 raise ValueError(
                                     f"Изменение параметра {key}.{param_name} слишком большое: "
                                     f"{delta} > {self.MAX_PARAMETER_DELTA}"
@@ -583,7 +568,9 @@ class LearningEngine:
 
         # ВАЖНО: Не интерпретируем, не оцениваем - просто обновляем параметры
 
-    def _record_learning_params_change(self, self_state: "SelfState", old_params: Dict, new_params: Dict) -> None:
+    def _record_learning_params_change(
+        self, self_state: "SelfState", old_params: Dict, new_params: Dict
+    ) -> None:
         """
         Записывает изменения learning_params в историю для анализа эволюции.
 
@@ -598,10 +585,7 @@ class LearningEngine:
             old_value = old_params.get(key)
             new_value = new_params.get(key)
             if old_value != new_value:
-                changes[key] = {
-                    "old_value": old_value,
-                    "new_value": new_value
-                }
+                changes[key] = {"old_value": old_value, "new_value": new_value}
 
         if not changes:
             return  # Нет изменений
@@ -613,7 +597,7 @@ class LearningEngine:
             "old_params": old_params.copy(),
             "new_params": new_params.copy(),
             "changes": changes,
-            "statistics_snapshot": {}  # Можно добавить позже, если понадобится
+            "statistics_snapshot": {},  # Можно добавить позже, если понадобится
         }
 
         # Thread-safe добавление в историю

@@ -63,9 +63,7 @@ class InternalEventGenerator:
             metadata=metadata,
         )
 
-    def should_generate_echo(
-        self, ticks_since_last_echo: int, memory_pressure: float
-    ) -> bool:
+    def should_generate_echo(self, ticks_since_last_echo: int, memory_pressure: float) -> bool:
         """
         Определяет, следует ли генерировать memory echo на основе контекста.
 

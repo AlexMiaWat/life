@@ -18,6 +18,7 @@
 ### Для архитекторов
 - [**Архитектура**](../architecture/overview.md) — архитектура системы
 - [**Основные концепции**](../concepts/core-concepts.md) — ключевые концепции системы
+- [**Behavior Observation Limits**](../concepts/behavior_observation_limits.md) — архитектурные ограничения наблюдения за поведением
 - [**Концепции**](../concepts/) — будущие модули и идеи
 - [**ADR**](../adr/) — архитектурные решения
 

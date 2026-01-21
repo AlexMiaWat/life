@@ -31,17 +31,13 @@ class TestInternalEventGenerator:
 
     def test_generate_memory_echo_none_when_low_probability(self):
         """Тест, что событие не генерируется при низкой вероятности"""
-        generator = InternalEventGenerator(
-            memory_echo_probability=0.0
-        )  # 0% вероятность
+        generator = InternalEventGenerator(memory_echo_probability=0.0)  # 0% вероятность
         event = generator.generate_memory_echo()
         assert event is None
 
     def test_generate_memory_echo_structure(self):
         """Тест структуры генерируемого memory_echo события"""
-        generator = InternalEventGenerator(
-            memory_echo_probability=1.0
-        )  # 100% вероятность
+        generator = InternalEventGenerator(memory_echo_probability=1.0)  # 100% вероятность
         event = generator.generate_memory_echo()
 
         assert event is not None
@@ -127,9 +123,7 @@ class TestInternalEventGenerator:
 
         # Проверяем, что все интенсивности в допустимом диапазоне
         for intensity in intensities:
-            assert (
-                -0.2 <= intensity <= 0.2
-            ), f"Интенсивность {intensity} вне диапазона [-0.2, 0.2]"
+            assert -0.2 <= intensity <= 0.2, f"Интенсивность {intensity} вне диапазона [-0.2, 0.2]"
 
     def test_memory_echo_metadata_consistency(self):
         """Тест консистентности metadata в memory_echo событиях"""

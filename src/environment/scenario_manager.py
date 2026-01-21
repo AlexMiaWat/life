@@ -22,6 +22,7 @@ logger = get_logger(__name__)
 @dataclass
 class ScenarioStep:
     """Шаг сценария воздействия"""
+
     delay: float  # Задержка перед выполнением в секундах
     event: Event  # Событие для отправки
     repeat_count: int = 1  # Количество повторений события
@@ -31,6 +32,7 @@ class ScenarioStep:
 @dataclass
 class Scenario:
     """Сценарий внешних воздействий"""
+
     id: str
     name: str
     description: str
@@ -91,7 +93,9 @@ class ScenarioExecution:
             "current_step": self.current_step_index,
             "executed_steps": self.executed_steps,
             "total_steps": len(self.scenario.steps),
-            "progress": self.current_step_index / len(self.scenario.steps) if self.scenario.steps else 0.0,
+            "progress": (
+                self.current_step_index / len(self.scenario.steps) if self.scenario.steps else 0.0
+            ),
             "auto_stop": self.scenario.auto_stop,
             "duration_limit": self.scenario.duration,
         }
@@ -121,7 +125,9 @@ class ScenarioExecution:
                     try:
                         self.event_queue.push(step.event)
                         self.executed_steps += 1
-                        logger.debug(f"Scenario '{self.scenario.name}': executed step {step_index + 1}/{len(self.scenario.steps)}, repeat {repeat + 1}/{step.repeat_count}")
+                        logger.debug(
+                            f"Scenario '{self.scenario.name}': executed step {step_index + 1}/{len(self.scenario.steps)}, repeat {repeat + 1}/{step.repeat_count}"
+                        )
                     except Exception as e:
                         logger.error(f"Failed to execute scenario step: {e}")
                         continue
@@ -132,7 +138,10 @@ class ScenarioExecution:
                             break
 
                 # Проверяем ограничение по длительности
-                if self.scenario.duration and (time.time() - self.start_time) >= self.scenario.duration:
+                if (
+                    self.scenario.duration
+                    and (time.time() - self.start_time) >= self.scenario.duration
+                ):
                     logger.info(f"Scenario '{self.scenario.name}' reached duration limit")
                     break
 
@@ -169,29 +178,49 @@ class ScenarioManager:
                 name="Симуляция кризиса",
                 description="Интенсивные негативные события для тестирования устойчивости системы",
                 steps=[
-                    ScenarioStep(delay=0.0, event=Event(type="shock", intensity=0.8, timestamp=time.time())),
-                    ScenarioStep(delay=1.0, event=Event(type="decay", intensity=0.6, timestamp=time.time())),
-                    ScenarioStep(delay=2.0, event=Event(type="social_conflict", intensity=0.7, timestamp=time.time())),
-                    ScenarioStep(delay=3.0, event=Event(type="existential_void", intensity=0.5, timestamp=time.time())),
+                    ScenarioStep(
+                        delay=0.0, event=Event(type="shock", intensity=0.8, timestamp=time.time())
+                    ),
+                    ScenarioStep(
+                        delay=1.0, event=Event(type="decay", intensity=0.6, timestamp=time.time())
+                    ),
+                    ScenarioStep(
+                        delay=2.0,
+                        event=Event(type="social_conflict", intensity=0.7, timestamp=time.time()),
+                    ),
+                    ScenarioStep(
+                        delay=3.0,
+                        event=Event(type="existential_void", intensity=0.5, timestamp=time.time()),
+                    ),
                 ],
                 duration=30.0,  # 30 секунд
-                auto_stop=True
+                auto_stop=True,
             ),
-
             "recovery_phase": Scenario(
                 id="recovery_phase",
                 name="Фаза восстановления",
                 description="Позитивные события для восстановления системы",
                 steps=[
-                    ScenarioStep(delay=0.0, event=Event(type="recovery", intensity=0.7, timestamp=time.time())),
-                    ScenarioStep(delay=2.0, event=Event(type="social_harmony", intensity=0.6, timestamp=time.time())),
-                    ScenarioStep(delay=4.0, event=Event(type="cognitive_clarity", intensity=0.5, timestamp=time.time())),
-                    ScenarioStep(delay=6.0, event=Event(type="meaning_found", intensity=0.8, timestamp=time.time())),
+                    ScenarioStep(
+                        delay=0.0,
+                        event=Event(type="recovery", intensity=0.7, timestamp=time.time()),
+                    ),
+                    ScenarioStep(
+                        delay=2.0,
+                        event=Event(type="social_harmony", intensity=0.6, timestamp=time.time()),
+                    ),
+                    ScenarioStep(
+                        delay=4.0,
+                        event=Event(type="cognitive_clarity", intensity=0.5, timestamp=time.time()),
+                    ),
+                    ScenarioStep(
+                        delay=6.0,
+                        event=Event(type="meaning_found", intensity=0.8, timestamp=time.time()),
+                    ),
                 ],
                 duration=20.0,
-                auto_stop=True
+                auto_stop=True,
             ),
-
             "stress_test": Scenario(
                 id="stress_test",
                 name="Стресс-тестирование",
@@ -201,32 +230,43 @@ class ScenarioManager:
                         delay=0.0,
                         event=Event(type="noise", intensity=0.3, timestamp=time.time()),
                         repeat_count=10,
-                        repeat_interval=0.1
+                        repeat_interval=0.1,
                     ),
                     ScenarioStep(
                         delay=2.0,
                         event=Event(type="shock", intensity=0.5, timestamp=time.time()),
                         repeat_count=5,
-                        repeat_interval=0.2
+                        repeat_interval=0.2,
                     ),
                 ],
                 duration=15.0,
-                auto_stop=True
+                auto_stop=True,
             ),
-
             "gentle_stimulation": Scenario(
                 id="gentle_stimulation",
                 name="Мягкая стимуляция",
                 description="Легкие позитивные воздействия для поддержания активности",
                 steps=[
-                    ScenarioStep(delay=0.0, event=Event(type="social_presence", intensity=0.4, timestamp=time.time())),
-                    ScenarioStep(delay=5.0, event=Event(type="curiosity", intensity=0.3, timestamp=time.time())),
-                    ScenarioStep(delay=10.0, event=Event(type="insight", intensity=0.4, timestamp=time.time())),
-                    ScenarioStep(delay=15.0, event=Event(type="acceptance", intensity=0.3, timestamp=time.time())),
+                    ScenarioStep(
+                        delay=0.0,
+                        event=Event(type="social_presence", intensity=0.4, timestamp=time.time()),
+                    ),
+                    ScenarioStep(
+                        delay=5.0,
+                        event=Event(type="curiosity", intensity=0.3, timestamp=time.time()),
+                    ),
+                    ScenarioStep(
+                        delay=10.0,
+                        event=Event(type="insight", intensity=0.4, timestamp=time.time()),
+                    ),
+                    ScenarioStep(
+                        delay=15.0,
+                        event=Event(type="acceptance", intensity=0.3, timestamp=time.time()),
+                    ),
                 ],
                 duration=None,  # Бесконечный до остановки
-                auto_stop=False
-            )
+                auto_stop=False,
+            ),
         }
 
     def get_available_scenarios(self) -> List[Dict[str, Any]]:
@@ -261,7 +301,7 @@ class ScenarioManager:
                 return {
                     "success": True,
                     "scenario_id": scenario_id,
-                    "message": f"Scenario '{scenario.name}' started"
+                    "message": f"Scenario '{scenario.name}' started",
                 }
             else:
                 return {"success": False, "error": "Failed to start scenario"}
@@ -277,7 +317,7 @@ class ScenarioManager:
                 return {
                     "success": True,
                     "scenario_id": scenario_id,
-                    "message": f"Scenario '{execution.scenario.name}' stopped"
+                    "message": f"Scenario '{execution.scenario.name}' stopped",
                 }
             else:
                 return {"success": False, "error": "Failed to stop scenario"}
@@ -301,10 +341,7 @@ class ScenarioManager:
                 for scenario_id, execution in self.executions.items()
                 if execution.is_running
             }
-            return {
-                "running_scenarios": running_scenarios,
-                "count": len(running_scenarios)
-            }
+            return {"running_scenarios": running_scenarios, "count": len(running_scenarios)}
 
     def stop_all_scenarios(self) -> Dict[str, Any]:
         """Остановить все выполняющиеся сценарии"""
@@ -318,5 +355,5 @@ class ScenarioManager:
             return {
                 "success": True,
                 "stopped_count": stopped_count,
-                "message": f"Stopped {stopped_count} scenarios"
+                "message": f"Stopped {stopped_count} scenarios",
             }

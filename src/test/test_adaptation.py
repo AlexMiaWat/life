@@ -151,9 +151,7 @@ class TestAdaptationManager:
         analysis = {"learning_params_snapshot": {}}
         current_params = {}
 
-        with pytest.raises(
-            ValueError, match="не может напрямую изменять Decision/Action"
-        ):
+        with pytest.raises(ValueError, match="не может напрямую изменять Decision/Action"):
             manager.apply_adaptation(analysis, current_params, self_state)
 
     def test_store_history(self):
@@ -547,9 +545,7 @@ class TestAdaptationRuntimeLoop:
 
         # Если было достаточно тиков, должна быть история
         if state.ticks >= 100:
-            assert (
-                len(state.adaptation_history) >= 0
-            )  # Может быть 0, если не было изменений
+            assert len(state.adaptation_history) >= 0  # Может быть 0, если не было изменений
 
     def test_adaptation_persistence_in_snapshots(self):
         """Тест сохранения параметров Adaptation в snapshots"""
@@ -665,9 +661,7 @@ class TestAdaptationRuntimeLoop:
             # noise должен быть изменен (0.2 -> ~0.21)
             assert "noise" in history_entry["changes"]["behavior_sensitivity"]
             # shock не должен быть изменен (0.3 == 0.3)
-            assert "shock" not in history_entry["changes"].get(
-                "behavior_sensitivity", {}
-            )
+            assert "shock" not in history_entry["changes"].get("behavior_sensitivity", {})
 
     def test_deep_merge_preserves_all_keys(self):
         """Тест глубокого объединения - все ключи сохраняются при частичном обновлении"""
@@ -690,9 +684,7 @@ class TestAdaptationRuntimeLoop:
                 existing_params[key] = copy.deepcopy(new_value_dict)
             else:
                 current_value_dict = existing_params[key]
-                if isinstance(new_value_dict, dict) and isinstance(
-                    current_value_dict, dict
-                ):
+                if isinstance(new_value_dict, dict) and isinstance(current_value_dict, dict):
                     for param_name, new_value in new_value_dict.items():
                         current_value_dict[param_name] = new_value
 
@@ -734,17 +726,21 @@ class TestAdaptationRollback:
                 "tick": 100,
                 "old_params": {"behavior_sensitivity": {"noise": 0.1}},
                 "new_params": {"behavior_sensitivity": {"noise": 0.11}},
-                "changes": {"behavior_sensitivity": {"noise": {"old": 0.1, "new": 0.11, "delta": 0.01}}},
-                "learning_params_snapshot": {}
+                "changes": {
+                    "behavior_sensitivity": {"noise": {"old": 0.1, "new": 0.11, "delta": 0.01}}
+                },
+                "learning_params_snapshot": {},
             },
             {
                 "timestamp": current_time - 150,  # 2.5 минуты назад
                 "tick": 200,
                 "old_params": {"behavior_sensitivity": {"noise": 0.11}},
                 "new_params": {"behavior_sensitivity": {"noise": 0.12}},
-                "changes": {"behavior_sensitivity": {"noise": {"old": 0.11, "new": 0.12, "delta": 0.01}}},
-                "learning_params_snapshot": {}
-            }
+                "changes": {
+                    "behavior_sensitivity": {"noise": {"old": 0.11, "new": 0.12, "delta": 0.01}}
+                },
+                "learning_params_snapshot": {},
+            },
         ]
 
         options = manager.get_rollback_options(self_state)
@@ -765,8 +761,8 @@ class TestAdaptationRollback:
         # Устанавливаем начальные параметры (недавно измененные на 0.01)
         self_state.adaptation_params = {
             "behavior_sensitivity": {"noise": 0.11},  # +0.01 от целевого
-            "behavior_thresholds": {"noise": 0.06},   # +0.01 от целевого
-            "behavior_coefficients": {"dampen": 0.31}  # +0.01 от целевого
+            "behavior_thresholds": {"noise": 0.06},  # +0.01 от целевого
+            "behavior_coefficients": {"dampen": 0.31},  # +0.01 от целевого
         }
 
         # Создаем историю с записью для отката (предыдущее состояние)
@@ -776,17 +772,17 @@ class TestAdaptationRollback:
                 "timestamp": rollback_time,
                 "tick": 50,
                 "old_params": {
-                    "behavior_sensitivity": {"noise": 0.1},   # Целевое состояние
-                    "behavior_thresholds": {"noise": 0.05},   # Целевое состояние
-                    "behavior_coefficients": {"dampen": 0.3}   # Целевое состояние
+                    "behavior_sensitivity": {"noise": 0.1},  # Целевое состояние
+                    "behavior_thresholds": {"noise": 0.05},  # Целевое состояние
+                    "behavior_coefficients": {"dampen": 0.3},  # Целевое состояние
                 },
                 "new_params": {
                     "behavior_sensitivity": {"noise": 0.11},  # Изменение +0.01
-                    "behavior_thresholds": {"noise": 0.06},    # Изменение +0.01
-                    "behavior_coefficients": {"dampen": 0.31}  # Изменение +0.01
+                    "behavior_thresholds": {"noise": 0.06},  # Изменение +0.01
+                    "behavior_coefficients": {"dampen": 0.31},  # Изменение +0.01
                 },
                 "changes": {},
-                "learning_params_snapshot": {}
+                "learning_params_snapshot": {},
             }
         ]
 
@@ -827,9 +823,7 @@ class TestAdaptationRollback:
         self_state = SelfState()
 
         # Устанавливаем начальные параметры
-        self_state.adaptation_params = {
-            "behavior_sensitivity": {"noise": 0.12}
-        }
+        self_state.adaptation_params = {"behavior_sensitivity": {"noise": 0.12}}
 
         # Создаем историю с двумя записями
         base_time = time.time()
@@ -840,7 +834,7 @@ class TestAdaptationRollback:
                 "old_params": {"behavior_sensitivity": {"noise": 0.1}},
                 "new_params": {"behavior_sensitivity": {"noise": 0.11}},
                 "changes": {},
-                "learning_params_snapshot": {}
+                "learning_params_snapshot": {},
             },
             {
                 "timestamp": base_time - 60,
@@ -848,8 +842,8 @@ class TestAdaptationRollback:
                 "old_params": {"behavior_sensitivity": {"noise": 0.11}},
                 "new_params": {"behavior_sensitivity": {"noise": 0.12}},
                 "changes": {},
-                "learning_params_snapshot": {}
-            }
+                "learning_params_snapshot": {},
+            },
         ]
 
         # Откат на 1 шаг назад
@@ -872,7 +866,7 @@ class TestAdaptationRollback:
                 "old_params": {"behavior_sensitivity": {"noise": 0.1}},
                 "new_params": {"behavior_sensitivity": {"noise": 0.11}},
                 "changes": {},
-                "learning_params_snapshot": {}
+                "learning_params_snapshot": {},
             }
         ]
 
@@ -886,9 +880,7 @@ class TestAdaptationRollback:
         self_state = SelfState()
 
         # Устанавливаем текущие параметры
-        self_state.adaptation_params = {
-            "behavior_sensitivity": {"noise": 0.5}
-        }
+        self_state.adaptation_params = {"behavior_sensitivity": {"noise": 0.5}}
 
         # Создаем запись с изменением, превышающим лимит (0.011 > 0.01 + tolerance)
         rollback_time = time.time() - 60
@@ -901,7 +893,7 @@ class TestAdaptationRollback:
                 },
                 "new_params": {"behavior_sensitivity": {"noise": 0.5}},
                 "changes": {},
-                "learning_params_snapshot": {}
+                "learning_params_snapshot": {},
             }
         ]
 
@@ -916,7 +908,7 @@ class TestAdaptationRollback:
         valid_params = {
             "behavior_sensitivity": {"noise": 0.5, "shock": 0.8},
             "behavior_thresholds": {"noise": 0.2, "shock": 0.3},
-            "behavior_coefficients": {"dampen": 0.6, "absorb": 0.9}
+            "behavior_coefficients": {"dampen": 0.6, "absorb": 0.9},
         }
 
         assert manager._validate_rollback_params(valid_params) is True
@@ -928,7 +920,7 @@ class TestAdaptationRollback:
         # Отсутствует обязательный ключ
         invalid_params = {
             "behavior_sensitivity": {"noise": 0.5},
-            "behavior_thresholds": {"noise": 0.2}
+            "behavior_thresholds": {"noise": 0.2},
             # Отсутствует behavior_coefficients
         }
 
@@ -938,7 +930,7 @@ class TestAdaptationRollback:
         invalid_params2 = {
             "behavior_sensitivity": {"noise": 1.5},  # > 1.0
             "behavior_thresholds": {"noise": 0.2},
-            "behavior_coefficients": {"dampen": 0.6}
+            "behavior_coefficients": {"dampen": 0.6},
         }
 
         assert manager._validate_rollback_params(invalid_params2) is False
@@ -952,9 +944,7 @@ class TestAdaptationRollback:
         self_state.energy = 80.0
         self_state.stability = 0.9
         self_state.learning_params = {"test": "value"}
-        self_state.adaptation_params = {
-            "behavior_sensitivity": {"noise": 0.15}
-        }
+        self_state.adaptation_params = {"behavior_sensitivity": {"noise": 0.15}}
 
         # Создаем историю для отката
         rollback_time = time.time() - 30
@@ -965,7 +955,7 @@ class TestAdaptationRollback:
                 "old_params": {"behavior_sensitivity": {"noise": 0.1}},
                 "new_params": {"behavior_sensitivity": {"noise": 0.11}},
                 "changes": {},
-                "learning_params_snapshot": {}
+                "learning_params_snapshot": {},
             }
         ]
 

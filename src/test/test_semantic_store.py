@@ -6,7 +6,11 @@ import pytest
 import time
 from unittest.mock import Mock
 
-from src.experimental.memory_hierarchy.semantic_store import SemanticMemoryStore, SemanticConcept, SemanticAssociation
+from src.experimental.memory_hierarchy.semantic_store import (
+    SemanticMemoryStore,
+    SemanticConcept,
+    SemanticAssociation,
+)
 from src.observability.structured_logger import StructuredLogger
 
 
@@ -19,7 +23,7 @@ class TestSemanticConcept:
             concept_id="test_concept_1",
             name="Test Concept",
             description="A test concept",
-            confidence=0.8
+            confidence=0.8,
         )
 
         assert concept.concept_id == "test_concept_1"
@@ -32,9 +36,7 @@ class TestSemanticConcept:
     def test_concept_activation(self):
         """Тест активации концепции."""
         concept = SemanticConcept(
-            concept_id="test_concept_1",
-            name="Test Concept",
-            description="A test concept"
+            concept_id="test_concept_1", name="Test Concept", description="A test concept"
         )
 
         initial_count = concept.activation_count
@@ -52,7 +54,7 @@ class TestSemanticConcept:
             concept_id="test_concept_1",
             name="Test Concept",
             description="A test concept",
-            confidence=0.8
+            confidence=0.8,
         )
 
         # Без активаций сила должна быть низкой
@@ -67,9 +69,7 @@ class TestSemanticConcept:
     def test_add_relation(self):
         """Тест добавления связей между концепциями."""
         concept = SemanticConcept(
-            concept_id="test_concept_1",
-            name="Test Concept",
-            description="A test concept"
+            concept_id="test_concept_1", name="Test Concept", description="A test concept"
         )
 
         concept.add_relation("related_concept_1")
@@ -87,10 +87,7 @@ class TestSemanticAssociation:
     def test_association_creation(self):
         """Тест создания ассоциации."""
         association = SemanticAssociation(
-            source_id="concept_1",
-            target_id="concept_2",
-            association_type="is_a",
-            strength=0.7
+            source_id="concept_1", target_id="concept_2", association_type="is_a", strength=0.7
         )
 
         assert association.source_id == "concept_1"
@@ -105,7 +102,7 @@ class TestSemanticAssociation:
             source_id="concept_1",
             target_id="concept_2",
             association_type="related_to",
-            strength=0.5
+            strength=0.5,
         )
 
         initial_strength = association.strength
@@ -147,7 +144,7 @@ class TestSemanticMemoryStore:
             concept_id="test_concept_1",
             name="Test Concept",
             description="A test concept",
-            confidence=0.8
+            confidence=0.8,
         )
 
         store.add_concept(concept)
@@ -164,14 +161,14 @@ class TestSemanticMemoryStore:
             concept_id="test_concept_1",
             name="Test Concept",
             description="A test concept",
-            confidence=0.6
+            confidence=0.6,
         )
 
         concept2 = SemanticConcept(
             concept_id="test_concept_1",
             name="Test Concept",
             description="Updated description",
-            confidence=0.9
+            confidence=0.9,
         )
 
         store.add_concept(concept1)
@@ -185,9 +182,7 @@ class TestSemanticMemoryStore:
     def test_get_concept(self, store):
         """Тест получения концепции."""
         concept = SemanticConcept(
-            concept_id="test_concept_1",
-            name="Test Concept",
-            description="A test concept"
+            concept_id="test_concept_1", name="Test Concept", description="A test concept"
         )
         store.add_concept(concept)
 
@@ -200,9 +195,7 @@ class TestSemanticMemoryStore:
     def test_get_concept_by_name(self, store):
         """Тест получения концепции по имени."""
         concept = SemanticConcept(
-            concept_id="test_concept_1",
-            name="Test Concept",
-            description="A test concept"
+            concept_id="test_concept_1", name="Test Concept", description="A test concept"
         )
         store.add_concept(concept)
 
@@ -215,10 +208,7 @@ class TestSemanticMemoryStore:
     def test_add_association(self, store, logger):
         """Тест добавления ассоциации."""
         association = SemanticAssociation(
-            source_id="concept_1",
-            target_id="concept_2",
-            association_type="is_a",
-            strength=0.8
+            source_id="concept_1", target_id="concept_2", association_type="is_a", strength=0.8
         )
 
         store.add_association(association)
@@ -234,17 +224,11 @@ class TestSemanticMemoryStore:
     def test_add_duplicate_association(self, store):
         """Тест добавления дублирующейся ассоциации."""
         association1 = SemanticAssociation(
-            source_id="concept_1",
-            target_id="concept_2",
-            association_type="is_a",
-            strength=0.6
+            source_id="concept_1", target_id="concept_2", association_type="is_a", strength=0.6
         )
 
         association2 = SemanticAssociation(
-            source_id="concept_1",
-            target_id="concept_2",
-            association_type="is_a",
-            strength=0.4
+            source_id="concept_1", target_id="concept_2", association_type="is_a", strength=0.4
         )
 
         store.add_association(association1)
@@ -308,10 +292,12 @@ class TestSemanticMemoryStore:
     def test_consolidate_knowledge(self, store):
         """Тест консолидации знаний."""
         # Добавляем концепции с разной уверенностью
-        concept1 = SemanticConcept(concept_id="c1", name="Good Concept",
-                                 description="Good", confidence=0.9)
-        concept2 = SemanticConcept(concept_id="c2", name="Bad Concept",
-                                 description="Bad", confidence=0.1)
+        concept1 = SemanticConcept(
+            concept_id="c1", name="Good Concept", description="Good", confidence=0.9
+        )
+        concept2 = SemanticConcept(
+            concept_id="c2", name="Bad Concept", description="Bad", confidence=0.1
+        )
 
         store.add_concept(concept1)
         store.add_concept(concept2)
@@ -336,10 +322,12 @@ class TestSemanticMemoryStore:
     def test_get_statistics(self, store):
         """Тест получения статистики."""
         # Добавляем концепции
-        concept1 = SemanticConcept(concept_id="c1", name="Concept 1",
-                                 description="Desc 1", confidence=0.8)
-        concept2 = SemanticConcept(concept_id="c2", name="Concept 2",
-                                 description="Desc 2", confidence=0.6)
+        concept1 = SemanticConcept(
+            concept_id="c1", name="Concept 1", description="Desc 1", confidence=0.8
+        )
+        concept2 = SemanticConcept(
+            concept_id="c2", name="Concept 2", description="Desc 2", confidence=0.6
+        )
 
         store.add_concept(concept1)
         store.add_concept(concept2)

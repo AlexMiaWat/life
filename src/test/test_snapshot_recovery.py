@@ -7,6 +7,7 @@
 - Консистентность состояния после восстановления
 - Обработку ошибок при поврежденных данных
 """
+
 import json
 import os
 import sys
@@ -49,6 +50,7 @@ class TestSnapshotLoading:
 
         # Удаляем временные файлы
         import shutil
+
         if self.temp_dir.exists():
             shutil.rmtree(self.temp_dir, ignore_errors=True)
 
@@ -131,13 +133,13 @@ class TestSnapshotLoading:
         snapshot_file = self_state_module.SNAPSHOT_DIR / "snapshot_000005.json"
         assert snapshot_file.exists(), f"Snapshot file {snapshot_file} should exist"
 
-        with open(snapshot_file, 'r') as f:
+        with open(snapshot_file, "r") as f:
             data = json.load(f)
 
         # Добавляем невалидное значение энергии
-        data['energy'] = -50.0  # Отрицательная энергия недопустима
+        data["energy"] = -50.0  # Отрицательная энергия недопустима
 
-        with open(snapshot_file, 'w') as f:
+        with open(snapshot_file, "w") as f:
             json.dump(data, f)
 
         # Загрузка должна обработать ошибку валидации
@@ -161,7 +163,7 @@ class TestSnapshotLoading:
 
         # Теперь повреждаем JSON файл
         snapshot_file = self_state_module.SNAPSHOT_DIR / "snapshot_000010.json"
-        with open(snapshot_file, 'w') as f:
+        with open(snapshot_file, "w") as f:
             f.write("{ invalid json content")
 
         # Попытка загрузки должна обработать ошибку
@@ -183,7 +185,7 @@ class TestSnapshotLoading:
         }
 
         snapshot_file = self_state_module.SNAPSHOT_DIR / "snapshot_000005.json"
-        with open(snapshot_file, 'w') as f:
+        with open(snapshot_file, "w") as f:
             json.dump(minimal_data, f)
 
         # Загрузка должна успешно обработать отсутствующие поля
@@ -212,14 +214,14 @@ class TestSnapshotLoading:
         snapshot_file = self_state_module.SNAPSHOT_DIR / "snapshot_000008.json"
         assert snapshot_file.exists(), f"Snapshot file {snapshot_file} should exist"
 
-        with open(snapshot_file, 'r') as f:
+        with open(snapshot_file, "r") as f:
             data = json.load(f)
 
         # Изменяем immutable поля в файле
-        data['life_id'] = "different-id"
-        data['birth_timestamp'] = time.time() + 1000
+        data["life_id"] = "different-id"
+        data["birth_timestamp"] = time.time() + 1000
 
-        with open(snapshot_file, 'w') as f:
+        with open(snapshot_file, "w") as f:
             json.dump(data, f)
 
         # Загружаем snapshot в уже существующий объект
@@ -249,6 +251,7 @@ class TestProcessRestartRecovery:
         """Очистка после каждого теста"""
         os.chdir(self.original_cwd)
         import shutil
+
         if self.temp_dir.exists():
             shutil.rmtree(self.temp_dir, ignore_errors=True)
 
@@ -262,6 +265,7 @@ class TestProcessRestartRecovery:
         self_state.ticks = 12
 
         from src.environment.event_queue import EventQueue
+
         event_queue = EventQueue()
         event_queue.push({"type": "test_event", "intensity": 0.5})
 
@@ -297,6 +301,7 @@ class TestProcessRestartRecovery:
         # Создаем и сохраняем состояние
         self_state = create_initial_state()
         from src.environment.event_queue import EventQueue
+
         event_queue = EventQueue()
         config = {"test": "config"}
 
@@ -324,7 +329,7 @@ class TestProcessRestartRecovery:
         restart_file = Path("data/restart_state.json")
         invalid_data = {"some": "data", "without": "marker"}
 
-        with open(restart_file, 'w') as f:
+        with open(restart_file, "w") as f:
             json.dump(invalid_data, f)
 
         # Загрузка должна вернуть None
@@ -337,14 +342,14 @@ class TestProcessRestartRecovery:
 
         # Создаем поврежденный файл
         restart_file = Path("data/restart_state.json")
-        with open(restart_file, 'w') as f:
+        with open(restart_file, "w") as f:
             f.write("{ invalid json")
 
         # Загрузка должна вернуть None
         loaded_data = serializer.load_restart_state()
         assert loaded_data is None
 
-    @patch('src.dev.process_restarter.is_restart')
+    @patch("src.dev.process_restarter.is_restart")
     def test_is_restart_flag_detection(self, mock_is_restart):
         """Тест определения флага перезапуска"""
         # Тестируем различные комбинации аргументов
@@ -355,7 +360,7 @@ class TestProcessRestartRecovery:
         ]
 
         for argv, expected in test_cases:
-            with patch('sys.argv', argv):
+            with patch("sys.argv", argv):
                 mock_is_restart.return_value = "--restart" in argv
                 assert is_restart() == expected
 
@@ -366,6 +371,7 @@ class TestProcessRestartRecovery:
         before_save = time.time()
         self_state = create_initial_state()
         from src.environment.event_queue import EventQueue
+
         event_queue = EventQueue()
         config = {"test": "config"}
 
@@ -396,6 +402,7 @@ class TestStateConsistencyAfterRecovery:
         """Очистка после каждого теста"""
         self_state_module.SNAPSHOT_DIR = self.original_snapshot_dir
         import shutil
+
         if self.temp_dir.exists():
             shutil.rmtree(self.temp_dir, ignore_errors=True)
 
@@ -415,15 +422,15 @@ class TestStateConsistencyAfterRecovery:
                 meaning_significance=0.3,
                 timestamp=time.time(),
                 weight=0.8,
-                feedback_data={"response": "ignore"}
+                feedback_data={"response": "ignore"},
             ),
             MemoryEntry(
                 event_type="decay",
                 meaning_significance=0.7,
                 timestamp=time.time() + 1,
                 weight=0.9,
-                feedback_data={"response": "absorb"}
-            )
+                feedback_data={"response": "absorb"},
+            ),
         ]
 
         for entry in memory_entries:
@@ -583,12 +590,13 @@ class TestStateConsistencyAfterRecovery:
 
         # Добавляем историю в память
         from src.memory.memory import MemoryEntry
+
         entry = MemoryEntry(
             event_type="decay",
             meaning_significance=0.6,
             timestamp=time.time(),
             weight=0.7,
-            feedback_data={"energy_delta": -5.0}
+            feedback_data={"energy_delta": -5.0},
         )
         evolved_state.memory.append(entry)
 
@@ -626,6 +634,7 @@ class TestSnapshotRecoveryPerformance:
         """Очистка после каждого теста"""
         self_state_module.SNAPSHOT_DIR = self.original_snapshot_dir
         import shutil
+
         if self.temp_dir.exists():
             shutil.rmtree(self.temp_dir, ignore_errors=True)
 
@@ -639,13 +648,14 @@ class TestSnapshotRecoveryPerformance:
 
         # Добавляем немного памяти
         from src.memory.memory import MemoryEntry
+
         for i in range(10):
             entry = MemoryEntry(
                 event_type="noise",
                 meaning_significance=0.5,
                 timestamp=time.time() + i,
                 weight=0.8,
-                feedback_data={"test": f"data_{i}"}
+                feedback_data={"test": f"data_{i}"},
             )
             state.memory.append(entry)
 
@@ -671,6 +681,7 @@ class TestSnapshotRecoveryPerformance:
         # Добавляем много памяти (имитация долгой работы)
         # Учитываем ограничение Memory._max_size = 50
         from src.memory.memory import MemoryEntry
+
         num_entries = 100  # Больше чем max_size, чтобы проверить clamp_size
         for i in range(num_entries):
             entry = MemoryEntry(
@@ -678,13 +689,13 @@ class TestSnapshotRecoveryPerformance:
                 meaning_significance=0.1 + (i % 90) / 100.0,  # Разные значения
                 timestamp=time.time() + i,
                 weight=0.5 + (i % 50) / 100.0,  # Высокий вес, чтобы записи не удалялись по порогу
-                feedback_data={"large_data": f"entry_{i}", "metadata": {"size": i}}
+                feedback_data={"large_data": f"entry_{i}", "metadata": {"size": i}},
             )
             state.memory.append(entry)
 
         # Добавляем историю
         state.energy_history = list(range(100))  # Большая история
-        state.stability_history = [0.5 + i/200.0 for i in range(100)]
+        state.stability_history = [0.5 + i / 200.0 for i in range(100)]
 
         save_snapshot(state)
 
@@ -694,10 +705,14 @@ class TestSnapshotRecoveryPerformance:
         load_time = time.time() - start_time
 
         # Проверяем что загрузка была приемлемой (< 1 сек для большого snapshot)
-        assert load_time < 1.0, f"Загрузка большого snapshot заняла {load_time:.3f} сек, ожидалось < 1.0 сек"
+        assert (
+            load_time < 1.0
+        ), f"Загрузка большого snapshot заняла {load_time:.3f} сек, ожидалось < 1.0 сек"
         assert loaded_state.ticks == 200
         # Проверяем что память была ограничена до max_size
-        assert len(loaded_state.memory) <= 50, f"Memory should be clamped to max_size, got {len(loaded_state.memory)}"
+        assert (
+            len(loaded_state.memory) <= 50
+        ), f"Memory should be clamped to max_size, got {len(loaded_state.memory)}"
 
     def test_multiple_snapshots_loading_performance(self):
         """Тест производительности загрузки последнего из множества snapshots"""
@@ -707,17 +722,18 @@ class TestSnapshotRecoveryPerformance:
         for tick in range(10, 101, 10):  # 10 snapshots
             state = create_initial_state()
             state.ticks = tick
-            state.energy = 100.0 - tick/10  # Убывающая энергия
+            state.energy = 100.0 - tick / 10  # Убывающая энергия
 
             # Добавляем память пропорционально тикам
             from src.memory.memory import MemoryEntry
+
             for i in range(tick):
                 entry = MemoryEntry(
                     event_type="test",
                     meaning_significance=0.5,
                     timestamp=time.time() + i,
                     weight=0.8,
-                    feedback_data={"tick": tick, "index": i}
+                    feedback_data={"tick": tick, "index": i},
                 )
                 state.memory.append(entry)
 
@@ -733,4 +749,6 @@ class TestSnapshotRecoveryPerformance:
         assert loaded_state.energy == 100.0 - 10.0  # Энергия последнего
 
         # Проверяем что загрузка была быстрой (< 0.5 сек)
-        assert load_time < 0.5, f"Загрузка последнего snapshot заняла {load_time:.3f} сек, ожидалось < 0.5 сек"
+        assert (
+            load_time < 0.5
+        ), f"Загрузка последнего snapshot заняла {load_time:.3f} сек, ожидалось < 0.5 сек"

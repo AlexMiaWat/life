@@ -885,9 +885,7 @@ class TestDegradationLongRunning:
             stability_values = [h["stability"] for h in tracker.history]
 
             # Параметры должны оставаться стабильными (не выходить за разумные пределы)
-            assert all(
-                70 <= e <= 90 for e in energy_values
-            ), "Energy values out of expected range"
+            assert all(70 <= e <= 90 for e in energy_values), "Energy values out of expected range"
             assert all(
                 0.85 <= i <= 0.95 for i in integrity_values
             ), "Integrity values out of expected range"

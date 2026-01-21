@@ -37,7 +37,8 @@ class TestEnvironmentConfigManagerIntegration:
 
         # Имитируем использование конфигурации для генерации событий
         enabled_types = [
-            event_type for event_type, config in manager.list_event_types().items()
+            event_type
+            for event_type, config in manager.list_event_types().items()
             if config.enabled
         ]
 
@@ -99,16 +100,16 @@ class TestEnvironmentConfigManagerIntegration:
         manager.update_event_type_config("stress", {"enabled": True, "weight": 3.0})
 
         # Создаем временный файл для тестирования
-        with tempfile.NamedTemporaryFile(mode='w+', suffix='.json', delete=False) as temp_file:
+        with tempfile.NamedTemporaryFile(mode="w+", suffix=".json", delete=False) as temp_file:
             config_file = temp_file.name
 
         try:
             # Сохраняем конфигурацию
-            with patch('src.environment.environment_config.Path') as mock_path:
+            with patch("src.environment.environment_config.Path") as mock_path:
                 mock_file = Mock()
                 mock_path.return_value = mock_file
 
-                with patch('builtins.open', mock_open()) as mock_file_open:
+                with patch("builtins.open", mock_open()) as mock_file_open:
                     manager.save_config(config_file)
 
                     # Проверяем, что файл был открыт для записи
@@ -194,7 +195,7 @@ class TestEnvironmentConfigManagerIntegration:
 
         config = manager.get_config()
         assert config.activity_level == 1.2  # Увеличена
-        assert config.crisis_mode is True   # Включена
+        assert config.crisis_mode is True  # Включена
 
     def test_config_manager_thread_safety(self):
         """Потокобезопасность операций с конфигурацией"""
@@ -220,7 +221,9 @@ class TestEnvironmentConfigManagerIntegration:
                         time.sleep(0.001)
                 elif worker_id == 2:
                     for i in range(10):
-                        manager.update_event_type_config("test_event", {"enabled": True, "weight": 1.0})
+                        manager.update_event_type_config(
+                            "test_event", {"enabled": True, "weight": 1.0}
+                        )
                         time.sleep(0.001)
 
                 results.append(f"Worker {worker_id} completed")
@@ -241,7 +244,7 @@ class TestEnvironmentConfigManagerIntegration:
 
         # Проверяем результаты
         assert len(results) == 3  # Все потоки завершились
-        assert len(errors) == 0   # Без ошибок
+        assert len(errors) == 0  # Без ошибок
 
         # Проверяем финальное состояние
         config = manager.get_config()
@@ -264,11 +267,10 @@ class TestEnvironmentConfigManagerIntegration:
         custom_types = ["stress", "recovery", "adaptation"]
 
         for custom_type in custom_types:
-            manager.update_event_type_config(custom_type, {
-                "enabled": True,
-                "weight": 1.0,
-                "description": f"Custom {custom_type} event"
-            })
+            manager.update_event_type_config(
+                custom_type,
+                {"enabled": True, "weight": 1.0, "description": f"Custom {custom_type} event"},
+            )
 
         # Проверяем, что пользовательские типы добавлены
         all_types = list(manager.list_event_types().keys())

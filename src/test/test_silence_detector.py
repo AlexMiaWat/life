@@ -135,7 +135,9 @@ class TestSilenceDetector:
             event = detector.check_silence_period()
 
             assert event is not None, f"Failed for {case_name}"
-            assert event.metadata["silence_duration"] >= 30.0, f"Duration metadata incorrect for {case_name}"
+            assert (
+                event.metadata["silence_duration"] >= 30.0
+            ), f"Duration metadata incorrect for {case_name}"
             assert "is_comfortable" in event.metadata, f"Comfort flag missing for {case_name}"
 
     def test_silence_status_tracking(self):
@@ -207,7 +209,7 @@ class TestSilenceDetector:
             "is_comfortable",
             "comfort_probability",
             "detector_generated",
-            "source"
+            "source",
         ]
 
         for key in required_metadata:

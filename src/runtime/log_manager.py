@@ -4,6 +4,7 @@ LogManager: управление буферизацией и сбросом ло
 Инкапсулирует политику flush буфера логов, убирая регулярный I/O
 из hot-path runtime loop.
 """
+
 import logging
 from typing import Callable, Literal
 
@@ -15,7 +16,7 @@ logger = logging.getLogger(__name__)
 class FlushPolicy:
     """
     Политика сброса буфера логов.
-    
+
     Определяет, когда нужно сбрасывать буфер логов на диск:
     - По периодичности (раз в N тиков)
     - Перед снапшотом (точка консистентности)
@@ -23,7 +24,7 @@ class FlushPolicy:
     - При исключениях (сохранение логов при ошибках)
     - При завершении (обязательный flush)
     """
-    
+
     def __init__(
         self,
         flush_period_ticks: int = 10,
@@ -34,7 +35,7 @@ class FlushPolicy:
     ):
         """
         Инициализация политики flush.
-        
+
         Args:
             flush_period_ticks: Flush раз в N тиков (по умолчанию 10)
             flush_before_snapshot: Flush перед снапшотом (по умолчанию True)
@@ -52,11 +53,11 @@ class FlushPolicy:
 class LogManager:
     """
     Менеджер логирования и буферизации.
-    
+
     Управляет политикой сброса буфера логов, убирая регулярный I/O
     из hot-path runtime loop. Flush происходит по расписанию, а не на каждом тике.
     """
-    
+
     def __init__(
         self,
         flush_policy: FlushPolicy,
@@ -64,11 +65,11 @@ class LogManager:
     ):
         """
         Инициализация менеджера логов.
-        
+
         Args:
             flush_policy: Политика flush буфера
             flush_fn: Функция сброса буфера (например, self_state._flush_log_buffer)
-            
+
         Raises:
             ValueError: Если flush_fn равен None или flush_policy.flush_period_ticks <= 0
         """
@@ -76,14 +77,14 @@ class LogManager:
             raise ValueError("flush_fn cannot be None")
         if flush_policy.flush_period_ticks <= 0:
             raise ValueError("flush_period_ticks must be positive")
-        
+
         self.flush_policy = flush_policy
         self.flush_fn = flush_fn
         # Инициализируем так, чтобы первый flush был на тике flush_period_ticks, а не на тике 0.
         # Это намеренное решение для избежания flush при инициализации системы.
         # Например, если flush_period_ticks=10, то last_flush_tick=-10, и первый flush произойдет на тике 10.
         self.last_flush_tick = -flush_policy.flush_period_ticks
-    
+
     def maybe_flush(
         self,
         self_state: SelfState,
@@ -92,14 +93,14 @@ class LogManager:
     ) -> None:
         """
         Сбрасывает буфер логов, если нужно по политике.
-        
+
         Args:
             self_state: Состояние для проверки тиков (не может быть None)
             phase: Фаза выполнения (tick/before_snapshot/after_snapshot/exception/shutdown)
-            
+
         Raises:
             ValueError: Если self_state равен None (для консистентности с SnapshotManager)
-            
+
         Note:
             - Инициализация `last_flush_tick = -flush_period_ticks` обеспечивает первый flush
               на тике `flush_period_ticks`, а не на тике 0. Это намеренное решение для
@@ -111,9 +112,9 @@ class LogManager:
         """
         if self_state is None:
             raise ValueError("self_state cannot be None")
-        
+
         should_flush = False
-        
+
         if phase == "shutdown" and self.flush_policy.flush_on_shutdown:
             should_flush = True
         elif phase == "exception" and self.flush_policy.flush_on_exception:
@@ -129,7 +130,7 @@ class LogManager:
             ticks_since_flush = self_state.ticks - self.last_flush_tick
             if ticks_since_flush >= self.flush_policy.flush_period_ticks:
                 should_flush = True
-        
+
         if should_flush:
             try:
                 self.flush_fn()

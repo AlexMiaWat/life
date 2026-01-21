@@ -69,16 +69,14 @@ class TestProcessRestarterIntegration:
             loaded_state, was_restart = load_restart_state_if_available()
 
             # Модифицируем load_restart_state_if_available для использования нашего файла
-            original_load = load_restart_state_if_available.__globals__[
-                "get_state_serializer"
-            ]
+            original_load = load_restart_state_if_available.__globals__["get_state_serializer"]
 
             def mock_get_serializer():
                 return serializer
 
-            load_restart_state_if_available.__globals__[
-                "get_state_serializer"
-            ] = mock_get_serializer
+            load_restart_state_if_available.__globals__["get_state_serializer"] = (
+                mock_get_serializer
+            )
 
             try:
                 loaded_state, was_restart = load_restart_state_if_available()
@@ -91,9 +89,7 @@ class TestProcessRestarterIntegration:
 
             finally:
                 # Восстанавливаем оригинальную функцию
-                load_restart_state_if_available.__globals__[
-                    "get_state_serializer"
-                ] = original_load
+                load_restart_state_if_available.__globals__["get_state_serializer"] = original_load
 
             # Очищаем состояние
             serializer.cleanup_restart_state()
@@ -209,16 +205,10 @@ class TestProcessRestarterIntegration:
                     event_queue = [f"event_{worker_id}_{i}" for i in range(3)]
                     config = {f"config_{worker_id}": f"value_{worker_id}"}
 
-                    mock_state = type(
-                        "MockState", (), {"to_dict": lambda: self_state}
-                    )()
-                    mock_queue = type(
-                        "MockQueue", (), {"to_dict": lambda: event_queue}
-                    )()
+                    mock_state = type("MockState", (), {"to_dict": lambda: self_state})()
+                    mock_queue = type("MockQueue", (), {"to_dict": lambda: event_queue})()
 
-                    result = serializer.save_restart_state(
-                        mock_state, mock_queue, config
-                    )
+                    result = serializer.save_restart_state(mock_state, mock_queue, config)
                     results.append((worker_id, result))
 
                 except Exception as e:
@@ -267,9 +257,7 @@ class TestProcessRestarterIntegration:
             mock_state1 = type("MockState", (), {"to_dict": lambda: initial_state})()
             mock_queue1 = type("MockQueue", (), {"to_dict": lambda: initial_queue})()
 
-            result1 = serializer1.save_restart_state(
-                mock_state1, mock_queue1, initial_config
-            )
+            result1 = serializer1.save_restart_state(mock_state1, mock_queue1, initial_config)
             assert result1 is True
 
             # Имитируем "перезапуск" - создаем новый serializer

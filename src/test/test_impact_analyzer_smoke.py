@@ -21,15 +21,15 @@ class TestImpactAnalyzerSmoke:
         assert analyzer.prediction_cache == {}
         assert analyzer.cache_max_size == 100
 
-    @patch('src.environment.impact_analyzer.MeaningEngine')
+    @patch("src.environment.impact_analyzer.MeaningEngine")
     def test_basic_event_analysis(self, mock_meaning_engine_class):
         """Базовый анализ одиночного события"""
         # Настройка mock для MeaningEngine
         mock_meaning_engine = Mock()
         mock_meaning_engine.analyze_meaning.return_value = {
-            'significance': 0.7,
-            'impact': {'energy': -0.2, 'stability': -0.1, 'integrity': 0.0},
-            'response_pattern': 'absorb'
+            "significance": 0.7,
+            "impact": {"energy": -0.2, "stability": -0.1, "integrity": 0.0},
+            "response_pattern": "absorb",
         }
         mock_meaning_engine_class.return_value = mock_meaning_engine
 
@@ -48,31 +48,31 @@ class TestImpactAnalyzerSmoke:
         assert prediction.final_energy == 0.8
         assert prediction.final_stability == 0.8
         assert prediction.final_integrity == 0.95
-        assert prediction.response_pattern == 'absorb'
+        assert prediction.response_pattern == "absorb"
         assert prediction.confidence > 0
 
-    @patch('src.environment.impact_analyzer.MeaningEngine')
+    @patch("src.environment.impact_analyzer.MeaningEngine")
     def test_batch_analysis_smoke(self, mock_meaning_engine_class):
         """Базовый анализ пакета событий"""
         mock_meaning_engine = Mock()
         mock_meaning_engine.analyze_meaning.side_effect = [
             {
-                'significance': 0.6,
-                'impact': {'energy': -0.1, 'stability': 0.0, 'integrity': -0.05},
-                'response_pattern': 'absorb'
+                "significance": 0.6,
+                "impact": {"energy": -0.1, "stability": 0.0, "integrity": -0.05},
+                "response_pattern": "absorb",
             },
             {
-                'significance': 0.4,
-                'impact': {'energy': -0.05, 'stability': -0.1, 'integrity': 0.0},
-                'response_pattern': 'dampen'
-            }
+                "significance": 0.4,
+                "impact": {"energy": -0.05, "stability": -0.1, "integrity": 0.0},
+                "response_pattern": "dampen",
+            },
         ]
         mock_meaning_engine_class.return_value = mock_meaning_engine
 
         analyzer = ImpactAnalyzer()
         events = [
             Event(type="batch_test1", intensity=0.5),
-            Event(type="batch_test2", intensity=0.3)
+            Event(type="batch_test2", intensity=0.3),
         ]
 
         state = Mock(spec=SelfState)
@@ -85,9 +85,9 @@ class TestImpactAnalyzerSmoke:
         assert analysis is not None
         assert len(analysis.events) == 2
         assert len(analysis.predictions) == 2
-        assert analysis.cumulative_impact['energy'] < 0  # Должен быть отрицательным
-        assert analysis.final_state['energy'] < 1.0
-        assert analysis.risk_assessment in ['low', 'medium', 'high', 'critical']
+        assert analysis.cumulative_impact["energy"] < 0  # Должен быть отрицательным
+        assert analysis.final_state["energy"] < 1.0
+        assert analysis.risk_assessment in ["low", "medium", "high", "critical"]
         assert isinstance(analysis.recommendations, list)
 
     def test_cache_functionality(self):
@@ -103,19 +103,19 @@ class TestImpactAnalyzerSmoke:
         event = Event(type="cache_test", intensity=0.4)
 
         # Первый анализ должен создать кэшированную запись
-        with patch('src.environment.impact_analyzer.MeaningEngine') as mock_me_class:
+        with patch("src.environment.impact_analyzer.MeaningEngine") as mock_me_class:
             mock_me = Mock()
             mock_me.analyze_meaning.return_value = {
-                'significance': 0.5,
-                'impact': {'energy': -0.1, 'stability': 0.0, 'integrity': 0.0},
-                'response_pattern': 'ignore'
+                "significance": 0.5,
+                "impact": {"energy": -0.1, "stability": 0.0, "integrity": 0.0},
+                "response_pattern": "ignore",
             }
             mock_me_class.return_value = mock_me
 
             prediction1 = analyzer.analyze_event(event, state)
 
         # Второй анализ того же события должен использовать кэш
-        with patch('src.environment.impact_analyzer.MeaningEngine') as mock_me_class:
+        with patch("src.environment.impact_analyzer.MeaningEngine") as mock_me_class:
             mock_me = Mock()
             mock_me_class.return_value = mock_me
 
@@ -140,33 +140,33 @@ class TestImpactAnalyzerSmoke:
 
         # Получаем статистику кэша
         stats = analyzer.get_cache_stats()
-        assert stats['current_size'] == 1
-        assert stats['max_size'] == 100
+        assert stats["current_size"] == 1
+        assert stats["max_size"] == 100
 
         # Очищаем кэш
         analyzer.clear_cache()
         assert len(analyzer.prediction_cache) == 0
 
-    @patch('src.environment.impact_analyzer.MeaningEngine')
+    @patch("src.environment.impact_analyzer.MeaningEngine")
     def test_different_event_types(self, mock_meaning_engine_class):
         """Тест анализа различных типов событий"""
         mock_meaning_engine = Mock()
         mock_meaning_engine.analyze_meaning.side_effect = [
             {
-                'significance': 0.8,
-                'impact': {'energy': -0.3, 'stability': -0.2, 'integrity': -0.1},
-                'response_pattern': 'amplify'
+                "significance": 0.8,
+                "impact": {"energy": -0.3, "stability": -0.2, "integrity": -0.1},
+                "response_pattern": "amplify",
             },
             {
-                'significance': 0.2,
-                'impact': {'energy': 0.1, 'stability': 0.05, 'integrity': 0.0},
-                'response_pattern': 'ignore'
+                "significance": 0.2,
+                "impact": {"energy": 0.1, "stability": 0.05, "integrity": 0.0},
+                "response_pattern": "ignore",
             },
             {
-                'significance': 0.5,
-                'impact': {'energy': -0.1, 'stability': 0.0, 'integrity': 0.1},
-                'response_pattern': 'absorb'
-            }
+                "significance": 0.5,
+                "impact": {"energy": -0.1, "stability": 0.0, "integrity": 0.1},
+                "response_pattern": "absorb",
+            },
         ]
         mock_meaning_engine_class.return_value = mock_meaning_engine
 
@@ -200,13 +200,21 @@ class TestImpactAnalyzerSmoke:
 
         # Тест низкого риска
         low_risk_analysis = Mock()
-        low_risk_analysis.cumulative_impact = {'energy': -0.05, 'stability': -0.03, 'integrity': 0.0}
+        low_risk_analysis.cumulative_impact = {
+            "energy": -0.05,
+            "stability": -0.03,
+            "integrity": 0.0,
+        }
         risk = analyzer._assess_risk(low_risk_analysis)
         assert risk == "low"
 
         # Тест высокого риска
         high_risk_analysis = Mock()
-        high_risk_analysis.cumulative_impact = {'energy': -0.6, 'stability': -0.4, 'integrity': -0.2}
+        high_risk_analysis.cumulative_impact = {
+            "energy": -0.6,
+            "stability": -0.4,
+            "integrity": -0.2,
+        }
         risk = analyzer._assess_risk(high_risk_analysis)
         assert risk in ["high", "critical"]
 

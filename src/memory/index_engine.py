@@ -10,16 +10,18 @@ from collections import OrderedDict, defaultdict
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Set, Tuple, Union
 
-from .types import MemoryEntry
+from .memory_types import MemoryEntry
 
 try:
     from ..runtime.performance_metrics import measure_time
 except ImportError:
     # Fallback для случаев когда модуль не доступен
     from contextlib import contextmanager
+
     @contextmanager
     def measure_time(operation: str):
         yield
+
 
 # Настройка логирования
 logger = logging.getLogger(__name__)
@@ -32,6 +34,7 @@ DEFAULT_INDEX_UPDATE_BATCH_SIZE = 100
 @dataclass
 class MemoryQuery:
     """Класс для представления поискового запроса к памяти."""
+
     event_type: Optional[str] = None
     min_significance: Optional[float] = None
     max_significance: Optional[float] = None
@@ -78,7 +81,7 @@ class MemoryIndexEngine:
         self,
         max_cache_size: int = DEFAULT_MAX_CACHE_SIZE,
         enable_composite_indexes: bool = True,
-        enable_query_cache: bool = True
+        enable_query_cache: bool = True,
     ):
         """
         Инициализация индексного движка.
@@ -89,7 +92,9 @@ class MemoryIndexEngine:
             enable_query_cache: Включить кэш результатов запросов
         """
         # Primary indexes (Уровень 1)
-        self.event_type_index: Dict[str, Set[int]] = defaultdict(set)  # event_type -> set of entry ids
+        self.event_type_index: Dict[str, Set[int]] = defaultdict(
+            set
+        )  # event_type -> set of entry ids
         self.entries_by_id: Dict[int, MemoryEntry] = {}  # entry_id -> entry
         self.timestamp_entries: List[Tuple[float, MemoryEntry]] = []  # sorted by timestamp
         self.significance_entries: List[Tuple[float, MemoryEntry]] = []  # sorted by significance
@@ -99,9 +104,13 @@ class MemoryIndexEngine:
         self.composite_indexes_enabled = enable_composite_indexes
         if enable_composite_indexes:
             # event_type + time_range: dict[event_type, sorted_timestamps]
-            self.event_type_timestamp_index: Dict[str, List[Tuple[float, MemoryEntry]]] = defaultdict(list)
+            self.event_type_timestamp_index: Dict[str, List[Tuple[float, MemoryEntry]]] = (
+                defaultdict(list)
+            )
             # event_type + significance: dict[event_type, sorted_significance]
-            self.event_type_significance_index: Dict[str, List[Tuple[float, MemoryEntry]]] = defaultdict(list)
+            self.event_type_significance_index: Dict[str, List[Tuple[float, MemoryEntry]]] = (
+                defaultdict(list)
+            )
 
         # Query cache (Уровень 3) - LRU кэш результатов
         self.query_cache_enabled = enable_query_cache
@@ -114,7 +123,7 @@ class MemoryIndexEngine:
             "cache_hits": 0,
             "cache_misses": 0,
             "index_updates": 0,
-            "query_count": 0
+            "query_count": 0,
         }
 
     def add_entry(self, entry: MemoryEntry):
@@ -135,7 +144,9 @@ class MemoryIndexEngine:
 
         # Добавляем в сортированные списки (используем insertion sort для поддержания порядка)
         self._insert_sorted(self.timestamp_entries, (entry.timestamp, entry), key=lambda x: x[0])
-        self._insert_sorted(self.significance_entries, (entry.meaning_significance, entry), key=lambda x: x[0])
+        self._insert_sorted(
+            self.significance_entries, (entry.meaning_significance, entry), key=lambda x: x[0]
+        )
         self._insert_sorted(self.weight_entries, (entry.weight, entry), key=lambda x: x[0])
 
         # Уровень 2: Composite indexes
@@ -143,12 +154,12 @@ class MemoryIndexEngine:
             self._insert_sorted(
                 self.event_type_timestamp_index[entry.event_type],
                 (entry.timestamp, entry),
-                key=lambda x: x[0]
+                key=lambda x: x[0],
             )
             self._insert_sorted(
                 self.event_type_significance_index[entry.event_type],
                 (entry.meaning_significance, entry),
-                key=lambda x: x[0]
+                key=lambda x: x[0],
             )
 
         self.stats["total_entries"] += 1
@@ -175,21 +186,27 @@ class MemoryIndexEngine:
 
         # Удаляем из сортированных списков
         self.timestamp_entries = [(ts, e) for ts, e in self.timestamp_entries if e is not entry]
-        self.significance_entries = [(sig, e) for sig, e in self.significance_entries if e is not entry]
+        self.significance_entries = [
+            (sig, e) for sig, e in self.significance_entries if e is not entry
+        ]
         self.weight_entries = [(w, e) for w, e in self.weight_entries if e is not entry]
 
         # Уровень 2: Composite indexes
         if self.composite_indexes_enabled:
             if entry.event_type in self.event_type_timestamp_index:
                 self.event_type_timestamp_index[entry.event_type] = [
-                    (ts, e) for ts, e in self.event_type_timestamp_index[entry.event_type] if e is not entry
+                    (ts, e)
+                    for ts, e in self.event_type_timestamp_index[entry.event_type]
+                    if e is not entry
                 ]
                 if not self.event_type_timestamp_index[entry.event_type]:
                     del self.event_type_timestamp_index[entry.event_type]
 
             if entry.event_type in self.event_type_significance_index:
                 self.event_type_significance_index[entry.event_type] = [
-                    (sig, e) for sig, e in self.event_type_significance_index[entry.event_type] if e is not entry
+                    (sig, e)
+                    for sig, e in self.event_type_significance_index[entry.event_type]
+                    if e is not entry
                 ]
                 if not self.event_type_significance_index[entry.event_type]:
                     del self.event_type_significance_index[entry.event_type]
@@ -243,7 +260,7 @@ class MemoryIndexEngine:
 
             # Ограничение количества
             if len(results) > query.limit:
-                results = results[:query.limit]
+                results = results[: query.limit]
 
             # Кэшируем результат
             if self.query_cache_enabled:
@@ -265,7 +282,9 @@ class MemoryIndexEngine:
             if query.event_type in self.event_type_index:
                 # Получаем записи по их id
                 entry_ids = self.event_type_index[query.event_type].copy()
-                candidates = [self.entries_by_id[eid] for eid in entry_ids if eid in self.entries_by_id]
+                candidates = [
+                    self.entries_by_id[eid] for eid in entry_ids if eid in self.entries_by_id
+                ]
 
                 # Оптимизация: используем composite индексы для event_type + другие критерии
                 if self.composite_indexes_enabled:
@@ -274,7 +293,7 @@ class MemoryIndexEngine:
                         time_candidates = self._filter_by_timestamp_range(
                             self.event_type_timestamp_index[query.event_type],
                             query.start_timestamp,
-                            query.end_timestamp
+                            query.end_timestamp,
                         )
                         time_entries = [entry for _, entry in time_candidates]
                         # Пересечение списков
@@ -285,7 +304,7 @@ class MemoryIndexEngine:
                         sig_candidates = self._filter_by_significance_range(
                             self.event_type_significance_index[query.event_type],
                             query.min_significance,
-                            query.max_significance
+                            query.max_significance,
                         )
                         sig_entries = [entry for _, entry in sig_candidates]
                         # Пересечение списков
@@ -315,9 +334,15 @@ class MemoryIndexEngine:
             return False
 
         # Проверяем significance
-        if query.min_significance is not None and entry.meaning_significance < query.min_significance:
+        if (
+            query.min_significance is not None
+            and entry.meaning_significance < query.min_significance
+        ):
             return False
-        if query.max_significance is not None and entry.meaning_significance > query.max_significance:
+        if (
+            query.max_significance is not None
+            and entry.meaning_significance > query.max_significance
+        ):
             return False
 
         # Проверяем timestamp
@@ -363,7 +388,7 @@ class MemoryIndexEngine:
         self,
         sorted_entries: List[Tuple[float, MemoryEntry]],
         start_ts: Optional[float],
-        end_ts: Optional[float]
+        end_ts: Optional[float],
     ) -> List[Tuple[float, MemoryEntry]]:
         """
         Фильтрует сортированный список записей по диапазону timestamp.
@@ -398,7 +423,7 @@ class MemoryIndexEngine:
         self,
         sorted_entries: List[Tuple[float, MemoryEntry]],
         min_sig: Optional[float],
-        max_sig: Optional[float]
+        max_sig: Optional[float],
     ) -> List[Tuple[float, MemoryEntry]]:
         """
         Фильтрует сортированный список записей по диапазону significance.

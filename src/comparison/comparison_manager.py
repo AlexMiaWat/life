@@ -22,6 +22,7 @@ logger = get_logger(__name__)
 @dataclass
 class ComparisonConfig:
     """Конфигурация для системы сравнения"""
+
     max_instances: int = 5
     default_tick_interval: float = 1.0
     default_snapshot_period: int = 10
@@ -49,19 +50,21 @@ class ComparisonManager:
 
         # Статистика
         self.stats = {
-            'total_instances_created': 0,
-            'active_instances': 0,
-            'failed_starts': 0,
-            'data_collection_cycles': 0
+            "total_instances_created": 0,
+            "active_instances": 0,
+            "failed_starts": 0,
+            "data_collection_cycles": 0,
         }
 
         logger.info("ComparisonManager initialized")
 
-    def create_instance(self,
-                       instance_id: str,
-                       tick_interval: Optional[float] = None,
-                       snapshot_period: Optional[int] = None,
-                       **kwargs) -> Optional[LifeInstance]:
+    def create_instance(
+        self,
+        instance_id: str,
+        tick_interval: Optional[float] = None,
+        snapshot_period: Optional[int] = None,
+        **kwargs,
+    ) -> Optional[LifeInstance]:
         """
         Создает новый инстанс Life с указанной конфигурацией.
 
@@ -93,20 +96,20 @@ class ComparisonManager:
                     tick_interval=tick_interval or self.config.default_tick_interval,
                     snapshot_period=snapshot_period or self.config.default_snapshot_period,
                     port=port,
-                    **kwargs
+                    **kwargs,
                 )
 
                 # Создаем инстанс
                 instance = LifeInstance(config)
                 self.instances[instance_id] = instance
-                self.stats['total_instances_created'] += 1
+                self.stats["total_instances_created"] += 1
 
                 logger.info(f"Created Life instance '{instance_id}' (port: {port})")
                 return instance
 
             except Exception as e:
                 logger.error(f"Failed to create instance '{instance_id}': {e}")
-                self.stats['failed_starts'] += 1
+                self.stats["failed_starts"] += 1
                 return None
 
     def start_instance(self, instance_id: str) -> bool:
@@ -126,7 +129,7 @@ class ComparisonManager:
                 return False
 
             if instance.start():
-                self.stats['active_instances'] += 1
+                self.stats["active_instances"] += 1
                 return True
             else:
                 return False
@@ -149,7 +152,7 @@ class ComparisonManager:
                 return False
 
             if instance.stop(timeout):
-                self.stats['active_instances'] -= 1
+                self.stats["active_instances"] -= 1
                 return True
             else:
                 return False
@@ -244,11 +247,7 @@ class ComparisonManager:
         Returns:
             Dict с агрегированными данными от всех инстансов
         """
-        data = {
-            'timestamp': time.time(),
-            'instances': {},
-            'summary': {}
-        }
+        data = {"timestamp": time.time(), "instances": {}, "summary": {}}
 
         with self.lock:
             for instance_id, instance in self.instances.items():
@@ -260,23 +259,23 @@ class ComparisonManager:
                         # Получаем последние логи
                         logs = instance.get_structured_logs(limit=100)
 
-                        data['instances'][instance_id] = {
-                            'status': instance.get_status(),
-                            'snapshot': snapshot,
-                            'recent_logs': logs
+                        data["instances"][instance_id] = {
+                            "status": instance.get_status(),
+                            "snapshot": snapshot,
+                            "recent_logs": logs,
                         }
 
                     except Exception as e:
                         logger.error(f"Error collecting data from instance '{instance_id}': {e}")
-                        data['instances'][instance_id] = {
-                            'status': instance.get_status(),
-                            'error': str(e)
+                        data["instances"][instance_id] = {
+                            "status": instance.get_status(),
+                            "error": str(e),
                         }
 
         # Вычисляем сводную статистику
-        data['summary'] = self._compute_summary_stats(data['instances'])
+        data["summary"] = self._compute_summary_stats(data["instances"])
 
-        self.stats['data_collection_cycles'] += 1
+        self.stats["data_collection_cycles"] += 1
         return data
 
     def start_data_collection(self, callback: Optional[Callable] = None):
@@ -311,11 +310,7 @@ class ComparisonManager:
 
             logger.info("Data collection loop stopped")
 
-        thread = threading.Thread(
-            target=collect_loop,
-            daemon=True,
-            name="data-collection"
-        )
+        thread = threading.Thread(target=collect_loop, daemon=True, name="data-collection")
         thread.start()
 
         logger.info("Data collection started")
@@ -383,14 +378,14 @@ class ComparisonManager:
             active_count = sum(1 for i in self.instances.values() if i.is_running and i.is_alive())
 
             return {
-                'manager_stats': self.stats.copy(),
-                'active_instances': active_count,
-                'total_instances': len(self.instances),
-                'is_collecting': self.is_collecting,
-                'config': {
-                    'max_instances': self.config.max_instances,
-                    'data_collection_interval': self.config.data_collection_interval
-                }
+                "manager_stats": self.stats.copy(),
+                "active_instances": active_count,
+                "total_instances": len(self.instances),
+                "is_collecting": self.is_collecting,
+                "config": {
+                    "max_instances": self.config.max_instances,
+                    "data_collection_interval": self.config.data_collection_interval,
+                },
             }
 
     def _get_next_available_port(self) -> int:
@@ -406,13 +401,13 @@ class ComparisonManager:
     def _compute_summary_stats(self, instances_data: Dict[str, Any]) -> Dict[str, Any]:
         """Вычисляет сводную статистику по данным инстансов."""
         summary = {
-            'total_instances': len(instances_data),
-            'active_instances': 0,
-            'avg_uptime': 0.0,
-            'total_ticks': 0,
-            'avg_energy': 0.0,
-            'avg_stability': 0.0,
-            'avg_integrity': 0.0
+            "total_instances": len(instances_data),
+            "active_instances": 0,
+            "avg_uptime": 0.0,
+            "total_ticks": 0,
+            "avg_energy": 0.0,
+            "avg_stability": 0.0,
+            "avg_integrity": 0.0,
         }
 
         uptimes = []
@@ -421,32 +416,34 @@ class ComparisonManager:
         integrities = []
 
         for instance_data in instances_data.values():
-            if 'status' in instance_data:
-                status = instance_data['status']
-                if status.get('is_running') and status.get('is_alive'):
-                    summary['active_instances'] += 1
-                    uptimes.append(status.get('uptime', 0))
+            if "status" in instance_data:
+                status = instance_data["status"]
+                if status.get("is_running") and status.get("is_alive"):
+                    summary["active_instances"] += 1
+                    uptimes.append(status.get("uptime", 0))
 
-            if 'snapshot' in instance_data and instance_data['snapshot']:
-                snapshot = instance_data['snapshot']
-                energies.append(snapshot.get('energy', 0))
-                stabilities.append(snapshot.get('stability', 0))
-                integrities.append(snapshot.get('integrity', 0))
-                summary['total_ticks'] += snapshot.get('ticks', 0)
+            if "snapshot" in instance_data and instance_data["snapshot"]:
+                snapshot = instance_data["snapshot"]
+                energies.append(snapshot.get("energy", 0))
+                stabilities.append(snapshot.get("stability", 0))
+                integrities.append(snapshot.get("integrity", 0))
+                summary["total_ticks"] += snapshot.get("ticks", 0)
 
         if uptimes:
-            summary['avg_uptime'] = sum(uptimes) / len(uptimes)
+            summary["avg_uptime"] = sum(uptimes) / len(uptimes)
         if energies:
-            summary['avg_energy'] = sum(energies) / len(energies)
+            summary["avg_energy"] = sum(energies) / len(energies)
         if stabilities:
-            summary['avg_stability'] = sum(stabilities) / len(stabilities)
+            summary["avg_stability"] = sum(stabilities) / len(stabilities)
         if integrities:
-            summary['avg_integrity'] = sum(integrities) / len(integrities)
+            summary["avg_integrity"] = sum(integrities) / len(integrities)
 
         return summary
 
     def __str__(self) -> str:
         stats = self.get_comparison_stats()
-        return (f"ComparisonManager(active={stats['active_instances']}, "
-                f"total={stats['total_instances']}, "
-                f"collecting={stats['is_collecting']})")
+        return (
+            f"ComparisonManager(active={stats['active_instances']}, "
+            f"total={stats['total_instances']}, "
+            f"collecting={stats['is_collecting']})"
+        )

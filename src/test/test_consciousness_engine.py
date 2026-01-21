@@ -25,7 +25,7 @@ class TestConsciousnessSnapshot:
             neural_activity=0.8,
             energy_level=85.0,
             stability=0.9,
-            recent_events_count=5
+            recent_events_count=5,
         )
 
         assert snapshot.timestamp == 1234567890.0
@@ -92,7 +92,7 @@ class TestConsciousnessEngine:
 
         events = [
             Event(type="test_event_1", intensity=0.8, timestamp=time.time()),
-            Event(type="test_event_2", intensity=0.6, timestamp=time.time())
+            Event(type="test_event_2", intensity=0.6, timestamp=time.time()),
         ]
 
         level_with_events = engine.calculate_consciousness_level(self_state, events)
@@ -111,22 +111,17 @@ class TestConsciousnessEngine:
         ]
 
         for level, expected_state in test_cases:
-            state = engine.determine_consciousness_state({
-                'consciousness_level': level,
-                'energy': 80.0,
-                'stability': 0.8
-            })
+            state = engine.determine_consciousness_state(
+                {"consciousness_level": level, "energy": 80.0, "stability": 0.8}
+            )
             assert state == expected_state
 
     def test_determine_consciousness_state_flow(self, engine):
         """Тест состояния flow."""
         # Flow state требует высокой энергии и стабильности
-        state = engine.determine_consciousness_state({
-            'consciousness_level': 0.4,
-            'energy': 90.0,
-            'stability': 0.9,
-            'cognitive_load': 0.5
-        })
+        state = engine.determine_consciousness_state(
+            {"consciousness_level": 0.4, "energy": 90.0, "stability": 0.9, "cognitive_load": 0.5}
+        )
         assert state == "flow"
 
     def test_assess_self_reflection(self, engine):
@@ -211,15 +206,15 @@ class TestConsciousnessEngine:
         assert engine._cached_self_reflection == 0.0
         assert engine._cached_meta_cognition == 0.0
 
-    @patch.object(time, 'time')
+    @patch.object(time, "time")
     def test_neural_activity_calculation(self, mock_time, engine, self_state):
         """Тест расчета нейронной активности."""
         mock_time.return_value = 1000.0
 
         # Устанавливаем параметры для тестирования
-        setattr(self_state, 'tick_frequency', 2.0)
-        setattr(self_state, 'event_processing_rate', 50.0)
-        setattr(self_state, 'decision_complexity', 0.7)
+        setattr(self_state, "tick_frequency", 2.0)
+        setattr(self_state, "event_processing_rate", 50.0)
+        setattr(self_state, "decision_complexity", 0.7)
 
         # Расчет через основной метод
         level = engine.calculate_consciousness_level(self_state)
@@ -230,12 +225,12 @@ class TestConsciousnessEngine:
     def test_state_cooldown(self, engine):
         """Тест cooldown между сменами состояний."""
         # Быстрая смена состояний
-        state1 = engine.determine_consciousness_state({
-            'consciousness_level': 0.8, 'energy': 90.0, 'stability': 0.9
-        })
-        state2 = engine.determine_consciousness_state({
-            'consciousness_level': 0.8, 'energy': 90.0, 'stability': 0.9
-        })
+        state1 = engine.determine_consciousness_state(
+            {"consciousness_level": 0.8, "energy": 90.0, "stability": 0.9}
+        )
+        state2 = engine.determine_consciousness_state(
+            {"consciousness_level": 0.8, "energy": 90.0, "stability": 0.9}
+        )
 
         # Второй вызов должен вернуть то же состояние из-за cooldown
         assert state1 == state2

@@ -90,9 +90,7 @@ class TestRuntimeLoop:
         # Проверяем, что событие обработано (добавлено в память или изменено состояние)
         # Событие может быть обработано, если significance > 0
         # Проверяем, что что-то изменилось
-        assert (
-            len(base_state.memory) >= initial_memory_size or base_state.energy != 50.0
-        )
+        assert len(base_state.memory) >= initial_memory_size or base_state.energy != 50.0
 
     def test_loop_feedback_registration(self, base_state, event_queue):
         """Тест регистрации действий для Feedback"""
@@ -351,9 +349,7 @@ class TestRuntimeLoop:
             assert (
                 abs(recovered_state.stability - 0.85) < 0.001
             ), f"stability: {recovered_state.stability} != 0.85"
-            assert (
-                recovered_state.life_id == initial_state.life_id
-            ), "life_id должен сохраняться"
+            assert recovered_state.life_id == initial_state.life_id, "life_id должен сохраняться"
             assert (
                 recovered_state.birth_timestamp == initial_state.birth_timestamp
             ), "birth_timestamp должен сохраняться"
@@ -368,9 +364,7 @@ class TestRuntimeLoop:
             assert abs(recovered_state.memory[1].meaning_significance - 0.7) < 0.001
 
             # Проверяем, что система активна после восстановления
-            assert (
-                recovered_state.is_active()
-            ), "Система должна быть активна после восстановления"
+            assert recovered_state.is_active(), "Система должна быть активна после восстановления"
 
             # === Фаза 4: Тест продолжения работы ===
             # Имитируем продолжение работы - увеличиваем ticks
@@ -394,9 +388,7 @@ class TestRuntimeLoop:
             # Восстанавливаем оригинальную директорию
             state_module.SNAPSHOT_DIR = original_dir
 
-    def test_clarity_moments_integration_with_runtime_loop(
-        self, base_state, event_queue
-    ):
+    def test_clarity_moments_integration_with_runtime_loop(self, base_state, event_queue):
         """Тест интеграции ClarityMoments с runtime loop"""
         from unittest.mock import Mock
 

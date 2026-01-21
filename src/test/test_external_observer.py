@@ -11,7 +11,10 @@ from pathlib import Path
 import tempfile
 
 from src.observability.external_observer import (
-    ExternalObserver, SystemMetrics, BehaviorPattern, ObservationReport
+    ExternalObserver,
+    SystemMetrics,
+    BehaviorPattern,
+    ObservationReport,
 )
 
 
@@ -31,8 +34,7 @@ class TestExternalObserver:
         custom_snapshots = Path("/custom/snapshots")
 
         observer = ExternalObserver(
-            logs_directory=custom_logs,
-            snapshots_directory=custom_snapshots
+            logs_directory=custom_logs, snapshots_directory=custom_snapshots
         )
 
         assert observer.logs_directory == custom_logs
@@ -46,11 +48,13 @@ class TestExternalObserver:
         end_time = time.time()
 
         # Мокаем внутренние методы для предсказуемого тестирования
-        with patch.object(observer, '_extract_metrics_from_logs') as mock_extract, \
-             patch.object(observer, '_analyze_behavior_patterns') as mock_analyze, \
-             patch.object(observer, '_calculate_trends') as mock_trends, \
-             patch.object(observer, '_detect_anomalies') as mock_anomalies, \
-             patch.object(observer, '_generate_recommendations') as mock_recommendations:
+        with (
+            patch.object(observer, "_extract_metrics_from_logs") as mock_extract,
+            patch.object(observer, "_analyze_behavior_patterns") as mock_analyze,
+            patch.object(observer, "_calculate_trends") as mock_trends,
+            patch.object(observer, "_detect_anomalies") as mock_anomalies,
+            patch.object(observer, "_generate_recommendations") as mock_recommendations,
+        ):
 
             # Настраиваем mock-объекты
             mock_metrics = SystemMetrics(
@@ -102,7 +106,9 @@ class TestExternalObserver:
             mock_analyze.assert_called_once_with(start_time, end_time)
             mock_trends.assert_called_once_with(mock_metrics)
             mock_anomalies.assert_called_once_with(mock_metrics, mock_patterns)
-            mock_recommendations.assert_called_once_with(mock_metrics, {"energy_level": "stable"}, [])
+            mock_recommendations.assert_called_once_with(
+                mock_metrics, {"energy_level": "stable"}, []
+            )
 
             # Проверяем историю наблюдений
             assert len(observer.observation_history) == 1
@@ -120,27 +126,23 @@ class TestExternalObserver:
             snapshot1_path = snapshot_dir / "snapshot1.json"
             snapshot2_path = snapshot_dir / "snapshot2.json"
 
-            snapshot1_data = {
-                "timestamp": time.time() - 100,
-                "cycle_count": 50,
-                "memory_count": 25
-            }
+            snapshot1_data = {"timestamp": time.time() - 100, "cycle_count": 50, "memory_count": 25}
 
-            snapshot2_data = {
-                "timestamp": time.time(),
-                "cycle_count": 100,
-                "memory_count": 50
-            }
+            snapshot2_data = {"timestamp": time.time(), "cycle_count": 100, "memory_count": 50}
 
             snapshot1_path.write_text(str(snapshot1_data).replace("'", '"'))
             snapshot2_path.write_text(str(snapshot2_data).replace("'", '"'))
 
             # Мокаем внутренние методы
-            with patch.object(observer, '_extract_metrics_from_snapshots') as mock_extract, \
-                 patch.object(observer, '_analyze_snapshot_patterns') as mock_analyze, \
-                 patch.object(observer, '_calculate_snapshot_trends') as mock_trends, \
-                 patch.object(observer, '_detect_snapshot_anomalies') as mock_anomalies, \
-                 patch.object(observer, '_generate_snapshot_recommendations') as mock_recommendations:
+            with (
+                patch.object(observer, "_extract_metrics_from_snapshots") as mock_extract,
+                patch.object(observer, "_analyze_snapshot_patterns") as mock_analyze,
+                patch.object(observer, "_calculate_snapshot_trends") as mock_trends,
+                patch.object(observer, "_detect_snapshot_anomalies") as mock_anomalies,
+                patch.object(
+                    observer, "_generate_snapshot_recommendations"
+                ) as mock_recommendations,
+            ):
 
                 mock_metrics = SystemMetrics()
                 mock_patterns = []
@@ -172,7 +174,7 @@ class TestExternalObserver:
             behavior_patterns=[],
             trends={},
             anomalies=[],
-            recommendations=[]
+            recommendations=[],
         )
 
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -206,27 +208,23 @@ class TestExternalObserver:
         report1 = ObservationReport(
             observation_period=(1000, 2000),
             metrics_summary=SystemMetrics(
-                cycle_count=100,
-                learning_effectiveness=0.8,
-                error_count=5
+                cycle_count=100, learning_effectiveness=0.8, error_count=5
             ),
             behavior_patterns=[],
             trends={"learning_effectiveness": "stable"},
             anomalies=[],
-            recommendations=[]
+            recommendations=[],
         )
 
         report2 = ObservationReport(
             observation_period=(2000, 3000),
             metrics_summary=SystemMetrics(
-                cycle_count=150,
-                learning_effectiveness=0.85,
-                error_count=3
+                cycle_count=150, learning_effectiveness=0.85, error_count=3
             ),
             behavior_patterns=[],
             trends={"learning_effectiveness": "improving"},
             anomalies=[],
-            recommendations=[]
+            recommendations=[],
         )
 
         observer.observation_history = [report1, report2]
@@ -248,7 +246,9 @@ class TestExternalObserver:
         observer = ExternalObserver()
 
         # Мокаем метод извлечения метрик для генерации ошибки
-        with patch.object(observer, '_extract_metrics_from_logs', side_effect=Exception("Test error")):
+        with patch.object(
+            observer, "_extract_metrics_from_logs", side_effect=Exception("Test error")
+        ):
             start_time = time.time() - 3600
             end_time = time.time()
 
@@ -322,7 +322,9 @@ class TestExternalObserver:
         assert len(recommendations) > 0
         assert any("энергии" in rec.lower() for rec in recommendations)  # Рекомендация по энергии
         assert any("ошибок" in rec.lower() for rec in recommendations)  # Рекомендация по ошибкам
-        assert any("аномалия" in rec.lower() for rec in recommendations)  # Рекомендации по аномалиям
+        assert any(
+            "аномалия" in rec.lower() for rec in recommendations
+        )  # Рекомендации по аномалиям
 
     def test_behavior_pattern_validation(self):
         """Тест валидации паттернов поведения."""
@@ -332,7 +334,7 @@ class TestExternalObserver:
         end_time = time.time()
 
         # Мокаем анализ для возврата некорректных паттернов
-        with patch.object(observer, '_analyze_behavior_patterns') as mock_analyze:
+        with patch.object(observer, "_analyze_behavior_patterns") as mock_analyze:
             # Паттерн с некорректными данными
             invalid_patterns = [
                 BehaviorPattern(
@@ -350,7 +352,7 @@ class TestExternalObserver:
                     impact_score=0.6,
                     first_observed=start_time,
                     last_observed=end_time,
-                )
+                ),
             ]
 
             mock_analyze.return_value = invalid_patterns
@@ -412,7 +414,7 @@ class TestBehaviorPattern:
             impact_score=0.8,
             first_observed=1000.0,
             last_observed=2000.0,
-            metadata={"confidence": 0.9}
+            metadata={"confidence": 0.9},
         )
 
         assert pattern.pattern_type == "learning_cycle"
@@ -434,7 +436,7 @@ class TestObservationReport:
             behavior_patterns=[],
             trends={"test": "stable"},
             anomalies=[],
-            recommendations=["Test recommendation"]
+            recommendations=["Test recommendation"],
         )
 
         assert report.observation_period == (1000.0, 2000.0)
@@ -450,7 +452,7 @@ class TestObservationReport:
             behavior_patterns=[],
             trends={},
             anomalies=[],
-            recommendations=[]
+            recommendations=[],
         )
 
         data = report.to_dict()

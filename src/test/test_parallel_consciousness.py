@@ -16,7 +16,7 @@ from src.experimental.consciousness.parallel_engine import (
     SelfReflectionProcessor,
     MetaCognitionAnalyzer,
     StateTransitionManager,
-    ConsciousnessMetricsAggregator
+    ConsciousnessMetricsAggregator,
 )
 from src.state.self_state import SelfState
 
@@ -31,8 +31,8 @@ class TestParallelConsciousnessBasic:
         # Функция для обновления метрик в потоке
         def update_metrics(thread_id: int):
             for i in range(100):
-                shared_state.update_metric('consciousness_level', i / 100.0)
-                shared_state.update_metric('self_reflection_score', (i + 10) / 100.0)
+                shared_state.update_metric("consciousness_level", i / 100.0)
+                shared_state.update_metric("self_reflection_score", (i + 10) / 100.0)
                 time.sleep(0.001)  # Небольшая задержка для переключения контекста
 
         # Запустить несколько потоков
@@ -49,8 +49,8 @@ class TestParallelConsciousnessBasic:
         # Проверить, что состояние осталось консистентным
         snapshot = shared_state.get_metrics_snapshot()
         assert isinstance(snapshot, dict)
-        assert 'consciousness_level' in snapshot
-        assert 'self_reflection_score' in snapshot
+        assert "consciousness_level" in snapshot
+        assert "self_reflection_score" in snapshot
 
     def test_parallel_engine_initialization(self):
         """Тест инициализации параллельного движка."""
@@ -67,18 +67,18 @@ class TestParallelConsciousnessBasic:
             decision_history_provider=decision_history_provider,
             behavior_patterns_provider=behavior_patterns_provider,
             cognitive_processes_provider=cognitive_processes_provider,
-            optimization_history_provider=optimization_history_provider
+            optimization_history_provider=optimization_history_provider,
         )
 
         # Проверить создание процессов
         assert len(engine.processes) == 5
         process_names = [p.process_name for p in engine.processes]
         expected_names = [
-            'neural_activity_monitor',
-            'self_reflection_processor',
-            'meta_cognition_analyzer',
-            'state_transition_manager',
-            'consciousness_metrics_aggregator'
+            "neural_activity_monitor",
+            "self_reflection_processor",
+            "meta_cognition_analyzer",
+            "state_transition_manager",
+            "consciousness_metrics_aggregator",
         ]
         assert set(process_names) == set(expected_names)
 
@@ -87,9 +87,7 @@ class TestParallelConsciousnessBasic:
         # Создать минимальный движок
         self_state_provider = Mock(return_value=SelfState())
 
-        engine = ParallelConsciousnessEngine(
-            self_state_provider=self_state_provider
-        )
+        engine = ParallelConsciousnessEngine(self_state_provider=self_state_provider)
 
         # Проверить начальное состояние
         assert not engine.is_running
@@ -116,9 +114,7 @@ class TestParallelConsciousnessBasic:
         """Тест получения snapshot состояния сознания."""
         self_state_provider = Mock(return_value=SelfState())
 
-        engine = ParallelConsciousnessEngine(
-            self_state_provider=self_state_provider
-        )
+        engine = ParallelConsciousnessEngine(self_state_provider=self_state_provider)
 
         # Запустить движок
         engine.start()
@@ -128,24 +124,29 @@ class TestParallelConsciousnessBasic:
         snapshot = engine.get_consciousness_snapshot()
 
         # Проверить структуру
-        assert 'metrics' in snapshot
-        assert 'processes' in snapshot
-        assert 'timestamp' in snapshot
-        assert 'is_running' in snapshot
+        assert "metrics" in snapshot
+        assert "processes" in snapshot
+        assert "timestamp" in snapshot
+        assert "is_running" in snapshot
 
         # Проверить метрики
-        metrics = snapshot['metrics']
-        required_metrics = ['consciousness_level', 'self_reflection_score',
-                          'meta_cognition_depth', 'current_state', 'neural_activity']
+        metrics = snapshot["metrics"]
+        required_metrics = [
+            "consciousness_level",
+            "self_reflection_score",
+            "meta_cognition_depth",
+            "current_state",
+            "neural_activity",
+        ]
         for metric in required_metrics:
             assert metric in metrics
 
         # Проверить статус процессов
-        processes = snapshot['processes']
+        processes = snapshot["processes"]
         assert len(processes) == 5
         for process_name, process_info in processes.items():
-            assert 'is_alive' in process_info
-            assert 'update_count' in process_info
+            assert "is_alive" in process_info
+            assert "update_count" in process_info
 
         # Остановить движок
         engine.stop()
@@ -154,19 +155,17 @@ class TestParallelConsciousnessBasic:
         """Тест обновления внешних метрик."""
         self_state_provider = Mock(return_value=SelfState())
 
-        engine = ParallelConsciousnessEngine(
-            self_state_provider=self_state_provider
-        )
+        engine = ParallelConsciousnessEngine(self_state_provider=self_state_provider)
 
         # Обновить метрики
         engine.update_external_metrics(energy=0.8, stability=0.9, cognitive_load=0.3)
 
         # Проверить обновление
         snapshot = engine.get_consciousness_snapshot()
-        metrics = snapshot['metrics']
-        assert metrics['energy_level'] == 0.8
-        assert metrics['stability'] == 0.9
-        assert metrics['cognitive_load'] == 0.3
+        metrics = snapshot["metrics"]
+        assert metrics["energy_level"] == 0.8
+        assert metrics["stability"] == 0.9
+        assert metrics["cognitive_load"] == 0.3
 
 
 class TestNeuralActivityMonitor:
@@ -191,7 +190,7 @@ class TestNeuralActivityMonitor:
 
         # Проверить обновление метрики
         snapshot = shared_state.get_metrics_snapshot()
-        neural_activity = snapshot['neural_activity']
+        neural_activity = snapshot["neural_activity"]
         assert 0.0 <= neural_activity <= 1.0
 
     def test_monitor_with_empty_history(self):
@@ -213,7 +212,7 @@ class TestNeuralActivityMonitor:
 
         # Проверить, что метрика рассчитывается
         snapshot = shared_state.get_metrics_snapshot()
-        assert snapshot['neural_activity'] >= 0.0
+        assert snapshot["neural_activity"] >= 0.0
 
 
 class TestSelfReflectionProcessor:
@@ -225,29 +224,27 @@ class TestSelfReflectionProcessor:
 
         # Тестовые данные
         decision_history = [
-            {'success': True, 'quality': 0.8},
-            {'success': False, 'quality': 0.6},
-            {'success': True, 'quality': 0.9}
+            {"success": True, "quality": 0.8},
+            {"success": False, "quality": 0.6},
+            {"success": True, "quality": 0.9},
         ]
 
         behavior_patterns = [
-            {'type': 'learning', 'quality': 0.7},
-            {'type': 'adaptation', 'quality': 0.8}
+            {"type": "learning", "quality": 0.7},
+            {"type": "adaptation", "quality": 0.8},
         ]
 
         decision_provider = Mock(return_value=decision_history)
         behavior_provider = Mock(return_value=behavior_patterns)
 
-        processor = SelfReflectionProcessor(
-            shared_state, decision_provider, behavior_provider
-        )
+        processor = SelfReflectionProcessor(shared_state, decision_provider, behavior_provider)
 
         # Выполнить обработку
         processor.process_step()
 
         # Проверить обновление метрики
         snapshot = shared_state.get_metrics_snapshot()
-        self_reflection = snapshot['self_reflection_score']
+        self_reflection = snapshot["self_reflection_score"]
         assert 0.0 <= self_reflection <= 1.0
 
     def test_self_reflection_empty_data(self):
@@ -257,14 +254,12 @@ class TestSelfReflectionProcessor:
         decision_provider = Mock(return_value=[])
         behavior_provider = Mock(return_value=[])
 
-        processor = SelfReflectionProcessor(
-            shared_state, decision_provider, behavior_provider
-        )
+        processor = SelfReflectionProcessor(shared_state, decision_provider, behavior_provider)
 
         processor.process_step()
 
         snapshot = shared_state.get_metrics_snapshot()
-        assert snapshot['self_reflection_score'] == 0.0
+        assert snapshot["self_reflection_score"] == 0.0
 
 
 class TestStateTransitionManager:
@@ -275,9 +270,9 @@ class TestStateTransitionManager:
         shared_state = ConsciousnessSharedState()
 
         # Установить начальные метрики
-        shared_state.update_metric('consciousness_level', 0.8)
-        shared_state.update_metric('energy_level', 0.9)
-        shared_state.update_metric('stability', 0.9)
+        shared_state.update_metric("consciousness_level", 0.8)
+        shared_state.update_metric("energy_level", 0.9)
+        shared_state.update_metric("stability", 0.9)
 
         manager = StateTransitionManager(shared_state)
 
@@ -286,8 +281,8 @@ class TestStateTransitionManager:
 
         # Проверить, что состояние обновлено
         snapshot = shared_state.get_metrics_snapshot()
-        current_state = snapshot['current_state']
-        assert current_state in ['awake', 'flow', 'reflective', 'meta', 'dreaming', 'unconscious']
+        current_state = snapshot["current_state"]
+        assert current_state in ["awake", "flow", "reflective", "meta", "dreaming", "unconscious"]
 
     def test_state_transition_cooldown(self):
         """Тест cooldown между переходами."""
@@ -297,11 +292,11 @@ class TestStateTransitionManager:
 
         # Первый переход
         manager.process_step()
-        first_state = shared_state.get_metrics_snapshot()['current_state']
+        first_state = shared_state.get_metrics_snapshot()["current_state"]
 
         # Немедленный второй переход (должен быть заблокирован cooldown)
         manager.process_step()
-        second_state = shared_state.get_metrics_snapshot()['current_state']
+        second_state = shared_state.get_metrics_snapshot()["current_state"]
 
         # Состояние не должно измениться из-за cooldown
         assert first_state == second_state
@@ -315,10 +310,10 @@ class TestConsciousnessMetricsAggregator:
         shared_state = ConsciousnessSharedState()
 
         # Установить тестовые значения
-        shared_state.update_metric('neural_activity', 0.8)
-        shared_state.update_metric('self_reflection_score', 0.6)
-        shared_state.update_metric('meta_cognition_depth', 0.4)
-        shared_state.update_metric('energy_level', 0.7)
+        shared_state.update_metric("neural_activity", 0.8)
+        shared_state.update_metric("self_reflection_score", 0.6)
+        shared_state.update_metric("meta_cognition_depth", 0.4)
+        shared_state.update_metric("energy_level", 0.7)
 
         aggregator = ConsciousnessMetricsAggregator(shared_state)
 
@@ -327,7 +322,7 @@ class TestConsciousnessMetricsAggregator:
 
         # Проверить расчет уровня сознания
         snapshot = shared_state.get_metrics_snapshot()
-        consciousness_level = snapshot['consciousness_level']
+        consciousness_level = snapshot["consciousness_level"]
 
         # Ожидаемый расчет: 0.8*0.4 + 0.6*0.3 + 0.4*0.2 + 0.7*0.1 = 0.32 + 0.18 + 0.08 + 0.07 = 0.65
         expected = 0.8 * 0.4 + 0.6 * 0.3 + 0.4 * 0.2 + 0.7 * 0.1
@@ -345,17 +340,13 @@ class TestParallelConsciousnessIntegration:
         mock_self_state.stability = 0.9
 
         self_state_provider = Mock(return_value=mock_self_state)
-        decision_history_provider = Mock(return_value=[
-            {'success': True, 'quality': 0.8}
-        ])
-        behavior_patterns_provider = Mock(return_value=[
-            {'type': 'learning', 'quality': 0.7}
-        ])
+        decision_history_provider = Mock(return_value=[{"success": True, "quality": 0.8}])
+        behavior_patterns_provider = Mock(return_value=[{"type": "learning", "quality": 0.7}])
 
         engine = ParallelConsciousnessEngine(
             self_state_provider=self_state_provider,
             decision_history_provider=decision_history_provider,
-            behavior_patterns_provider=behavior_patterns_provider
+            behavior_patterns_provider=behavior_patterns_provider,
         )
 
         # Запустить движок
@@ -366,22 +357,29 @@ class TestParallelConsciousnessIntegration:
 
         # Проверить, что метрики обновляются
         snapshot = engine.get_consciousness_snapshot()
-        metrics = snapshot['metrics']
+        metrics = snapshot["metrics"]
 
         # Проверить, что все метрики имеют разумные значения
-        assert 0.0 <= metrics['consciousness_level'] <= 1.0
-        assert 0.0 <= metrics['self_reflection_score'] <= 1.0
-        assert 0.0 <= metrics['meta_cognition_depth'] <= 1.0
-        assert metrics['current_state'] in ['awake', 'flow', 'reflective', 'meta', 'dreaming', 'unconscious']
+        assert 0.0 <= metrics["consciousness_level"] <= 1.0
+        assert 0.0 <= metrics["self_reflection_score"] <= 1.0
+        assert 0.0 <= metrics["meta_cognition_depth"] <= 1.0
+        assert metrics["current_state"] in [
+            "awake",
+            "flow",
+            "reflective",
+            "meta",
+            "dreaming",
+            "unconscious",
+        ]
 
         # Проверить метрики процессов
         process_metrics = engine.get_process_metrics()
         assert len(process_metrics) == 5
 
         for process_name, proc_metrics in process_metrics.items():
-            assert 'update_count' in proc_metrics
-            assert 'average_update_time' in proc_metrics
-            assert proc_metrics['update_count'] > 0
+            assert "update_count" in proc_metrics
+            assert "average_update_time" in proc_metrics
+            assert proc_metrics["update_count"] > 0
 
         # Остановить движок
         engine.stop()
@@ -389,15 +387,13 @@ class TestParallelConsciousnessIntegration:
         # Проверить остановку
         time.sleep(0.1)
         final_snapshot = engine.get_consciousness_snapshot()
-        assert not final_snapshot['is_running']
+        assert not final_snapshot["is_running"]
 
     def test_engine_reset(self):
         """Тест сброса движка."""
         self_state_provider = Mock(return_value=SelfState())
 
-        engine = ParallelConsciousnessEngine(
-            self_state_provider=self_state_provider
-        )
+        engine = ParallelConsciousnessEngine(self_state_provider=self_state_provider)
 
         # Запустить и остановить
         engine.start()

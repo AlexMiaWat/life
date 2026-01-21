@@ -315,15 +315,11 @@ class TestMeaningEngine:
         """Тест оценки значимости memory_echo событий"""
         # Тест с разными интенсивностями
         for intensity in [-0.2, -0.1, 0.0, 0.1, 0.2]:
-            event = Event(
-                type="memory_echo", intensity=intensity, timestamp=time.time()
-            )
+            event = Event(type="memory_echo", intensity=intensity, timestamp=time.time())
             significance = engine.appraisal(event, normal_state)
 
             # Значимость должна быть пропорциональна интенсивности
-            expected_significance = (
-                abs(intensity) * 0.8
-            )  # type_weight для memory_echo = 0.8
+            expected_significance = abs(intensity) * 0.8  # type_weight для memory_echo = 0.8
             assert abs(significance - expected_significance) < 0.01
 
     def test_memory_echo_impact_model(self, engine, normal_state):

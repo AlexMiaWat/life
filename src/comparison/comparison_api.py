@@ -31,11 +31,13 @@ class CreateInstanceRequest(BaseModel):
     dev_mode: Optional[bool] = Field(False, description="Режим разработки")
     enable_profiling: Optional[bool] = Field(False, description="Включить профилирование")
 
+
 class ComparisonConfigRequest(BaseModel):
     max_instances: Optional[int] = Field(5, description="Максимальное количество инстансов")
     default_tick_interval: Optional[float] = Field(1.0, description="Интервал по умолчанию")
     default_snapshot_period: Optional[int] = Field(10, description="Период по умолчанию")
     data_collection_interval: Optional[float] = Field(5.0, description="Интервал сбора данных")
+
 
 class StartComparisonRequest(BaseModel):
     instance_ids: List[str] = Field(..., description="Идентификаторы инстансов для сравнения")
@@ -70,7 +72,7 @@ class ComparisonAPI:
         self.app = FastAPI(
             title="Life Comparison API",
             description="API для сравнения разных инстансов Life",
-            version="1.0.0"
+            version="1.0.0",
         )
 
         self._setup_routes()
@@ -84,7 +86,9 @@ class ComparisonAPI:
             return {
                 "comparison_running": self.comparison_running,
                 "manager_stats": self.comparison_manager.get_comparison_stats(),
-                "last_comparison_timestamp": self.comparison_results.get('timestamp') if self.comparison_results else None
+                "last_comparison_timestamp": (
+                    self.comparison_results.get("timestamp") if self.comparison_results else None
+                ),
             }
 
         @self.app.post("/instances")
@@ -96,14 +100,14 @@ class ComparisonAPI:
                     tick_interval=request.tick_interval,
                     snapshot_period=request.snapshot_period,
                     dev_mode=request.dev_mode,
-                    enable_profiling=request.enable_profiling
+                    enable_profiling=request.enable_profiling,
                 )
 
                 if instance:
                     return {
                         "success": True,
                         "instance_id": request.instance_id,
-                        "config": instance.config.__dict__
+                        "config": instance.config.__dict__,
                     }
                 else:
                     raise HTTPException(status_code=400, detail="Failed to create instance")
@@ -127,7 +131,9 @@ class ComparisonAPI:
             if success:
                 return {"success": True, "message": f"Instance '{instance_id}' started"}
             else:
-                raise HTTPException(status_code=500, detail=f"Failed to start instance '{instance_id}'")
+                raise HTTPException(
+                    status_code=500, detail=f"Failed to start instance '{instance_id}'"
+                )
 
         @self.app.post("/instances/{instance_id}/stop")
         async def stop_instance(instance_id: str):
@@ -139,7 +145,9 @@ class ComparisonAPI:
             if success:
                 return {"success": True, "message": f"Instance '{instance_id}' stopped"}
             else:
-                raise HTTPException(status_code=500, detail=f"Failed to stop instance '{instance_id}'")
+                raise HTTPException(
+                    status_code=500, detail=f"Failed to stop instance '{instance_id}'"
+                )
 
         @self.app.delete("/instances/{instance_id}")
         async def delete_instance(instance_id: str):
@@ -175,7 +183,9 @@ class ComparisonAPI:
 
             snapshot = instance.get_latest_snapshot()
             if snapshot is None:
-                raise HTTPException(status_code=404, detail=f"No snapshot available for instance '{instance_id}'")
+                raise HTTPException(
+                    status_code=404, detail=f"No snapshot available for instance '{instance_id}'"
+                )
 
             return snapshot
 
@@ -190,7 +200,9 @@ class ComparisonAPI:
             return {"instance_id": instance_id, "logs": logs}
 
         @self.app.post("/comparison/start")
-        async def start_comparison(request: StartComparisonRequest, background_tasks: BackgroundTasks):
+        async def start_comparison(
+            request: StartComparisonRequest, background_tasks: BackgroundTasks
+        ):
             """Начать сравнение указанных инстансов."""
             if self.comparison_running:
                 raise HTTPException(status_code=400, detail="Comparison already running")
@@ -203,8 +215,7 @@ class ComparisonAPI:
 
             if missing_instances:
                 raise HTTPException(
-                    status_code=400,
-                    detail=f"Instances not found: {missing_instances}"
+                    status_code=400, detail=f"Instances not found: {missing_instances}"
                 )
 
             # Запускаем сравнение в фоне
@@ -213,7 +224,7 @@ class ComparisonAPI:
             return {
                 "success": True,
                 "message": f"Comparison started for instances: {request.instance_ids}",
-                "duration": request.duration
+                "duration": request.duration,
             }
 
         @self.app.post("/comparison/stop")
@@ -253,7 +264,7 @@ class ComparisonAPI:
                 raise HTTPException(status_code=404, detail="No comparison data available")
 
             # Вычисляем метрики
-            instances_data = self.comparison_results.get('instances', {})
+            instances_data = self.comparison_results.get("instances", {})
             metrics = self.comparison_metrics.get_summary_report(instances_data)
 
             return metrics
@@ -277,8 +288,8 @@ class ComparisonAPI:
                     "POST /comparison/stop": "Stop comparison",
                     "GET /comparison/results": "Comparison results",
                     "GET /comparison/analysis": "Pattern analysis",
-                    "GET /comparison/metrics": "Comparison metrics"
-                }
+                    "GET /comparison/metrics": "Comparison metrics",
+                },
             }
 
         @self.app.get("/dashboard", response_class=HTMLResponse)
@@ -735,10 +746,14 @@ class ComparisonAPI:
             """Обновить конфигурацию системы сравнения."""
             try:
                 new_config = ComparisonConfig(
-                    max_instances=config.max_instances or self.comparison_manager.config.max_instances,
-                    default_tick_interval=config.default_tick_interval or self.comparison_manager.config.default_tick_interval,
-                    default_snapshot_period=config.default_snapshot_period or self.comparison_manager.config.default_snapshot_period,
-                    data_collection_interval=config.data_collection_interval or self.comparison_manager.config.data_collection_interval
+                    max_instances=config.max_instances
+                    or self.comparison_manager.config.max_instances,
+                    default_tick_interval=config.default_tick_interval
+                    or self.comparison_manager.config.default_tick_interval,
+                    default_snapshot_period=config.default_snapshot_period
+                    or self.comparison_manager.config.default_snapshot_period,
+                    data_collection_interval=config.data_collection_interval
+                    or self.comparison_manager.config.data_collection_interval,
                 )
 
                 self.comparison_manager.config = new_config
@@ -749,8 +764,8 @@ class ComparisonAPI:
                         "max_instances": new_config.max_instances,
                         "default_tick_interval": new_config.default_tick_interval,
                         "default_snapshot_period": new_config.default_snapshot_period,
-                        "data_collection_interval": new_config.data_collection_interval
-                    }
+                        "data_collection_interval": new_config.data_collection_interval,
+                    },
                 }
 
             except Exception as e:
@@ -771,7 +786,9 @@ class ComparisonAPI:
             # Запускаем сбор данных
             def data_callback(data):
                 self.comparison_results = data
-                logger.debug(f"Comparison data collected: {len(data.get('instances', {}))} instances")
+                logger.debug(
+                    f"Comparison data collected: {len(data.get('instances', {}))} instances"
+                )
 
             self.comparison_manager.start_data_collection(callback=data_callback)
 
@@ -794,22 +811,13 @@ class ComparisonAPI:
     def start_server(self):
         """Запустить API сервер."""
         logger.info(f"Starting Comparison API server on {self.host}:{self.port}")
-        uvicorn.run(
-            self.app,
-            host=self.host,
-            port=self.port,
-            log_level="info"
-        )
+        uvicorn.run(self.app, host=self.host, port=self.port, log_level="info")
 
     def run_in_background(self):
         """Запустить сервер в отдельном потоке."""
         import threading
 
-        thread = threading.Thread(
-            target=self.start_server,
-            daemon=True,
-            name="comparison-api"
-        )
+        thread = threading.Thread(target=self.start_server, daemon=True, name="comparison-api")
         thread.start()
 
         logger.info(f"Comparison API started in background on {self.host}:{self.port}")

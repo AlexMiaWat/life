@@ -6,7 +6,11 @@ import pytest
 import time
 from unittest.mock import Mock
 
-from src.experimental.memory_hierarchy.procedural_store import ProceduralMemoryStore, ProceduralPattern, DecisionPattern
+from src.experimental.memory_hierarchy.procedural_store import (
+    ProceduralMemoryStore,
+    ProceduralPattern,
+    DecisionPattern,
+)
 from src.observability.structured_logger import StructuredLogger
 
 
@@ -19,11 +23,8 @@ class TestProceduralPattern:
             pattern_id="test_pattern_1",
             name="Test Pattern",
             description="A test procedural pattern",
-            action_sequence=[
-                ("action_1", {"param": "value1"}),
-                ("action_2", {"param": "value2"})
-            ],
-            trigger_conditions={"condition1": "value1"}
+            action_sequence=[("action_1", {"param": "value1"}), ("action_2", {"param": "value2"})],
+            trigger_conditions={"condition1": "value1"},
         )
 
         assert pattern.pattern_id == "test_pattern_1"
@@ -40,7 +41,7 @@ class TestProceduralPattern:
             pattern_id="test_pattern_1",
             name="Test Pattern",
             description="A test pattern",
-            action_sequence=[("test_action", {"param": "value"})]
+            action_sequence=[("test_action", {"param": "value"})],
         )
 
         context = {"test": "context"}
@@ -59,13 +60,15 @@ class TestProceduralPattern:
             pattern_id="test_pattern_1",
             name="Test Pattern",
             description="A test pattern",
-            action_sequence=[("failing_action", {"param": "value"})]
+            action_sequence=[("failing_action", {"param": "value"})],
         )
 
         # Имитируем исключение в _execute_sequence
         original_execute = pattern._execute_sequence
+
         def failing_execute(context):
             raise ValueError("Test failure")
+
         pattern._execute_sequence = failing_execute
 
         context = {"test": "context"}
@@ -87,7 +90,7 @@ class TestProceduralPattern:
             description="A test pattern",
             action_sequence=[("action", {})],
             automation_level=0.5,
-            min_automation_threshold=0.8
+            min_automation_threshold=0.8,
         )
 
         # Низкий уровень автоматизации
@@ -102,9 +105,7 @@ class TestProceduralPattern:
     def test_effectiveness_calculation(self):
         """Тест расчета эффективности паттерна."""
         pattern = ProceduralPattern(
-            pattern_id="test_pattern_1",
-            name="Test Pattern",
-            description="A test pattern"
+            pattern_id="test_pattern_1", name="Test Pattern", description="A test pattern"
         )
 
         # Без выполнений
@@ -130,7 +131,7 @@ class TestDecisionPattern:
             conditions={"energy": "low", "stability": "high"},
             decision="rest",
             outcome="recovered",
-            confidence=0.8
+            confidence=0.8,
         )
 
         assert pattern.pattern_id == "decision_1"
@@ -146,7 +147,7 @@ class TestDecisionPattern:
             pattern_id="decision_1",
             conditions={"energy": "low", "stability": "high"},
             decision="rest",
-            outcome="recovered"
+            outcome="recovered",
         )
 
         # Полное совпадение
@@ -188,7 +189,7 @@ class TestProceduralMemoryStore:
             pattern_id="test_pattern_1",
             name="Test Pattern",
             description="A test pattern",
-            action_sequence=[("action", {"param": "value"})]
+            action_sequence=[("action", {"param": "value"})],
         )
 
         store.add_pattern(pattern)
@@ -206,7 +207,7 @@ class TestProceduralMemoryStore:
             name="Test Pattern",
             description="Original",
             action_sequence=[("action", {})],
-            success_count=2
+            success_count=2,
         )
 
         pattern2 = ProceduralPattern(
@@ -214,7 +215,7 @@ class TestProceduralMemoryStore:
             name="Test Pattern",
             description="Updated",
             action_sequence=[("action", {})],
-            success_count=3
+            success_count=3,
         )
 
         store.add_pattern(pattern1)
@@ -231,7 +232,7 @@ class TestProceduralMemoryStore:
             pattern_id="test_pattern_1",
             name="Test Pattern",
             description="A test pattern",
-            action_sequence=[("action", {})]
+            action_sequence=[("action", {})],
         )
         store.add_pattern(pattern)
 
@@ -249,7 +250,7 @@ class TestProceduralMemoryStore:
             description="Pattern with condition A",
             action_sequence=[("action1", {})],
             trigger_conditions={"condition": "A"},
-            automation_level=0.9
+            automation_level=0.9,
         )
 
         pattern2 = ProceduralPattern(
@@ -258,7 +259,7 @@ class TestProceduralMemoryStore:
             description="Pattern with condition B",
             action_sequence=[("action2", {})],
             trigger_conditions={"condition": "B"},
-            automation_level=0.5
+            automation_level=0.5,
         )
 
         store.add_pattern(pattern1)
@@ -289,7 +290,7 @@ class TestProceduralMemoryStore:
             trigger_conditions={"state": "good"},
             automation_level=0.9,
             success_count=5,
-            total_executions=5
+            total_executions=5,
         )
 
         store.add_pattern(pattern)
@@ -336,7 +337,7 @@ class TestProceduralMemoryStore:
             conditions={"energy": "low", "threat": "high"},
             decision="defend",
             outcome="survived",
-            confidence=0.9
+            confidence=0.9,
         )
 
         store._decision_patterns["hash_key"] = pattern
@@ -359,7 +360,7 @@ class TestProceduralMemoryStore:
             action_sequence=[("action", {})],
             success_count=9,
             total_executions=10,
-            automation_level=0.8
+            automation_level=0.8,
         )
 
         # Неэффективный паттерн
@@ -370,7 +371,7 @@ class TestProceduralMemoryStore:
             action_sequence=[("action", {})],
             success_count=1,
             total_executions=10,
-            automation_level=0.1
+            automation_level=0.1,
         )
 
         store.add_pattern(good_pattern)
@@ -394,7 +395,7 @@ class TestProceduralMemoryStore:
             action_sequence=[("action", {})],
             success_count=7,
             total_executions=10,
-            automation_level=0.8
+            automation_level=0.8,
         )
 
         store.add_pattern(pattern)
@@ -406,7 +407,7 @@ class TestProceduralMemoryStore:
         assert stats["total_patterns"] == 1
         assert stats["automated_executions"] == 5
         assert stats["manual_executions"] == 3
-        assert stats["automation_rate"] == 5/8  # 5/(5+3)
+        assert stats["automation_rate"] == 5 / 8  # 5/(5+3)
         assert stats["average_pattern_effectiveness"] > 0
 
     def test_clear_store(self, store):
@@ -416,7 +417,7 @@ class TestProceduralMemoryStore:
             pattern_id="p1",
             name="Test Pattern",
             description="Test",
-            action_sequence=[("action", {})]
+            action_sequence=[("action", {})],
         )
         store.add_pattern(pattern)
         store._learn_decision_pattern({"test": "conditions"}, "decision", "outcome", True)

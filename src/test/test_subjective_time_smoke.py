@@ -19,6 +19,7 @@ class TestSubjectiveTimeSmoke:
         """Тест успешного импорта модуля."""
         try:
             from src.runtime import subjective_time
+
             assert subjective_time is not None
         except ImportError as e:
             pytest.fail(f"Не удалось импортировать модуль subjective_time: {e}")
@@ -38,8 +39,8 @@ class TestSubjectiveTimeSmoke:
         # Не должно вызывать исключений
         result1 = clamp(-1000.0, 0.0, 10.0)
         result2 = clamp(1000.0, 0.0, 10.0)
-        result3 = clamp(float('inf'), 0.0, 10.0)
-        result4 = clamp(float('-inf'), 0.0, 10.0)
+        result3 = clamp(float("inf"), 0.0, 10.0)
+        result4 = clamp(float("-inf"), 0.0, 10.0)
 
         assert isinstance(result1, float)
         assert isinstance(result2, float)
@@ -155,7 +156,7 @@ class TestSubjectiveTimeSmoke:
             "base_rate": 10.0,
             "intensity": 2.0,  # Будет ограничено до 1.0
             "stability": -1.0,  # Будет ограничено до 0.0
-            "energy": 200.0,   # Будет нормализовано
+            "energy": 200.0,  # Будет нормализовано
             "intensity_coeff": 1.0,
             "stability_coeff": 1.0,
             "energy_coeff": 1.0,
@@ -240,7 +241,7 @@ class TestSubjectiveTimeSmoke:
             "base_rate": 1.0,
             "intensity": 0.3,  # Низкая интенсивность событий
             "stability": 0.9,  # Высокая стабильность
-            "energy": 80.0,    # Хороший уровень энергии
+            "energy": 80.0,  # Хороший уровень энергии
             "intensity_coeff": 0.1,
             "stability_coeff": 0.2,
             "energy_coeff": 0.05,

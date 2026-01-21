@@ -62,8 +62,12 @@ class MeaningEngine:
             adaptation_params = getattr(self_state, "adaptation_params", {})
         else:
             # Для совместимости со словарями
-            learning_params = self_state.get("learning_params", {}) if hasattr(self_state, 'get') else {}
-            adaptation_params = self_state.get("adaptation_params", {}) if hasattr(self_state, 'get') else {}
+            learning_params = (
+                self_state.get("learning_params", {}) if hasattr(self_state, "get") else {}
+            )
+            adaptation_params = (
+                self_state.get("adaptation_params", {}) if hasattr(self_state, "get") else {}
+            )
 
         # Проверяем, что параметры действительно словари
         if not isinstance(learning_params, dict):
@@ -139,9 +143,7 @@ class MeaningEngine:
         # ИНТЕГРАЦИЯ: Используем learning_params.event_type_sensitivity
         # ВАЖНО: Используем среднее значение для избежания квадратичного эффекта
         # и соблюдения принципа медленного изменения
-        learning_params, adaptation_params = self._get_learning_and_adaptation_params(
-            self_state
-        )
+        learning_params, adaptation_params = self._get_learning_and_adaptation_params(self_state)
 
         event_sensitivity = learning_params.get("event_type_sensitivity", {})
         behavior_sensitivity = adaptation_params.get("behavior_sensitivity", {})
@@ -193,19 +195,11 @@ class MeaningEngine:
         # ИНТЕГРАЦИЯ: Модификация на основе субъективного времени
         # Если субъективное время течет быстрее физического, события кажутся более значимыми
         if isinstance(self_state, SelfState):
-            time_ratio = (
-                self_state.subjective_time / self_state.age
-                if self_state.age > 0
-                else 1.0
-            )
+            time_ratio = self_state.subjective_time / self_state.age if self_state.age > 0 else 1.0
             if time_ratio > 1.1:  # Ускоренное восприятие времени
-                significance *= min(
-                    1.3, 1.0 + (time_ratio - 1.0) * 0.5
-                )  # Увеличение до 30%
+                significance *= min(1.3, 1.0 + (time_ratio - 1.0) * 0.5)  # Увеличение до 30%
             elif time_ratio < 0.9:  # Замедленное восприятие времени
-                significance *= max(
-                    0.8, 1.0 - (1.0 - time_ratio) * 0.3
-                )  # Уменьшение до 20%
+                significance *= max(0.8, 1.0 - (1.0 - time_ratio) * 0.3)  # Уменьшение до 20%
 
         # ИНТЕГРАЦИЯ: Модификация на основе моментов ясности
         # Если активен момент ясности, усиливаем значимость событий
@@ -293,7 +287,11 @@ class MeaningEngine:
             "void": {"energy": -1.1, "stability": -0.06, "integrity": -0.05},
             "acceptance": {"energy": +0.1, "stability": +0.04, "integrity": +0.02},
             # События осознания тишины
-            "silence": {"energy": +0.2, "stability": +0.03, "integrity": +0.01},  # Осознание тишины способствует покою
+            "silence": {
+                "energy": +0.2,
+                "stability": +0.03,
+                "integrity": +0.01,
+            },  # Осознание тишины способствует покою
         }
 
         base_impact = base_impacts.get(
@@ -331,14 +329,10 @@ class MeaningEngine:
             pattern (str): название паттерна
         """
         # ИНТЕГРАЦИЯ: Используем learning_params.significance_thresholds
-        learning_params, adaptation_params = self._get_learning_and_adaptation_params(
-            self_state
-        )
+        learning_params, adaptation_params = self._get_learning_and_adaptation_params(self_state)
 
         significance_thresholds = learning_params.get("significance_thresholds", {})
-        event_threshold = significance_thresholds.get(
-            event.type, self.base_significance_threshold
-        )
+        event_threshold = significance_thresholds.get(event.type, self.base_significance_threshold)
 
         # ИНТЕГРАЦИЯ: Используем adaptation_params.behavior_thresholds
         behavior_thresholds = adaptation_params.get("behavior_thresholds", {})
@@ -390,9 +384,7 @@ class MeaningEngine:
 
         # 4. Модификация impact на основе паттерна
         # ИНТЕГРАЦИЯ: Используем learning_params.response_coefficients и adaptation_params.behavior_coefficients
-        learning_params, adaptation_params = self._get_learning_and_adaptation_params(
-            self_state
-        )
+        learning_params, adaptation_params = self._get_learning_and_adaptation_params(self_state)
 
         response_coefficients = learning_params.get("response_coefficients", {})
         behavior_coefficients = adaptation_params.get("behavior_coefficients", {})
@@ -420,6 +412,4 @@ class MeaningEngine:
             final_impact = {k: v * coefficient for k, v in final_impact.items()}
 
         # 5. Создание Meaning
-        return Meaning(
-            event_id=str(id(event)), significance=significance, impact=final_impact
-        )
+        return Meaning(event_id=str(id(event)), significance=significance, impact=final_impact)

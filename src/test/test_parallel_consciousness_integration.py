@@ -59,14 +59,21 @@ class TestParallelConsciousnessRuntimeIntegration:
                 raise
 
         # Проверяем, что система сознания была активна
-        assert hasattr(self_state, 'consciousness_level')
-        assert hasattr(self_state, 'current_consciousness_state')
-        assert hasattr(self_state, 'self_reflection_score')
-        assert hasattr(self_state, 'meta_cognition_depth')
+        assert hasattr(self_state, "consciousness_level")
+        assert hasattr(self_state, "current_consciousness_state")
+        assert hasattr(self_state, "self_reflection_score")
+        assert hasattr(self_state, "meta_cognition_depth")
 
         # Проверяем разумные значения
         assert 0.0 <= self_state.consciousness_level <= 1.0
-        assert self_state.current_consciousness_state in ['awake', 'flow', 'reflective', 'meta', 'dreaming', 'unconscious']
+        assert self_state.current_consciousness_state in [
+            "awake",
+            "flow",
+            "reflective",
+            "meta",
+            "dreaming",
+            "unconscious",
+        ]
 
         # Проверяем, что система была остановлена корректно
         assert stop_event.is_set()
@@ -83,7 +90,7 @@ class TestParallelConsciousnessRuntimeIntegration:
             decision_history_provider=lambda: [],
             behavior_patterns_provider=lambda: [],
             cognitive_processes_provider=lambda: [],
-            optimization_history_provider=lambda: []
+            optimization_history_provider=lambda: [],
         )
 
         # Запускаем движок
@@ -95,9 +102,7 @@ class TestParallelConsciousnessRuntimeIntegration:
 
             # Обновляем внешние метрики
             consciousness_engine.update_external_metrics(
-                energy=0.9,
-                stability=0.95,
-                cognitive_load=0.2
+                energy=0.9, stability=0.95, cognitive_load=0.2
             )
 
             # Даем время на обновление
@@ -106,18 +111,18 @@ class TestParallelConsciousnessRuntimeIntegration:
             # Проверяем snapshot
             snapshot = consciousness_engine.get_consciousness_snapshot()
 
-            assert snapshot['is_running']
-            assert 'metrics' in snapshot
-            assert 'processes' in snapshot
+            assert snapshot["is_running"]
+            assert "metrics" in snapshot
+            assert "processes" in snapshot
 
-            metrics = snapshot['metrics']
-            assert metrics['energy_level'] == 0.9
-            assert metrics['stability'] == 0.95
-            assert metrics['cognitive_load'] == 0.2
+            metrics = snapshot["metrics"]
+            assert metrics["energy_level"] == 0.9
+            assert metrics["stability"] == 0.95
+            assert metrics["cognitive_load"] == 0.2
 
             # Проверяем, что метрики рассчитываются
-            assert isinstance(metrics['consciousness_level'], float)
-            assert isinstance(metrics['neural_activity'], float)
+            assert isinstance(metrics["consciousness_level"], float)
+            assert isinstance(metrics["neural_activity"], float)
 
         finally:
             # Останавливаем движок
@@ -127,9 +132,7 @@ class TestParallelConsciousnessRuntimeIntegration:
         """Тест мониторинга процессов сознания."""
         self_state = SelfState()
 
-        consciousness_engine = ParallelConsciousnessEngine(
-            self_state_provider=lambda: self_state
-        )
+        consciousness_engine = ParallelConsciousnessEngine(self_state_provider=lambda: self_state)
 
         consciousness_engine.start()
 
@@ -142,21 +145,21 @@ class TestParallelConsciousnessRuntimeIntegration:
 
             # Проверяем, что все процессы присутствуют
             expected_processes = [
-                'neural_activity_monitor',
-                'self_reflection_processor',
-                'meta_cognition_analyzer',
-                'state_transition_manager',
-                'consciousness_metrics_aggregator'
+                "neural_activity_monitor",
+                "self_reflection_processor",
+                "meta_cognition_analyzer",
+                "state_transition_manager",
+                "consciousness_metrics_aggregator",
             ]
 
             assert len(process_metrics) == len(expected_processes)
             for process_name in expected_processes:
                 assert process_name in process_metrics
                 proc_info = process_metrics[process_name]
-                assert 'update_count' in proc_info
-                assert 'average_update_time' in proc_info
-                assert 'error_count' in proc_info
-                assert proc_info['update_count'] > 0  # Процесс работал
+                assert "update_count" in proc_info
+                assert "average_update_time" in proc_info
+                assert "error_count" in proc_info
+                assert proc_info["update_count"] > 0  # Процесс работал
 
         finally:
             consciousness_engine.stop()
@@ -165,9 +168,7 @@ class TestParallelConsciousnessRuntimeIntegration:
         """Тест корректного завершения работы многопоточной системы."""
         self_state = SelfState()
 
-        consciousness_engine = ParallelConsciousnessEngine(
-            self_state_provider=lambda: self_state
-        )
+        consciousness_engine = ParallelConsciousnessEngine(self_state_provider=lambda: self_state)
 
         # Запуск
         consciousness_engine.start()
@@ -187,13 +188,12 @@ class TestParallelConsciousnessRuntimeIntegration:
 
     def test_parallel_consciousness_error_handling(self):
         """Тест обработки ошибок в многопоточной системе."""
+
         # Создаем mock провайдер, который вызывает ошибку
         def failing_provider():
             raise RuntimeError("Test error in provider")
 
-        consciousness_engine = ParallelConsciousnessEngine(
-            self_state_provider=failing_provider
-        )
+        consciousness_engine = ParallelConsciousnessEngine(self_state_provider=failing_provider)
 
         consciousness_engine.start()
 
@@ -205,12 +205,12 @@ class TestParallelConsciousnessRuntimeIntegration:
             process_metrics = consciousness_engine.get_process_metrics()
 
             # Некоторые процессы могут иметь ошибки
-            total_errors = sum(proc['error_count'] for proc in process_metrics.values())
+            total_errors = sum(proc["error_count"] for proc in process_metrics.values())
             # Не проверяем конкретное количество, так как зависит от тайминга
 
             # Но система должна продолжать работать
             snapshot = consciousness_engine.get_consciousness_snapshot()
-            assert 'metrics' in snapshot
+            assert "metrics" in snapshot
 
         finally:
             consciousness_engine.stop()
@@ -226,20 +226,21 @@ class TestParallelConsciousnessWithOtherComponents:
 
         # Добавляем тестовые данные в память
         from src.memory.memory import MemoryEntry
+
         test_memory = MemoryEntry(
             event_type="test_event",
             significance=0.7,
             impact={"energy": -0.1, "stability": 0.05},
             pattern="test_pattern",
             timestamp=time.time(),
-            subjective_time=100.0
+            subjective_time=100.0,
         )
         self_state.memory.append(test_memory)
 
         consciousness_engine = ParallelConsciousnessEngine(
             self_state_provider=lambda: self_state,
             decision_history_provider=lambda: [{"success": True, "quality": 0.8}],
-            behavior_patterns_provider=lambda: [{"type": "learning", "quality": 0.7}]
+            behavior_patterns_provider=lambda: [{"type": "learning", "quality": 0.7}],
         )
 
         consciousness_engine.start()
@@ -248,11 +249,11 @@ class TestParallelConsciousnessWithOtherComponents:
             time.sleep(1.5)  # Даем время на анализ
 
             snapshot = consciousness_engine.get_consciousness_snapshot()
-            metrics = snapshot['metrics']
+            metrics = snapshot["metrics"]
 
             # Проверяем, что система работает с данными из памяти
-            assert isinstance(metrics['self_reflection_score'], float)
-            assert 0.0 <= metrics['self_reflection_score'] <= 1.0
+            assert isinstance(metrics["self_reflection_score"], float)
+            assert 0.0 <= metrics["self_reflection_score"] <= 1.0
 
         finally:
             consciousness_engine.stop()
@@ -263,9 +264,7 @@ class TestParallelConsciousnessWithOtherComponents:
         self_state.energy = 0.6
         self_state.stability = 0.7
 
-        consciousness_engine = ParallelConsciousnessEngine(
-            self_state_provider=lambda: self_state
-        )
+        consciousness_engine = ParallelConsciousnessEngine(self_state_provider=lambda: self_state)
 
         consciousness_engine.start()
 
@@ -282,11 +281,11 @@ class TestParallelConsciousnessWithOtherComponents:
             snapshot2 = consciousness_engine.get_consciousness_snapshot()
 
             # Проверяем, что изменения отражаются
-            assert snapshot2['metrics']['energy_level'] == 0.9
-            assert snapshot2['metrics']['stability'] == 0.95
+            assert snapshot2["metrics"]["energy_level"] == 0.9
+            assert snapshot2["metrics"]["stability"] == 0.95
 
             # Уровень сознания может измениться
-            assert isinstance(snapshot2['metrics']['consciousness_level'], float)
+            assert isinstance(snapshot2["metrics"]["consciousness_level"], float)
 
         finally:
             consciousness_engine.stop()
@@ -299,9 +298,7 @@ class TestParallelConsciousnessPerformance:
         """Тест нагрузки на CPU от многопоточной системы."""
         self_state = SelfState()
 
-        consciousness_engine = ParallelConsciousnessEngine(
-            self_state_provider=lambda: self_state
-        )
+        consciousness_engine = ParallelConsciousnessEngine(self_state_provider=lambda: self_state)
 
         consciousness_engine.start()
 
@@ -320,8 +317,8 @@ class TestParallelConsciousnessPerformance:
 
             # Проверяем, что процессы работали
             for process_name in final_metrics:
-                initial_count = initial_metrics[process_name]['update_count']
-                final_count = final_metrics[process_name]['update_count']
+                initial_count = initial_metrics[process_name]["update_count"]
+                final_count = final_metrics[process_name]["update_count"]
                 assert final_count > initial_count  # Были обновления
 
         finally:
@@ -337,9 +334,7 @@ class TestParallelConsciousnessPerformance:
 
         self_state = SelfState()
 
-        consciousness_engine = ParallelConsciousnessEngine(
-            self_state_provider=lambda: self_state
-        )
+        consciousness_engine = ParallelConsciousnessEngine(self_state_provider=lambda: self_state)
 
         consciousness_engine.start()
 

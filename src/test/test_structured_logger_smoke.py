@@ -432,9 +432,7 @@ class TestStructuredLoggerSmoke:
 
             def worker(thread_id):
                 for i in range(10):
-                    event = Event(
-                        type=f"event_{thread_id}_{i}", intensity=0.1, timestamp=float(i)
-                    )
+                    event = Event(type=f"event_{thread_id}_{i}", intensity=0.1, timestamp=float(i))
                     corr_id = logger.log_event(event)
                     results.append((thread_id, corr_id))
                     time.sleep(0.001)  # Маленькая задержка для имитации конкуренции

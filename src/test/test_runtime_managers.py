@@ -268,14 +268,10 @@ class TestLifePolicy:
         with pytest.raises(ValueError, match="penalty_k must be non-negative"):
             LifePolicy(penalty_k=-0.01)
 
-        with pytest.raises(
-            ValueError, match="stability_multiplier must be non-negative"
-        ):
+        with pytest.raises(ValueError, match="stability_multiplier must be non-negative"):
             LifePolicy(stability_multiplier=-1.0)
 
-        with pytest.raises(
-            ValueError, match="integrity_multiplier must be non-negative"
-        ):
+        with pytest.raises(ValueError, match="integrity_multiplier must be non-negative"):
             LifePolicy(integrity_multiplier=-0.5)
 
     def test_is_weak_normal_state(self):
@@ -326,9 +322,7 @@ class TestLifePolicy:
 
     def test_weakness_penalty_normal(self):
         """Тест расчета штрафа для нормального состояния"""
-        policy = LifePolicy(
-            penalty_k=0.02, stability_multiplier=2.0, integrity_multiplier=3.0
-        )
+        policy = LifePolicy(penalty_k=0.02, stability_multiplier=2.0, integrity_multiplier=3.0)
         dt = 0.1
 
         penalty = policy.weakness_penalty(dt)

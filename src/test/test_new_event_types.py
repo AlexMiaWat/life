@@ -96,9 +96,7 @@ class TestNewEventTypes:
             ("acceptance", 0.0, 0.5),
         ],
     )
-    def test_new_event_intensity_ranges(
-        self, generator, event_type, expected_min, expected_max
-    ):
+    def test_new_event_intensity_ranges(self, generator, event_type, expected_min, expected_max):
         """Тест диапазонов интенсивности для новых типов событий"""
         # Генерируем много событий нужного типа
         intensities = []
@@ -108,9 +106,7 @@ class TestNewEventTypes:
                 intensities.append(event.intensity)
 
         # Проверяем, что есть хотя бы несколько событий этого типа
-        assert (
-            len(intensities) > 0
-        ), f"Не сгенерировано ни одного события типа {event_type}"
+        assert len(intensities) > 0, f"Не сгенерировано ни одного события типа {event_type}"
 
         # Проверяем диапазон
         for intensity in intensities:
@@ -266,18 +262,14 @@ class TestNewEventTypes:
             "acceptance",
         ],
     )
-    def test_new_event_types_response_patterns(
-        self, meaning_engine, self_state, event_type
-    ):
+    def test_new_event_types_response_patterns(self, meaning_engine, self_state, event_type):
         """Тест, что для новых типов событий корректно определяются паттерны реакции"""
         event = Event(type=event_type, intensity=0.5, timestamp=1000.0)
         pattern = meaning_engine.response_pattern(event, self_state, 0.5)
 
         # Паттерн должен быть одной из допустимых строк
         valid_patterns = ["ignore", "absorb", "dampen", "amplify"]
-        assert (
-            pattern in valid_patterns
-        ), f"Неверный паттерн реакции для {event_type}: {pattern}"
+        assert pattern in valid_patterns, f"Неверный паттерн реакции для {event_type}: {pattern}"
 
     def test_new_event_types_architecture_compliance(self, meaning_engine, self_state):
         """Тест соответствия новых типов событий архитектурным принципам"""
@@ -348,9 +340,7 @@ class TestNewEventTypes:
             "acceptance": 0.01,
         }
 
-        total_new_events = sum(
-            event_counts.get(t, 0) for t in expected_percentages.keys()
-        )
+        total_new_events = sum(event_counts.get(t, 0) for t in expected_percentages.keys())
         total_events_with_new = sum(event_counts.values())
 
         # Общая доля новых событий должна быть около 21%

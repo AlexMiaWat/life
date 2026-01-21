@@ -16,14 +16,14 @@ class TestAdaptiveThresholdsSmoke:
         engine = LearningEngine()
 
         # Проверяем наличие метода
-        assert hasattr(engine, 'calculate_adaptive_thresholds')
+        assert hasattr(engine, "calculate_adaptive_thresholds")
         assert callable(engine.calculate_adaptive_thresholds)
 
         # Проверяем константы
-        assert hasattr(engine, 'MIN_FREQUENCY_THRESHOLD')
-        assert hasattr(engine, 'MAX_FREQUENCY_THRESHOLD')
-        assert hasattr(engine, 'MIN_SIGNIFICANCE_THRESHOLD')
-        assert hasattr(engine, 'MAX_SIGNIFICANCE_THRESHOLD')
+        assert hasattr(engine, "MIN_FREQUENCY_THRESHOLD")
+        assert hasattr(engine, "MAX_FREQUENCY_THRESHOLD")
+        assert hasattr(engine, "MIN_SIGNIFICANCE_THRESHOLD")
+        assert hasattr(engine, "MAX_SIGNIFICANCE_THRESHOLD")
 
         # Проверяем диапазоны констант
         assert 0 < engine.MIN_FREQUENCY_THRESHOLD < engine.MAX_FREQUENCY_THRESHOLD
@@ -34,13 +34,7 @@ class TestAdaptiveThresholdsSmoke:
         engine = LearningEngine()
 
         # Создаем простую статистику
-        statistics = {
-            "memory_entries": [
-                Mock(weight=0.3),
-                Mock(weight=0.5),
-                Mock(weight=0.7)
-            ]
-        }
+        statistics = {"memory_entries": [Mock(weight=0.3), Mock(weight=0.5), Mock(weight=0.7)]}
 
         thresholds = engine.calculate_adaptive_thresholds(statistics)
 
@@ -67,8 +61,8 @@ class TestAdaptiveThresholdsSmoke:
             "event_type_counts": {"positive": 5, "negative": 3},
             "event_type_total_significance": {
                 "positive": 2.5,  # avg = 0.5
-                "negative": 1.2   # avg = 0.4
-            }
+                "negative": 1.2,  # avg = 0.4
+            },
         }
 
         thresholds = engine.calculate_adaptive_thresholds(statistics)
@@ -88,11 +82,7 @@ class TestAdaptiveThresholdsSmoke:
 
         statistics = {
             "memory_entries": [Mock(weight=0.5)],
-            "feedback_pattern_counts": {
-                "pattern_a": 10,
-                "pattern_b": 20,
-                "pattern_c": 5
-            }
+            "feedback_pattern_counts": {"pattern_a": 10, "pattern_b": 20, "pattern_c": 5},
         }
 
         thresholds = engine.calculate_adaptive_thresholds(statistics)
@@ -111,7 +101,7 @@ class TestAdaptiveThresholdsSmoke:
 
         statistics = {
             "memory_entries": [Mock(weight=0.5)],
-            "stability_volatility": 0.3  # Средняя волатильность
+            "stability_volatility": 0.3,  # Средняя волатильность
         }
 
         thresholds = engine.calculate_adaptive_thresholds(statistics)
@@ -129,7 +119,7 @@ class TestAdaptiveThresholdsSmoke:
         statistics = {
             "memory_entries": [Mock(weight=0.5)],
             "feedback_efficiency": 0.8,
-            "feedback_success_rate": 0.75
+            "feedback_success_rate": 0.75,
         }
 
         thresholds = engine.calculate_adaptive_thresholds(statistics)
@@ -147,7 +137,7 @@ class TestAdaptiveThresholdsSmoke:
         statistics = {
             "memory_entries": [Mock(weight=0.5)],
             "time_pattern_strength": 0.7,
-            "temporal_consistency": 0.8
+            "temporal_consistency": 0.8,
         }
 
         thresholds = engine.calculate_adaptive_thresholds(statistics)
@@ -166,11 +156,11 @@ class TestAdaptiveThresholdsSmoke:
         statistics = {
             "memory_entries": [
                 Mock(weight=0.01),  # Очень маленькие веса
-                Mock(weight=0.99)   # Очень большие веса
+                Mock(weight=0.99),  # Очень большие веса
             ],
             "event_type_counts": {"extreme": 1},
             "event_type_total_significance": {"extreme": 0.95},
-            "feedback_pattern_counts": {"extreme": 100}
+            "feedback_pattern_counts": {"extreme": 100},
         }
 
         thresholds = engine.calculate_adaptive_thresholds(statistics)
@@ -181,7 +171,11 @@ class TestAdaptiveThresholdsSmoke:
                 if "frequency" in key:
                     assert engine.MIN_FREQUENCY_THRESHOLD <= value <= engine.MAX_FREQUENCY_THRESHOLD
                 elif "significance" in key:
-                    assert engine.MIN_SIGNIFICANCE_THRESHOLD <= value <= engine.MAX_SIGNIFICANCE_THRESHOLD
+                    assert (
+                        engine.MIN_SIGNIFICANCE_THRESHOLD
+                        <= value
+                        <= engine.MAX_SIGNIFICANCE_THRESHOLD
+                    )
             else:
                 # Другие параметры должны быть в разумных пределах
                 assert 0 < value < 5.0
@@ -223,13 +217,9 @@ class TestAdaptiveThresholdsSmoke:
         engine = LearningEngine()
 
         statistics = {
-            "memory_entries": [
-                Mock(weight=0.4),
-                Mock(weight=0.6),
-                Mock(weight=0.8)
-            ],
+            "memory_entries": [Mock(weight=0.4), Mock(weight=0.6), Mock(weight=0.8)],
             "event_type_counts": {"test": 2},
-            "event_type_total_significance": {"test": 1.0}
+            "event_type_total_significance": {"test": 1.0},
         }
 
         # Многократный расчет должен давать одинаковые результаты
@@ -245,28 +235,33 @@ class TestAdaptiveThresholdsSmoke:
         # Сценарий: стабильная система с хорошим обучением
         statistics_stable = {
             "memory_entries": [
-                Mock(weight=0.6), Mock(weight=0.7), Mock(weight=0.8),
-                Mock(weight=0.5), Mock(weight=0.9)
+                Mock(weight=0.6),
+                Mock(weight=0.7),
+                Mock(weight=0.8),
+                Mock(weight=0.5),
+                Mock(weight=0.9),
             ],
             "event_type_counts": {"positive": 10, "negative": 5, "neutral": 8},
-            "event_type_total_significance": {
-                "positive": 6.0, "negative": 2.0, "neutral": 3.2
-            },
+            "event_type_total_significance": {"positive": 6.0, "negative": 2.0, "neutral": 3.2},
             "feedback_pattern_counts": {"success": 15, "failure": 3},
             "stability_volatility": 0.2,  # Низкая волатильность
             "feedback_efficiency": 0.85,
-            "time_pattern_strength": 0.6
+            "time_pattern_strength": 0.6,
         }
 
         thresholds_stable = engine.calculate_adaptive_thresholds(statistics_stable)
 
         # Проверяем наличие всех типов порогов
         expected_keys = [
-            "high_frequency_threshold", "low_frequency_threshold",
-            "high_significance_threshold", "low_significance_threshold",
-            "high_pattern_frequency_threshold", "low_pattern_frequency_threshold",
-            "learning_rate_multiplier", "feedback_learning_boost",
-            "temporal_adaptation_factor"
+            "high_frequency_threshold",
+            "low_frequency_threshold",
+            "high_significance_threshold",
+            "low_significance_threshold",
+            "high_pattern_frequency_threshold",
+            "low_pattern_frequency_threshold",
+            "learning_rate_multiplier",
+            "feedback_learning_boost",
+            "temporal_adaptation_factor",
         ]
 
         for key in expected_keys:
@@ -285,17 +280,13 @@ class TestAdaptiveThresholdsSmoke:
 
         # Сценарий: нестабильная система с плохим обучением
         statistics_unstable = {
-            "memory_entries": [
-                Mock(weight=0.1), Mock(weight=0.2), Mock(weight=0.15)
-            ],
+            "memory_entries": [Mock(weight=0.1), Mock(weight=0.2), Mock(weight=0.15)],
             "event_type_counts": {"crisis": 20, "failure": 15},
-            "event_type_total_significance": {
-                "crisis": 18.0, "failure": 12.0
-            },
+            "event_type_total_significance": {"crisis": 18.0, "failure": 12.0},
             "feedback_pattern_counts": {"error": 25, "success": 2},
             "stability_volatility": 0.9,  # Высокая волатильность
-            "feedback_efficiency": 0.3,   # Низкая эффективность
-            "time_pattern_strength": 0.2  # Слабые временные паттерны
+            "feedback_efficiency": 0.3,  # Низкая эффективность
+            "time_pattern_strength": 0.2,  # Слабые временные паттерны
         }
 
         thresholds_unstable = engine.calculate_adaptive_thresholds(statistics_unstable)

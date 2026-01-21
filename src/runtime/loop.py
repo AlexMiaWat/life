@@ -36,9 +36,7 @@ MEMORY_CONSOLIDATION_INTERVAL = 25  # Консолидация эксперим�
 # Константы для работы с памятью
 MEMORY_DECAY_FACTOR = 0.99  # Фактор затухания весов памяти
 MEMORY_MIN_WEIGHT = 0.1  # Минимальный вес для архивации
-MEMORY_MAX_AGE_SECONDS = (
-    7 * 24 * 3600
-)  # Максимальный возраст записей (7 дней в секундах)
+MEMORY_MAX_AGE_SECONDS = 7 * 24 * 3600  # Максимальный возраст записей (7 дней в секундах)
 MEMORY_DECAY_MIN_WEIGHT = 0.0  # Минимальный вес при затухании (для полного забывания)
 
 # Константы для обработки ошибок
@@ -153,9 +151,7 @@ def _validate_adaptation_params(adaptation_params: dict) -> bool:
             "behavior_coefficients",
         ]
         for key in expected_keys:
-            if key in adaptation_params and not isinstance(
-                adaptation_params[key], dict
-            ):
+            if key in adaptation_params and not isinstance(adaptation_params[key], dict):
                 return False
 
     return True
@@ -204,10 +200,7 @@ def _record_adaptation_params_change(self_state, old_params: dict, new_params: d
         old_value = old_params.get(key)
         new_value = new_params.get(key)
         if old_value != new_value:
-            changes[key] = {
-                "old_value": old_value,
-                "new_value": new_value
-            }
+            changes[key] = {"old_value": old_value, "new_value": new_value}
 
     if not changes:
         return  # Нет изменений
@@ -251,6 +244,8 @@ def run_loop(
     enable_consciousness=False,  # Включение экспериментальной системы сознания
     enable_parallel_consciousness=False,  # Включение многопоточной модели сознания
     enable_silence_detection=True,  # Включение системы осознания тишины
+    enable_passive_observation=False,  # Включение пассивного наблюдения за поведением системы
+    observation_collection_interval=10,  # Интервал сбора данных наблюдения (в тиках)
     log_flush_period_ticks=10,
     enable_profiling=False,
 ):
@@ -275,11 +270,32 @@ def run_loop(
         enable_consciousness: Включить экспериментальную систему сознания
         enable_parallel_consciousness: Включить многопоточную модель сознания (экспериментально)
         enable_silence_detection: Включить систему осознания тишины
+        enable_passive_observation: Включить пассивное наблюдение за поведением системы
+        observation_collection_interval: Интервал сбора данных наблюдения (в тиках)
         log_flush_period_ticks: Период сброса логов в тиках
         enable_profiling: Включить профилирование runtime loop с cProfile
     """
     # Structured logger for observability (инициализируем раньше для ClarityMoments)
     structured_logger = StructuredLogger(enabled=not disable_structured_logging)
+
+    # Passive observation components (пассивное наблюдение без интерпретации)
+    state_tracker = None
+    component_monitor = None
+    data_collector = None
+    history_manager = None
+
+    if enable_passive_observation:
+        from src.observability import StateTracker, ComponentMonitor, DataCollector, HistoryManager
+
+        state_tracker = StateTracker()
+        component_monitor = ComponentMonitor()
+        data_collector = DataCollector(storage_path="data/observation_data.jsonl")
+        history_manager = HistoryManager(storage_path="data/history_data.jsonl")
+
+        structured_logger.log_event({
+            "event_type": "passive_observation_enabled",
+            "collection_interval": observation_collection_interval,
+        })
 
     engine = MeaningEngine()
     learning_engine = LearningEngine()  # Learning Engine (Этап 14)
@@ -287,9 +303,7 @@ def run_loop(
     # clarity_moments = (
     #     ClarityMoments(logger=structured_logger) if not disable_clarity_moments else None
     # )  # Clarity Moments System
-    internal_generator = (
-        InternalEventGenerator()
-    )  # Internal Event Generator (Memory Echoes)
+    internal_generator = InternalEventGenerator()  # Internal Event Generator (Memory Echoes)
     pending_actions = []  # Список ожидающих Feedback действий
 
     # Экспериментальные компоненты (опционально)
@@ -298,40 +312,44 @@ def run_loop(
 
     if enable_memory_hierarchy:
         from src.experimental.memory_hierarchy import MemoryHierarchyManager
+
         memory_hierarchy = MemoryHierarchyManager(logger=structured_logger)
         # Подключение эпизодической памяти к иерархии
         memory_hierarchy.set_episodic_memory(self_state.memory)
 
     if enable_parallel_consciousness:
         from src.experimental.consciousness import ParallelConsciousnessEngine
+
         consciousness_engine = ParallelConsciousnessEngine(
             self_state_provider=lambda: self_state,
-            decision_history_provider=lambda: getattr(self_state, 'decision_history', []),
-            behavior_patterns_provider=lambda: getattr(self_state, 'behavior_patterns', []),
-            cognitive_processes_provider=lambda: getattr(self_state, 'cognitive_processes', []),
-            optimization_history_provider=lambda: getattr(self_state, 'optimization_history', []),
-            logger=structured_logger
+            decision_history_provider=lambda: getattr(self_state, "decision_history", []),
+            behavior_patterns_provider=lambda: getattr(self_state, "behavior_patterns", []),
+            cognitive_processes_provider=lambda: getattr(self_state, "cognitive_processes", []),
+            optimization_history_provider=lambda: getattr(self_state, "optimization_history", []),
+            logger=structured_logger,
         )
         # Сохранить в глобальную переменную для доступа из API
         import src.main_server_api
+
         src.main_server_api.global_consciousness_engine = consciousness_engine
         # Запустить параллельные процессы
         consciousness_engine.start()
-        structured_logger.log_event({
-            "event_type": "parallel_consciousness_engine_started",
-            "process_count": len(consciousness_engine.processes)
-        })
+        structured_logger.log_event(
+            {
+                "event_type": "parallel_consciousness_engine_started",
+                "process_count": len(consciousness_engine.processes),
+            }
+        )
     elif enable_consciousness:
         from src.experimental.consciousness import ConsciousnessEngine
+
         consciousness_engine = ConsciousnessEngine(logger=structured_logger)
 
     # Технический монитор поведения системы
     technical_monitor = TechnicalBehaviorMonitor()
 
     # Менеджеры для управления снапшотами, логами и политикой
-    snapshot_manager = SnapshotManager(
-        period_ticks=snapshot_period, saver=save_snapshot
-    )
+    snapshot_manager = SnapshotManager(period_ticks=snapshot_period, saver=save_snapshot)
     flush_policy = FlushPolicy(
         flush_period_ticks=log_flush_period_ticks,
         flush_before_snapshot=True,
@@ -355,6 +373,7 @@ def run_loop(
     # Счетчики для внутренних событий
     ticks_since_last_memory_echo = 0
     ticks_since_last_metrics_collection = 0
+    ticks_since_last_observation = 0
 
     def run_main_loop():
         """Основной цикл runtime loop - выделен для профилирования"""
@@ -388,9 +407,7 @@ def run_loop(
                 #     rate_max=self_state.subjective_time_rate_max,
                 # )
                 # self_state.apply_delta({"subjective_time": subjective_dt})
-                self_state.apply_delta(
-                    {"subjective_time": dt}
-                )  # Simple increment for performance
+                self_state.apply_delta({"subjective_time": dt})  # Simple increment for performance
 
                 # Обновление внутренних ритмов
                 self_state.update_circadian_rhythm(dt)
@@ -406,11 +423,18 @@ def run_loop(
                                 decisions = []
                                 # Ищем записи о решениях в памяти
                                 for entry in reversed(self_state.memory):
-                                    if hasattr(entry, 'event_type') and entry.event_type in ['decision', 'action']:
+                                    if hasattr(entry, "event_type") and entry.event_type in [
+                                        "decision",
+                                        "action",
+                                    ]:
                                         decision_data = {
-                                            'timestamp': getattr(entry, 'timestamp', time.time()),
-                                            'type': getattr(entry, 'event_type', 'unknown'),
-                                            'data': getattr(entry, 'data', {}) if hasattr(entry, 'data') else {}
+                                            "timestamp": getattr(entry, "timestamp", time.time()),
+                                            "type": getattr(entry, "event_type", "unknown"),
+                                            "data": (
+                                                getattr(entry, "data", {})
+                                                if hasattr(entry, "data")
+                                                else {}
+                                            ),
                                         }
                                         decisions.append(decision_data)
                                         if len(decisions) >= limit:
@@ -419,9 +443,16 @@ def run_loop(
 
                             def get_statistics(self):
                                 return {
-                                    'total_decisions': len([e for e in self_state.memory if hasattr(e, 'event_type') and e.event_type in ['decision', 'action']]),
-                                    'average_time': 0.01,  # Заглушка
-                                    'accuracy': 0.8  # Заглушка
+                                    "total_decisions": len(
+                                        [
+                                            e
+                                            for e in self_state.memory
+                                            if hasattr(e, "event_type")
+                                            and e.event_type in ["decision", "action"]
+                                        ]
+                                    ),
+                                    "average_time": 0.01,  # Заглушка
+                                    "accuracy": 0.8,  # Заглушка
                                 }
 
                         mock_decision_engine = MockDecisionEngine()
@@ -432,7 +463,7 @@ def run_loop(
                             memory=self_state.memory,
                             learning_engine=learning_engine,
                             adaptation_manager=adaptation_manager,
-                            decision_engine=mock_decision_engine
+                            decision_engine=mock_decision_engine,
                         )
 
                         # Анализируем снимок
@@ -440,7 +471,8 @@ def run_loop(
 
                         # Сохраняем отчет в файл
                         import os
-                        metrics_dir = os.path.join(os.getcwd(), 'metrics')
+
+                        metrics_dir = os.path.join(os.getcwd(), "metrics")
                         os.makedirs(metrics_dir, exist_ok=True)
 
                         timestamp = int(time.time())
@@ -454,6 +486,31 @@ def run_loop(
                         logger.warning(f"Failed to collect technical metrics: {e}")
                     finally:
                         ticks_since_last_metrics_collection = 0
+
+                # Passive observation: сбор данных через регулярные интервалы
+                ticks_since_last_observation += 1
+                if enable_passive_observation and ticks_since_last_observation >= observation_collection_interval:
+                    try:
+                        # Сбор данных SelfState
+                        if state_tracker:
+                            state_snapshot = state_tracker.collect_state_data(self_state)
+                            if data_collector:
+                                data_collector.collect_state_data(state_snapshot)
+                            if history_manager:
+                                history_manager.add_snapshot("state", state_snapshot.to_dict())
+
+                        # Сбор данных компонентов
+                        if component_monitor:
+                            component_stats = component_monitor.collect_component_stats(self_state)
+                            if data_collector:
+                                data_collector.collect_component_data(component_stats)
+                            if history_manager:
+                                history_manager.add_snapshot("components", component_stats.to_dict())
+
+                        ticks_since_last_observation = 0
+
+                    except Exception as e:
+                        logger.warning(f"Failed to collect observation data: {e}")
 
                 # Clarity Moments: Отключено до стабилизации системы
                 # if clarity_moments:
@@ -477,16 +534,12 @@ def run_loop(
                 #     clarity_moments.update_clarity_state(self_state)
 
                 # Наблюдаем последствия прошлых действий (Feedback)
-                feedback_records = observe_consequences(
-                    self_state, pending_actions, event_queue
-                )
+                feedback_records = observe_consequences(self_state, pending_actions, event_queue)
 
                 # Log feedback records
                 for feedback in feedback_records:
                     # Try to find correlation ID from action (if available)
-                    correlation_id = (
-                        getattr(feedback, "correlation_id", None) or "feedback_chain"
-                    )
+                    correlation_id = getattr(feedback, "correlation_id", None) or "feedback_chain"
                     structured_logger.log_feedback(feedback, correlation_id)
 
                 # Сохраняем Feedback в Memory
@@ -524,9 +577,7 @@ def run_loop(
                         correlation_ids.append(correlation_id)
                     # Update intensity signal for this tick using exponential smoothing
                     try:
-                        current_max_intensity = max(
-                            [float(e.intensity) for e in events] + [0.0]
-                        )
+                        current_max_intensity = max([float(e.intensity) for e in events] + [0.0])
                         # Exponential smoothing: new_value = alpha * current + (1-alpha) * previous
                         alpha = self_state.subjective_time_intensity_smoothing
                         self_state.last_event_intensity = (
@@ -554,13 +605,13 @@ def run_loop(
 
                         # Log meaning
                         if correlation_id:
-                            structured_logger.log_meaning(
-                                event, meaning, correlation_id
-                            )
+                            structured_logger.log_meaning(event, meaning, correlation_id)
 
                         if meaning.significance > 0:
                             # Активация памяти для события с учетом субъективного времени
-                            activated = activate_memory(event.type, self_state.memory, self_state=self_state)
+                            activated = activate_memory(
+                                event.type, self_state.memory, self_state=self_state
+                            )
                             self_state.activated_memory = activated
                             logger.debug(
                                 f"[LOOP] Activated {len(activated)} memories for type '{event.type}'"
@@ -577,9 +628,9 @@ def run_loop(
                                     correlation_id,
                                     {
                                         "significance": meaning.significance,
-                                        "original_impact": meaning.impact.copy()
-                                        if meaning.impact
-                                        else {},
+                                        "original_impact": (
+                                            meaning.impact.copy() if meaning.impact else {}
+                                        ),
                                     },
                                 )
 
@@ -597,12 +648,8 @@ def run_loop(
                                 # Применяем эффективность восстановления от циркадного ритма
                                 recovery_impact = meaning.impact.copy()
                                 for key in recovery_impact:
-                                    if key in [
-                                        "energy"
-                                    ]:  # Восстановление влияет на энергию
-                                        recovery_impact[
-                                            key
-                                        ] *= self_state.recovery_efficiency
+                                    if key in ["energy"]:  # Восстановление влияет на энергию
+                                        recovery_impact[key] *= self_state.recovery_efficiency
                                 meaning.impact = recovery_impact
 
                             # КРИТИЧНО: Сохраняем снимок состояния ДО действия
@@ -617,14 +664,18 @@ def run_loop(
 
                             # Log action
                             if correlation_id:
-                                action_id = f"action_{self_state.ticks}_{pattern}_{int(time.time()*1000)}"
+                                action_id = (
+                                    f"action_{self_state.ticks}_{pattern}_{int(time.time()*1000)}"
+                                )
                                 structured_logger.log_action(
                                     action_id, pattern, correlation_id, state_before
                                 )
 
                             # Регистрируем для Feedback (после выполнения)
                             # Action не знает о Feedback - регистрация происходит в Loop
-                            action_id = f"action_{self_state.ticks}_{pattern}_{int(time.time()*1000)}"
+                            action_id = (
+                                f"action_{self_state.ticks}_{pattern}_{int(time.time()*1000)}"
+                            )
                             action_timestamp = time.time()
                             register_action(
                                 action_id,
@@ -647,36 +698,62 @@ def run_loop(
                             # Хук: Обновление экспериментальных метрик SelfState
                             if memory_hierarchy:
                                 # Обновление размера сенсорного буфера
-                                self_state.sensory_buffer_size = memory_hierarchy.sensory_buffer.buffer_size
+                                self_state.sensory_buffer_size = (
+                                    memory_hierarchy.sensory_buffer.buffer_size
+                                )
                                 # Обновление количества концепций
-                                self_state.semantic_concepts_count = len(memory_hierarchy.semantic_store._concepts) if memory_hierarchy.semantic_store else 0
+                                self_state.semantic_concepts_count = (
+                                    len(memory_hierarchy.semantic_store._concepts)
+                                    if memory_hierarchy.semantic_store
+                                    else 0
+                                )
                                 # Обновление количества паттернов
-                                self_state.procedural_patterns_count = len(memory_hierarchy.procedural_store._patterns) if memory_hierarchy.procedural_store else 0
+                                self_state.procedural_patterns_count = (
+                                    len(memory_hierarchy.procedural_store._patterns)
+                                    if memory_hierarchy.procedural_store
+                                    else 0
+                                )
 
                             if consciousness_engine:
-                                if hasattr(consciousness_engine, 'update_external_metrics'):
+                                if hasattr(consciousness_engine, "update_external_metrics"):
                                     # Многопоточная версия: обновляем внешние метрики
                                     consciousness_engine.update_external_metrics(
                                         energy=self_state.energy,
                                         stability=self_state.stability,
-                                        cognitive_load=getattr(self_state, 'cognitive_load', 0.3)
+                                        cognitive_load=getattr(self_state, "cognitive_load", 0.3),
                                     )
                                     # Считываем текущее состояние сознания
                                     snapshot = consciousness_engine.get_consciousness_snapshot()
-                                    self_state.consciousness_level = snapshot['metrics']['consciousness_level']
-                                    self_state.self_reflection_score = snapshot['metrics']['self_reflection_score']
-                                    self_state.meta_cognition_depth = snapshot['metrics']['meta_cognition_depth']
-                                    self_state.current_consciousness_state = snapshot['metrics']['current_state']
+                                    self_state.consciousness_level = snapshot["metrics"][
+                                        "consciousness_level"
+                                    ]
+                                    self_state.self_reflection_score = snapshot["metrics"][
+                                        "self_reflection_score"
+                                    ]
+                                    self_state.meta_cognition_depth = snapshot["metrics"][
+                                        "meta_cognition_depth"
+                                    ]
+                                    self_state.current_consciousness_state = snapshot["metrics"][
+                                        "current_state"
+                                    ]
                                 else:
                                     # Последовательная версия: рассчитываем каждый тик
-                                    consciousness_level = consciousness_engine.calculate_consciousness_level(self_state, events)
+                                    consciousness_level = (
+                                        consciousness_engine.calculate_consciousness_level(
+                                            self_state, events
+                                        )
+                                    )
                                     self_state.consciousness_level = consciousness_level
                                     # Определение состояния сознания
-                                    consciousness_state = consciousness_engine.determine_consciousness_state({
-                                        'consciousness_level': consciousness_level,
-                                        'energy': self_state.energy,
-                                        'stability': self_state.stability
-                                    })
+                                    consciousness_state = (
+                                        consciousness_engine.determine_consciousness_state(
+                                            {
+                                                "consciousness_level": consciousness_level,
+                                                "energy": self_state.energy,
+                                                "stability": self_state.stability,
+                                            }
+                                        )
+                                    )
                                     self_state.current_consciousness_state = consciousness_state
 
                         logger.debug(
@@ -702,13 +779,9 @@ def run_loop(
                 if internal_generator.should_generate_echo(
                     ticks_since_last_memory_echo, memory_pressure
                 ):
-                    internal_event = internal_generator.generate_memory_echo(
-                        memory_stats
-                    )
+                    internal_event = internal_generator.generate_memory_echo(memory_stats)
                     if internal_event:
-                        logger.debug(
-                            f"[LOOP] Generated internal event: {internal_event.type}"
-                        )
+                        logger.debug(f"[LOOP] Generated internal event: {internal_event.type}")
                         # Добавляем внутреннее событие в очередь для обработки на следующем тике
                         if event_queue:
                             event_queue.push(internal_event)
@@ -716,18 +789,14 @@ def run_loop(
                             # Логируем внутреннее событие
                             correlation_id = structured_logger.log_event(internal_event)
                         else:
-                            logger.warning(
-                                "[LOOP] No event queue available for internal event"
-                            )
+                            logger.warning("[LOOP] No event queue available for internal event")
                     else:
                         logger.debug("[LOOP] Internal event generator returned None")
                 else:
                     ticks_since_last_memory_echo += 1
                     # No events this tick -> gradually decay intensity signal using smoothing
                     alpha = self_state.subjective_time_intensity_smoothing
-                    self_state.last_event_intensity = (
-                        1 - alpha
-                    ) * self_state.last_event_intensity
+                    self_state.last_event_intensity = (1 - alpha) * self_state.last_event_intensity
 
                 # Learning (Этап 14) - медленное изменение внутренних параметров
                 # Вызывается раз в LEARNING_INTERVAL тиков, после Feedback, перед Planning/Intelligence
@@ -753,9 +822,7 @@ def run_loop(
                                 )
                             else:
                                 # Fallback: используем вспомогательную функцию без создания временного объекта
-                                self_state.learning_params = (
-                                    _get_default_learning_params()
-                                )
+                                self_state.learning_params = _get_default_learning_params()
 
                         # Валидируем структуру параметров
                         if not _validate_learning_params(self_state.learning_params):
@@ -769,28 +836,20 @@ def run_loop(
                                 )
                             else:
                                 # Fallback: используем вспомогательную функцию без создания временного объекта
-                                self_state.learning_params = (
-                                    _get_default_learning_params()
-                                )
+                                self_state.learning_params = _get_default_learning_params()
 
                         # Обрабатываем статистику из Memory
-                        statistics = learning_engine.process_statistics(
-                            self_state.memory
-                        )
+                        statistics = learning_engine.process_statistics(self_state.memory)
 
                         # Получаем текущие параметры
                         current_params = self_state.learning_params
 
                         # Медленно изменяем параметры (без оптимизации, без целей)
-                        new_params = learning_engine.adjust_parameters(
-                            statistics, current_params
-                        )
+                        new_params = learning_engine.adjust_parameters(statistics, current_params)
 
                         # Фиксируем изменения в SelfState (пустой словарь означает отсутствие изменений)
                         if new_params:
-                            learning_engine.record_changes(
-                                current_params, new_params, self_state
-                            )
+                            learning_engine.record_changes(current_params, new_params, self_state)
                     except (TypeError, ValueError) as e:
                         learning_errors += 1
                         logger.error(
@@ -806,9 +865,7 @@ def run_loop(
                             )
                     except Exception as e:
                         learning_errors += 1
-                        logger.error(
-                            f"Неожиданная ошибка в Learning: {e}", exc_info=True
-                        )
+                        logger.error(f"Неожиданная ошибка в Learning: {e}", exc_info=True)
                         # При неожиданных ошибках пропускаем только блок Learning,
                         # но продолжаем выполнение остальных частей итерации
                         if learning_errors >= max_errors_before_warning:
@@ -837,22 +894,23 @@ def run_loop(
                             max_age=MEMORY_MAX_AGE_SECONDS, min_weight=MEMORY_MIN_WEIGHT
                         )
                         if archived_count > 0:
-                            logger.info(
-                                f"[LOOP] Заархивировано {archived_count} записей памяти"
-                            )
+                            logger.info(f"[LOOP] Заархивировано {archived_count} записей памяти")
                     except Exception as e:
-                        logger.error(
-                            f"Ошибка в archive_old_entries: {e}", exc_info=True
-                        )
+                        logger.error(f"Ошибка в archive_old_entries: {e}", exc_info=True)
 
                 # Консолидация экспериментальной памяти
                 # Вызывается раз в MEMORY_CONSOLIDATION_INTERVAL тиков
-                if (memory_hierarchy and
-                    self_state.ticks > 0 and
-                    self_state.ticks % MEMORY_CONSOLIDATION_INTERVAL == 0):
+                if (
+                    memory_hierarchy
+                    and self_state.ticks > 0
+                    and self_state.ticks % MEMORY_CONSOLIDATION_INTERVAL == 0
+                ):
                     try:
                         consolidation_stats = memory_hierarchy.consolidate_memory(self_state)
-                        if consolidation_stats['sensory_to_episodic_transfers'] > 0 or consolidation_stats['episodic_to_semantic_transfers'] > 0:
+                        if (
+                            consolidation_stats["sensory_to_episodic_transfers"] > 0
+                            or consolidation_stats["episodic_to_semantic_transfers"] > 0
+                        ):
                             logger.info(
                                 f"[LOOP] Консолидация памяти: sensory→episodic={consolidation_stats['sensory_to_episodic_transfers']}, "
                                 f"episodic→semantic={consolidation_stats['episodic_to_semantic_transfers']}"
@@ -885,9 +943,7 @@ def run_loop(
                                 )
                             else:
                                 # Используем вспомогательную функцию без создания временного объекта
-                                self_state.learning_params = (
-                                    _get_default_learning_params()
-                                )
+                                self_state.learning_params = _get_default_learning_params()
 
                         if (
                             not hasattr(self_state, "adaptation_params")
@@ -903,9 +959,7 @@ def run_loop(
                                 )
                             else:
                                 # Fallback: используем вспомогательную функцию без создания временного объекта
-                                self_state.adaptation_params = (
-                                    _get_default_adaptation_params()
-                                )
+                                self_state.adaptation_params = _get_default_adaptation_params()
 
                         # Валидируем структуру параметров
                         if not _validate_learning_params(self_state.learning_params):
@@ -918,13 +972,9 @@ def run_loop(
                                 )
                             else:
                                 # Используем вспомогательную функцию без создания временного объекта
-                                self_state.learning_params = (
-                                    _get_default_learning_params()
-                                )
+                                self_state.learning_params = _get_default_learning_params()
 
-                        if not _validate_adaptation_params(
-                            self_state.adaptation_params
-                        ):
+                        if not _validate_adaptation_params(self_state.adaptation_params):
                             logger.error(
                                 "adaptation_params имеет некорректную структуру, исправляем значениями по умолчанию"
                             )
@@ -934,9 +984,7 @@ def run_loop(
                                 )
                             else:
                                 # Fallback: используем вспомогательную функцию без создания временного объекта
-                                self_state.adaptation_params = (
-                                    _get_default_adaptation_params()
-                                )
+                                self_state.adaptation_params = _get_default_adaptation_params()
 
                         # Анализируем изменения от Learning
                         analysis = adaptation_manager.analyze_changes(
@@ -946,9 +994,7 @@ def run_loop(
 
                         # Получаем текущие параметры поведения (безопасная копия для истории)
                         # Используем оптимизированное копирование вместо глубокого
-                        old_behavior_params = _safe_copy_dict(
-                            self_state.adaptation_params
-                        )
+                        old_behavior_params = _safe_copy_dict(self_state.adaptation_params)
 
                         # Применяем адаптацию (медленная перестройка поведения)
                         new_behavior_params = adaptation_manager.apply_adaptation(
@@ -967,9 +1013,7 @@ def run_loop(
                                     )
                                 else:
                                     # Существующий параметр - объединение
-                                    current_value_dict = self_state.adaptation_params[
-                                        key
-                                    ]
+                                    current_value_dict = self_state.adaptation_params[key]
                                     if isinstance(new_value_dict, dict) and isinstance(
                                         current_value_dict, dict
                                     ):
@@ -1002,9 +1046,7 @@ def run_loop(
                         # но продолжаем выполнение остальных частей итерации
                         pass
                     except Exception as e:
-                        logger.error(
-                            f"Неожиданная ошибка в Adaptation: {e}", exc_info=True
-                        )
+                        logger.error(f"Неожиданная ошибка в Adaptation: {e}", exc_info=True)
                         # При неожиданных ошибках пропускаем только блок Adaptation,
                         # но продолжаем выполнение остальных частей итерации
                         pass
@@ -1032,9 +1074,7 @@ def run_loop(
                 # Log tick end with performance metrics
                 tick_duration = (time.time() - tick_start_time) * 1000  # ms
                 events_processed = len(events) if "events" in locals() else 0
-                structured_logger.log_tick_end(
-                    self_state.ticks, tick_duration, events_processed
-                )
+                structured_logger.log_tick_end(self_state.ticks, tick_duration, events_processed)
 
                 # Flush логов перед снапшотом (если политика требует)
                 log_manager.maybe_flush(self_state, phase="before_snapshot")
@@ -1067,9 +1107,9 @@ def run_loop(
                 # Остановка многопоточной системы сознания
                 if enable_parallel_consciousness and consciousness_engine:
                     consciousness_engine.stop()
-                    structured_logger.log_event({
-                        "event_type": "parallel_consciousness_engine_stopped"
-                    })
+                    structured_logger.log_event(
+                        {"event_type": "parallel_consciousness_engine_stopped"}
+                    )
 
                 # Flush логов при завершении (обязательно)
                 log_manager.maybe_flush(self_state, phase="shutdown")
@@ -1102,17 +1142,13 @@ def run_loop(
             # Сохраняем в файл для анализа
             profile_filename = f"data/runtime_loop_profile_{int(time.time())}.prof"
             profiler.dump_stats(profile_filename)
-            logger.info(
-                f"[PROFILING] Результаты профилирования сохранены в {profile_filename}"
-            )
+            logger.info(f"[PROFILING] Результаты профилирования сохранены в {profile_filename}")
 
             # Выводим краткую статистику в лог
             s = StringIO()
             stats = pstats.Stats(profiler, stream=s)
             stats.sort_stats("cumulative")
             stats.print_stats(10)
-            logger.info(
-                f"[PROFILING] Top 10 функций по cumulative time:\n{s.getvalue()}"
-            )
+            logger.info(f"[PROFILING] Top 10 функций по cumulative time:\n{s.getvalue()}")
     else:
         run_main_loop()

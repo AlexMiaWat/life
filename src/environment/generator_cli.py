@@ -16,9 +16,7 @@ from src.logging_config import get_logger, setup_logging
 logger = get_logger(__name__)
 
 
-def send_event(
-    host: str, port: int, payload: dict
-) -> tuple[bool, int | None, str, str]:
+def send_event(host: str, port: int, payload: dict) -> tuple[bool, int | None, str, str]:
     url = f"http://{host}:{port}/event"
     try:
         resp = requests.post(url, json=payload, timeout=5)

@@ -70,9 +70,7 @@ class TestStructuredLoggerStatic:
 
         # log_meaning
         sig = inspect.signature(logger.log_meaning)
-        assert (
-            len(sig.parameters) == 3
-        )  # event + meaning + correlation_id (self не считается)
+        assert len(sig.parameters) == 3  # event + meaning + correlation_id (self не считается)
         assert "event" in sig.parameters
         assert "meaning" in sig.parameters
         assert "correlation_id" in sig.parameters
@@ -125,9 +123,7 @@ class TestStructuredLoggerStatic:
 
         # log_error
         sig = inspect.signature(logger.log_error)
-        assert (
-            len(sig.parameters) == 3
-        )  # stage + error + correlation_id (self не считается)
+        assert len(sig.parameters) == 3  # stage + error + correlation_id (self не считается)
         assert "stage" in sig.parameters
         assert "error" in sig.parameters
         assert "correlation_id" in sig.parameters
@@ -220,9 +216,7 @@ class TestStructuredLoggerStatic:
         ]
 
         for method in forbidden_methods:
-            assert (
-                method not in methods
-            ), f"StructuredLogger не должен иметь метод {method}"
+            assert method not in methods, f"StructuredLogger не должен иметь метод {method}"
 
     def test_structured_logger_architecture_compliance(self):
         """Проверка соответствия архитектуре наблюдаемости"""
@@ -249,15 +243,11 @@ class TestStructuredLoggerStatic:
         # Исключаем простые циклы в _write_log_entry и _get_next_correlation_id
         lines = [line.strip() for line in source_code.split("\n") if line.strip()]
         code_lines = [
-            line
-            for line in lines
-            if not line.startswith('"""') and not line.startswith("'''")
+            line for line in lines if not line.startswith('"""') and not line.startswith("'''")
         ]
 
         for pattern in forbidden_patterns:
-            matching_lines = [
-                line for line in code_lines if pattern.lower() in line.lower()
-            ]
+            matching_lines = [line for line in code_lines if pattern.lower() in line.lower()]
             # Разрешаем только комментарии и docstrings
             for line in matching_lines:
                 assert any(

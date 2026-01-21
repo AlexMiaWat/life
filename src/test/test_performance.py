@@ -53,9 +53,7 @@ class TestPerformanceBenchmarks:
         elapsed = time.time() - start_time
 
         # Обновляем baseline если нужно
-        update_baseline_if_needed(
-            "test_memory_append_performance", {"elapsed": elapsed}
-        )
+        update_baseline_if_needed("test_memory_append_performance", {"elapsed": elapsed})
 
         # Проверяем на регрессию
         regression_check = performance_baseline.check_regression(
@@ -66,9 +64,7 @@ class TestPerformanceBenchmarks:
         print(regression_check["message"])
 
         # Проверяем производительность: должно быть < 0.1 секунды на 1000 записей
-        assert (
-            elapsed < 0.1
-        ), f"Memory append too slow: {elapsed:.3f}s for {num_entries} entries"
+        assert elapsed < 0.1, f"Memory append too slow: {elapsed:.3f}s for {num_entries} entries"
 
         # Проверяем на регрессию
         assert not regression_check["is_regression"], regression_check["message"]
@@ -110,9 +106,7 @@ class TestPerformanceBenchmarks:
         # Тест push
         start_time = time.time()
         for i in range(num_events):
-            event = Event(
-                type=f"event_{i % 10}", intensity=0.5, timestamp=time.time() + i
-            )
+            event = Event(type=f"event_{i % 10}", intensity=0.5, timestamp=time.time() + i)
             queue.push(event)
         push_elapsed = time.time() - start_time
 
@@ -265,9 +259,7 @@ class TestPerformanceBenchmarks:
         elapsed = time.time() - start_time
 
         # 1000 поисков должны выполняться быстро (< 0.1 секунды)
-        assert (
-            elapsed < 0.1
-        ), f"Memory search too slow: {elapsed:.3f}s for 1000 searches"
+        assert elapsed < 0.1, f"Memory search too slow: {elapsed:.3f}s for 1000 searches"
         assert len(results) == 10  # Должно быть 10 записей типа "event_0"
 
     def test_state_snapshot_performance(self):
@@ -360,13 +352,9 @@ class TestPerformanceBenchmarks:
         assert (
             process_elapsed < 0.5
         ), f"Learning process_statistics too slow: {process_elapsed:.3f}s for {num_entries} entries"
-        assert (
-            adjust_elapsed < 0.1
-        ), f"Learning adjust_parameters too slow: {adjust_elapsed:.3f}s"
+        assert adjust_elapsed < 0.1, f"Learning adjust_parameters too slow: {adjust_elapsed:.3f}s"
         assert new_params is not None
-        assert statistics["total_entries"] == min(
-            num_entries, 50
-        )  # Memory ограничена 50 записями
+        assert statistics["total_entries"] == min(num_entries, 50)  # Memory ограничена 50 записями
 
     def test_adaptation_manager_performance_with_frequent_calls(self):
         """Benchmark: производительность Adaptation Manager при частых вызовах"""
@@ -399,17 +387,13 @@ class TestPerformanceBenchmarks:
         num_iterations = 1000
         start_time = time.time()
         for _ in range(num_iterations):
-            analysis = adaptation_manager.analyze_changes(
-                learning_params, adaptation_history
-            )
+            analysis = adaptation_manager.analyze_changes(learning_params, adaptation_history)
         analyze_elapsed = time.time() - start_time
 
         # Тест производительности apply_adaptation
         start_time = time.time()
         for _ in range(num_iterations):
-            _ = adaptation_manager.apply_adaptation(
-                analysis, current_behavior_params, None
-            )
+            _ = adaptation_manager.apply_adaptation(analysis, current_behavior_params, None)
         apply_elapsed = time.time() - start_time
 
         # Проверки производительности
@@ -461,13 +445,10 @@ class TestPerformanceBenchmarks:
         elapsed = time.time() - start_time
 
         # Проверки производительности и корректности
-        assert (
-            elapsed < 2.0
-        ), f"Meaning Engine too slow: {elapsed:.3f}s for {num_events} events"
+        assert elapsed < 2.0, f"Meaning Engine too slow: {elapsed:.3f}s for {num_events} events"
         assert len(meanings) == num_events
         assert all(
-            meaning.significance >= 0.0 and meaning.significance <= 1.0
-            for meaning in meanings
+            meaning.significance >= 0.0 and meaning.significance <= 1.0 for meaning in meanings
         )
         assert all(isinstance(meaning.impact, dict) for meaning in meanings)
 
@@ -535,9 +516,7 @@ class TestPerformanceBenchmarks:
         ticks_done = state.ticks - initial_ticks
 
         # Проверки производительности (более мягкие лимиты для интеграционного теста)
-        assert (
-            ticks_done >= 30
-        ), f"Loop didn't complete enough ticks: {ticks_done} (expected >= 30)"
+        assert ticks_done >= 30, f"Loop didn't complete enough ticks: {ticks_done} (expected >= 30)"
         assert elapsed < 8.0, f"Loop too slow: {elapsed:.3f}s for {ticks_done} ticks"
 
         # Проверяем, что Learning и Adaptation вызывались
@@ -558,9 +537,7 @@ class TestPerformanceBenchmarks:
 
         start_time = time.time()
         for i in range(num_events):
-            event = Event(
-                type=f"event_{i % 5}", intensity=0.5, timestamp=time.time() + i
-            )
+            event = Event(type=f"event_{i % 5}", intensity=0.5, timestamp=time.time() + i)
             queue.push(event)  # Должен логировать переполнение для некоторых событий
         overflow_elapsed = time.time() - start_time
 
@@ -585,9 +562,7 @@ class TestPerformanceBenchmarks:
         assert not overflow_regression["is_regression"], overflow_regression["message"]
 
         # Проверяем, что некоторые события были потеряны
-        assert (
-            queue._dropped_events_count > 0
-        ), "Expected some events to be dropped due to overflow"
+        assert queue._dropped_events_count > 0, "Expected some events to be dropped due to overflow"
 
     def test_subjective_time_performance(self):
         """Benchmark: влияние субъективного времени на производительность"""
@@ -647,9 +622,7 @@ class TestPerformanceBenchmarks:
         search_start = time.time()
         # Имитируем поиск (пока просто итерация)
         count = sum(
-            1
-            for entry in memory
-            if entry.subjective_timestamp and entry.subjective_timestamp > 500
+            1 for entry in memory if entry.subjective_timestamp and entry.subjective_timestamp > 500
         )
         search_elapsed = time.time() - search_start
 
@@ -682,9 +655,7 @@ class TestPerformanceBenchmarks:
         assert not search_regression["is_regression"], search_regression["message"]
 
         # Проверяем результаты
-        assert (
-            count > 0
-        ), "Expected to find some entries with subjective_timestamp > 500"
+        assert count > 0, "Expected to find some entries with subjective_timestamp > 500"
 
 
 if __name__ == "__main__":

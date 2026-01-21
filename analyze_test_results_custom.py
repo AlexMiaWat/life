@@ -143,8 +143,8 @@ def create_report(results, output_file):
 
 
 def main():
-    xml_file = "test_results.xml"
-    output_file = "docs/results/test_full_task_1768951311.md"
+    xml_file = "test_results_observability.xml"
+    output_file = "docs/results/test_full_task_1769013311.md"
 
     # Create directory if it doesn't exist
     os.makedirs(os.path.dirname(output_file), exist_ok=True)

@@ -45,11 +45,7 @@ class TestAPISimplified:
 
     def test_post_event_basic(self, client):
         """Тест POST /event - создание базового события"""
-        event_data = {
-            "type": "test_event",
-            "intensity": 0.5,
-            "metadata": {"test": True}
-        }
+        event_data = {"type": "test_event", "intensity": 0.5, "metadata": {"test": True}}
         response = client.post("/event", json=event_data)
         assert response.status_code == 200
         data = response.json()
@@ -59,9 +55,7 @@ class TestAPISimplified:
 
     def test_post_event_minimal(self, client):
         """Тест POST /event с минимальными данными"""
-        event_data = {
-            "type": "minimal_event"
-        }
+        event_data = {"type": "minimal_event"}
         response = client.post("/event", json=event_data)
         assert response.status_code == 200
         data = response.json()
@@ -93,18 +87,12 @@ class TestAPISimplified:
     def test_event_validation(self, client):
         """Тест валидации данных события"""
         # Некорректный тип события - пустой тип
-        event_data = {
-            "type": "",  # пустой тип
-            "intensity": 0.5
-        }
+        event_data = {"type": "", "intensity": 0.5}  # пустой тип
         response = client.post("/event", json=event_data)
         # В текущей реализации API принимает пустой тип, но это можно изменить
         assert response.status_code in [200, 422]  # Либо принимает, либо валидирует
 
         # Некорректная интенсивность
-        event_data = {
-            "type": "test",
-            "intensity": 2.0  # интенсивность > 1.0 может быть принята
-        }
+        event_data = {"type": "test", "intensity": 2.0}  # интенсивность > 1.0 может быть принята
         response = client.post("/event", json=event_data)
         assert response.status_code == 200  # API принимает любые значения интенсивности

@@ -27,9 +27,7 @@ def create_instances(manager: ComparisonManager, count: int, prefix: str = "life
     for i in range(count):
         instance_id = f"{prefix}_{i+1}"
         instance = manager.create_instance(
-            instance_id=instance_id,
-            tick_interval=1.0,
-            snapshot_period=5
+            instance_id=instance_id, tick_interval=1.0, snapshot_period=5
         )
         if instance:
             instances.append(instance_id)
@@ -53,6 +51,7 @@ def run_comparison(manager: ComparisonManager, instances: list, duration: float)
 
     # Запускаем сбор данных
     comparison_data = []
+
     def data_callback(data):
         comparison_data.append(data)
         logger.info(f"Collected data from {len(data.get('instances', {}))} instances")
@@ -82,12 +81,12 @@ def print_comparison_summary(data_list):
     # Берем последние данные
     latest_data = data_list[-1]
 
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("COMPARISON SUMMARY")
-    print("="*80)
+    print("=" * 80)
 
-    instances = latest_data.get('instances', {})
-    summary = latest_data.get('summary', {})
+    instances = latest_data.get("instances", {})
+    summary = latest_data.get("summary", {})
 
     print(f"Total instances: {len(instances)}")
     print(f"Active instances: {summary.get('active_instances', 0)}")
@@ -99,16 +98,22 @@ def print_comparison_summary(data_list):
 
     print("\nInstance details:")
     for instance_id, data in instances.items():
-        status = data.get('status', {})
-        print(f"  {instance_id}: alive={status.get('is_alive')}, uptime={status.get('uptime', 0):.1f}s")
+        status = data.get("status", {})
+        print(
+            f"  {instance_id}: alive={status.get('is_alive')}, uptime={status.get('uptime', 0):.1f}s"
+        )
 
 
 def main():
     parser = argparse.ArgumentParser(description="Life Comparison System CLI")
-    parser.add_argument("--instances", type=int, default=3, help="Number of Life instances to create")
+    parser.add_argument(
+        "--instances", type=int, default=3, help="Number of Life instances to create"
+    )
     parser.add_argument("--duration", type=float, default=30, help="Comparison duration in seconds")
     parser.add_argument("--prefix", default="life", help="Instance name prefix")
-    parser.add_argument("--api", action="store_true", help="Start API server instead of CLI comparison")
+    parser.add_argument(
+        "--api", action="store_true", help="Start API server instead of CLI comparison"
+    )
     parser.add_argument("--api-host", default="localhost", help="API server host")
     parser.add_argument("--api-port", type=int, default=8001, help="API server port")
     parser.add_argument("--output", type=str, help="Output file for comparison results")
@@ -147,16 +152,16 @@ def main():
         # Сохраняем результаты если указано
         if args.output:
             output_data = {
-                'config': {
-                    'instances_count': len(instances),
-                    'duration': args.duration,
-                    'prefix': args.prefix
+                "config": {
+                    "instances_count": len(instances),
+                    "duration": args.duration,
+                    "prefix": args.prefix,
                 },
-                'instances': instances,
-                'comparison_data': comparison_data
+                "instances": instances,
+                "comparison_data": comparison_data,
             }
 
-            with open(args.output, 'w', encoding='utf-8') as f:
+            with open(args.output, "w", encoding="utf-8") as f:
                 json.dump(output_data, f, indent=2, ensure_ascii=False)
 
             logger.info(f"Results saved to {args.output}")

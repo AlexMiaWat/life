@@ -131,9 +131,7 @@ class TestRuntimeLoopEdgeCases:
         # Цикл должен продолжить работу несмотря на ошибку monitor
         assert base_state.ticks > 0
 
-    def test_loop_snapshot_exception_handling(
-        self, base_state, event_queue, tmp_path, monkeypatch
-    ):
+    def test_loop_snapshot_exception_handling(self, base_state, event_queue, tmp_path, monkeypatch):
         """Тест обработки исключений при сохранении snapshot (строки 136-138)"""
         import state.self_state as state_module
 
@@ -181,9 +179,7 @@ class TestRuntimeLoopEdgeCases:
         finally:
             state_module.SNAPSHOT_DIR = original_dir
 
-    def test_loop_general_exception_handling(
-        self, base_state, event_queue, monkeypatch
-    ):
+    def test_loop_general_exception_handling(self, base_state, event_queue, monkeypatch):
         """Тест обработки общих исключений в цикле (строки 146-149)"""
         stop_event = threading.Event()
 

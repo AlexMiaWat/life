@@ -28,6 +28,7 @@ logger = get_logger(__name__)
 @dataclass
 class LifeConfig:
     """Конфигурация для одного инстанса Life"""
+
     instance_id: str
     tick_interval: float = 1.0
     snapshot_period: int = 10
@@ -88,13 +89,17 @@ class LifeInstance:
 
             # Настраиваем переменные окружения для изоляции данных
             env = os.environ.copy()
-            env.update({
-                'LIFE_INSTANCE_ID': self.config.instance_id,
-                'LIFE_DATA_DIR': str(self.instance_data_dir),
-                'LIFE_PORT': str(self.config.port)
-            })
+            env.update(
+                {
+                    "LIFE_INSTANCE_ID": self.config.instance_id,
+                    "LIFE_DATA_DIR": str(self.instance_data_dir),
+                    "LIFE_PORT": str(self.config.port),
+                }
+            )
 
-            logger.info(f"Starting Life instance '{self.config.instance_id}' with command: {' '.join(cmd)}")
+            logger.info(
+                f"Starting Life instance '{self.config.instance_id}' with command: {' '.join(cmd)}"
+            )
 
             # Запускаем процесс
             self.process = subprocess.Popen(
@@ -103,7 +108,7 @@ class LifeInstance:
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
-                cwd=os.getcwd()
+                cwd=os.getcwd(),
             )
 
             self.start_time = time.time()
@@ -111,12 +116,12 @@ class LifeInstance:
 
             # Запускаем мониторинг процесса в отдельном потоке
             threading.Thread(
-                target=self._monitor_process,
-                daemon=True,
-                name=f"monitor-{self.config.instance_id}"
+                target=self._monitor_process, daemon=True, name=f"monitor-{self.config.instance_id}"
             ).start()
 
-            logger.info(f"Life instance '{self.config.instance_id}' started successfully (PID: {self.process.pid})")
+            logger.info(
+                f"Life instance '{self.config.instance_id}' started successfully (PID: {self.process.pid})"
+            )
             return True
 
         except Exception as e:
@@ -138,7 +143,9 @@ class LifeInstance:
             return True
 
         try:
-            logger.info(f"Stopping Life instance '{self.config.instance_id}' (PID: {self.process.pid})")
+            logger.info(
+                f"Stopping Life instance '{self.config.instance_id}' (PID: {self.process.pid})"
+            )
 
             # Посылаем сигнал SIGTERM
             self.process.terminate()
@@ -150,7 +157,9 @@ class LifeInstance:
                 logger.info(f"Life instance '{self.config.instance_id}' stopped successfully")
                 return True
             except subprocess.TimeoutExpired:
-                logger.warning(f"Life instance '{self.config.instance_id}' didn't stop gracefully, killing...")
+                logger.warning(
+                    f"Life instance '{self.config.instance_id}' didn't stop gracefully, killing..."
+                )
                 self.process.kill()
                 self.process.wait(timeout=2.0)
                 self.is_running = False
@@ -198,20 +207,20 @@ class LifeInstance:
             Dict с информацией о статусе инстанса
         """
         return {
-            'instance_id': self.config.instance_id,
-            'is_running': self.is_running,
-            'is_alive': self.is_alive(),
-            'start_time': self.start_time,
-            'uptime': time.time() - self.start_time if self.start_time else 0,
-            'pid': self.process.pid if self.process else None,
-            'port': self.config.port,
-            'data_dir': str(self.instance_data_dir),
-            'config': {
-                'tick_interval': self.config.tick_interval,
-                'snapshot_period': self.config.snapshot_period,
-                'dev_mode': self.config.dev_mode,
-                'profiling': self.config.enable_profiling
-            }
+            "instance_id": self.config.instance_id,
+            "is_running": self.is_running,
+            "is_alive": self.is_alive(),
+            "start_time": self.start_time,
+            "uptime": time.time() - self.start_time if self.start_time else 0,
+            "pid": self.process.pid if self.process else None,
+            "port": self.config.port,
+            "data_dir": str(self.instance_data_dir),
+            "config": {
+                "tick_interval": self.config.tick_interval,
+                "snapshot_period": self.config.snapshot_period,
+                "dev_mode": self.config.dev_mode,
+                "profiling": self.config.enable_profiling,
+            },
         }
 
     def get_latest_snapshot(self) -> Optional[Dict[str, Any]]:
@@ -229,7 +238,7 @@ class LifeInstance:
             # Находим самый свежий snapshot
             latest_snapshot = max(snapshot_files, key=lambda p: p.stat().st_mtime)
 
-            with open(latest_snapshot, 'r', encoding='utf-8') as f:
+            with open(latest_snapshot, "r", encoding="utf-8") as f:
                 return json.load(f)
 
         except Exception as e:
@@ -252,7 +261,7 @@ class LifeInstance:
             if not self.structured_log_path.exists():
                 return logs
 
-            with open(self.structured_log_path, 'r', encoding='utf-8') as f:
+            with open(self.structured_log_path, "r", encoding="utf-8") as f:
                 for line_num, line in enumerate(f):
                     if limit is not None and line_num >= limit:
                         break
@@ -265,7 +274,9 @@ class LifeInstance:
                             logger.warning(f"Invalid JSON in log line {line_num}: {line}")
 
         except Exception as e:
-            logger.error(f"Error reading structured logs for instance '{self.config.instance_id}': {e}")
+            logger.error(
+                f"Error reading structured logs for instance '{self.config.instance_id}': {e}"
+            )
 
         return logs
 
@@ -274,8 +285,10 @@ class LifeInstance:
         cmd = [
             sys.executable,
             "src/main_server_api.py",
-            "--tick-interval", str(self.config.tick_interval),
-            "--snapshot-period", str(self.config.snapshot_period)
+            "--tick-interval",
+            str(self.config.tick_interval),
+            "--snapshot-period",
+            str(self.config.snapshot_period),
         ]
 
         if self.config.clear_data_on_start:
@@ -317,7 +330,9 @@ class LifeInstance:
 
     def __str__(self) -> str:
         status = self.get_status()
-        return (f"LifeInstance(id='{status['instance_id']}', "
-                f"running={status['is_running']}, "
-                f"alive={status['is_alive']}, "
-                f"uptime={status['uptime']:.1f}s)")
+        return (
+            f"LifeInstance(id='{status['instance_id']}', "
+            f"running={status['is_running']}, "
+            f"alive={status['is_alive']}, "
+            f"uptime={status['uptime']:.1f}s)"
+        )

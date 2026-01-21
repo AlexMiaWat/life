@@ -146,11 +146,7 @@ class TestStructuredLoggerIntegration:
                 complete_chains = 0
                 for chain in correlation_chains.values():
                     stages = [entry["stage"] for entry in chain]
-                    if (
-                        "event" in stages
-                        and "meaning" in stages
-                        and "decision" in stages
-                    ):
+                    if "event" in stages and "meaning" in stages and "decision" in stages:
                         complete_chains += 1
 
                 assert complete_chains >= 1  # Хотя бы одна полная цепочка
@@ -230,9 +226,7 @@ class TestStructuredLoggerIntegration:
                 expected_stages = ["event", "meaning", "decision", "action", "feedback"]
 
                 for stage in expected_stages:
-                    assert (
-                        stage in stages
-                    ), f"Стадия {stage} отсутствует в цепочке {corr_id}"
+                    assert stage in stages, f"Стадия {stage} отсутствует в цепочке {corr_id}"
 
                 # Проверяем временную последовательность
                 timestamps = [entry["timestamp"] for entry in chain]
@@ -435,9 +429,7 @@ class TestStructuredLoggerIntegration:
                     ]
 
                     for stage in required_stages:
-                        assert (
-                            stage in stages
-                        ), f"Стадия {stage} отсутствует в цепочке {corr_id}"
+                        assert stage in stages, f"Стадия {stage} отсутствует в цепочке {corr_id}"
 
                     # Проверяем, что записи одной цепочки имеют одинаковый correlation_id
                     chain_corr_ids = [entry["correlation_id"] for entry in chain]
@@ -465,9 +457,7 @@ class TestStructuredLoggerIntegration:
             ]
 
             for event_type, intensity, expected_pattern in test_events:
-                event = Event(
-                    type=event_type, intensity=intensity, timestamp=time.time()
-                )
+                event = Event(type=event_type, intensity=intensity, timestamp=time.time())
                 corr_id = logger.log_event(event)
 
                 # Имитируем meaning и decision на основе типа события
@@ -529,9 +519,7 @@ class TestStructuredLoggerIntegration:
         event = Event(type="noise", intensity=0.5, timestamp=1.0)
         corr_id = logger.log_event(event)
 
-        logger.log_meaning(
-            event, type("Mock", (), {"significance": 0.5, "impact": {}})(), corr_id
-        )
+        logger.log_meaning(event, type("Mock", (), {"significance": 0.5, "impact": {}})(), corr_id)
         logger.log_decision("absorb", corr_id)
         logger.log_action("action_001", "absorb", corr_id)
         logger.log_feedback(

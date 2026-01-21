@@ -22,21 +22,52 @@ def record_potential_sequences(self_state: SelfState) -> None:
 
     # Расчет метрик восприятия времени
     time_ratio = self_state.subjective_time / self_state.age if self_state.age > 0 else 1.0
-    time_perception = "accelerated" if time_ratio >= 1.1 else "normal" if time_ratio > 0.9 else "slowed"
+    time_perception = (
+        "accelerated" if time_ratio >= 1.1 else "normal" if time_ratio > 0.9 else "slowed"
+    )
 
-    # Модификация параметров фиксации на основе восприятия времени
-    if time_perception == "accelerated":
-        # При ускоренном восприятии - более длинные последовательности, больше вариантов
-        min_sequence_length = 3
-        max_sequences = 2
-    elif time_perception == "slowed":
-        # При замедленном восприятии - более короткие последовательности, меньше вариантов
-        min_sequence_length = 2
-        max_sequences = 1
+    # Циркадные метрики для планирования
+    import math
+    circadian_phase_rad = self_state.circadian_phase
+    if circadian_phase_rad < math.pi / 2:
+        circadian_phase = "dawn"
+        planning_horizon = 0.7  # Короткий горизонт планирования
+    elif circadian_phase_rad < math.pi:
+        circadian_phase = "day"
+        planning_horizon = 1.5  # Длинный горизонт планирования
+    elif circadian_phase_rad < 3 * math.pi / 2:
+        circadian_phase = "dusk"
+        planning_horizon = 1.0  # Средний горизонт планирования
     else:
-        # Нормальное восприятие - стандартные параметры
-        min_sequence_length = 2
-        max_sequences = 1
+        circadian_phase = "night"
+        planning_horizon = 0.5  # Минимальный горизонт планирования
+
+    # Модификация параметров фиксации на основе восприятия времени и циркадных ритмов
+    base_min_length = 2
+    base_max_sequences = 1
+
+    # Корректировка на основе восприятия времени с учетом моментов ясности
+    time_modifier = 1.0
+    clarity_modifier = 1.0
+
+    # Проверяем, активен ли момент ясности
+    clarity_active = getattr(self_state, 'clarity_moment_active', False)
+    if clarity_active:
+        clarity_modifier = 1.3  # Моменты ясности расширяют горизонты планирования
+
+    # Более плавная корректировка на основе конкретного значения time_ratio
+    if time_ratio > 1.2:
+        time_modifier = 1.6 * clarity_modifier  # Значительно ускоренное восприятие
+    elif time_ratio > 1.1:
+        time_modifier = 1.3 * clarity_modifier  # Умеренно ускоренное восприятие
+    elif time_ratio < 0.8:
+        time_modifier = 0.5 * clarity_modifier  # Значительно замедленное восприятие
+    elif time_ratio < 0.9:
+        time_modifier = 0.8 * clarity_modifier  # Умеренно замедленное восприятие
+
+    # Финальные параметры с учетом циркадного горизонта
+    min_sequence_length = max(1, int(base_min_length * time_modifier * planning_horizon))
+    max_sequences = max(1, int(base_max_sequences * time_modifier * planning_horizon))
 
     # Фиксация последовательностей с модифицированными параметрами
     potential_sequences: List[List[str]] = []
@@ -55,5 +86,18 @@ def record_potential_sequences(self_state: SelfState) -> None:
             "memory_proxy": len(recent_events),
             "learning_proxy": len(stability_history),
             "adaptation_proxy": len(energy_history),
+        },
+        "circadian_phase": circadian_phase,
+        "planning_horizon": planning_horizon,
+        "time_perception": time_perception,
+        "clarity_influenced": clarity_active,
+        "subjective_time_integration": {
+            "time_ratio": time_ratio,
+            "time_modifier": time_modifier,
+            "clarity_modifier": clarity_modifier,
+        },
+        "parameters": {
+            "min_sequence_length": min_sequence_length,
+            "max_sequences": max_sequences,
         },
     }

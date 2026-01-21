@@ -31,12 +31,10 @@ class TestAPIConcurrency:
 
     def test_api_status_read_during_runtime_modification(self):
         """Тест чтения статуса API во время модификации runtime"""
-        client = TestClient(app, timeout=10.0)
+        client = TestClient(app)
 
         # Получаем токен
-        login_response = client.post(
-            "/token", data={"username": "admin", "password": "admin123"}
-        )
+        login_response = client.post("/token", data={"username": "admin", "password": "admin123"})
         assert login_response.status_code == 200
         token = login_response.json()["access_token"]
         headers = {"Authorization": f"Bearer {token}"}
@@ -85,12 +83,10 @@ class TestAPIConcurrency:
 
     def test_concurrent_api_requests_same_user(self):
         """Тест конкурентных запросов API от одного пользователя"""
-        client = TestClient(app, timeout=10.0)
+        client = TestClient(app)
 
         # Получаем токен
-        login_response = client.post(
-            "/token", data={"username": "admin", "password": "admin123"}
-        )
+        login_response = client.post("/token", data={"username": "admin", "password": "admin123"})
         assert login_response.status_code == 200
         token = login_response.json()["access_token"]
         headers = {"Authorization": f"Bearer {token}"}
@@ -101,9 +97,7 @@ class TestAPIConcurrency:
             try:
                 # Делаем запрос статуса
                 response = client.get("/status", headers=headers)
-                results.append(
-                    (request_id, response.status_code, response.json().get("active"))
-                )
+                results.append((request_id, response.status_code, response.json().get("active")))
             except Exception as e:
                 results.append((request_id, "error", str(e)))
 
@@ -126,7 +120,7 @@ class TestAPIConcurrency:
 
     def test_concurrent_event_submission_and_status_read(self):
         """Тест конкурентной отправки событий и чтения статуса"""
-        client = TestClient(app, timeout=10.0)
+        client = TestClient(app)
 
         # Регистрируем пользователя для теста
         user_data = {
@@ -201,7 +195,7 @@ class TestAPIConcurrency:
 
     def test_api_state_isolation_between_users(self):
         """Тест изоляции состояния между пользователями"""
-        client = TestClient(app, timeout=10.0)
+        client = TestClient(app)
 
         # Создаем двух пользователей
         users = [
@@ -232,24 +226,20 @@ class TestAPIConcurrency:
 
     def test_api_handles_concurrent_token_generation(self):
         """Тест конкурентной генерации токенов"""
-        client = TestClient(app, timeout=10.0)
+        client = TestClient(app)
 
         results = []
 
         def get_token(attempt_id):
             try:
-                response = client.post(
-                    "/token", data={"username": "admin", "password": "admin123"}
-                )
+                response = client.post("/token", data={"username": "admin", "password": "admin123"})
                 results.append((attempt_id, response.status_code))
                 if response.status_code == 200:
                     token = response.json()["access_token"]
                     # Проверяем, что токен валиден
                     headers = {"Authorization": f"Bearer {token}"}
                     status_response = client.get("/status", headers=headers)
-                    results.append(
-                        (f"{attempt_id}_verify", status_response.status_code)
-                    )
+                    results.append((f"{attempt_id}_verify", status_response.status_code))
             except Exception as e:
                 results.append((attempt_id, f"error: {e}"))
 
@@ -265,14 +255,10 @@ class TestAPIConcurrency:
 
         # Проверяем результаты
         successful_tokens = [
-            r
-            for r in results
-            if len(r) >= 2 and r[1] == 200 and not str(r[0]).endswith("_verify")
+            r for r in results if len(r) >= 2 and r[1] == 200 and not str(r[0]).endswith("_verify")
         ]
         successful_verifications = [
-            r
-            for r in results
-            if len(r) >= 2 and str(r[0]).endswith("_verify") and r[1] == 200
+            r for r in results if len(r) >= 2 and str(r[0]).endswith("_verify") and r[1] == 200
         ]
 
         # Хотя бы некоторые токены должны быть сгенерированы успешно
@@ -349,9 +335,7 @@ class TestStateIsolation:
 
         # Добавляем начальные записи
         for i in range(5):
-            entry = MemoryEntry(
-                event_type="noise", meaning_significance=0.3, timestamp=float(i)
-            )
+            entry = MemoryEntry(event_type="noise", meaning_significance=0.3, timestamp=float(i))
             memory.append(entry)
 
         initial_length = len(memory)
@@ -421,12 +405,10 @@ class TestAPIErrorHandling:
 
     def test_api_timeout_handling(self):
         """Тест обработки таймаутов API"""
-        client = TestClient(app, timeout=10.0)
+        client = TestClient(app)
 
         # Получаем токен
-        login_response = client.post(
-            "/token", data={"username": "admin", "password": "admin123"}
-        )
+        login_response = client.post("/token", data={"username": "admin", "password": "admin123"})
         token = login_response.json()["access_token"]
         headers = {"Authorization": f"Bearer {token}"}
 
@@ -452,7 +434,7 @@ class TestAPIErrorHandling:
 
     def test_api_handles_invalid_tokens_concurrently(self):
         """Тест обработки невалидных токенов в конкурентной среде"""
-        client = TestClient(app, timeout=10.0)
+        client = TestClient(app)
 
         invalid_tokens = [
             "invalid.jwt.token",
@@ -489,7 +471,7 @@ class TestAPIErrorHandling:
 
     def test_api_connection_pooling(self):
         """Тест пула соединений API"""
-        client = TestClient(app, timeout=10.0)
+        client = TestClient(app)
 
         # Регистрируем пользователя
         user_data = {

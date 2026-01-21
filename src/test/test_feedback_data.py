@@ -74,18 +74,10 @@ def test_feedback_data_storage():
     assert stored.event_type == "feedback", "Тип должен быть feedback"
     assert stored.meaning_significance == 0.0, "Значимость должна быть 0.0"
     assert stored.feedback_data is not None, "feedback_data должен быть сохранен"
-    assert (
-        stored.feedback_data["action_id"] == "test_action_full"
-    ), "action_id должен быть сохранен"
-    assert (
-        stored.feedback_data["action_pattern"] == "dampen"
-    ), "action_pattern должен быть сохранен"
-    assert (
-        "energy" in stored.feedback_data["state_delta"]
-    ), "state_delta должен содержать energy"
-    assert (
-        stored.feedback_data["state_delta"]["energy"] == -1.0
-    ), "energy delta должен быть -1.0"
+    assert stored.feedback_data["action_id"] == "test_action_full", "action_id должен быть сохранен"
+    assert stored.feedback_data["action_pattern"] == "dampen", "action_pattern должен быть сохранен"
+    assert "energy" in stored.feedback_data["state_delta"], "state_delta должен содержать energy"
+    assert stored.feedback_data["state_delta"]["energy"] == -1.0, "energy delta должен быть -1.0"
     assert stored.feedback_data["delay_ticks"] == 1, "delay_ticks должен быть сохранен"
 
     print("[OK] Полные данные Feedback сохранены корректно")

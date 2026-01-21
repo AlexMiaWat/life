@@ -50,9 +50,7 @@ class TestDevProcessRestarterSmoke:
     def test_state_serializer_save_empty_state(self):
         """Дымовой тест сохранения пустого состояния"""
         with tempfile.TemporaryDirectory() as temp_dir:
-            with patch.object(
-                StateSerializer, "RESTART_STATE_FILE", f"{temp_dir}/test_state.json"
-            ):
+            with patch.object(StateSerializer, "RESTART_STATE_FILE", f"{temp_dir}/test_state.json"):
                 serializer = StateSerializer()
 
                 # Создаем mock объекты
@@ -64,9 +62,7 @@ class TestDevProcessRestarterSmoke:
 
                 config = {"test": "config"}
 
-                result = serializer.save_restart_state(
-                    mock_self_state, mock_event_queue, config
-                )
+                result = serializer.save_restart_state(mock_self_state, mock_event_queue, config)
                 assert isinstance(result, bool)
 
     def test_state_serializer_load_nonexistent_state(self):
@@ -155,9 +151,7 @@ class TestDevProcessRestarterSmoke:
         def dummy_join():
             pass
 
-        manager.register_component(
-            "test_component", dummy_shutdown, dummy_join, timeout=2.0
-        )
+        manager.register_component("test_component", dummy_shutdown, dummy_join, timeout=2.0)
         assert len(manager._components) == 1
         component = manager._components[0]
         assert component["name"] == "test_component"
@@ -186,9 +180,7 @@ class TestDevProcessRestarterSmoke:
             nonlocal join_called
             join_called = True
 
-        manager.register_component(
-            "test_component", dummy_shutdown, dummy_join, timeout=0.1
-        )
+        manager.register_component("test_component", dummy_shutdown, dummy_join, timeout=0.1)
 
         result = manager.initiate_shutdown()
         assert isinstance(result, bool)
@@ -240,16 +232,12 @@ class TestDevProcessRestarterSmoke:
             restarter = ProcessRestarter()
 
             # Mock the state serializer
-            with patch.object(
-                restarter._state_serializer, "save_restart_state", return_value=True
-            ):
+            with patch.object(restarter._state_serializer, "save_restart_state", return_value=True):
                 mock_self_state = MagicMock()
                 mock_event_queue = MagicMock()
                 config = {"test": "config"}
 
-                result = restarter.save_state_for_restart(
-                    mock_self_state, mock_event_queue, config
-                )
+                result = restarter.save_state_for_restart(mock_self_state, mock_event_queue, config)
                 assert isinstance(result, bool)
 
     @patch("threading.Thread")
@@ -359,9 +347,7 @@ class TestDevProcessRestarterSmoke:
         """Дымовой тест атомарной записи при ошибке"""
         with patch("os.rename", side_effect=OSError("Disk full")):
             with tempfile.TemporaryDirectory() as temp_dir:
-                with patch.object(
-                    StateSerializer, "RESTART_STATE_FILE", f"{temp_dir}/test.json"
-                ):
+                with patch.object(StateSerializer, "RESTART_STATE_FILE", f"{temp_dir}/test.json"):
                     serializer = StateSerializer()
 
                     mock_self_state = MagicMock()
@@ -370,9 +356,7 @@ class TestDevProcessRestarterSmoke:
                     mock_event_queue = MagicMock()
                     mock_event_queue.to_dict.return_value = []
 
-                    result = serializer.save_restart_state(
-                        mock_self_state, mock_event_queue, {}
-                    )
+                    result = serializer.save_restart_state(mock_self_state, mock_event_queue, {})
                     assert result is False
 
     def test_graceful_shutdown_component_failure(self):
@@ -392,9 +376,7 @@ class TestDevProcessRestarterSmoke:
         # Создаем временные файлы для тестирования
         with tempfile.TemporaryDirectory() as temp_dir:
             test_files = []
-            for i, file_path in enumerate(
-                ProcessRestarter.FILES_TO_WATCH[:3]
-            ):  # Только первые 3
+            for i, file_path in enumerate(ProcessRestarter.FILES_TO_WATCH[:3]):  # Только первые 3
                 full_path = os.path.join(temp_dir, file_path)
                 os.makedirs(os.path.dirname(full_path), exist_ok=True)
                 with open(full_path, "w") as f:

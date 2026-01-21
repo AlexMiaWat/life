@@ -77,4 +77,3 @@ def compute_subjective_dt(
         rate_max=rate_max,
     )
     return dt * rate
-

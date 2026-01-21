@@ -32,7 +32,7 @@ class TestComparisonManager:
         assert isinstance(instance, LifeInstance)
         assert instance.config.instance_id == "test_instance"
         assert "test_instance" in manager.instances
-        assert manager.stats['total_instances_created'] == 1
+        assert manager.stats["total_instances_created"] == 1
 
     def test_create_instance_duplicate(self):
         """Тест создания инстанса с существующим ID."""
@@ -61,7 +61,7 @@ class TestComparisonManager:
         instance3 = manager.create_instance("instance3")
         assert instance3 is None
 
-    @patch('src.comparison.life_instance.LifeInstance.start')
+    @patch("src.comparison.life_instance.LifeInstance.start")
     def test_start_instance_success(self, mock_start):
         """Тест успешного запуска инстанса."""
         mock_start.return_value = True
@@ -73,7 +73,7 @@ class TestComparisonManager:
 
         assert result is True
         mock_start.assert_called_once()
-        assert manager.stats['active_instances'] == 1
+        assert manager.stats["active_instances"] == 1
 
     def test_start_instance_not_found(self):
         """Тест запуска несуществующего инстанса."""
@@ -83,7 +83,7 @@ class TestComparisonManager:
 
         assert result is False
 
-    @patch('src.comparison.life_instance.LifeInstance.stop')
+    @patch("src.comparison.life_instance.LifeInstance.stop")
     def test_stop_instance_success(self, mock_stop):
         """Тест успешной остановки инстанса."""
         mock_stop.return_value = True
@@ -96,7 +96,7 @@ class TestComparisonManager:
 
         assert result is True
         mock_stop.assert_called_once()
-        assert manager.stats['active_instances'] == 0
+        assert manager.stats["active_instances"] == 0
 
     def test_get_instance_status(self):
         """Тест получения статуса инстанса."""
@@ -106,8 +106,8 @@ class TestComparisonManager:
         status = manager.get_instance_status("test_instance")
 
         assert status is not None
-        assert status['instance_id'] == "test_instance"
-        assert status['is_running'] is False
+        assert status["instance_id"] == "test_instance"
+        assert status["is_running"] is False
 
     def test_get_instance_status_not_found(self):
         """Тест получения статуса несуществующего инстанса."""
@@ -131,12 +131,12 @@ class TestComparisonManager:
         assert "instance1" in statuses
         assert "instance2" in statuses
 
-    @patch('src.comparison.life_instance.LifeInstance.get_latest_snapshot')
-    @patch('src.comparison.life_instance.LifeInstance.get_structured_logs')
+    @patch("src.comparison.life_instance.LifeInstance.get_latest_snapshot")
+    @patch("src.comparison.life_instance.LifeInstance.get_structured_logs")
     def test_collect_comparison_data(self, mock_logs, mock_snapshot):
         """Тест сбора данных для сравнения."""
-        mock_snapshot.return_value = {'energy': 50.0, 'ticks': 10}
-        mock_logs.return_value = [{'stage': 'decision', 'data': {'pattern': 'ignore'}}]
+        mock_snapshot.return_value = {"energy": 50.0, "ticks": 10}
+        mock_logs.return_value = [{"stage": "decision", "data": {"pattern": "ignore"}}]
 
         manager = ComparisonManager()
         instance = manager.create_instance("test_instance")
@@ -147,10 +147,10 @@ class TestComparisonManager:
 
         data = manager.collect_comparison_data()
 
-        assert 'timestamp' in data
-        assert 'instances' in data
-        assert 'summary' in data
-        assert 'test_instance' in data['instances']
+        assert "timestamp" in data
+        assert "instances" in data
+        assert "summary" in data
+        assert "test_instance" in data["instances"]
 
     def test_cleanup_instances(self):
         """Тест очистки завершившихся инстансов."""
@@ -179,11 +179,11 @@ class TestComparisonManager:
 
         stats = manager.get_comparison_stats()
 
-        assert 'manager_stats' in stats
-        assert 'active_instances' in stats
-        assert 'total_instances' in stats
-        assert 'is_collecting' in stats
-        assert 'config' in stats
+        assert "manager_stats" in stats
+        assert "active_instances" in stats
+        assert "total_instances" in stats
+        assert "is_collecting" in stats
+        assert "config" in stats
 
     def test_str_representation(self):
         """Тест строкового представления."""
@@ -191,6 +191,6 @@ class TestComparisonManager:
 
         str_repr = str(manager)
 
-        assert 'ComparisonManager' in str_repr
-        assert 'active=0' in str_repr
-        assert 'total=0' in str_repr
+        assert "ComparisonManager" in str_repr
+        assert "active=0" in str_repr
+        assert "total=0" in str_repr

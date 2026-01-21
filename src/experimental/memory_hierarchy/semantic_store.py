@@ -23,6 +23,7 @@ class SemanticConcept:
 
     Представляет абстрактное понятие или знание, извлеченное из повторяющихся паттернов.
     """
+
     concept_id: str  # Уникальный идентификатор концепции
     name: str  # Читаемое имя концепции
     description: str  # Описание концепции
@@ -63,6 +64,7 @@ class SemanticAssociation:
     """
     Ассоциация между концепциями или концепцией и свойством.
     """
+
     source_id: str
     target_id: str
     association_type: str  # "is_a", "has_property", "related_to", etc.
@@ -111,12 +113,10 @@ class SemanticMemoryStore:
         self._stats = {
             "total_concepts": 0,
             "total_associations": 0,
-            "last_consolidation": time.time()
+            "last_consolidation": time.time(),
         }
 
-        self.logger.log_event({
-            "event_type": "semantic_store_initialized"
-        })
+        self.logger.log_event({"event_type": "semantic_store_initialized"})
 
     def add_concept(self, concept: SemanticConcept) -> None:
         """
@@ -139,12 +139,14 @@ class SemanticMemoryStore:
             self._name_to_id[concept.name] = concept.concept_id
             self._stats["total_concepts"] += 1
 
-        self.logger.log_event({
-            "event_type": "semantic_concept_added",
-            "concept_id": concept.concept_id,
-            "concept_name": concept.name,
-            "confidence": concept.confidence
-        })
+        self.logger.log_event(
+            {
+                "event_type": "semantic_concept_added",
+                "concept_id": concept.concept_id,
+                "concept_name": concept.name,
+                "confidence": concept.confidence,
+            }
+        )
 
     def get_concept(self, concept_id: str) -> Optional[SemanticConcept]:
         """
@@ -193,13 +195,15 @@ class SemanticMemoryStore:
             self._concept_relations[association.source_id].add(association.target_id)
             self._concept_relations[association.target_id].add(association.source_id)
 
-        self.logger.log_event({
-            "event_type": "semantic_association_added",
-            "source_id": association.source_id,
-            "target_id": association.target_id,
-            "association_type": association.association_type,
-            "strength": association.strength
-        })
+        self.logger.log_event(
+            {
+                "event_type": "semantic_association_added",
+                "source_id": association.source_id,
+                "target_id": association.target_id,
+                "association_type": association.association_type,
+                "strength": association.strength,
+            }
+        )
 
     def find_related_concepts(self, concept_id: str, max_depth: int = 2) -> Dict[str, float]:
         """
@@ -224,8 +228,7 @@ class SemanticMemoryStore:
 
             visited.add(current_id)
             relevance_scores[current_id] = max(
-                relevance_scores.get(current_id, 0),
-                current_relevance
+                relevance_scores.get(current_id, 0), current_relevance
             )
 
             # Исследуем связи
@@ -235,7 +238,7 @@ class SemanticMemoryStore:
 
                 if association:
                     # Сила связи уменьшается с глубиной
-                    link_strength = association.strength * (0.8 ** depth)
+                    link_strength = association.strength * (0.8**depth)
                     explore(related_id, depth + 1, current_relevance * link_strength)
 
         explore(concept_id, 0, 1.0)
@@ -313,10 +316,9 @@ class SemanticMemoryStore:
         self._stats["last_consolidation"] = current_time
 
         if optimizations > 0:
-            self.logger.log_event({
-                "event_type": "semantic_knowledge_consolidated",
-                "optimizations": optimizations
-            })
+            self.logger.log_event(
+                {"event_type": "semantic_knowledge_consolidated", "optimizations": optimizations}
+            )
 
         return optimizations
 
@@ -391,7 +393,7 @@ class SemanticMemoryStore:
             "total_associations": self._stats["total_associations"],
             "average_confidence": avg_confidence,
             "average_activation": avg_activation,
-            "last_consolidation": self._stats["last_consolidation"]
+            "last_consolidation": self._stats["last_consolidation"],
         }
 
     def clear_store(self) -> None:
@@ -403,9 +405,7 @@ class SemanticMemoryStore:
         self._stats = {
             "total_concepts": 0,
             "total_associations": 0,
-            "last_consolidation": time.time()
+            "last_consolidation": time.time(),
         }
 
-        self.logger.log_event({
-            "event_type": "semantic_store_cleared"
-        })
+        self.logger.log_event({"event_type": "semantic_store_cleared"})
