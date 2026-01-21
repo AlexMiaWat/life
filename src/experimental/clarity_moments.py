@@ -39,7 +39,17 @@ class ClarityMomentsTracker:
 
     def __init__(self, data_file: Optional[str] = None):
         # Initialize with new adaptive processing manager
-        self.adaptive_manager = AdaptiveProcessingManager()
+        # Create a mock self_state_provider for compatibility
+        def mock_self_state_provider():
+            return type('MockState', (), {
+                'energy': 80.0,
+                'stability': 0.85,
+                'processing_load': 0.3,
+                'memory_usage': 0.6,
+                'error_rate': 0.01
+            })()
+
+        self.adaptive_manager = AdaptiveProcessingManager(mock_self_state_provider)
         self.moments: List[ClarityMoment] = []
         self._correlation_counter = 0
 
