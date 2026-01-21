@@ -5,6 +5,18 @@ from src.memory.memory import MemoryEntry
 from src.state.self_state import SelfState
 
 
+class DecisionEngine:
+    """
+    Движок принятия решений для системы Life.
+
+    Обеспечивает интерфейс для анализа решений и их последствий.
+    """
+
+    def __init__(self):
+        """Инициализация движка принятия решений."""
+        self.decision_history = []
+
+
 def decide_response(self_state: SelfState, meaning: Meaning) -> str:
     """
     Улучшенный выбор паттерна реакции на основе комплексного анализа.

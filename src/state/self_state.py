@@ -48,7 +48,7 @@ class SelfState:
     stability_history: list = field(default_factory=list)
     planning: dict = field(default_factory=dict)
     intelligence: dict = field(default_factory=dict)
-    memory: Memory = field(default=None)  # Активная память с поддержкой архивации
+    memory: Optional[Memory] = field(default=None)  # Активная память с поддержкой архивации
     archive_memory: ArchiveMemory = field(
         default_factory=lambda: ArchiveMemory(), init=False
     )  # Архивная память (не сериализуется в snapshot напрямую)
