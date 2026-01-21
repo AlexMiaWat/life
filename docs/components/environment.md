@@ -174,6 +174,216 @@ else:
     print("Даже с высокой вероятностью не сгенерировано")
 ```
 
+## API канала среды (v2.0)
+
+Проект Life включает расширенный API для полноценного канала среды, позволяющий внешним системам глубоко влиять на поведение системы через разнообразные типы воздействий.
+
+### Новые эндпоинты API
+
+#### Пакетные операции с событиями
+
+**POST /events** — Атомарная отправка множественных событий
+
+```bash
+curl -X POST http://localhost:8000/events \
+  -H "Content-Type: application/json" \
+  -d '[
+    {"type": "shock", "intensity": 0.5},
+    {"type": "recovery", "intensity": 0.4},
+    {"type": "noise", "intensity": 0.2, "metadata": {"source": "test"}}
+  ]'
+```
+
+**Ответ:**
+```json
+{
+  "accepted_count": 3,
+  "total_count": 3,
+  "errors": []
+}
+```
+
+#### Управление сценариями воздействий
+
+**GET /scenarios** — Список доступных сценариев
+
+```bash
+curl http://localhost:8000/scenarios
+```
+
+**Ответ:**
+```json
+{
+  "scenarios": [
+    {
+      "id": "crisis_simulation",
+      "name": "Симуляция кризиса",
+      "description": "Интенсивные негативные события для тестирования устойчивости",
+      "step_count": 4,
+      "duration": 30.0,
+      "auto_stop": true
+    }
+  ]
+}
+```
+
+**POST /scenarios/{scenario_id}/start** — Запуск сценария
+
+```bash
+curl -X POST http://localhost:8000/scenarios/crisis_simulation/start
+```
+
+**GET /scenarios/{scenario_id}/status** — Статус выполнения сценария
+
+```bash
+curl http://localhost:8000/scenarios/crisis_simulation/status
+```
+
+**Ответ:**
+```json
+{
+  "scenario_id": "crisis_simulation",
+  "is_running": true,
+  "start_time": 1705708800.0,
+  "elapsed_time": 15.5,
+  "current_step": 2,
+  "executed_steps": 2,
+  "total_steps": 4,
+  "progress": 0.5
+}
+```
+
+#### Прямые изменения состояния
+
+**POST /state** — Частичное обновление состояния
+
+```bash
+curl -X POST http://localhost:8000/state \
+  -H "Content-Type: application/json" \
+  -d '{"energy": 80.0, "stability": 0.9}'
+```
+
+**Ответ:**
+```json
+{
+  "updated_fields": [
+    {
+      "field": "energy",
+      "old_value": 100.0,
+      "new_value": 80.0
+    }
+  ],
+  "errors": []
+}
+```
+
+**POST /state/reset** — Сброс состояния к значениям по умолчанию
+
+```bash
+curl -X POST http://localhost:8000/state/reset
+```
+
+#### Управление средой
+
+**GET /environment/config** — Текущая конфигурация среды
+
+```bash
+curl http://localhost:8000/environment/config
+```
+
+**POST /environment/config** — Обновление конфигурации
+
+```bash
+curl -X POST http://localhost:8000/environment/config \
+  -H "Content-Type: application/json" \
+  -d '{"activity_level": 1.5, "crisis_probability": 0.1}'
+```
+
+**POST /environment/mode/{mode}** — Установка режима активности
+
+```bash
+# Доступные режимы: quiet, normal, active, storm
+curl -X POST http://localhost:8000/environment/mode/active
+```
+
+#### Анализ воздействий
+
+**POST /analysis/impact** — Анализ влияния одиночного события
+
+```bash
+curl -X POST http://localhost:8000/analysis/impact \
+  -H "Content-Type: application/json" \
+  -d '{"type": "shock", "intensity": 0.6}'
+```
+
+**Ответ:**
+```json
+{
+  "event": {"type": "shock", "intensity": 0.6},
+  "prediction": {
+    "meaning_significance": 0.75,
+    "impact": {"energy": -0.281, "stability": -0.019, "integrity": -0.009},
+    "final_energy": 99.7,
+    "final_stability": 0.981,
+    "final_integrity": 0.991,
+    "response_pattern": "amplify",
+    "confidence": 1.0
+  }
+}
+```
+
+**POST /analysis/impact-batch** — Анализ пакета событий
+
+```bash
+curl -X POST http://localhost:8000/analysis/impact-batch \
+  -H "Content-Type: application/json" \
+  -d '[
+    {"type": "shock", "intensity": 0.5},
+    {"type": "recovery", "intensity": 0.4}
+  ]'
+```
+
+**GET /analysis/sensitivity** — Анализ чувствительности к типам событий
+
+```bash
+curl http://localhost:8000/analysis/sensitivity
+```
+
+### Архитектурные компоненты
+
+#### ScenarioManager
+Управляет предопределенными сценариями внешних воздействий.
+
+**Файл:** `src/environment/scenario_manager.py`
+
+**Функциональность:**
+- Загрузка и валидация сценариев
+- Управление жизненным циклом (запуск/остановка)
+- Thread-safe выполнение сценариев
+- Метрики выполнения
+
+#### ImpactAnalyzer
+Анализирует влияние событий на состояние системы без фактического применения.
+
+**Файл:** `src/environment/impact_analyzer.py`
+
+**Функциональность:**
+- Предсказание изменений состояния
+- Расчет вероятностных исходов
+- Кэширование результатов анализа
+- Интеграция с MeaningEngine
+
+#### EnvironmentConfigManager
+Управляет конфигурацией параметров внешней среды.
+
+**Файл:** `src/environment/environment_config.py`
+
+**Функциональность:**
+- Настройка вероятностей генерации событий
+- Управление режимами активности
+- Сохранение/восстановление конфигурации
+- Валидация параметров
+
 ### Комплексный пример: симуляция внешней среды
 
 ```python
@@ -375,3 +585,80 @@ if event:
 ✅ **Runtime поведение**: Новые события правильно обрабатываются в полном цикле с корректным влиянием на состояние
 ✅ **Архитектурная совместимость**: Расширение соответствует принципам Life (нет целей, медленные изменения, нейтральная фиксация)
 ✅ **Тестовое покрытие**: 40 специализированных тестов для новых типов событий, все проходят успешно
+
+## Новые компоненты (v2.0)
+
+### ScenarioManager
+Управляет предопределенными сценариями внешних воздействий.
+
+**Файл:** `src/environment/scenario_manager.py`
+
+**Функциональность:**
+- Загрузка и валидация сценариев из JSON конфигурации
+- Управление жизненным циклом (запуск/остановка/пауза)
+- Thread-safe выполнение сценариев с метриками производительности
+- Поддержка сценариев с задержками, повторениями и автоматической остановкой
+
+**Ключевые классы:**
+- `Scenario`: Конфигурация сценария с шагами и метаданными
+- `ScenarioStep`: Отдельный шаг сценария с событием и параметрами выполнения
+- `ScenarioExecution`: Управление выполнением запущенного сценария
+
+**Пример сценария:**
+```json
+{
+  "id": "crisis_simulation",
+  "name": "Симуляция кризиса",
+  "description": "Интенсивные негативные события для тестирования устойчивости",
+  "steps": [
+    {"delay": 0.0, "event": {"type": "shock", "intensity": 0.8}},
+    {"delay": 2.0, "event": {"type": "decay", "intensity": 0.3}, "repeat_count": 3, "repeat_interval": 1.0}
+  ],
+  "duration": 30.0,
+  "auto_stop": true
+}
+```
+
+### ImpactAnalyzer
+Анализирует влияние событий на состояние системы без фактического применения.
+
+**Файл:** `src/environment/impact_analyzer.py`
+
+**Функциональность:**
+- Предсказание изменений состояния для одиночных событий
+- Анализ пакетов событий с накопительным эффектом
+- Расчет confidence scoring для предсказаний
+- Risk assessment для пакетных операций
+- Кэширование результатов анализа для производительности
+
+**Ключевые классы:**
+- `ImpactPrediction`: Предсказание влияния одиночного события
+- `BatchImpactAnalysis`: Анализ пакета событий с рекомендациями
+
+**Методы анализа:**
+- `analyze_single_event()`: Анализ одиночного события
+- `analyze_batch_events()`: Анализ пакета с накопительным эффектом
+- `analyze_sensitivity()`: Анализ чувствительности к типам событий
+
+### EnvironmentConfigManager
+Управляет конфигурацией параметров внешней среды.
+
+**Файл:** `src/environment/environment_config.py`
+
+**Функциональность:**
+- Настройка вероятностей генерации различных типов событий
+- Управление режимами активности (quiet, normal, active, storm)
+- Сохранение/восстановление конфигурации из JSON
+- Валидация параметров с границами безопасности
+- Thread-safe обновление конфигурации
+
+**Режимы активности:**
+- `quiet` (0.1x): Минимальная активность для тестирования
+- `normal` (1.0x): Стандартная активность
+- `active` (1.5x): Повышенная активность
+- `storm` (3.0x): Экстремальная активность для стресс-тестирования
+
+**Ключевые возможности:**
+- Конфигурация типов событий с весами и диапазонами интенсивности
+- Crisis mode с повышенной вероятностью негативных событий
+- Persistence конфигурации между запусками

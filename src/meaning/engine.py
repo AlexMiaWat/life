@@ -61,8 +61,9 @@ class MeaningEngine:
             learning_params = getattr(self_state, "learning_params", {})
             adaptation_params = getattr(self_state, "adaptation_params", {})
         else:
-            learning_params = self_state.get("learning_params", {})
-            adaptation_params = self_state.get("adaptation_params", {})
+            # Для совместимости со словарями
+            learning_params = self_state.get("learning_params", {}) if hasattr(self_state, 'get') else {}
+            adaptation_params = self_state.get("adaptation_params", {}) if hasattr(self_state, 'get') else {}
 
         # Проверяем, что параметры действительно словари
         if not isinstance(learning_params, dict):
@@ -178,20 +179,12 @@ class MeaningEngine:
 
         # Контекстуальная модификация на основе состояния
         # Если integrity низкая — даже малые события становятся важнее
-        integrity = (
-            getattr(self_state, "integrity", 1.0)
-            if isinstance(self_state, SelfState)
-            else self_state.get("integrity", 1.0)
-        )
+        integrity = getattr(self_state, "integrity", 1.0)
         if integrity < self.LOW_INTEGRITY_THRESHOLD:
             significance *= self.LOW_INTEGRITY_SIGNIFICANCE_MULTIPLIER
 
         # Если stability низкая — события ощущаются сильнее
-        stability = (
-            getattr(self_state, "stability", 1.0)
-            if isinstance(self_state, SelfState)
-            else self_state.get("stability", 1.0)
-        )
+        stability = getattr(self_state, "stability", 1.0)
         if stability < 0.5:
             significance *= 1.2
 
@@ -214,11 +207,7 @@ class MeaningEngine:
 
         # ИНТЕГРАЦИЯ: Модификация на основе моментов ясности
         # Если активен момент ясности, усиливаем значимость событий
-        clarity_state = (
-            getattr(self_state, "clarity_state", False)
-            if isinstance(self_state, SelfState)
-            else self_state.get("clarity_state", False)
-        )
+        clarity_state = getattr(self_state, "clarity_state", False)
         if clarity_state:
             # Коэффициент усиления из ClarityMoments
             clarity_modifier = (
@@ -358,11 +347,7 @@ class MeaningEngine:
             return "ignore"
 
         # При высокой стабильности — ослабление эффектов
-        stability = (
-            getattr(self_state, "stability", 1.0)
-            if isinstance(self_state, SelfState)
-            else self_state.get("stability", 1.0)
-        )
+        stability = getattr(self_state, "stability", 1.0)
         if stability > 0.8:
             return "dampen"
 

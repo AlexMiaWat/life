@@ -68,9 +68,21 @@ class LearningEngine:
     HIGH_PATTERN_FREQUENCY_THRESHOLD = 0.3  # 30% всех паттернов
     LOW_PATTERN_FREQUENCY_THRESHOLD = 0.1  # 10% всех паттернов
 
+    # Адаптивные пороги для самоадаптации порогов изменения
+    # Пороги для изменения самих порогов изменения
+    HIGH_DELTA_THRESHOLD = 0.05  # Если среднее изменение > 5%, адаптируем пороги
+    LOW_DELTA_THRESHOLD = 0.01  # Если среднее изменение < 1%, адаптируем пороги
+
+    # Границы безопасности для адаптивных порогов
+    MIN_FREQUENCY_THRESHOLD = 0.05  # Минимальный порог частоты
+    MAX_FREQUENCY_THRESHOLD = 0.8   # Максимальный порог частоты
+    MIN_SIGNIFICANCE_THRESHOLD = 0.1  # Минимальный порог значимости
+    MAX_SIGNIFICANCE_THRESHOLD = 0.9  # Максимальный порог значимости
+
     def __init__(self):
         """Инициализация LearningEngine с блокировкой для защиты от параллельных вызовов."""
         self._lock = threading.Lock()
+        self._adaptive_thresholds = {}  # Адаптивные пороги, рассчитанные на основе статистики
 
     def process_statistics(self, memory: List[MemoryEntry]) -> Dict:
         """
@@ -100,6 +112,7 @@ class LearningEngine:
             },
             "total_entries": len(memory),
             "feedback_entries": 0,
+            "memory_entries": memory,  # Передаем записи для анализа весов и паттернов
         }
 
         for entry in memory:
@@ -133,6 +146,137 @@ class LearningEngine:
                             )
 
         return statistics
+
+    def calculate_adaptive_thresholds(self, statistics: Dict) -> Dict[str, float]:
+        """
+        Рассчитывает адаптивные пороги на основе расширенной статистики Memory.
+
+        Использует:
+        - Распределение весов записей
+        - Временные паттерны
+        - Статистические характеристики частот и значимостей
+
+        Args:
+            statistics: Статистика из process_statistics
+
+        Returns:
+            Словарь с адаптивными порогами
+        """
+        thresholds = {}
+
+        # Анализ весов записей для понимания распределения значимости
+        weights = [entry.weight for entry in statistics.get("memory_entries", [])]
+        if weights:
+            weights_mean = sum(weights) / len(weights)
+            weights_std = (sum((w - weights_mean) ** 2 for w in weights) / len(weights)) ** 0.5
+
+            # Адаптивные пороги частоты на основе распределения весов
+            thresholds["high_frequency_threshold"] = min(
+                self.MAX_FREQUENCY_THRESHOLD,
+                max(self.MIN_FREQUENCY_THRESHOLD, weights_mean + weights_std)
+            )
+            thresholds["low_frequency_threshold"] = max(
+                self.MIN_FREQUENCY_THRESHOLD,
+                min(self.MAX_FREQUENCY_THRESHOLD, weights_mean - weights_std)
+            )
+
+        # Анализ значимостей для порогов значимости
+        significances = []
+        event_significance = statistics.get("event_type_total_significance", {})
+        event_counts = statistics.get("event_type_counts", {})
+        for event_type, count in event_counts.items():
+            if count > 0:
+                avg_sig = event_significance.get(event_type, 0.0) / count
+                significances.append(avg_sig)
+
+        if significances:
+            sig_mean = sum(significances) / len(significances)
+            sig_std = (sum((s - sig_mean) ** 2 for s in significances) / len(significances)) ** 0.5
+
+            thresholds["high_significance_threshold"] = min(
+                self.MAX_SIGNIFICANCE_THRESHOLD,
+                max(self.MIN_SIGNIFICANCE_THRESHOLD, sig_mean + sig_std * 0.5)
+            )
+            thresholds["low_significance_threshold"] = max(
+                self.MIN_SIGNIFICANCE_THRESHOLD,
+                min(self.MAX_SIGNIFICANCE_THRESHOLD, sig_mean - sig_std * 0.5)
+            )
+
+        # Анализ паттернов для порогов паттернов
+        pattern_counts = statistics.get("feedback_pattern_counts", {})
+        if pattern_counts:
+            pattern_freqs = []
+            total_patterns = sum(pattern_counts.values())
+            for count in pattern_counts.values():
+                pattern_freqs.append(count / total_patterns if total_patterns > 0 else 0.0)
+
+            if pattern_freqs:
+                pat_mean = sum(pattern_freqs) / len(pattern_freqs)
+                pat_std = (sum((p - pat_mean) ** 2 for p in pattern_freqs) / len(pattern_freqs)) ** 0.5
+
+                thresholds["high_pattern_frequency_threshold"] = min(
+                    self.MAX_FREQUENCY_THRESHOLD,
+                    max(self.MIN_FREQUENCY_THRESHOLD, pat_mean + pat_std)
+                )
+                thresholds["low_pattern_frequency_threshold"] = max(
+                    self.MIN_FREQUENCY_THRESHOLD,
+                    min(self.MAX_FREQUENCY_THRESHOLD, pat_mean - pat_std)
+                )
+
+        # Адаптация скорости изменения на основе стабильности
+        # Если система стабильна (низкая волатильность), уменьшаем скорость изменения
+        # Если система нестабильна (высокая волатильность), увеличиваем скорость изменения
+        stability_factor = self._calculate_stability_factor(statistics)
+        adaptive_max_delta = self.MAX_PARAMETER_DELTA * (1.0 + (1.0 - stability_factor) * 0.5)
+        thresholds["adaptive_max_parameter_delta"] = min(0.05, max(0.005, adaptive_max_delta))
+
+        # Сохраняем рассчитанные пороги для использования в других методах
+        self._adaptive_thresholds = thresholds
+
+        return thresholds
+
+    def _calculate_stability_factor(self, statistics: Dict) -> float:
+        """
+        Рассчитывает фактор стабильности на основе волатильности данных.
+
+        Returns:
+            Фактор стабильности от 0.0 (нестабильная) до 1.0 (стабильная)
+        """
+        # Анализируем волатильность весов записей
+        weights = [entry.weight for entry in statistics.get("memory_entries", [])]
+        if len(weights) < 2:
+            return 0.5  # Нейтральное значение при недостатке данных
+
+        # Коэффициент вариации весов (отношение std к mean)
+        weights_mean = sum(weights) / len(weights)
+        if weights_mean == 0:
+            return 0.5
+
+        weights_std = (sum((w - weights_mean) ** 2 for w in weights) / len(weights)) ** 0.5
+        cv_weights = weights_std / weights_mean
+
+        # Анализируем волатильность значимостей
+        significances = []
+        event_significance = statistics.get("event_type_total_significance", {})
+        event_counts = statistics.get("event_type_counts", {})
+        for event_type, count in event_counts.items():
+            if count > 0:
+                avg_sig = event_significance.get(event_type, 0.0) / count
+                significances.append(avg_sig)
+
+        cv_significances = 0.0
+        if significances:
+            sig_mean = sum(significances) / len(significances)
+            if sig_mean > 0:
+                sig_std = (sum((s - sig_mean) ** 2 for s in significances) / len(significances)) ** 0.5
+                cv_significances = sig_std / sig_mean
+
+        # Комбинированный фактор стабильности
+        # Чем меньше коэффициент вариации, тем стабильнее система
+        combined_cv = (cv_weights + cv_significances) / 2.0
+        stability = max(0.0, min(1.0, 1.0 - combined_cv))
+
+        return stability
 
     def adjust_parameters(
         self, statistics: Dict, current_params: Dict
