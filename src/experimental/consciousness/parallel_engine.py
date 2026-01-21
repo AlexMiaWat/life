@@ -11,11 +11,34 @@ from typing import Dict, List, Any, Optional
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from enum import Enum
+import threading
 
 from src.experimental.adaptive_processing_manager import (
     AdaptiveProcessingManager,
     ProcessingMode
 )
+
+
+class ConsciousnessState(Enum):
+    """Enumeration of consciousness states for backward compatibility."""
+    BASIC_AWARENESS = "basic_awareness"
+    SELF_REFLECTION = "self_reflection"
+    META_COGNITION = "meta_cognition"
+    FLOW_STATE = "flow_state"
+    DEEP_REFLECTION = "deep_reflection"
+    META_AWARENESS = "meta_awareness"
+    ENLIGHTENMENT = "enlightenment"
+
+
+@dataclass
+class ConsciousnessMetrics:
+    """Consciousness metrics for backward compatibility."""
+    level: float = 0.0
+    self_reflection_score: float = 0.0
+    meta_cognition_depth: float = 0.0
+    state_duration: int = 0
+    transitions_count: int = 0
+    last_transition_time: Optional[float] = None
 
 
 class ProcessingMode(Enum):
@@ -37,9 +60,20 @@ class ProcessingResult:
 
 
 class ParallelConsciousnessEngine:
-    """Engine for parallel consciousness processing."""
+    """Engine for parallel consciousness processing with backward compatibility."""
 
-    def __init__(self, max_workers: int = 4, mode: ProcessingMode = ProcessingMode.THREADING):
+    def __init__(self,
+                 initial_state: ConsciousnessState = ConsciousnessState.BASIC_AWARENESS,
+                 initial_metrics: Optional[ConsciousnessMetrics] = None,
+                 max_workers: int = 4,
+                 mode: ProcessingMode = ProcessingMode.THREADING):
+        # Backward compatibility attributes
+        self.current_state = initial_state
+        self.metrics = initial_metrics or ConsciousnessMetrics()
+        self._transition_history = []
+        self._lock = threading.Lock()
+
+        # New processing capabilities
         self.max_workers = max_workers
         self.mode = mode
         # Create a dummy self_state_provider for compatibility
@@ -199,3 +233,95 @@ class ParallelConsciousnessEngine:
         if self.executor:
             self.executor.shutdown(wait=True)
             self.executor = None
+
+    # Backward compatibility methods for old consciousness API
+
+    def transition_to_state(self, new_state: ConsciousnessState) -> None:
+        """Transition to a new consciousness state."""
+        with self._lock:
+            old_state = self.current_state
+            self.current_state = new_state
+            self.metrics.transitions_count += 1
+            self.metrics.last_transition_time = time.time()
+
+            # Reset state duration for new state
+            self.metrics.state_duration = 0
+
+            # Record transition
+            transition_record = {
+                "from_state": old_state.name if old_state else None,
+                "to_state": new_state.name,
+                "timestamp": self.metrics.last_transition_time,
+                "transition_id": self.metrics.transitions_count
+            }
+            self._transition_history.append(transition_record)
+
+    def evaluate_consciousness_level(self) -> ConsciousnessState:
+        """Evaluate current consciousness level based on metrics."""
+        # Use adaptive manager's state to determine consciousness level
+        adaptive_state = self.adaptive_manager.get_current_state()
+
+        # Map adaptive states to consciousness states
+        state_mapping = {
+            "idle": ConsciousnessState.BASIC_AWARENESS,
+            "processing": ConsciousnessState.SELF_REFLECTION,
+            "analyzing": ConsciousnessState.META_COGNITION,
+            "optimizing": ConsciousnessState.FLOW_STATE,
+            "error": ConsciousnessState.BASIC_AWARENESS
+        }
+
+        # Use metrics to determine more advanced states
+        if self.metrics.level >= 0.9 and self.metrics.meta_cognition_depth >= 0.8:
+            return ConsciousnessState.ENLIGHTENMENT
+        elif self.metrics.level >= 0.8 and self.metrics.meta_cognition_depth >= 0.7:
+            return ConsciousnessState.META_AWARENESS
+        elif self.metrics.level >= 0.7 and self.metrics.self_reflection_score >= 0.6:
+            return ConsciousnessState.DEEP_REFLECTION
+        elif self.metrics.level >= 0.6:
+            return ConsciousnessState.FLOW_STATE
+        elif self.metrics.level >= 0.4:
+            return ConsciousnessState.META_COGNITION
+        elif self.metrics.level >= 0.2:
+            return ConsciousnessState.SELF_REFLECTION
+        else:
+            return ConsciousnessState.BASIC_AWARENESS
+
+    def update_metrics(self, level: Optional[float] = None,
+                      self_reflection_score: Optional[float] = None,
+                      meta_cognition_depth: Optional[float] = None) -> None:
+        """Update consciousness metrics."""
+        with self._lock:
+            if level is not None:
+                self.metrics.level = level
+            if self_reflection_score is not None:
+                self.metrics.self_reflection_score = self_reflection_score
+            if meta_cognition_depth is not None:
+                self.metrics.meta_cognition_depth = meta_cognition_depth
+
+    def increment_state_duration(self) -> None:
+        """Increment the duration counter for current state."""
+        with self._lock:
+            self.metrics.state_duration += 1
+
+    def get_transition_history(self) -> List[Dict[str, Any]]:
+        """Get the history of state transitions."""
+        with self._lock:
+            return self._transition_history.copy()
+
+    def get_consciousness_report(self) -> Dict[str, Any]:
+        """Get a comprehensive consciousness report."""
+        with self._lock:
+            return {
+                "current_state": self.current_state.name,
+                "metrics": {
+                    "level": self.metrics.level,
+                    "self_reflection_score": self.metrics.self_reflection_score,
+                    "meta_cognition_depth": self.metrics.meta_cognition_depth,
+                    "state_duration_ticks": self.metrics.state_duration,
+                    "transitions_count": self.metrics.transitions_count,
+                    "last_transition_time": self.metrics.last_transition_time
+                },
+                "transition_history": self.get_transition_history(),
+                "adaptive_state": self.adaptive_manager.get_current_state().value,
+                "processing_stats": self.adaptive_manager.get_processing_statistics()
+            }

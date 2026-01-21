@@ -96,6 +96,13 @@ class ClarityMomentsTracker:
         """Get most recent moments."""
         return sorted(self.moments, key=lambda m: m.timestamp, reverse=True)[:limit]
 
+    def get_clarity_history(self, limit: Optional[int] = None) -> List[ClarityMoment]:
+        """Get the history of clarity moments."""
+        moments = sorted(self.moments, key=lambda m: m.timestamp)
+        if limit:
+            moments = moments[-limit:]
+        return moments
+
     def analyze_clarity_patterns(self) -> Dict[str, Any]:
         """Analyze patterns in clarity moments."""
         if not self.moments:

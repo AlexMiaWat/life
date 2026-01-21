@@ -16,11 +16,10 @@ import pytest
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from api import (
+from apps.api import (
     EventCreate,
     EventResponse,
     ExtendedStatusResponse,
-    StatusResponse,
     app,
     verify_api_key,
 )
@@ -71,29 +70,6 @@ class TestAPISimplifiedStatic:
         assert response.timestamp == 1234567890.0
         assert response.metadata == {"test": "data"}
         assert response.message == "Event processed successfully"
-
-    def test_status_response_model(self):
-        """Проверка модели StatusResponse"""
-        status = StatusResponse(
-            active=True,
-            ticks=1000,
-            age=123.45,
-            energy=85.5,
-            stability=0.92,
-            integrity=0.95,
-            subjective_time=120.0,
-            fatigue=15.0,
-            tension=25.0,
-        )
-        assert status.active is True
-        assert status.ticks == 1000
-        assert status.age == 123.45
-        assert status.energy == 85.5
-        assert status.stability == 0.92
-        assert status.integrity == 0.95
-        assert status.subjective_time == 120.0
-        assert status.fatigue == 15.0
-        assert status.tension == 25.0
 
     def test_extended_status_response_model(self):
         """Проверка модели ExtendedStatusResponse"""

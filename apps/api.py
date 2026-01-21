@@ -1,7 +1,16 @@
 """
-Простой REST API для проекта Life - эксперимента непрерывной жизни.
+Минимальный REST API для проекта Life - эксперимента непрерывной жизни.
 
-API без аутентификации пользователей, предназначен для наблюдения за экспериментом.
+API с полной изоляцией от runtime loop. Предоставляет только чтение состояния
+и внешнее воздействие через события. Все endpoints пассивны и не влияют
+на внутреннюю работу системы.
+
+Безопасные endpoints:
+- GET /status - чтение состояния из snapshots
+- GET /refresh-cache - no-op для совместимости
+- GET /clear-data - очистка логов и snapshots
+- POST /event - добавление внешних событий
+
 Опциональная защита через API ключ для предотвращения случайного доступа.
 """
 
@@ -49,52 +58,6 @@ class EventResponse(BaseModel):
     message: str
 
 
-# Модели для экспериментальных endpoints
-class MemoryHierarchyResponse(BaseModel):
-    """Ответ с информацией о иерархии памяти."""
-    status: str
-    hierarchy_manager: dict
-    sensory_buffer: dict
-    episodic_memory: dict
-    semantic_store: dict
-    procedural_store: dict
-    message: str
-
-
-class ConsciousnessStateResponse(BaseModel):
-    """Ответ с информацией о состоянии сознания."""
-    consciousness_level: float
-    current_state: str
-    self_reflection_score: float
-    meta_cognition_depth: float
-    neural_activity: float
-    energy_level: float
-    stability: float
-    recent_events_count: int
-    message: str
-
-
-class MemoryTransferResponse(BaseModel):
-    """Ответ со статистикой переноса данных в памяти."""
-    sensory_to_episodic_transfers: int
-    episodic_to_semantic_transfers: int
-    semantic_to_procedural_transfers: int
-    last_semantic_consolidation: float
-    message: str
-
-
-class StatusResponse(BaseModel):
-    """Базовый статус системы Life."""
-
-    active: bool
-    ticks: int
-    age: float
-    energy: float
-    stability: float
-    integrity: float
-    subjective_time: float
-    fatigue: float
-    tension: float
 
 
 class ExtendedStatusResponse(BaseModel):
@@ -248,110 +211,5 @@ async def create_event(event: EventCreate, x_api_key: Optional[str] = Header(Non
         metadata=event.metadata,
         message=f"Event '{event.type}' accepted by Life system",
     )
-
-
-# Экспериментальные endpoints
-@app.get("/experimental/memory-hierarchy", response_model=MemoryHierarchyResponse)
-async def get_memory_hierarchy(x_api_key: Optional[str] = Header(None)):
-    """Получение статуса иерархии памяти."""
-    check_api_access(x_api_key)
-
-    # Заглушка: в реальной реализации нужно получить доступ к memory_hierarchy из runtime
-    # Пока возвращаем пример структуры
-    return MemoryHierarchyResponse(
-        status="experimental_feature",
-        hierarchy_manager={
-            "transfers_sensory_to_episodic": 0,
-            "transfers_episodic_to_semantic": 0,
-            "transfers_semantic_to_procedural": 0,
-            "last_semantic_consolidation": 0.0
-        },
-        sensory_buffer={
-            "available": False,
-            "status": "not_initialized",
-            "buffer_size": 0
-        },
-        episodic_memory={
-            "available": True,
-            "status": "integrated",
-            "entries_count": 0  # Нужно получить из self_state.memory
-        },
-        semantic_store={
-            "available": False,
-            "status": "not_implemented",
-            "concepts_count": 0
-        },
-        procedural_store={
-            "available": False,
-            "status": "not_implemented",
-            "patterns_count": 0
-        },
-        message="Memory hierarchy status retrieved (experimental feature)"
-    )
-
-
-@app.get("/experimental/consciousness-state", response_model=ConsciousnessStateResponse)
-async def get_consciousness_state(x_api_key: Optional[str] = Header(None)):
-    """Получение текущего состояния сознания."""
-    check_api_access(x_api_key)
-
-    # Заглушка: в реальной реализации нужно получить доступ к consciousness_engine
-    # Пока возвращаем базовые значения
-    return ConsciousnessStateResponse(
-        consciousness_level=0.0,
-        current_state="uninitialized",
-        self_reflection_score=0.0,
-        meta_cognition_depth=0.0,
-        neural_activity=0.0,
-        energy_level=0.0,
-        stability=0.0,
-        recent_events_count=0,
-        message="Consciousness state retrieved (experimental feature)"
-    )
-
-
-@app.get("/experimental/memory-transfer", response_model=MemoryTransferResponse)
-async def get_memory_transfer_stats(x_api_key: Optional[str] = Header(None)):
-    """Получение статистики переноса данных между уровнями памяти."""
-    check_api_access(x_api_key)
-
-    # Заглушка: в реальной реализации нужно получить доступ к memory_hierarchy
-    return MemoryTransferResponse(
-        sensory_to_episodic_transfers=0,
-        episodic_to_semantic_transfers=0,
-        semantic_to_procedural_transfers=0,
-        last_semantic_consolidation=0.0,
-        message="Memory transfer statistics retrieved (experimental feature)"
-    )
-
-
-@app.post("/experimental/trigger-consciousness-state")
-async def trigger_consciousness_state(
-    target_state: str = Query(..., description="Целевое состояние сознания"),
-    x_api_key: Optional[str] = Header(None)
-):
-    """Ручной триггер перехода в указанное состояние сознания."""
-    check_api_access(x_api_key)
-
-    valid_states = ["awake", "flow", "reflective", "meta", "dreaming", "unconscious"]
-
-    if target_state not in valid_states:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid target state. Valid states: {', '.join(valid_states)}"
-        )
-
-    # Заглушка: в реальной реализации нужно вызвать соответствующий метод consciousness_engine
-    return {
-        "message": f"Consciousness state transition triggered to '{target_state}' (experimental feature)",
-        "target_state": target_state,
-        "status": "triggered_but_not_implemented"
-    }
-
-
-# Совместимость с тестами - пустая база пользователей для упрощенного API
-fake_users_db = {}
-
-
 # API теперь читает состояние из snapshot файлов,
 # поэтому установка ссылки на живой объект больше не требуется

@@ -193,6 +193,9 @@ junit-*.xml
 xunit-*.xml
 test-summary.json
 test-details.json
+test_full_task_*.xml
+test_full_task_*.log
+test_full_task_*.json
 
 # Performance and profiling
 profile_results/
