@@ -447,6 +447,7 @@ if __name__ == "__main__":  # pragma: no cover
             False,  # disable_structured_logging
             False,  # disable_learning
             False,  # disable_adaptation
+            False,  # disable_clarity_moments
             10,  # log_flush_period_ticks
             config["enable_profiling"],
         ),

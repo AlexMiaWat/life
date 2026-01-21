@@ -8,6 +8,8 @@ from src.activation.activation import activate_memory
 from src.adaptation.adaptation import AdaptationManager
 from src.decision.decision import decide_response
 from src.environment.internal_generator import InternalEventGenerator
+
+# from src.experimental.clarity_moments import ClarityMoments  # Отключено до стабилизации системы
 from src.feedback import observe_consequences, register_action
 from src.intelligence.intelligence import process_information
 from src.learning.learning import LearningEngine
@@ -195,6 +197,7 @@ def run_loop(
     disable_structured_logging=False,
     disable_learning=False,
     disable_adaptation=False,
+    disable_clarity_moments=True,  # Отключено по умолчанию до стабилизации
     log_flush_period_ticks=10,
     enable_profiling=False,
 ):
@@ -212,12 +215,19 @@ def run_loop(
         disable_structured_logging: Отключить структурированное логирование
         disable_learning: Отключить модуль Learning
         disable_adaptation: Отключить модуль Adaptation
+        disable_clarity_moments: Отключить систему моментов ясности
         log_flush_period_ticks: Период сброса логов в тиках
         enable_profiling: Включить профилирование runtime loop с cProfile
     """
+    # Structured logger for observability (инициализируем раньше для ClarityMoments)
+    structured_logger = StructuredLogger(enabled=not disable_structured_logging)
+
     engine = MeaningEngine()
     learning_engine = LearningEngine()  # Learning Engine (Этап 14)
     adaptation_manager = AdaptationManager()  # Adaptation Manager (Этап 15)
+    # clarity_moments = (
+    #     ClarityMoments(logger=structured_logger) if not disable_clarity_moments else None
+    # )  # Clarity Moments System
     internal_generator = (
         InternalEventGenerator()
     )  # Internal Event Generator (Memory Echoes)
@@ -241,9 +251,6 @@ def run_loop(
         LifePolicy()
     )  # Использует значения по умолчанию (совпадают с предыдущими константами)
 
-    # Structured logger for observability
-    structured_logger = StructuredLogger(enabled=not disable_structured_logging)
-
     # Счетчики ошибок для отслеживания проблем
     learning_errors = 0
     adaptation_errors = 0
@@ -254,7 +261,7 @@ def run_loop(
 
     def run_main_loop():
         """Основной цикл runtime loop - выделен для профилирования"""
-        nonlocal learning_errors, adaptation_errors
+        nonlocal learning_errors, adaptation_errors, ticks_since_last_memory_echo
         last_time = time.time()  # Инициализация last_time в начале цикла
         while stop_event is None or not stop_event.is_set():
             try:
@@ -290,6 +297,27 @@ def run_loop(
 
                 # Обновление внутренних ритмов
                 self_state.update_circadian_rhythm(dt)
+
+                # Clarity Moments: Отключено до стабилизации системы
+                # if clarity_moments:
+                #     # Проверяем условия для активации момента ясности
+                #     clarity_event = clarity_moments.check_clarity_conditions(self_state)
+                #     if clarity_event:
+                #         # Создаем событие clarity_moment
+                #         from src.environment.event import Event
+                #         event_obj = Event(
+                #             type="clarity_moment",
+                #             intensity=0.8,  # Высокая интенсивность для clarity
+                #             timestamp=clarity_event['timestamp'],
+                #             metadata=clarity_event['data']
+                #         )
+                #         if event_queue:
+                #             event_queue.push(event_obj)
+                #         # Активируем состояние clarity
+                #         clarity_moments.activate_clarity_moment(self_state)
+                #
+                #     # Обновляем состояние clarity (уменьшаем длительность)
+                #     clarity_moments.update_clarity_state(self_state)
 
                 # Наблюдаем последствия прошлых действий (Feedback)
                 feedback_records = observe_consequences(

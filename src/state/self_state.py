@@ -85,6 +85,11 @@ class SelfState:
     echo_count: int = 0  # Количество эхо-всплываний
     last_echo_time: float = 0.0  # Время последнего эхо в секундах жизни
 
+    # === Clarity moments parameters ===
+    clarity_state: bool = False  # Флаг активности момента ясности
+    clarity_duration: int = 0  # Оставшаяся длительность момента ясности в тиках
+    clarity_modifier: float = 1.0  # Текущий модификатор значимости для моментов ясности
+
     # Last perceived event intensity (signal for subjective time), in [0..1].
     last_event_intensity: float = 0.0
 

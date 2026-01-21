@@ -89,6 +89,175 @@ class FeedbackRecord:
 
 **Примечание**: FeedbackRecord может быть расширением MemoryEntry или отдельной структурой, сохраняемой в Memory.
 
+## Примеры использования
+
+### Базовый пример регистрации и наблюдения действия
+
+```python
+from src.feedback.feedback import register_action, observe_consequences
+from src.state.self_state import SelfState
+from src.environment.event_queue import EventQueue
+import time
+
+# Создание состояния и очереди событий
+state = SelfState()
+state.energy = 50.0
+state.stability = 0.8
+event_queue = EventQueue()
+
+# Регистрация действия (сохраняем состояние ДО выполнения действия)
+action_id = "test_action_001"
+state_before = {
+    "energy": state.energy,
+    "stability": state.stability,
+    "integrity": state.integrity
+}
+
+register_action(
+    action_id=action_id,
+    pattern="dampen",
+    state_before=state_before,
+    action_timestamp=time.time(),
+    pending_actions=[]
+)
+
+print(f"Зарегистрировано действие: {action_id}")
+
+# Имитация выполнения действия (изменение состояния)
+state.apply_delta({"energy": -1.0})  # Минимальный эффект dampen
+
+# Наблюдение последствий через несколько тиков
+time.sleep(0.1)  # Имитация задержки
+
+feedback_records = observe_consequences(state, [{"action_id": action_id, "ticks_waited": 5}], event_queue)
+
+print(f"Получено записей feedback: {len(feedback_records)}")
+if feedback_records:
+    feedback = feedback_records[0]
+    print(f"Изменения состояния: {feedback.state_delta}")
+```
+
+### Пример работы с несколькими действиями
+
+```python
+from src.feedback.feedback import register_action, observe_consequences
+from src.state.self_state import SelfState
+from src.environment.event_queue import EventQueue
+from src.environment.event import Event
+import time
+
+state = SelfState()
+state.energy = 60.0
+state.stability = 0.9
+event_queue = EventQueue()
+
+pending_actions = []
+
+# Регистрация нескольких действий
+actions = [
+    ("action_001", "dampen"),
+    ("action_002", "absorb"),
+    ("action_003", "ignore")
+]
+
+for action_id, pattern in actions:
+    state_before = {
+        "energy": state.energy,
+        "stability": state.stability,
+        "integrity": state.integrity
+    }
+
+    register_action(
+        action_id=action_id,
+        pattern=pattern,
+        state_before=state_before,
+        action_timestamp=time.time(),
+        pending_actions=pending_actions
+    )
+
+    # Имитация эффекта действия
+    if pattern == "dampen":
+        state.apply_delta({"energy": -0.5})
+    elif pattern == "absorb":
+        state.apply_delta({"stability": -0.1})
+
+print(f"Зарегистрировано действий: {len(pending_actions)}")
+
+# Добавление событий в очередь (могут влиять на feedback)
+event_queue.push(Event("noise", 0.3, time.time()))
+event_queue.push(Event("recovery", 0.2, time.time()))
+
+# Наблюдение последствий
+feedback_records = observe_consequences(state, pending_actions, event_queue)
+
+print("Результаты feedback:")
+for feedback in feedback_records:
+    print(f"  Действие {feedback.action_id} ({feedback.action_pattern}):")
+    print(f"    Изменения: {feedback.state_delta}")
+    print(f"    Задержка: {feedback.delay_ticks} тиков")
+    print(f"    Связанные события: {feedback.associated_events}")
+```
+
+### Пример интеграции в runtime loop
+
+```python
+from src.feedback.feedback import register_action, observe_consequences
+from src.state.self_state import SelfState
+from src.action.action import execute_action
+from src.environment.event_queue import EventQueue
+import time
+
+# Имитация runtime loop с feedback
+state = SelfState()
+state.energy = 70.0
+state.stability = 0.85
+event_queue = EventQueue()
+
+pending_actions = []
+
+# Шаг 1: Выполнение действия с регистрацией
+action_id = "runtime_action_001"
+pattern = "dampen"
+
+# Сохраняем состояние ДО выполнения действия (важно!)
+state_before = {
+    "energy": state.energy,
+    "stability": state.stability,
+    "integrity": state.integrity
+}
+
+register_action(
+    action_id=action_id,
+    pattern=pattern,
+    state_before=state_before,
+    action_timestamp=time.time(),
+    pending_actions=pending_actions
+)
+
+# Выполняем действие (изменяет состояние)
+execute_action(pattern, state)
+
+print(f"Энергия после действия: {state.energy}")
+
+# Шаг 2: Имитация нескольких тиков (действие "отстаивается")
+for tick in range(3):
+    time.sleep(0.05)  # Имитация задержки
+    # В реальном runtime здесь происходит обработка событий и т.д.
+
+# Шаг 3: Наблюдение feedback
+feedback_records = observe_consequences(state, pending_actions, event_queue)
+
+print("Feedback анализ:")
+for feedback in feedback_records:
+    energy_change = feedback.state_delta.get("energy", 0)
+    stability_change = feedback.state_delta.get("stability", 0)
+
+    print(f"Действие '{feedback.action_pattern}':")
+    print(f"  Изменение энергии: {energy_change:+.3f}")
+    print(f"  Изменение стабильности: {stability_change:+.3f}")
+    print(f"  Задержка наблюдения: {feedback.delay_ticks} тиков")
+```
+
 ## Механизм работы
 
 ### 1. Регистрация действия

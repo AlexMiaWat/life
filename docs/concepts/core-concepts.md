@@ -102,4 +102,4 @@ graph TD
 ### Связь с другими модулями
 
 * **Meaning Engine:** Создает материал для памяти.
-* **Activation:** Механизм извлечения памяти (см. [10_ACTIVATION.md](10_ACTIVATION.md)).
+* **Activation:** Механизм извлечения памяти (см. [activation-concept.md](activation-concept.md)).

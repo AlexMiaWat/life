@@ -105,6 +105,29 @@ class MeaningEngine:
             "decay": 1.0,  # Распад нормален
             "idle": 0.2,  # Бездействие почти не значимо
             "memory_echo": 0.8,  # Внутренние воспоминания умеренно значимы
+            # Новые социальные события
+            "social_presence": 0.9,  # Присутствие других умеренно значимо
+            "social_conflict": 1.2,  # Конфликт вызывает стресс
+            "social_harmony": 1.1,  # Гармония значима позитивно
+            # Новые когнитивные события
+            "cognitive_doubt": 0.8,  # Сомнение умеренно значимо
+            "cognitive_clarity": 1.0,  # Ясность нормально значима
+            "cognitive_confusion": 0.7,  # Путаница менее значима чем шок
+            # Новые экзистенциальные события
+            "existential_void": 1.3,  # Пустота очень значима
+            "existential_purpose": 1.4,  # Цель крайне значима
+            "existential_finitude": 1.1,  # Конечность значима
+            # Новые социально-эмоциональные события
+            "connection": 1.1,  # Связь с другими значима
+            "isolation": 1.0,  # Изоляция значима
+            # Новые когнитивные события
+            "insight": 1.2,  # Озарение очень значимо
+            "confusion": 0.8,  # Замешательство умеренно значимо
+            "curiosity": 0.7,  # Любопытство мало значимо
+            # Новые экзистенциальные события
+            "meaning_found": 1.4,  # Нахождение смысла крайне значимо
+            "void": 1.3,  # Пустота очень значима
+            "acceptance": 0.9,  # Принятие умеренно значимо
         }
 
         weight = type_weight.get(event.type, 1.0)
@@ -156,7 +179,7 @@ class MeaningEngine:
         # Контекстуальная модификация на основе состояния
         # Если integrity низкая — даже малые события становятся важнее
         integrity = (
-            getattr(self_state, "integrity", self_state.get("integrity", 1.0))
+            getattr(self_state, "integrity", 1.0)
             if isinstance(self_state, SelfState)
             else self_state.get("integrity", 1.0)
         )
@@ -165,7 +188,7 @@ class MeaningEngine:
 
         # Если stability низкая — события ощущаются сильнее
         stability = (
-            getattr(self_state, "stability", self_state.get("stability", 1.0))
+            getattr(self_state, "stability", 1.0)
             if isinstance(self_state, SelfState)
             else self_state.get("stability", 1.0)
         )
@@ -188,6 +211,22 @@ class MeaningEngine:
                 significance *= max(
                     0.8, 1.0 - (1.0 - time_ratio) * 0.3
                 )  # Уменьшение до 20%
+
+        # ИНТЕГРАЦИЯ: Модификация на основе моментов ясности
+        # Если активен момент ясности, усиливаем значимость событий
+        clarity_state = (
+            getattr(self_state, "clarity_state", False)
+            if isinstance(self_state, SelfState)
+            else self_state.get("clarity_state", False)
+        )
+        if clarity_state:
+            # Коэффициент усиления из ClarityMoments
+            clarity_modifier = (
+                getattr(self_state, "clarity_modifier", 1.5)
+                if isinstance(self_state, SelfState)
+                else 1.5
+            )
+            significance *= clarity_modifier
 
         # Ограничение диапазона
         return max(0.0, min(1.0, significance))
@@ -219,6 +258,49 @@ class MeaningEngine:
                 "stability": +0.02,
                 "integrity": +0.01,
             },  # Рефлексивное влияние
+            # Новые социальные события
+            "social_presence": {"energy": -0.1, "stability": -0.03, "integrity": 0.0},
+            "social_conflict": {"energy": -0.8, "stability": -0.08, "integrity": -0.03},
+            "social_harmony": {"energy": +0.6, "stability": +0.06, "integrity": +0.02},
+            # Новые когнитивные события
+            "cognitive_doubt": {"energy": 0.0, "stability": -0.04, "integrity": -0.02},
+            "cognitive_clarity": {
+                "energy": +0.1,
+                "stability": +0.05,
+                "integrity": +0.03,
+            },
+            "cognitive_confusion": {
+                "energy": -0.2,
+                "stability": -0.06,
+                "integrity": -0.01,
+            },
+            # Новые экзистенциальные события
+            "existential_void": {
+                "energy": -1.0,
+                "stability": -0.05,
+                "integrity": -0.04,
+            },
+            "existential_purpose": {
+                "energy": +0.8,
+                "stability": +0.08,
+                "integrity": +0.05,
+            },
+            "existential_finitude": {
+                "energy": -0.3,
+                "stability": -0.07,
+                "integrity": -0.03,
+            },
+            # Новые социально-эмоциональные события
+            "connection": {"energy": +0.7, "stability": +0.08, "integrity": +0.03},
+            "isolation": {"energy": -0.6, "stability": -0.09, "integrity": -0.02},
+            # Новые когнитивные события
+            "insight": {"energy": +0.2, "stability": +0.06, "integrity": +0.04},
+            "confusion": {"energy": -0.1, "stability": -0.07, "integrity": -0.02},
+            "curiosity": {"energy": -0.1, "stability": -0.03, "integrity": 0.0},
+            # Новые экзистенциальные события
+            "meaning_found": {"energy": +0.9, "stability": +0.09, "integrity": +0.06},
+            "void": {"energy": -1.1, "stability": -0.06, "integrity": -0.05},
+            "acceptance": {"energy": +0.1, "stability": +0.04, "integrity": +0.02},
         }
 
         base_impact = base_impacts.get(
@@ -277,7 +359,7 @@ class MeaningEngine:
 
         # При высокой стабильности — ослабление эффектов
         stability = (
-            getattr(self_state, "stability", self_state.get("stability", 1.0))
+            getattr(self_state, "stability", 1.0)
             if isinstance(self_state, SelfState)
             else self_state.get("stability", 1.0)
         )

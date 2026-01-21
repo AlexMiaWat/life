@@ -190,7 +190,7 @@ curl http://localhost:8000/clear-data
 ```
 
 **Параметры:**
-- `type` (string, required): Тип события (`noise`, `decay`, `recovery`, `shock`, `idle`)
+- `type` (string, required): Тип события (`noise`, `decay`, `recovery`, `shock`, `idle`, `memory_echo`, `social_presence`, `social_conflict`, `social_harmony`, `cognitive_doubt`, `cognitive_clarity`, `cognitive_confusion`, `existential_void`, `existential_purpose`, `existential_finitude`, `connection`, `isolation`, `insight`, `confusion`, `curiosity`, `meaning_found`, `void`, `acceptance`)
 - `intensity` (float, optional): Интенсивность события (-1.0 до 1.0)
 - `timestamp` (float, optional): Временная метка (Unix timestamp)
 - `metadata` (object, optional): Дополнительные данные

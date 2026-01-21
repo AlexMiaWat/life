@@ -269,48 +269,48 @@ class Memory(list):
             current_time = time.time()
             entries_to_archive = []
 
-        # Собираем записи для архивации (оптимизация: не удаляем во время итерации)
-        for entry in self[:]:
-            should_archive = False
+            # Собираем записи для архивации (оптимизация: не удаляем во время итерации)
+            for entry in self[:]:
+                should_archive = False
 
-            # Проверка по возрасту
-            if max_age is not None:
-                age = current_time - entry.timestamp
-                if age > max_age:
-                    should_archive = True
+                # Проверка по возрасту
+                if max_age is not None:
+                    age = current_time - entry.timestamp
+                    if age > max_age:
+                        should_archive = True
 
-            # Проверка по весу
-            if min_weight is not None:
-                if entry.weight < min_weight:
-                    should_archive = True
+                # Проверка по весу
+                if min_weight is not None:
+                    if entry.weight < min_weight:
+                        should_archive = True
 
-            # Проверка по значимости
-            if min_significance is not None:
-                if entry.meaning_significance < min_significance:
-                    should_archive = True
+                # Проверка по значимости
+                if min_significance is not None:
+                    if entry.meaning_significance < min_significance:
+                        should_archive = True
 
-            if should_archive:
-                entries_to_archive.append(entry)
+                if should_archive:
+                    entries_to_archive.append(entry)
 
-        # Оптимизация: удаляем все записи за один проход
-        for entry in entries_to_archive:
-            self.remove(entry)
+            # Оптимизация: удаляем все записи за один проход
+            for entry in entries_to_archive:
+                self.remove(entry)
 
-        # Добавляем записи в архив
-        if entries_to_archive:
-            try:
-                self.archive.add_entries(entries_to_archive)
-                self.archive.save_archive()
-            except Exception as e:
-                # В случае ошибки сохранения архива, возвращаем записи в активную память
-                # чтобы не потерять данные
-                self.extend(entries_to_archive)
-                raise RuntimeError(f"Ошибка при сохранении архива: {e}") from e
+            # Добавляем записи в архив
+            if entries_to_archive:
+                try:
+                    self.archive.add_entries(entries_to_archive)
+                    self.archive.save_archive()
+                except Exception as e:
+                    # В случае ошибки сохранения архива, возвращаем записи в активную память
+                    # чтобы не потерять данные
+                    self.extend(entries_to_archive)
+                    raise RuntimeError(f"Ошибка при сохранении архива: {e}") from e
 
-            return len(entries_to_archive)
+                return len(entries_to_archive)
 
-        # Если нет записей для архивации, возвращаем 0
-        return 0
+            # Если нет записей для архивации, возвращаем 0
+            return 0
 
     def decay_weights(self, decay_factor: float = 0.99, min_weight: float = 0.0) -> int:
         """

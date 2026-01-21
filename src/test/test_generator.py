@@ -39,12 +39,36 @@ class TestEventGenerator:
     def test_generate_event_types(self, generator):
         """Тест, что генерируются все типы событий"""
         event_types = set()
-        for _ in range(100):  # Генерируем много событий
+        for _ in range(1000):  # Генерируем много событий для покрытия редких типов
             event = generator.generate()
             event_types.add(event.type)
 
-        # Должны быть все типы
-        expected_types = {"noise", "decay", "recovery", "shock", "idle"}
+        # Должны быть все базовые типы + новые социальные, когнитивные, экзистенциальные
+        # memory_echo имеет вес 0.0, поэтому генерируется только внутренне
+        expected_types = {
+            "noise",
+            "decay",
+            "recovery",
+            "shock",
+            "idle",
+            "social_presence",
+            "social_conflict",
+            "social_harmony",
+            "cognitive_doubt",
+            "cognitive_clarity",
+            "cognitive_confusion",
+            "existential_void",
+            "existential_purpose",
+            "existential_finitude",
+            "connection",
+            "isolation",
+            "insight",
+            "confusion",
+            "curiosity",
+            "meaning_found",
+            "void",
+            "acceptance",
+        }
         assert event_types == expected_types
 
     def test_generate_noise_intensity_range(self, generator):
@@ -117,8 +141,36 @@ class TestEventGenerator:
             event = generator.generate()
             event_counts[event.type] = event_counts.get(event.type, 0) + 1
 
-        # Проверяем, что все типы генерируются
-        assert len(event_counts) == 5
+        # Проверяем, что все 22 типа генерируются (5 базовых + 9 старых новых + 8 новых)
+        # memory_echo имеет вес 0.0, поэтому не генерируется обычным генератором
+        assert len(event_counts) == 22
+
+        # Проверяем наличие всех ожидаемых типов
+        expected_types = {
+            "noise",
+            "decay",
+            "recovery",
+            "shock",
+            "idle",
+            "social_presence",
+            "social_conflict",
+            "social_harmony",
+            "cognitive_doubt",
+            "cognitive_clarity",
+            "cognitive_confusion",
+            "existential_void",
+            "existential_purpose",
+            "existential_finitude",
+            "connection",
+            "isolation",
+            "insight",
+            "confusion",
+            "curiosity",
+            "meaning_found",
+            "void",
+            "acceptance",
+        }
+        assert set(event_counts.keys()) == expected_types
 
         # Проверяем ожидаемое распределение (noise должен быть чаще)
         assert event_counts.get("noise", 0) > event_counts.get("shock", 0)

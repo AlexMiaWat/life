@@ -91,6 +91,103 @@ Action модуль использует безопасные методы об�
 - `self_state.update_energy()` вместо прямого присваивания
 - Это обеспечивает автоматическую валидацию и логирование изменений (см. [self-state.md](self-state.md))
 
+## Примеры использования
+
+### Базовый пример выполнения действия
+
+```python
+from src.action.action import execute_action
+from src.state.self_state import SelfState
+
+# Создание состояния системы
+state = SelfState()
+state.energy = 50.0
+state.stability = 0.8
+state.integrity = 0.9
+
+# Инициализация параметров обучения и адаптации
+state.learning_params = {
+    "response_coefficients": {"dampen": 0.5, "absorb": 1.0}
+}
+state.adaptation_params = {
+    "behavior_coefficients": {"dampen": 0.6}  # Приоритет над learning
+}
+
+# Выполнение действия "dampen"
+execute_action("dampen", state)
+
+print(f"Энергия после действия: {state.energy}")
+print(f"Последняя запись в памяти: {state.memory[-1].event_type}")
+```
+
+### Пример с разными паттернами действий
+
+```python
+from src.action.action import execute_action
+from src.state.self_state import SelfState
+import time
+
+# Создание состояния с историей памяти
+state = SelfState()
+state.energy = 75.0
+state.stability = 0.7
+
+# Инициализация параметров
+state.learning_params = {
+    "response_coefficients": {"dampen": 0.4, "absorb": 1.2}
+}
+
+print(f"Начальная энергия: {state.energy}")
+
+# Выполнение разных паттернов
+patterns = ["dampen", "absorb", "ignore"]
+
+for pattern in patterns:
+    energy_before = state.energy
+    execute_action(pattern, state)
+
+    print(f"Паттерн '{pattern}': {energy_before:.1f} → {state.energy:.1f}")
+
+    # Показать запись в памяти
+    if state.memory:
+        entry = state.memory[-1]
+        print(f"  Запись в памяти: {entry.event_type} (significance: {entry.meaning_significance})")
+```
+
+### Пример интеграции с Learning и Adaptation
+
+```python
+from src.action.action import execute_action
+from src.state.self_state import SelfState
+
+# Создание состояния с полными параметрами
+state = SelfState()
+state.energy = 60.0
+state.stability = 0.8
+state.integrity = 0.9
+
+# Параметры обучения (базовые коэффициенты)
+state.learning_params = {
+    "response_coefficients": {"dampen": 0.5, "absorb": 1.0, "ignore": 0.0}
+}
+
+# Параметры адаптации (приоритетные коэффициенты)
+state.adaptation_params = {
+    "behavior_coefficients": {"dampen": 0.3, "absorb": 1.1}
+}
+
+print("Параметры до действия:")
+print(f"  Learning response_coefficients['dampen']: {state.learning_params['response_coefficients']['dampen']}")
+print(f"  Adaptation behavior_coefficients['dampen']: {state.adaptation_params['behavior_coefficients']['dampen']}")
+print(f"  Энергия: {state.energy}")
+
+# Выполнение действия - будет использован коэффициент из adaptation_params (0.3)
+execute_action("dampen", state)
+
+print(f"Энергия после действия: {state.energy}")
+print(f"Изменение энергии: {60.0 - state.energy:.3f}")
+```
+
 ### Пример логов
 
 ```

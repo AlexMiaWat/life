@@ -32,7 +32,7 @@ class FieldValidator:
     ]
 
     # Поля типа int
-    INT_FIELDS = ["ticks"]
+    INT_FIELDS = ["ticks", "clarity_duration"]
 
     @classmethod
     def validate_field(

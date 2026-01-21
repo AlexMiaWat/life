@@ -199,6 +199,167 @@ subjective_dt = compute_subjective_dt(
 # Результат: ~0.5 секунды субъективного времени (время течет медленнее)
 ```
 
+### Пример 4: Интеграция в SelfState
+
+```python
+from src.state.self_state import SelfState
+from src.runtime.subjective_time import compute_subjective_dt
+import time
+
+# Создание состояния с настройками субъективного времени
+state = SelfState()
+state.subjective_time = 0.0  # Начальное субъективное время
+state.last_event_intensity = 0.0  # Начальная интенсивность
+
+# Настройки для быстрого реагирования
+state.subjective_time_intensity_coeff = 1.5  # Высокая чувствительность к интенсивности
+state.subjective_time_stability_coeff = 0.8  # Средняя чувствительность к стабильности
+state.subjective_time_energy_coeff = 0.6    # Чувствительность к энергии
+state.subjective_time_intensity_smoothing = 0.4  # Плавное сглаживание
+
+print(f"Начальное субъективное время: {state.subjective_time}")
+
+# Имитация тика runtime loop
+dt = 1.0  # Физическая секунда
+
+# Обновление интенсивности (экспоненциальное сглаживание)
+current_intensity = 0.8  # Высокая интенсивность события
+alpha = state.subjective_time_intensity_smoothing
+state.last_event_intensity = (
+    alpha * current_intensity +
+    (1 - alpha) * state.last_event_intensity
+)
+
+# Вычисление субъективного времени
+subjective_dt = compute_subjective_dt(
+    dt=dt,
+    base_rate=state.subjective_time_base_rate,
+    intensity=state.last_event_intensity,
+    stability=state.stability,
+    energy=state.energy,
+    intensity_coeff=state.subjective_time_intensity_coeff,
+    stability_coeff=state.subjective_time_stability_coeff,
+    energy_coeff=state.subjective_time_energy_coeff,
+    rate_min=state.subjective_time_rate_min,
+    rate_max=state.subjective_time_rate_max,
+)
+
+# Применение изменения
+state.apply_delta({"subjective_time": subjective_dt})
+
+print(f"Субъективное время после тика: {state.subjective_time:.3f}")
+print(f"Физическое время: {dt}, Субъективное время: {subjective_dt:.3f}")
+print(f"Отношение: {subjective_dt/dt:.2f}x")
+```
+
+### Пример 5: Наблюдение за течением времени при разных состояниях
+
+```python
+from src.runtime.subjective_time import compute_subjective_time_rate
+from src.state.self_state import SelfState
+
+# Создание тестовых сценариев
+scenarios = [
+    ("Спокойное состояние", {
+        "intensity": 0.1, "stability": 0.9, "energy": 90.0,
+        "intensity_coeff": 1.0, "stability_coeff": 0.5, "energy_coeff": 0.5
+    }),
+    ("Высокая активность", {
+        "intensity": 0.9, "stability": 0.8, "energy": 95.0,
+        "intensity_coeff": 1.0, "stability_coeff": 0.5, "energy_coeff": 0.5
+    }),
+    ("Проблемное состояние", {
+        "intensity": 0.3, "stability": 0.4, "energy": 30.0,
+        "intensity_coeff": 1.0, "stability_coeff": 0.5, "energy_coeff": 0.5
+    }),
+    ("Кризис", {
+        "intensity": 0.1, "stability": 0.2, "energy": 10.0,
+        "intensity_coeff": 1.0, "stability_coeff": 0.5, "energy_coeff": 0.5
+    })
+]
+
+print("Анализ скорости субъективного времени:")
+print("-" * 50)
+
+for name, params in scenarios:
+    rate = compute_subjective_time_rate(
+        base_rate=1.0,
+        intensity=params["intensity"],
+        stability=params["stability"],
+        energy=params["energy"],
+        intensity_coeff=params["intensity_coeff"],
+        stability_coeff=params["stability_coeff"],
+        energy_coeff=params["energy_coeff"],
+        rate_min=0.1,
+        rate_max=3.0,
+    )
+
+    print(f"{name}:")
+    print(".2f")
+    print(f"  (intensity={params['intensity']}, stability={params['stability']}, energy={params['energy']})")
+    print()
+```
+
+### Пример 6: Настройка параметров для разных режимов
+
+```python
+from src.state.self_state import SelfState
+from src.runtime.subjective_time import compute_subjective_dt
+
+# Создание состояния для разных режимов работы
+modes = {
+    "Разработка": {
+        "subjective_time_intensity_coeff": 0.5,  # Меньше реагировать на интенсивность
+        "subjective_time_stability_coeff": 0.3,  # Меньше реагировать на стабильность
+        "subjective_time_energy_coeff": 0.2,     # Меньше реагировать на энергию
+        "subjective_time_intensity_smoothing": 0.6,  # Более плавное сглаживание
+    },
+    "Боевое состояние": {
+        "subjective_time_intensity_coeff": 1.5,  # Высокая чувствительность
+        "subjective_time_stability_coeff": 1.0,  # Средняя чувствительность
+        "subjective_time_energy_coeff": 0.8,     # Чувствительность к энергии
+        "subjective_time_intensity_smoothing": 0.2,  # Быстрое реагирование
+    },
+    "Медитация": {
+        "subjective_time_intensity_coeff": 0.1,  # Минимальная реакция на события
+        "subjective_time_stability_coeff": 0.8,  # Высокая чувствительность к стабильности
+        "subjective_time_energy_coeff": 0.6,     # Умеренная чувствительность к энергии
+        "subjective_time_intensity_smoothing": 0.8,  # Очень плавное сглаживание
+    }
+}
+
+dt = 1.0  # Физическая секунда
+
+for mode_name, config in modes.items():
+    state = SelfState()
+    state.last_event_intensity = 0.5
+    state.stability = 0.7
+    state.energy = 60.0
+
+    # Применение настроек режима
+    for param, value in config.items():
+        setattr(state, param, value)
+
+    # Вычисление субъективного времени
+    subjective_dt = compute_subjective_dt(
+        dt=dt,
+        base_rate=state.subjective_time_base_rate,
+        intensity=state.last_event_intensity,
+        stability=state.stability,
+        energy=state.energy,
+        intensity_coeff=state.subjective_time_intensity_coeff,
+        stability_coeff=state.subjective_time_stability_coeff,
+        energy_coeff=state.subjective_time_energy_coeff,
+        rate_min=state.subjective_time_rate_min,
+        rate_max=state.subjective_time_rate_max,
+    )
+
+    print(f"{mode_name}:")
+    print(".3f")
+    print(f"  Конфигурация: {config}")
+    print()
+```
+
 ## Свойства
 
 ### Детерминированность

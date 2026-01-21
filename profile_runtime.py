@@ -53,7 +53,8 @@ def profile_runtime():
                 False,  # disable_structured_logging
                 False,  # disable_learning
                 False,  # disable_adaptation
-                10,  # log_flush_period_ticks
+                False,  # disable_clarity_moments
+                1,  # log_flush_period_ticks
                 False,  # enable_profiling (False, потому что мы профилируем снаружи)
             ),
             daemon=True,

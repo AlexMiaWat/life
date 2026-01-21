@@ -100,6 +100,24 @@ SelfState обеспечивает **потокобезопасность** ме
 ### 9. Control (Управление)
 *   `active` (bool): Флаг активности жизни.
 
+### 10. Experimental Features (Экспериментальные возможности)
+Параметры для экспериментальных расширений системы.
+
+#### Clarity Moments (Моменты ясности)
+*   `clarity_state` (bool): Флаг активности момента ясности (по умолчанию False).
+*   `clarity_duration` (int): Оставшаяся длительность момента ясности в тиках (по умолчанию 0).
+*   `clarity_modifier` (float): Текущий модификатор значимости событий во время clarity (по умолчанию 1.0).
+
+#### Internal Rhythms (Внутренние ритмы)
+*   `circadian_phase` (float): Фаза циркадного ритма [0, 2π] (по умолчанию 0.0).
+*   `circadian_period` (float): Период циркадного ритма в секундах (по умолчанию 86400.0).
+*   `recovery_efficiency` (float): Эффективность восстановления [0.4, 1.6] (по умолчанию 1.0).
+*   `stability_modifier` (float): Модификатор стабильности [0.7, 1.3] (по умолчанию 1.0).
+
+#### Memory Echo (Эхо памяти)
+*   `echo_count` (int): Количество эхо-всплываний (по умолчанию 0).
+*   `last_echo_time` (float): Время последнего эхо в секундах жизни (по умолчанию 0.0).
+
 ## Инварианты
 
 1.  **Необратимость:** `life_id` и `birth_timestamp` никогда не меняются.
@@ -496,6 +514,196 @@ history = state.get_change_history()
 
 # Получить все изменения из лога (включая другие экземпляры)
 all_history = state.get_change_history(filter_by_life_id=False)
+```
+
+## Примеры использования
+
+### Создание и инициализация состояния
+
+```python
+from src.state.self_state import create_initial_state, SelfState
+
+# Создание состояния с помощью фабричной функции
+state = create_initial_state()
+print(f"ID жизни: {state.life_id}")
+print(f"Начальная энергия: {state.energy}")
+print(f"Активна: {state.is_active()}")
+
+# Создание состояния вручную
+custom_state = SelfState()
+custom_state.energy = 50.0
+custom_state.stability = 0.8
+custom_state.integrity = 0.9
+print(f"Создано состояние: энергия={custom_state.energy}")
+```
+
+### Работа с жизненными показателями
+
+```python
+from src.state.self_state import create_initial_state
+
+state = create_initial_state()
+
+# Использование безопасных методов обновления
+print(f"Начальная энергия: {state.energy}")
+
+# Безопасное обновление энергии
+state.update_energy(75.0)
+print(f"После обновления: {state.energy}")
+
+# Обновление нескольких параметров одновременно
+state.update_vital_params(energy=80.0, stability=0.9)
+print(f"Энергия: {state.energy}, Стабильность: {state.stability}")
+
+# Применение изменений через apply_delta
+changes = {"energy": -5.0, "stability": -0.1}
+state.apply_delta(changes)
+print(f"После изменений: энергия={state.energy}")
+```
+
+### Работа с памятью
+
+```python
+from src.state.self_state import create_initial_state
+from src.memory.memory import MemoryEntry
+import time
+
+state = create_initial_state()
+
+# Добавление записей в память
+entry1 = MemoryEntry(
+    event_type="decay",
+    meaning_significance=0.8,
+    timestamp=time.time()
+)
+
+entry2 = MemoryEntry(
+    event_type="recovery",
+    meaning_significance=0.6,
+    timestamp=time.time()
+)
+
+state.memory.append(entry1)
+state.memory.append(entry2)
+
+print(f"Записей в памяти: {len(state.memory)}")
+print(f"Типы событий в памяти: {list(set(e.event_type for e in state.memory))}")
+
+# Работа с архивной памятью
+archived_count = state.memory.archive_old_entries(max_age=3600)  # Архив записей старше 1 часа
+print(f"Заархивировано записей: {archived_count}")
+print(f"Записей в архиве: {state.archive_memory.size()}")
+```
+
+### Работа с параметрами обучения и адаптации
+
+```python
+from src.state.self_state import create_initial_state
+
+state = create_initial_state()
+
+# Инициализация параметров обучения
+state.learning_params = {
+    "event_type_sensitivity": {
+        "noise": 0.3,
+        "decay": 0.5,
+        "shock": 0.8
+    },
+    "significance_thresholds": {
+        "noise": 0.1,
+        "decay": 0.1,
+        "shock": 0.1
+    },
+    "response_coefficients": {
+        "dampen": 0.5,
+        "absorb": 1.0,
+        "ignore": 0.0
+    }
+}
+
+# Инициализация параметров адаптации
+state.adaptation_params = {
+    "behavior_sensitivity": {
+        "noise": 0.4,
+        "decay": 0.6,
+        "shock": 0.9
+    },
+    "behavior_coefficients": {
+        "dampen": 0.4,
+        "absorb": 1.1
+    }
+}
+
+print("Параметры обучения:")
+print(f"  Чувствительность к shock: {state.learning_params['event_type_sensitivity']['shock']}")
+print("Параметры адаптации:")
+print(f"  Коэффициент dampen: {state.adaptation_params['behavior_coefficients']['dampen']}")
+```
+
+### Проверка жизнеспособности системы
+
+```python
+from src.state.self_state import create_initial_state
+
+state = create_initial_state()
+
+# Проверка активности (базовая)
+print(f"Система активна: {state.is_active()}")
+
+# Проверка жизнеспособности (строгая)
+print(f"Система жизнеспособна: {state.is_viable()}")
+
+# Тестирование с низкими показателями
+state.energy = 5.0  # Ниже порога для is_active (10.0)
+state.integrity = 0.05  # Ниже порога для is_active (0.1)
+state.stability = 0.05  # Ниже порога для is_active (0.1)
+
+print(f"После ухудшения - активна: {state.is_active()}")
+print(f"После ухудшения - жизнеспособна: {state.is_viable()}")
+```
+
+### Работа с историей изменений
+
+```python
+from src.state.self_state import create_initial_state
+import time
+
+state = create_initial_state()
+
+# Внесение изменений для создания истории
+state.update_energy(80.0)
+time.sleep(0.01)  # Небольшая задержка для различимости timestamp
+state.update_stability(0.9)
+time.sleep(0.01)
+state.apply_delta({"integrity": 0.95})
+
+# Получение истории изменений
+history = state.get_change_history()
+print(f"Количество изменений: {len(history)}")
+
+for change in history[-3:]:  # Показать последние 3 изменения
+    print(f"  {change['field']}: {change['old_value']} → {change['new_value']}")
+```
+
+### Сериализация и загрузка состояния
+
+```python
+from src.state.self_state import create_initial_state, load_snapshot, save_snapshot
+import os
+
+state = create_initial_state()
+state.energy = 75.0
+state.memory.append(MemoryEntry("test", 0.5, time.time()))
+
+# Сохранение состояния
+snapshot_path = save_snapshot(state)
+print(f"Состояние сохранено в: {snapshot_path}")
+
+# Загрузка состояния
+if os.path.exists(snapshot_path):
+    loaded_state = load_snapshot(snapshot_path)
+    print(f"Загружено состояние с энергией: {loaded_state.energy}")
+    print(f"Загружено записей памяти: {len(loaded_state.memory)}")
 ```
 
 ## Связанные документы
