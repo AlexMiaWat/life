@@ -9,6 +9,7 @@ Unit-тесты для модуля Learning (Этап 14)
 """
 
 import inspect
+import json
 import sys
 import time
 from pathlib import Path
@@ -565,8 +566,6 @@ class TestLearningIntegration:
 
     def test_learning_persistence_in_snapshots(self):
         """Тест сохранения параметров Learning в snapshots"""
-        import json
-
         from state.self_state import save_snapshot
 
         engine = LearningEngine()

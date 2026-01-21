@@ -149,20 +149,31 @@ class SelfAwarenessAnalyzer:
         factors_count = 0
 
         # Фактор 1: Наличие недавних событий для анализа
-        if hasattr(self_state, 'recent_events') and isinstance(self_state.recent_events, list):
-            events_count = len(self_state.recent_events)
-            # Оцениваем разнообразие событий (не просто количество)
-            unique_events = len(set(self_state.recent_events)) if events_count > 0 else 0
-            diversity_ratio = unique_events / max(events_count, 1)
+        # Используем память системы для анализа паттернов поведения
+        try:
+            memory_stats = memory.get_statistics()
+            total_entries = memory_stats.get('total_entries', 0)
+            recent_entries = memory_stats.get('recent_entries_count', 0)
 
-            if events_count > 20 and diversity_ratio > 0.5:  # Много разнообразных событий
+            # Оцениваем количество недавних событий
+            if recent_entries > 50:
                 reflection_score += 0.4
-            elif events_count > 10 and diversity_ratio > 0.3:
+            elif recent_entries > 20:
                 reflection_score += 0.25
-            elif events_count > 5:
+            elif recent_entries > 5:
                 reflection_score += 0.15
-            else:
+            elif total_entries > 0:
                 reflection_score += 0.05
+
+            # Бонус за разнообразие типов событий в памяти
+            event_types = memory_stats.get('event_types', {})
+            if len(event_types) > 3:
+                reflection_score += 0.1
+
+            factors_count += 1
+        except Exception as e:
+            logger.debug(f"Не удалось получить статистику памяти: {e}")
+            reflection_score += 0.05
             factors_count += 1
 
         # Фактор 2: Способность к анализу паттернов в памяти

@@ -201,7 +201,7 @@ def run_loop(
     disable_structured_logging=False,
     disable_learning=False,
     disable_adaptation=False,
-    disable_philosophical_analysis=False,
+    disable_philosophical_analysis=True,  # Отключено по умолчанию - нарушает архитектурные принципы
     disable_philosophical_reports=False,
     disable_clarity_moments=True,  # Отключено по умолчанию до стабилизации
     log_flush_period_ticks=10,
@@ -801,7 +801,8 @@ def run_loop(
                         pass
 
                 # Philosophical Analysis (Этап 16) - анализ философских аспектов поведения
-                # Вызывается раз в PHILOSOPHICAL_ANALYSIS_INTERVAL тиков, после Adaptation
+                # ОТКЛЮЧЕНО: нарушает архитектурные принципы Intelligence.md и Core-concepts.md
+                # Система Life не должна анализировать себя "философски"
                 if (
                     not disable_philosophical_analysis
                     and self_state.ticks > 0

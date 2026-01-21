@@ -50,7 +50,7 @@ class SelfState:
     intelligence: dict = field(default_factory=dict)
     memory: Optional[Memory] = field(default=None)  # Активная память с поддержкой архивации
     archive_memory: ArchiveMemory = field(
-        default_factory=lambda: ArchiveMemory(), init=False
+        default_factory=lambda: ArchiveMemory(load_existing=False, ignore_existing_file=True), init=False
     )  # Архивная память (не сериализуется в snapshot напрямую)
 
     # Внутренние флаги для контроля инициализации и логирования
@@ -375,12 +375,13 @@ class SelfState:
 
     @property
     def active(self) -> bool:
-        """Active status - can be manually overridden or computed from viability"""
-        # Если _active установлено вручную в False, возвращаем False
-        # Иначе возвращаем is_viable()
+        """Active status - system remains active even in degraded state (immortal weakness)"""
+        # Согласно ADR 009, система Life не останавливается при параметрах <= 0
+        # Она продолжает работать в degraded состоянии ("бессмертная слабость")
+        # Active может быть только вручную установлен в False
         if hasattr(self, "_active") and self._active is False:
             return False
-        return self.is_viable()
+        return True
 
     @active.setter
     def active(self, value: bool) -> None:
@@ -411,27 +412,27 @@ class SelfState:
         }
     )  # Параметры для Learning (Этап 14)
     adaptation_params: dict = field(
-        default_factory=lambda: {
-            "behavior_sensitivity": {
+        default_factory=lambda: __import__('src.adaptation.adaptation', fromlist=['AdaptationManager']).AdaptationManager()._init_behavior_params_from_learning({
+            "event_type_sensitivity": {
                 "noise": 0.2,
                 "decay": 0.2,
                 "recovery": 0.2,
                 "shock": 0.2,
                 "idle": 0.2,
             },
-            "behavior_thresholds": {
+            "significance_thresholds": {
                 "noise": 0.1,
                 "decay": 0.1,
                 "recovery": 0.1,
                 "shock": 0.1,
                 "idle": 0.1,
             },
-            "behavior_coefficients": {
+            "response_coefficients": {
                 "dampen": 0.5,
                 "absorb": 1.0,
                 "ignore": 0.0,
             },
-        }
+        })
     )  # Параметры поведения для Adaptation (Этап 15)
     adaptation_history: list = field(
         default_factory=list
@@ -461,9 +462,10 @@ class SelfState:
     def is_active(self) -> bool:
         """
         Проверка жизнеспособности состояния.
-        Возвращает True если система жизнеспособна (vital параметры выше порогов).
+        Согласно ADR 009, система Life остается активной даже при параметрах <= 0.
+        Возвращает True всегда, кроме случаев ручной установки active=False.
         """
-        return self.is_viable()
+        return self.active
 
     def is_viable(self) -> bool:
         """
@@ -1265,7 +1267,10 @@ class SelfState:
 def create_initial_state() -> SelfState:
     """Создает начальное состояние для новой сессии жизни"""
     # ArchiveMemory() по умолчанию имеет load_existing=False, что подходит для новой сессии
-    return SelfState()
+    state = SelfState()
+    # Убеждаемся, что ArchiveMemory пустая согласно плану восстановления
+    assert state.archive_memory.size() == 0, f"ArchiveMemory should be empty on initialization, but has {state.archive_memory.size()} entries"
+    return state
 
 
 def save_snapshot(state: SelfState):

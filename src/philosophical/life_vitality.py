@@ -139,39 +139,26 @@ class LifeVitalityEvaluator:
 
         # Фактор 3: Разнообразие активности
         try:
-            # Оцениваем разнообразие по типам событий в памяти
-            unique_event_types = set()
+            # Оцениваем разнообразие по статистике памяти
+            memory_stats = memory.get_statistics()
+            event_types = memory_stats.get('event_types', {})
 
-            try:
-                # Используем публичный интерфейс памяти
-                if hasattr(memory, '__iter__') and len(memory) > 0:
-                    recent_entries = list(memory)[-50:]  # Последние 50 записей
+            # Вычисляем разнообразие типов событий
+            event_diversity = min(len(event_types) / 8, 1.0)  # Ожидаем до 8 типов событий
 
-                    for entry in recent_entries:
-                        if hasattr(entry, 'event_type'):
-                            unique_event_types.add(entry.event_type)
-
-                    # Вычисляем разнообразие типов событий
-                    event_diversity = min(len(unique_event_types) / 8, 1.0)  # Ожидаем до 8 типов событий
-
-                    if event_diversity > 0.5:
-                        vitality_score += 0.4
-                    elif event_diversity > 0.3:
-                        vitality_score += 0.25
-                    elif event_diversity > 0.1:
-                        vitality_score += 0.15
-                    else:
-                        vitality_score += 0.05
-                else:
-                    vitality_score += 0.05
-
-            except Exception as e:
-                logger.debug(f"Не удалось оценить разнообразие активности: {e}")
-                vitality_score += 0.1
+            if event_diversity > 0.5:
+                vitality_score += 0.4
+            elif event_diversity > 0.3:
+                vitality_score += 0.25
+            elif event_diversity > 0.1:
+                vitality_score += 0.15
+            else:
+                vitality_score += 0.05
 
             factors_count += 1
 
-        except Exception:
+        except Exception as e:
+            logger.debug(f"Не удалось оценить разнообразие активности: {e}")
             vitality_score += 0.05
             factors_count += 1
 
