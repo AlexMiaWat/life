@@ -329,7 +329,7 @@ for feedback in feedback_records:
 
 ## Ограничения (Limits)
 
-См. [feedback-concept.md](../concepts/feedback-concept.md) и [action-feedback-interface.md](../archive/interfaces/action-feedback-interface.md) для концептуальных ограничений.
+См. [core-concepts.md](../concepts/core-concepts.md) и [action-feedback-interface.md](../archive/interfaces/action-feedback-interface.md) для концептуальных ограничений.
 
 **Критические запреты:**
 - ❌ Feedback НЕ содержит флагов `success` или `failure`

@@ -9,11 +9,9 @@
 - Обработка ошибок и edge cases
 """
 
-import json
 import sys
 import time
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 import pytest
 import requests
@@ -22,7 +20,7 @@ from fastapi.testclient import TestClient
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from api import app, fake_users_db
+from api import app
 
 
 @pytest.fixture
@@ -34,11 +32,13 @@ def client():
 @pytest.fixture
 def auth_headers(client):
     """Фикстура для получения заголовков аутентификации"""
+
     def get_headers(username="admin", password="admin123"):
         login_data = {"username": username, "password": password}
         response = client.post("/token", data=login_data)
         token = response.json()["access_token"]
         return {"Authorization": f"Bearer {token}"}
+
     return get_headers
 
 
@@ -58,7 +58,7 @@ class TestAPIAuthIntegration:
             "username": username,
             "email": f"{username}@example.com",
             "password": "securepass123",
-            "full_name": "Test Integration User"
+            "full_name": "Test Integration User",
         }
 
         response = client.post("/register", json=user_data)
@@ -72,10 +72,9 @@ class TestAPIAuthIntegration:
         assert registered_user["disabled"] is False
 
         # 2. Аутентификация (вход)
-        login_response = client.post("/token", data={
-            "username": username,
-            "password": "securepass123"
-        })
+        login_response = client.post(
+            "/token", data={"username": username, "password": "securepass123"}
+        )
         assert login_response.status_code == 200
 
         token_data = login_response.json()
@@ -96,7 +95,7 @@ class TestAPIAuthIntegration:
         event_data = {
             "type": "noise",
             "intensity": 0.3,
-            "metadata": {"integration_test": True}
+            "metadata": {"integration_test": True},
         }
         event_response = client.post("/event", json=event_data, headers=headers)
         assert event_response.status_code == 200
@@ -132,22 +131,28 @@ class TestAPIAuthIntegration:
             user_data = {
                 "username": username,
                 "email": f"{username}@example.com",
-                "password": "password123"
+                "password": "password123",
             }
             response = client.post("/register", json=user_data)
             assert response.status_code == 201
 
         # Пользователь 1 входит и создает событие
-        login1 = client.post("/token", data={"username": user1, "password": "password123"})
+        login1 = client.post(
+            "/token", data={"username": user1, "password": "password123"}
+        )
         token1 = login1.json()["access_token"]
         headers1 = {"Authorization": f"Bearer {token1}"}
 
-        event_response = client.post("/event", json={"type": "shock", "intensity": 0.8}, headers=headers1)
+        event_response = client.post(
+            "/event", json={"type": "shock", "intensity": 0.8}, headers=headers1
+        )
         assert event_response.status_code == 200
         assert user1 in event_response.json()["message"]
 
         # Пользователь 2 входит и проверяет статус
-        login2 = client.post("/token", data={"username": user2, "password": "password123"})
+        login2 = client.post(
+            "/token", data={"username": user2, "password": "password123"}
+        )
         token2 = login2.json()["access_token"]
         headers2 = {"Authorization": f"Bearer {token2}"}
 
@@ -155,7 +160,7 @@ class TestAPIAuthIntegration:
         assert status_response.status_code == 200
 
         # Проверяем что ответ содержит имя пользователя 2
-        status_data = status_response.json()
+        # status_data = status_response.json()
         # В текущей реализации статус не содержит имени пользователя,
         # но проверяем что запрос прошел от имени user2
 
@@ -179,16 +184,29 @@ class TestAPIAuthIntegration:
 
         # Проверяем обязательные поля
         required_fields = [
-            "active", "energy", "integrity", "stability", "ticks", "age", "subjective_time",
-            "fatigue", "tension"
+            "active",
+            "energy",
+            "integrity",
+            "stability",
+            "ticks",
+            "age",
+            "subjective_time",
+            "fatigue",
+            "tension",
         ]
         for field in required_fields:
             assert field in data, f"Missing required field: {field}"
 
         # Проверяем опциональные поля (могут быть None)
         optional_fields = [
-            "life_id", "birth_timestamp", "learning_params", "adaptation_params",
-            "last_significance", "last_event_intensity", "planning", "intelligence"
+            "life_id",
+            "birth_timestamp",
+            "learning_params",
+            "adaptation_params",
+            "last_significance",
+            "last_event_intensity",
+            "planning",
+            "intelligence",
         ]
         for field in optional_fields:
             assert field in data, f"Missing optional field: {field}"
@@ -206,11 +224,7 @@ class TestAPIAuthIntegration:
         headers = auth_headers()
 
         # Создаем запрос с лимитами
-        params = {
-            "memory_limit": 10,
-            "events_limit": 5,
-            "energy_history_limit": 20
-        }
+        params = {"memory_limit": 10, "events_limit": 5, "energy_history_limit": 20}
 
         response = client.get("/status", headers=headers, params=params)
         assert response.status_code == 200
@@ -241,7 +255,14 @@ class TestAPIAuthIntegration:
 
         # Минимальный должен содержать только базовые поля
         min_fields = set(min_data.keys())
-        expected_min_fields = {"active", "ticks", "age", "energy", "stability", "integrity"}
+        expected_min_fields = {
+            "active",
+            "ticks",
+            "age",
+            "energy",
+            "stability",
+            "integrity",
+        }
         assert min_fields == expected_min_fields
 
         # Расширенный должен содержать все поля минимального плюс дополнительные
@@ -263,7 +284,7 @@ class TestAPIAuthIntegration:
             {"type": "shock", "intensity": -0.7, "metadata": {"test": "workflow"}},
             {"type": "recovery", "intensity": 0.9, "metadata": {"test": "workflow"}},
             {"type": "decay", "intensity": -0.4, "metadata": {"test": "workflow"}},
-            {"type": "idle", "metadata": {"test": "workflow"}}
+            {"type": "idle", "metadata": {"test": "workflow"}},
         ]
 
         created_events = []
@@ -300,9 +321,9 @@ class TestAPIAuthIntegration:
 
         events_with_timestamps = [
             {"type": "noise", "timestamp": base_time - 3600},  # Час назад
-            {"type": "noise", "timestamp": base_time},         # Сейчас
-            {"type": "noise", "timestamp": base_time + 3600}, # Через час
-            {"type": "noise"}  # Без timestamp (должен установиться автоматически)
+            {"type": "noise", "timestamp": base_time},  # Сейчас
+            {"type": "noise", "timestamp": base_time + 3600},  # Через час
+            {"type": "noise"},  # Без timestamp (должен установиться автоматически)
         ]
 
         for event_data in events_with_timestamps:
@@ -315,7 +336,9 @@ class TestAPIAuthIntegration:
                 assert event_response["timestamp"] == event_data["timestamp"]
             else:
                 # Автоматически установленный timestamp должен быть близок к текущему времени
-                assert abs(event_response["timestamp"] - time.time()) < 10  # В пределах 10 секунд
+                assert (
+                    abs(event_response["timestamp"] - time.time()) < 10
+                )  # В пределах 10 секунд
 
     def test_event_validation_integration(self, client, auth_headers):
         """Интеграционный тест валидации событий"""
@@ -328,7 +351,12 @@ class TestAPIAuthIntegration:
             {"type": "recovery", "intensity": 1.0},
             {"type": "decay", "intensity": -0.5},
             {"type": "idle", "intensity": 0.0},
-            {"type": "noise", "intensity": 0.5, "timestamp": time.time(), "metadata": {"key": "value"}}
+            {
+                "type": "noise",
+                "intensity": 0.5,
+                "timestamp": time.time(),
+                "metadata": {"key": "value"},
+            },
         ]
 
         for event_data in valid_events:
@@ -358,14 +386,12 @@ class TestAPIAuthIntegration:
         """Интеграционный тест симуляции истечения токена"""
         # Создаем токен с коротким сроком действия (для тестирования)
         import jwt
-        from api import SECRET_KEY, ALGORITHM
+
+        from api import ALGORITHM, SECRET_KEY
 
         # Создаем токен, который истечет через 1 секунду
         expire_time = int(time.time()) + 1
-        token_payload = {
-            "sub": "admin",
-            "exp": expire_time
-        }
+        token_payload = {"sub": "admin", "exp": expire_time}
         short_lived_token = jwt.encode(token_payload, SECRET_KEY, algorithm=ALGORITHM)
 
         headers = {"Authorization": f"Bearer {short_lived_token}"}
@@ -386,10 +412,9 @@ class TestAPIAuthIntegration:
         # Создаем несколько токенов для одного пользователя
         tokens = []
         for _ in range(3):
-            login_response = client.post("/token", data={
-                "username": "admin",
-                "password": "admin123"
-            })
+            login_response = client.post(
+                "/token", data={"username": "admin", "password": "admin123"}
+            )
             assert login_response.status_code == 200
             tokens.append(login_response.json()["access_token"])
 
@@ -400,10 +425,11 @@ class TestAPIAuthIntegration:
             assert response.status_code == 200, f"Token {i} failed"
 
             # Создаем событие с каждым токеном
-            event_response = client.post("/event", json={
-                "type": "noise",
-                "metadata": {"session": i}
-            }, headers=headers)
+            event_response = client.post(
+                "/event",
+                json={"type": "noise", "metadata": {"session": i}},
+                headers=headers,
+            )
             assert event_response.status_code == 200
 
     def test_user_disable_functionality_integration(self, client):
@@ -413,7 +439,7 @@ class TestAPIAuthIntegration:
         user_data = {
             "username": test_username,
             "email": f"{test_username}@example.com",
-            "password": "password123"
+            "password": "password123",
         }
 
         # Регистрируем
@@ -421,10 +447,9 @@ class TestAPIAuthIntegration:
         assert response.status_code == 201
 
         # Входим
-        login_response = client.post("/token", data={
-            "username": test_username,
-            "password": "password123"
-        })
+        login_response = client.post(
+            "/token", data={"username": test_username, "password": "password123"}
+        )
         assert login_response.status_code == 200
 
         token = login_response.json()["access_token"]
@@ -439,10 +464,9 @@ class TestAPIAuthIntegration:
         # (пользователи по умолчанию enabled)
 
         # Повторный вход должен работать
-        login2_response = client.post("/token", data={
-            "username": test_username,
-            "password": "password123"
-        })
+        login2_response = client.post(
+            "/token", data={"username": test_username, "password": "password123"}
+        )
         assert login2_response.status_code == 200
 
     # ============================================================================
@@ -470,14 +494,15 @@ class TestAPIAuthIntegration:
 
         # Создаем событие с большим metadata
         large_metadata = {"data": "x" * 10000}  # 10KB metadata
-        event_data = {
-            "type": "noise",
-            "metadata": large_metadata
-        }
+        event_data = {"type": "noise", "metadata": large_metadata}
 
         response = client.post("/event", json=event_data, headers=headers)
         # Сервер должен либо принять, либо отклонить с понятной ошибкой
-        assert response.status_code in [200, 413, 400]  # 200=OK, 413=Payload Too Large, 400=Bad Request
+        assert response.status_code in [
+            200,
+            413,
+            400,
+        ]  # 200=OK, 413=Payload Too Large, 400=Bad Request
 
     def test_malformed_request_handling_integration(self, client, auth_headers):
         """Интеграционный тест обработки malformed запросов"""
@@ -537,10 +562,14 @@ class TestAPIAuthIntegration:
 
         # Создаем несколько событий
         for i in range(3):
-            event_response = client.post("/event", json={
-                "type": "noise",
-                "metadata": {"consistency_test": True, "sequence": i}
-            }, headers=headers)
+            event_response = client.post(
+                "/event",
+                json={
+                    "type": "noise",
+                    "metadata": {"consistency_test": True, "sequence": i},
+                },
+                headers=headers,
+            )
             assert event_response.status_code == 200
 
         # Получаем статус после событий
@@ -566,16 +595,15 @@ class TestAPIAuthIntegration:
         user_data = {
             "username": session_username,
             "email": f"{session_username}@example.com",
-            "password": "session123"
+            "password": "session123",
         }
 
         client.post("/register", json=user_data)
 
         # Входим и получаем токен
-        login_response = client.post("/token", data={
-            "username": session_username,
-            "password": "session123"
-        })
+        login_response = client.post(
+            "/token", data={"username": session_username, "password": "session123"}
+        )
         token = login_response.json()["access_token"]
 
         # Выполняем несколько операций в сессии

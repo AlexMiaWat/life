@@ -286,6 +286,65 @@ class TestMeaningEngine:
         # Проверяем, что impact увеличен
         assert abs(meaning.impact["energy"]) > abs(base_impact["energy"])
 
+    def test_memory_echo_event_processing(self, engine, normal_state):
+        """Тест обработки событий memory_echo"""
+        event = Event(
+            type="memory_echo", intensity=0.15, timestamp=time.time()
+        )  # Более высокая интенсивность для преодоления порога
+        meaning = engine.process(event, normal_state)
+
+        # Проверяем, что событие обработано
+        assert meaning is not None
+        assert isinstance(meaning, Meaning)
+        assert meaning.significance > 0  # Должна быть ненулевая значимость
+
+        # Проверяем impact - должен быть мягким и рефлексивным
+        assert "energy" in meaning.impact
+        assert "stability" in meaning.impact
+        assert "integrity" in meaning.impact
+
+        # Energy должен быть слегка отрицательным (небольшая усталость от воспоминаний)
+        assert meaning.impact["energy"] < 0
+        assert abs(meaning.impact["energy"]) < 0.1  # Мягкое влияние
+
+        # Stability и integrity должны быть слегка положительными (рефлексия)
+        assert meaning.impact["stability"] > 0
+        assert meaning.impact["integrity"] > 0
+
+    def test_memory_echo_appraisal(self, engine, normal_state):
+        """Тест оценки значимости memory_echo событий"""
+        # Тест с разными интенсивностями
+        for intensity in [-0.2, -0.1, 0.0, 0.1, 0.2]:
+            event = Event(
+                type="memory_echo", intensity=intensity, timestamp=time.time()
+            )
+            significance = engine.appraisal(event, normal_state)
+
+            # Значимость должна быть пропорциональна интенсивности
+            expected_significance = (
+                abs(intensity) * 0.8
+            )  # type_weight для memory_echo = 0.8
+            assert abs(significance - expected_significance) < 0.01
+
+    def test_memory_echo_impact_model(self, engine, normal_state):
+        """Тест модели влияния memory_echo событий"""
+        event = Event(
+            type="memory_echo", intensity=0.2, timestamp=time.time()
+        )  # Максимальная интенсивность
+        significance = 0.5
+        impact = engine.impact_model(event, normal_state, significance)
+
+        # Проверяем ожидаемые базовые воздействия
+        assert impact["energy"] == pytest.approx(
+            -0.05 * 0.2 * 0.5, abs=0.001
+        )  # -0.05 * intensity * significance
+        assert impact["stability"] == pytest.approx(
+            0.02 * 0.2 * 0.5, abs=0.001
+        )  # +0.02 * intensity * significance
+        assert impact["integrity"] == pytest.approx(
+            0.01 * 0.2 * 0.5, abs=0.001
+        )  # +0.01 * intensity * significance
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

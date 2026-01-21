@@ -104,6 +104,7 @@ class MeaningEngine:
             "recovery": 1.0,  # Восстановление нормально
             "decay": 1.0,  # Распад нормален
             "idle": 0.2,  # Бездействие почти не значимо
+            "memory_echo": 0.8,  # Внутренние воспоминания умеренно значимы
         }
 
         weight = type_weight.get(event.type, 1.0)
@@ -174,11 +175,19 @@ class MeaningEngine:
         # ИНТЕГРАЦИЯ: Модификация на основе субъективного времени
         # Если субъективное время течет быстрее физического, события кажутся более значимыми
         if isinstance(self_state, SelfState):
-            time_ratio = self_state.subjective_time / self_state.age if self_state.age > 0 else 1.0
+            time_ratio = (
+                self_state.subjective_time / self_state.age
+                if self_state.age > 0
+                else 1.0
+            )
             if time_ratio > 1.1:  # Ускоренное восприятие времени
-                significance *= min(1.3, 1.0 + (time_ratio - 1.0) * 0.5)  # Увеличение до 30%
+                significance *= min(
+                    1.3, 1.0 + (time_ratio - 1.0) * 0.5
+                )  # Увеличение до 30%
             elif time_ratio < 0.9:  # Замедленное восприятие времени
-                significance *= max(0.8, 1.0 - (1.0 - time_ratio) * 0.3)  # Уменьшение до 20%
+                significance *= max(
+                    0.8, 1.0 - (1.0 - time_ratio) * 0.3
+                )  # Уменьшение до 20%
 
         # Ограничение диапазона
         return max(0.0, min(1.0, significance))
@@ -205,6 +214,11 @@ class MeaningEngine:
             "recovery": {"energy": +1.0, "stability": +0.05, "integrity": +0.02},
             "decay": {"energy": -0.5, "stability": -0.01, "integrity": -0.01},
             "idle": {"energy": -0.1, "stability": 0.0, "integrity": 0.0},
+            "memory_echo": {
+                "energy": -0.05,
+                "stability": +0.02,
+                "integrity": +0.01,
+            },  # Рефлексивное влияние
         }
 
         base_impact = base_impacts.get(

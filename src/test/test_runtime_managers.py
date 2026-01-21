@@ -7,12 +7,13 @@
 - LifePolicy: определение слабости, расчет штрафов
 """
 
-import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock
 
-from src.runtime.snapshot_manager import SnapshotManager
-from src.runtime.log_manager import LogManager, FlushPolicy
+import pytest
+
 from src.runtime.life_policy import LifePolicy
+from src.runtime.log_manager import FlushPolicy, LogManager
+from src.runtime.snapshot_manager import SnapshotManager
 from src.state.self_state import SelfState
 
 
@@ -267,10 +268,14 @@ class TestLifePolicy:
         with pytest.raises(ValueError, match="penalty_k must be non-negative"):
             LifePolicy(penalty_k=-0.01)
 
-        with pytest.raises(ValueError, match="stability_multiplier must be non-negative"):
+        with pytest.raises(
+            ValueError, match="stability_multiplier must be non-negative"
+        ):
             LifePolicy(stability_multiplier=-1.0)
 
-        with pytest.raises(ValueError, match="integrity_multiplier must be non-negative"):
+        with pytest.raises(
+            ValueError, match="integrity_multiplier must be non-negative"
+        ):
             LifePolicy(integrity_multiplier=-0.5)
 
     def test_is_weak_normal_state(self):
@@ -321,7 +326,9 @@ class TestLifePolicy:
 
     def test_weakness_penalty_normal(self):
         """Тест расчета штрафа для нормального состояния"""
-        policy = LifePolicy(penalty_k=0.02, stability_multiplier=2.0, integrity_multiplier=3.0)
+        policy = LifePolicy(
+            penalty_k=0.02, stability_multiplier=2.0, integrity_multiplier=3.0
+        )
         dt = 0.1
 
         penalty = policy.weakness_penalty(dt)
@@ -405,8 +412,8 @@ class TestRuntimeManagersIntegration:
             (0.8, 0.9, 0.95, False),  # Нормальное
             (0.05, 0.9, 0.95, True),  # Низкая энергия
             (0.8, 0.03, 0.95, True),  # Низкая стабильность
-            (0.8, 0.9, 0.01, True),   # Низкая целостность
-            (0.02, 0.01, 0.03, True), # Все низкие
+            (0.8, 0.9, 0.01, True),  # Низкая целостность
+            (0.02, 0.01, 0.03, True),  # Все низкие
         ]
 
         for energy, stability, integrity, expected_weak in test_cases:

@@ -66,7 +66,7 @@ class TestStructuredLoggerStatic:
         assert len(sig.parameters) == 2  # event + correlation_id (self не считается)
         assert "event" in sig.parameters
         assert "correlation_id" in sig.parameters
-        assert sig.return_annotation == str
+        assert sig.return_annotation is str
 
         # log_meaning
         sig = inspect.signature(logger.log_meaning)
@@ -140,7 +140,7 @@ class TestStructuredLoggerStatic:
         # _get_next_correlation_id
         sig = inspect.signature(logger._get_next_correlation_id)
         assert len(sig.parameters) == 0  # только self, который не считается
-        assert sig.return_annotation == str
+        assert sig.return_annotation is str
 
         # _write_log_entry
         sig = inspect.signature(logger._write_log_entry)

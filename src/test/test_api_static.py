@@ -12,15 +12,14 @@ import sys
 from pathlib import Path
 
 import pytest
-from pydantic import ValidationError
 
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from api import (
-    ExtendedStatusResponse,
     EventCreate,
     EventResponse,
+    ExtendedStatusResponse,
     StatusResponse,
     app,
     verify_api_key,
@@ -65,7 +64,7 @@ class TestAPISimplifiedStatic:
             intensity=0.8,
             timestamp=1234567890.0,
             metadata={"test": "data"},
-            message="Event processed successfully"
+            message="Event processed successfully",
         )
         assert response.type == "shock"
         assert response.intensity == 0.8
@@ -84,7 +83,7 @@ class TestAPISimplifiedStatic:
             integrity=0.95,
             subjective_time=120.0,
             fatigue=15.0,
-            tension=25.0
+            tension=25.0,
         )
         assert status.active is True
         assert status.ticks == 1000
@@ -111,7 +110,7 @@ class TestAPISimplifiedStatic:
             life_id="test-life-123",
             birth_timestamp=1234567800.0,
             recent_events=["event1", "event2"],
-            last_significance=0.8
+            last_significance=0.8,
         )
         assert extended.active is True
         assert extended.life_id == "test-life-123"

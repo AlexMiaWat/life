@@ -75,6 +75,16 @@ class SelfState:
         default_factory=list
     )  # История соотношений physical/subjective time
 
+    # === Internal rhythms parameters ===
+    circadian_phase: float = 0.0  # Фаза циркадного ритма [0, 2π]
+    circadian_period: float = 24.0 * 3600.0  # Период в секундах (24 часа)
+    recovery_efficiency: float = 1.0  # Эффективность восстановления [0.4, 1.6]
+    stability_modifier: float = 1.0  # Модификатор стабильности [0.7, 1.3]
+
+    # === Echo memory parameters ===
+    echo_count: int = 0  # Количество эхо-всплываний
+    last_echo_time: float = 0.0  # Время последнего эхо в секундах жизни
+
     # Last perceived event intensity (signal for subjective time), in [0..1].
     last_event_intensity: float = 0.0
 
@@ -278,8 +288,19 @@ class SelfState:
                     "subjective_time_energy_coeff",
                     "subjective_time_intensity_smoothing",
                     "last_event_intensity",
-                    "ticks",
+                    "circadian_phase",
+                    "circadian_period",
+                    "recovery_efficiency",
+                    "stability_modifier",
+                    "last_echo_time",
                 ]:
+                    value = self._validate_field(name, value, clamp=False)
+                elif isinstance(value, (int, float)) and name in [
+                    "ticks",
+                    "echo_count",
+                ]:
+                    # Для целочисленных полей конвертируем в int и валидируем
+                    value = int(value)
                     value = self._validate_field(name, value, clamp=False)
 
                 # Устанавливаем значение
@@ -571,6 +592,84 @@ class SelfState:
         # Если новый размер меньше текущего буфера, сбрасываем его
         if len(self._log_buffer) >= size:
             self._flush_log_buffer()
+
+    def update_circadian_rhythm(self, dt: float) -> None:
+        """
+        Обновить фазу циркадного ритма и связанные параметры.
+
+        Фаза циркадного ритма изменяется со скоростью 2π/(24 часа) = π/(12 часов).
+        Recovery efficiency достигает пика днем (фаза π/2), минимум ночью (фаза 3π/2).
+        Stability modifier достигает пика ночью (фаза π), минимум днем (фаза 0).
+
+        Args:
+            dt: Время в секундах, прошедшее с последнего обновления
+        """
+        import math
+
+        # Обновляем фазу ритма
+        phase_increment = (dt / self.circadian_period) * 2 * math.pi
+        self.circadian_phase += phase_increment
+        self.circadian_phase %= 2 * math.pi  # Нормализация в диапазон [0, 2π]
+
+        # Обновляем эффективность восстановления
+        # Пик днем (фаза π/2), минимум ночью (фаза 3π/2)
+        # Диапазон: 0.4 + 0.6 * sin(фаза + π/2) = [0.4, 1.0] с пиком в π/2
+        raw_recovery = 0.4 + 0.6 * math.sin(self.circadian_phase + math.pi / 2)
+        self.recovery_efficiency = max(0.4, min(1.0, raw_recovery))
+
+        # Обновляем модификатор стабильности
+        # Пик ночью (фаза π), минимум днем (фаза 0)
+        # Диапазон: 0.7 + 0.6 * sin(фаза) = [0.7, 1.3] с пиком в π
+        raw_stability = 0.7 + 0.6 * math.sin(self.circadian_phase)
+        self.stability_modifier = max(0.7, min(1.3, raw_stability))
+
+    def trigger_memory_echo(self, memory) -> Optional[MemoryEntry]:
+        """
+        Проверить и выполнить эхо-всплывание воспоминания.
+
+        Эхо - это спонтанное всплывание старых воспоминаний из архива.
+        Вероятность эхо зависит от возраста системы и текущей стабильности.
+
+        Args:
+            memory: Объект памяти для доступа к архиву
+
+        Returns:
+            MemoryEntry или None, если эхо не произошло
+        """
+        import random
+
+        # Базовая вероятность эхо на тик (0.1% = 0.001)
+        base_probability = 0.001
+
+        # Модификаторы вероятности
+        # Возрастной модификатор: растет с возрастом (30 дней = 30*24*3600 сек)
+        age_modifier = min(1.0, self.age / (30 * 24 * 3600))
+
+        # Модификатор стабильности: чаще при низкой стабильности
+        stability_modifier = 1.0 + (1.0 - self.stability)
+
+        # Общая вероятность эхо
+        echo_probability = base_probability * age_modifier * stability_modifier
+
+        # Проверяем, произошло ли эхо
+        if random.random() < echo_probability:
+            # Получаем архивные записи
+            archived_entries = memory.get_archived_entries()
+
+            if archived_entries:
+                # Выбираем случайное воспоминание
+                echoed_memory = random.choice(archived_entries)
+
+                # Активируем воспоминание
+                self.activated_memory.append(echoed_memory)
+
+                # Обновляем статистику
+                self.echo_count += 1
+                self.last_echo_time = self.age
+
+                return echoed_memory
+
+        return None
 
     def get_safe_status_dict(
         self,

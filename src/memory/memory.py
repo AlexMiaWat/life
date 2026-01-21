@@ -195,6 +195,15 @@ class Memory(list):
             ]
         return self._serialized_cache
 
+    def get_archived_entries(self) -> List[MemoryEntry]:
+        """
+        Получить список архивных записей для эхо-всплываний.
+
+        Returns:
+            Список всех записей из архивной памяти
+        """
+        return self.archive.get_all_entries()
+
     def clamp_size(self):
         """Ограничивает размер памяти, удаляя записи с наименьшим весом и ниже порога."""
         self._invalidate_cache()  # Инвалидируем кэш перед изменениями

@@ -92,4 +92,4 @@ def decay_weights(self, decay_factor=0.99, min_weight=0.0):
 
 ## Связанные документы
 - [docs/components/memory.md](../components/memory.md) — документация компонента
-- [docs/concepts/memory-concept.md](../concepts/memory-concept.md) — концепция памяти
+- [docs/concepts/core-concepts.md](../concepts/core-concepts.md) — концепция памяти

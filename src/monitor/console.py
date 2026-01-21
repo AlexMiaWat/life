@@ -52,6 +52,12 @@ def monitor(state: SelfState, log_file_path: Path = None):
         )
         last_pattern = getattr(state, "last_pattern", "")
 
+        # Информация о внутренних ритмах
+        circadian_phase = getattr(state, "circadian_phase", 0.0)
+        recovery_efficiency = getattr(state, "recovery_efficiency", 1.0)
+        stability_modifier = getattr(state, "stability_modifier", 1.0)
+        echo_count = getattr(state, "echo_count", 0)
+
         # Расчет метрик субъективного времени
         time_ratio = subjective_time / age if age > 0 else 1.0
 
@@ -95,7 +101,9 @@ def monitor(state: SelfState, log_file_path: Path = None):
         активация_txt = f"активация: {activated_count} ({top_significance:.2f})"
         decision_txt = f"{Fore.YELLOW}decision: {last_pattern}{Style.RESET_ALL}"
         action_txt = f"{Fore.GREEN}action: executed {last_pattern}{Style.RESET_ALL}"
-        msg = f"{heartbeat} [{ticks}] {время_txt} | {энергия_txt} | {интеллект_txt} | {стабильность_txt} | {значимость_txt} | {активация_txt} | {decision_txt} | {action_txt} | "
+        ритмы_txt = f"{Fore.MAGENTA}ритмы: φ{circadian_phase:.1f} rec:{recovery_efficiency:.2f} stab:{stability_modifier:.2f}{Style.RESET_ALL}"
+        эхо_txt = f"эхо:{echo_count}"
+        msg = f"{heartbeat} [{ticks}] {время_txt} | {энергия_txt} | {интеллект_txt} | {стабильность_txt} | {значимость_txt} | {активация_txt} | {ритмы_txt} | {эхо_txt} | {decision_txt} | {action_txt} | "
         sys.stdout.write(f"\r{msg}")
         sys.stdout.flush()
 
@@ -115,6 +123,10 @@ def monitor(state: SelfState, log_file_path: Path = None):
             "activated_memory_count": activated_count,
             "top_activated_significance": top_significance,
             "last_decision_pattern": last_pattern,
+            "circadian_phase": circadian_phase,
+            "recovery_efficiency": recovery_efficiency,
+            "stability_modifier": stability_modifier,
+            "echo_count": echo_count,
         }
 
         with log_file_path.open("a") as f:

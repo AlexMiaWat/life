@@ -13,7 +13,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from src.environment.generator_cli import main, send_event
-from src.logging_config import setup_logging
 
 
 @pytest.mark.unit
@@ -224,7 +223,9 @@ class TestGeneratorCLI:
     @patch("src.environment.generator_cli.setup_logging")
     @patch("src.environment.generator_cli.EventGenerator")
     @patch("time.sleep", side_effect=KeyboardInterrupt())
-    def test_main_verbose_logging_setup(self, mock_sleep, mock_generator_class, mock_setup_logging):
+    def test_main_verbose_logging_setup(
+        self, mock_sleep, mock_generator_class, mock_setup_logging
+    ):
         """Тест настройки verbose логирования в main"""
         mock_generator = MagicMock()
         mock_generator.generate.return_value = MagicMock(
@@ -247,7 +248,9 @@ class TestGeneratorCLI:
     @patch("src.environment.generator_cli.setup_logging")
     @patch("src.environment.generator_cli.EventGenerator")
     @patch("time.sleep", side_effect=KeyboardInterrupt())
-    def test_main_default_logging_setup(self, mock_sleep, mock_generator_class, mock_setup_logging):
+    def test_main_default_logging_setup(
+        self, mock_sleep, mock_generator_class, mock_setup_logging
+    ):
         """Тест настройки логирования по умолчанию в main"""
         mock_generator = MagicMock()
         mock_generator.generate.return_value = MagicMock(

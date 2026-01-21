@@ -13,7 +13,6 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-import requests
 from fastapi.testclient import TestClient
 
 project_root = Path(__file__).parent.parent.parent
@@ -99,10 +98,7 @@ class TestAPISmoke:
         assert response.status_code == 401  # Должен вернуть 401 Unauthorized
 
         # Попытка входа с правильными учетными данными
-        login_data = {
-            "username": "admin",
-            "password": "admin123"
-        }
+        login_data = {"username": "admin", "password": "admin123"}
         response = client.post("/token", data=login_data)
         assert response.status_code == 200
 
@@ -123,10 +119,7 @@ class TestAPISmoke:
 
     def test_invalid_credentials_smoke(self, client):
         """Дымовой тест с неправильными учетными данными"""
-        login_data = {
-            "username": "admin",
-            "password": "wrongpassword"
-        }
+        login_data = {"username": "admin", "password": "wrongpassword"}
         response = client.post("/token", data=login_data)
         assert response.status_code == 401
 
@@ -137,7 +130,7 @@ class TestAPISmoke:
             "username": "testuser",
             "email": "test@example.com",
             "password": "testpass123",
-            "full_name": "Test User"
+            "full_name": "Test User",
         }
         response = client.post("/register", json=user_data)
         assert response.status_code == 201
@@ -149,10 +142,7 @@ class TestAPISmoke:
         assert user_response["disabled"] is False
 
         # Проверяем что можем войти под новым пользователем
-        login_data = {
-            "username": "testuser",
-            "password": "testpass123"
-        }
+        login_data = {"username": "testuser", "password": "testpass123"}
         response = client.post("/token", data=login_data)
         assert response.status_code == 200
 
@@ -164,7 +154,7 @@ class TestAPISmoke:
         user_data = {
             "username": "duplicate_user",
             "email": "dup@example.com",
-            "password": "password123"
+            "password": "password123",
         }
 
         # Первая регистрация должна пройти
@@ -221,7 +211,14 @@ class TestAPISmoke:
 
         data = response.json()
         # В минимальном режиме должны быть только базовые поля
-        assert set(data.keys()) == {"active", "ticks", "age", "energy", "stability", "integrity"}
+        assert set(data.keys()) == {
+            "active",
+            "ticks",
+            "age",
+            "energy",
+            "stability",
+            "integrity",
+        }
 
     # ============================================================================
     # Basic Event Endpoint Smoke Tests
@@ -245,7 +242,7 @@ class TestAPISmoke:
         event_data = {
             "type": "noise",
             "intensity": 0.5,
-            "metadata": {"source": "smoke_test"}
+            "metadata": {"source": "smoke_test"},
         }
         response = client.post("/event", json=event_data, headers=headers)
         assert response.status_code == 200
@@ -315,13 +312,15 @@ class TestAPISmoke:
     def test_expired_token_simulation(self, client):
         """Симуляция истекшего токена"""
         # Создаем токен с истекшим сроком действия
-        import jwt
-        from api import SECRET_KEY, ALGORITHM
         import time
+
+        import jwt
+
+        from api import ALGORITHM, SECRET_KEY
 
         expired_payload = {
             "sub": "admin",
-            "exp": int(time.time()) - 3600  # Истек час назад
+            "exp": int(time.time()) - 3600,  # Истек час назад
         }
         expired_token = jwt.encode(expired_payload, SECRET_KEY, algorithm=ALGORITHM)
 
@@ -360,12 +359,11 @@ class TestAPISmoke:
     def test_main_execution_path(self, mock_uvicorn_run):
         """Проверка пути выполнения main (имитация запуска через uvicorn)"""
         # Имитируем запуск через python -m api
-        import subprocess
-        import sys
 
         # Проверяем что модуль может быть импортирован
         try:
             import api
+
             assert hasattr(api, "app")
             assert hasattr(api, "fake_users_db")
         except ImportError as e:
@@ -375,9 +373,9 @@ class TestAPISmoke:
         """Проверка доступности основных зависимостей"""
         try:
             import fastapi
-            import uvicorn
             import jwt
             import passlib
+            import uvicorn
             from pydantic import BaseModel
 
             # Все зависимости должны быть доступны

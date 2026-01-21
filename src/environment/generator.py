@@ -17,8 +17,15 @@ class EventGenerator:
         - shock: [-1.0, 1.0]
         - idle: 0.0
         """
-        types = ["noise", "decay", "recovery", "shock", "idle"]
-        weights = [0.4, 0.3, 0.2, 0.05, 0.05]
+        types = ["noise", "decay", "recovery", "shock", "idle", "memory_echo"]
+        weights = [
+            0.4,
+            0.3,
+            0.2,
+            0.05,
+            0.05,
+            0.0,
+        ]  # memory_echo генерируется только внутренне
         event_type = random.choices(types, weights=weights)[0]
 
         # Генерируем интенсивность согласно спецификации
@@ -30,6 +37,10 @@ class EventGenerator:
             intensity = random.uniform(0.0, 0.5)
         elif event_type == "shock":
             intensity = random.uniform(-1.0, 1.0)
+        elif event_type == "memory_echo":
+            intensity = random.uniform(
+                -0.2, 0.2
+            )  # Мягкое влияние для внутренних воспоминаний
         else:  # idle
             intensity = 0.0
 

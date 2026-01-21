@@ -13,7 +13,7 @@
 **Основной документ:** [`docs/components/feedback.md`](../components/feedback.md)
 
 **Связанные документы:**
-- [`docs/concepts/feedback-concept.md`](../concepts/feedback-concept.md) — Концепция Feedback
+- [`docs/concepts/core-concepts.md`](../concepts/core-concepts.md) — Концепция Feedback
 - [`docs/archive/12.3_ACTION_FEEDBACK_INTERFACE.md`](../archive/12.3_ACTION_FEEDBACK_INTERFACE.md) — Границы между Action и Feedback
 
 ## Что нужно реализовать

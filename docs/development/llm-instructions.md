@@ -6,16 +6,12 @@
 
 Проект Life — это сложная система, разрабатываемая группой специализированных агентов. Чтобы обеспечить целостность и качество, мы разделили ответственность между разными ролями.
 
-**Главный документ по ролям:** [agents-overview.md](agents-overview.md)
+**Главный документ по ролям:** [agents-system.md](agents-system.md)
 
 ## Быстрый старт
 
 1.  **Определите свою роль:** Посмотрите на текущий режим (`mode`) и системный промпт.
-2.  **Откройте соответствующую инструкцию:**
-    *   Если вы **Architect** (режим `architect`) -> [agent-architect.md](agent-architect.md)
-    *   Если вы **Implementer** (режим `code`) -> [agent-implementer.md](agent-implementer.md)
-    *   Если вы **Skeptic** (режим `code-skeptic`) -> [agent-skeptic.md](agent-skeptic.md)
-    *   Если вы **Orchestrator** (режим `orchestrator`) -> [agent-orchestrator.md](agent-orchestrator.md)
+2.  **Откройте соответствующую инструкцию:** [agents-system.md](agents-system.md)
 3.  **Следуйте принципам проекта:**
     *   **Непрерывность:** Система должна стремиться к бесконечному существованию.
     *   **Отсутствие магии:** Все механизмы должны быть явными и понятными.

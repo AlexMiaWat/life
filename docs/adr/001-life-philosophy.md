@@ -54,4 +54,4 @@
 
 ## Связанные документы
 - [docs/getting-started/vision.md](../getting-started/vision.md) — видение проекта
-- [docs/concepts/goals.md](../concepts/goals.md) — почему цели запрещены
+- [docs/concepts/core-concepts.md](../concepts/core-concepts.md) — почему цели запрещены

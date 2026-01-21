@@ -122,7 +122,7 @@ graph TD
 - [**Action**](../concepts/action-concept.md) — Выполнение действий
 
 ### Development (Для разработчиков)
-- [**Обзор агентов**](../development/agents-overview.md) — Роли агентов
+- [**Обзор агентов**](../development/agents-system.md) — Роли агентов
 - [**Статус проекта**](../development/status.md) — **Единый источник истины** о статусах слоев
 
 ## Быстрый старт для новых участников

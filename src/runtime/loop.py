@@ -7,6 +7,7 @@ from src.action import execute_action
 from src.activation.activation import activate_memory
 from src.adaptation.adaptation import AdaptationManager
 from src.decision.decision import decide_response
+from src.environment.internal_generator import InternalEventGenerator
 from src.feedback import observe_consequences, register_action
 from src.intelligence.intelligence import process_information
 from src.learning.learning import LearningEngine
@@ -217,6 +218,9 @@ def run_loop(
     engine = MeaningEngine()
     learning_engine = LearningEngine()  # Learning Engine (Этап 14)
     adaptation_manager = AdaptationManager()  # Adaptation Manager (Этап 15)
+    internal_generator = (
+        InternalEventGenerator()
+    )  # Internal Event Generator (Memory Echoes)
     pending_actions = []  # Список ожидающих Feedback действий
 
     # Менеджеры для управления снапшотами, логами и политикой
@@ -244,6 +248,9 @@ def run_loop(
     learning_errors = 0
     adaptation_errors = 0
     max_errors_before_warning = 10  # Порог для предупреждения о частых ошибках
+
+    # Счетчики для внутренних событий
+    ticks_since_last_memory_echo = 0
 
     def run_main_loop():
         """Основной цикл runtime loop - выделен для профилирования"""
@@ -280,6 +287,9 @@ def run_loop(
                 self_state.apply_delta(
                     {"subjective_time": dt}
                 )  # Simple increment for performance
+
+                # Обновление внутренних ритмов
+                self_state.update_circadian_rhythm(dt)
 
                 # Наблюдаем последствия прошлых действий (Feedback)
                 feedback_records = observe_consequences(
@@ -392,6 +402,19 @@ def run_loop(
                                 }
                             # else "absorb" — no change
 
+                            # Применяем модификаторы ритмов к recovery событиям
+                            if event.type == "recovery" and meaning.impact:
+                                # Применяем эффективность восстановления от циркадного ритма
+                                recovery_impact = meaning.impact.copy()
+                                for key in recovery_impact:
+                                    if key in [
+                                        "energy"
+                                    ]:  # Восстановление влияет на энергию
+                                        recovery_impact[
+                                            key
+                                        ] *= self_state.recovery_efficiency
+                                meaning.impact = recovery_impact
+
                             # КРИТИЧНО: Сохраняем снимок состояния ДО действия
                             state_before = {
                                 "energy": self_state.energy,
@@ -437,7 +460,43 @@ def run_loop(
 
                     record_potential_sequences(self_state)
                     process_information(self_state)
+
+                # === ШАГ 1.5: Генерация внутренних событий (Memory Echoes) ===
+                # Генерируем спонтанные внутренние события после обработки внешних
+                memory_stats = (
+                    self_state.memory.get_statistics()
+                    if hasattr(self_state.memory, "get_statistics")
+                    else None
+                )
+                memory_pressure = (
+                    len(self_state.memory) / 50.0 if len(self_state.memory) > 0 else 0.0
+                )
+
+                # Проверяем необходимость генерации memory echo
+                if internal_generator.should_generate_echo(
+                    ticks_since_last_memory_echo, memory_pressure
+                ):
+                    internal_event = internal_generator.generate_memory_echo(
+                        memory_stats
+                    )
+                    if internal_event:
+                        logger.debug(
+                            f"[LOOP] Generated internal event: {internal_event.type}"
+                        )
+                        # Добавляем внутреннее событие в очередь для обработки на следующем тике
+                        if event_queue:
+                            event_queue.push(internal_event)
+                            ticks_since_last_memory_echo = 0
+                            # Логируем внутреннее событие
+                            correlation_id = structured_logger.log_event(internal_event)
+                        else:
+                            logger.warning(
+                                "[LOOP] No event queue available for internal event"
+                            )
+                    else:
+                        logger.debug("[LOOP] Internal event generator returned None")
                 else:
+                    ticks_since_last_memory_echo += 1
                     # No events this tick -> gradually decay intensity signal using smoothing
                     alpha = self_state.subjective_time_intensity_smoothing
                     self_state.last_event_intensity = (
