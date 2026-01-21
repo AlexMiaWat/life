@@ -1,256 +1,229 @@
 """
-Async Passive Observer for Life system.
+Passive Data Sink for Life system.
 
-Provides truly passive observation without any runtime loop interference.
-Uses separate thread for periodic data collection from external sources.
+Provides truly passive data collection without any active polling or timing.
+Only accepts data when explicitly provided or when external events occur.
 """
 
 import json
 import logging
-import threading
 import time
+import signal
 from pathlib import Path
 from typing import Optional, Dict, Any
+from contextlib import contextmanager
+
+from src.config.observability_config import get_observability_config
 
 logger = logging.getLogger(__name__)
 
 
-class AsyncPassiveObserver:
+@contextmanager
+def timeout_context(seconds: float):
     """
-    Asynchronous passive observer for Life system.
+    Context manager for operation timeouts.
 
-    Collects data periodically without interfering with runtime loop.
-    Logs observation data directly to JSONL file for analysis.
+    Args:
+        seconds: Timeout in seconds
+    """
+    def timeout_handler(signum, frame):
+        raise TimeoutError(f"Operation timed out after {seconds} seconds")
+
+    signal.signal(signal.SIGALRM, timeout_handler)
+    signal.alarm(int(seconds))
+    try:
+        yield
+    finally:
+        signal.alarm(0)
+
+
+class PassiveDataSink:
+    """
+    Passive data sink for Life system observability.
+
+    Only accepts data when explicitly provided. No active polling,
+    no timing, no background threads. Truly passive observation.
     """
 
     def __init__(
         self,
-        collection_interval: float = 300.0,  # 5 minutes default
-        snapshots_dir: str = "data/snapshots",
-        log_file: str = "data/passive_observations.jsonl",
-        enabled: bool = True
+        data_directory: Optional[str] = None,
+        enabled: Optional[bool] = None,
+        config=None
     ):
         """
-        Initialize async passive observer.
+        Initialize passive data sink.
 
         Args:
-            collection_interval: How often to collect data (seconds)
-            snapshots_dir: Directory with snapshot files
-            log_file: Path to observation log file
-            enabled: Whether observer is enabled
+            data_directory: Directory for storing observation data (uses config if None)
+            enabled: Whether data sink is enabled (uses config if None)
+            config: Observability config (loads from file if None)
         """
-        self.collection_interval = collection_interval
-        self.snapshots_dir = snapshots_dir
-        self.log_file = log_file
-        self.enabled = enabled
+        if config is None:
+            config = get_observability_config()
 
-        # Threading
-        self._observer_thread: Optional[threading.Thread] = None
-        self._stop_event = threading.Event()
-        self._lock = threading.Lock()
+        self.data_dir = Path(data_directory or config.passive_data_sink.data_directory)
+        self.enabled = enabled if enabled is not None else config.passive_data_sink.enabled
 
-        # Start observer thread if enabled
-        if self.enabled:
-            self._start_observer_thread()
+        # Убедиться что директория существует
+        self.data_dir.mkdir(parents=True, exist_ok=True)
 
-    def _start_observer_thread(self):
-        """Start the background observer thread."""
-        if self._observer_thread and self._observer_thread.is_alive():
-            return
-
-        self._stop_event.clear()
-        self._observer_thread = threading.Thread(
-            target=self._observer_loop,
-            name="AsyncPassiveObserver",
-            daemon=True
-        )
-        self._observer_thread.start()
-        logger.info(f"AsyncPassiveObserver started with {self.collection_interval}s interval")
-
-    def _observer_loop(self):
-        """Main observer loop - runs in background thread."""
-        while not self._stop_event.is_set():
-            try:
-                self._collect_data_point()
-                # Wait for next collection interval or stop event
-                self._stop_event.wait(timeout=self.collection_interval)
-
-            except Exception as e:
-                logger.error(f"Error in observer loop: {e}")
-                # Brief pause before retry
-                self._stop_event.wait(timeout=1.0)
-
-    def _collect_data_point(self):
+    def accept_data_point(self, data: Dict[str, Any]) -> bool:
         """
-        Collect a single data point from available sources.
+        Accept a single data point for storage.
 
-        This method attempts to collect data from external sources without
-        accessing runtime objects directly.
+        Args:
+            data: Raw data point to store
+
+        Returns:
+            True if data was accepted and stored, False otherwise
         """
+        if not self.enabled:
+            return False
+
         try:
-            # Try to load latest snapshot from file
-            latest_snapshot = self._load_latest_snapshot()
-            if latest_snapshot:
-                # Create observation record
-                observation = self._create_observation_record(latest_snapshot)
-                self._log_observation(observation)
-                logger.debug("Collected passive observation data point")
+            # Add timestamp if not present
+            if 'timestamp' not in data:
+                data['timestamp'] = time.time()
+
+            # Store the data point
+            self._store_data_point(data)
+            logger.debug("Accepted passive data point")
+            return True
 
         except Exception as e:
-            logger.warning(f"Failed to collect passive observation data: {e}")
+            logger.warning(f"Failed to accept data point: {e}")
+            return False
 
-    def _create_observation_record(self, snapshot_data: dict) -> Dict[str, Any]:
+    def accept_snapshot_data(self, snapshot_data: Dict[str, Any]) -> bool:
         """
-        Create an observation record from snapshot data.
+        Accept snapshot data for observation.
 
         Args:
             snapshot_data: Raw snapshot data
 
         Returns:
-            Observation record for logging
+            True if snapshot was accepted and stored
         """
-        # Extract key metrics from snapshot
+        if not self.enabled:
+            return False
+
+        try:
+            observation = self._create_observation_from_snapshot(snapshot_data)
+            return self.accept_data_point(observation)
+
+        except Exception as e:
+            logger.warning(f"Failed to accept snapshot data: {e}")
+            return False
+
+    def _create_observation_from_snapshot(self, snapshot_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Create observation record from snapshot data.
+
+        Args:
+            snapshot_data: Raw snapshot data
+
+        Returns:
+            Observation record
+        """
+        # Extract raw data without interpretation
         record = {
             "timestamp": time.time(),
-            "observation_type": "passive_snapshot",
+            "observation_type": "snapshot_observation",
             "snapshot_timestamp": snapshot_data.get("timestamp"),
-            "system_state": {
-                "energy": snapshot_data.get("energy", 0.0),
-                "stability": snapshot_data.get("stability", 0.0),
-                "integrity": snapshot_data.get("integrity", 0.0),
-                "fatigue": snapshot_data.get("fatigue", 0.0),
-                "tension": snapshot_data.get("tension", 0.0),
-                "age": snapshot_data.get("age", 0),
-                "ticks": snapshot_data.get("ticks", 0),
-            },
-            "memory": {
-                "episodic_size": snapshot_data.get("memory_episodic_size", 0),
-                "archive_size": snapshot_data.get("memory_archive_size", 0),
-                "recent_events": snapshot_data.get("memory_recent_events", 0),
-            },
-            "processing": {
-                "learning_params": snapshot_data.get("learning_params_count", 0),
-                "adaptation_params": snapshot_data.get("adaptation_params_count", 0),
-                "decision_queue": snapshot_data.get("decision_queue_size", 0),
-                "action_queue": snapshot_data.get("action_queue_size", 0),
-            }
+            "raw_data": snapshot_data  # Store raw snapshot as-is
         }
 
         return record
 
-    def _log_observation(self, observation: Dict[str, Any]) -> None:
+    def _store_data_point(self, data: Dict[str, Any]) -> None:
         """
-        Log observation record to JSONL file.
+        Store data point to persistent storage with timeout and error handling.
 
         Args:
-            observation: Observation record to log
+            data: Data point to store
         """
-        if not self.enabled:
-            return
-
         try:
-            with self._lock:
-                # Ensure directory exists
-                log_path = Path(self.log_file)
-                log_path.parent.mkdir(parents=True, exist_ok=True)
+            # Create directory with timeout protection
+            with timeout_context(1.0):  # 1 second timeout for directory creation
+                observations_file = self.data_dir / "passive_observations.jsonl"
+                observations_file.parent.mkdir(parents=True, exist_ok=True)
 
-                with open(log_path, "a", encoding="utf-8") as f:
-                    f.write(json.dumps(observation, ensure_ascii=False, default=str) + "\n")
+            # Write data with timeout protection
+            with timeout_context(0.5):  # 500ms timeout for file write
+                with open(observations_file, "a", encoding="utf-8") as f:
+                    f.write(json.dumps(data, ensure_ascii=False, default=str) + "\n")
+                    f.flush()  # Ensure data is written
+
+        except TimeoutError as e:
+            logger.warning(f"Timeout during data storage: {e}")
+            # Graceful degradation: data not stored but operation continues
+        except (OSError, IOError) as e:
+            logger.warning(f"Failed to store data point (I/O error): {e}")
+            # Try fallback: write to temporary location if possible
+            self._try_fallback_storage(data)
         except Exception as e:
-            logger.warning(f"Failed to write observation log entry: {e}")
+            logger.warning(f"Failed to store data point (unexpected error): {e}")
+            # Try fallback storage
+            self._try_fallback_storage(data)
 
-    def _load_latest_snapshot(self) -> Optional[dict]:
+    def _try_fallback_storage(self, data: Dict[str, Any]) -> None:
         """
-        Load the latest snapshot from snapshots directory.
+        Attempt fallback storage when primary storage fails.
+
+        Args:
+            data: Data point to store
+        """
+        try:
+            # Try to store in system temp directory as fallback
+            import tempfile
+            temp_dir = Path(tempfile.gettempdir()) / "life_observability_fallback"
+            temp_dir.mkdir(exist_ok=True)
+
+            fallback_file = temp_dir / f"fallback_{int(time.time())}.json"
+            with open(fallback_file, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, default=str)
+
+            logger.info(f"Data stored in fallback location: {fallback_file}")
+
+        except Exception as fallback_error:
+            logger.error(f"Fallback storage also failed: {fallback_error}")
+            # Final graceful degradation: data is lost but system continues
+
+    def get_status(self) -> Dict[str, Any]:
+        """
+        Get current status of data sink.
 
         Returns:
-            Latest snapshot data or None if not available
+            Status information
         """
-        try:
-            snapshots_path = Path(self.snapshots_dir)
+        observations_file = self.data_dir / "passive_observations.jsonl"
 
-            # Check if directory exists and is readable
-            if not snapshots_path.exists():
-                logger.debug(f"Snapshots directory does not exist: {snapshots_path}")
-                return None
-
-            if not snapshots_path.is_dir():
-                logger.warning(f"Snapshots path is not a directory: {snapshots_path}")
-                return None
-
-            # Find JSON snapshot files
-            snapshot_files = list(snapshots_path.glob("*.json"))
-            if not snapshot_files:
-                logger.debug("No snapshot files found")
-                return None
-
-            # Get latest file by modification time
-            latest_file = max(snapshot_files, key=lambda f: f.stat().st_mtime)
-
-            # Check file size (prevent loading huge files)
-            file_size = latest_file.stat().st_size
-            if file_size > 10 * 1024 * 1024:  # 10MB limit
-                logger.warning(f"Snapshot file too large: {file_size} bytes")
-                return None
-            if file_size == 0:
-                logger.warning("Snapshot file is empty")
-                return None
-
-            # Load the snapshot
-            with open(latest_file, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-
-            # Basic validation
-            if not isinstance(data, dict):
-                logger.warning("Snapshot is not a valid JSON object")
-                return None
-
-            if 'timestamp' not in data:
-                logger.warning("Snapshot missing timestamp field")
-                return None
-
-            return data
-
-        except Exception as e:
-            logger.warning(f"Failed to load latest snapshot: {e}")
-            return None
-
-    def get_status(self) -> dict:
-        """Get observer status."""
-        log_file_exists = Path(self.log_file).exists()
-        log_file_size = 0
-        if log_file_exists:
-            try:
-                log_file_size = Path(self.log_file).stat().st_size
-            except:
-                pass
-
-        return {
+        status = {
             "enabled": self.enabled,
-            "collection_interval": self.collection_interval,
-            "log_file": self.log_file,
-            "log_file_exists": log_file_exists,
-            "log_file_size_bytes": log_file_size,
-            "thread_alive": self._observer_thread.is_alive() if self._observer_thread else False,
-            "snapshots_dir": self.snapshots_dir
+            "data_directory": str(self.data_dir),
+            "observations_file_exists": observations_file.exists()
         }
 
+        if observations_file.exists():
+            try:
+                status["observations_file_size_bytes"] = observations_file.stat().st_size
+                status["observations_file_age_seconds"] = time.time() - observations_file.stat().st_mtime
+            except Exception as e:
+                logger.warning(f"Failed to get file stats: {e}")
+
+        return status
+
     def enable(self):
-        """Enable passive observation."""
+        """Enable the data sink."""
         self.enabled = True
-        self._start_observer_thread()
+        logger.info("PassiveDataSink enabled")
 
     def disable(self):
-        """Disable passive observation."""
+        """Disable the data sink."""
         self.enabled = False
+        logger.info("PassiveDataSink disabled")
 
-    def shutdown(self, timeout: float = 5.0):
-        """Shutdown the observer gracefully."""
-        logger.info("Shutting down AsyncPassiveObserver")
-        self._stop_event.set()
-        self.enabled = False
 
-        if self._observer_thread and self._observer_thread.is_alive():
-            self._observer_thread.join(timeout=timeout)
-
-        logger.info("AsyncPassiveObserver shutdown complete")
+# Backward compatibility alias
+AsyncPassiveObserver = PassiveDataSink

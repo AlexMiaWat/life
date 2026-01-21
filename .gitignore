@@ -171,3 +171,25 @@ allure-report/
 # Documentation artifacts
 docs/results/temp_*.md
 docs/results/draft_*.md
+docs/results/test_*.md
+docs/results/*task_*.md
+
+# Test artifacts and results
+test_full_*.xml
+test_partial_*.xml
+*.test
+*.spec
+test-*.log
+test_results/
+test_artifacts/
+junit-*.xml
+xunit-*.xml
+test-summary.json
+test-details.json
+
+# Performance and profiling
+profile_results/
+*.prof
+*.lprof
+memory_profile.json
+cpu_profile.json

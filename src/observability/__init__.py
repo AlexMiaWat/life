@@ -1,18 +1,27 @@
 """
 Observability module for Life system.
 
-Simplified observability with passive data collection and automated reporting.
-Provides essential monitoring tools for developers without runtime interference.
+True passive observation system with UnifiedObservationAPI as the main entry point.
+Provides passive data collection and raw counters only - no derived metrics or analysis.
 """
 
+from .unified_observation_api import UnifiedObservationAPI  # Main entry point
+from .async_passive_observer import PassiveDataSink  # Core passive component
 from .external_observer import RawDataCollector, RawSystemCounters, RawDataReport
-from .async_passive_observer import AsyncPassiveObserver
-from .developer_reports import DeveloperReports
 from .structured_logger import StructuredLogger
+from .developer_reports import RawDataAccess
 
 __all__ = [
-    "RawDataCollector", "RawSystemCounters", "RawDataReport",
-    "AsyncPassiveObserver",
-    "DeveloperReports",
-    "StructuredLogger"
+    # Main API - use this for all observability operations
+    "UnifiedObservationAPI",
+
+    # Core components
+    "PassiveDataSink",
+    "RawDataCollector",
+    "StructuredLogger",
+    "RawDataAccess",
+
+    # Data structures
+    "RawSystemCounters",
+    "RawDataReport"
 ]

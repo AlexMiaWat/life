@@ -9,10 +9,34 @@ import json
 import logging
 import threading
 import time
+import signal
 from typing import Any, Dict, Optional
 from uuid import uuid4
+from pathlib import Path
+from contextlib import contextmanager
+
+from src.config.observability_config import get_observability_config
 
 logger = logging.getLogger(__name__)
+
+
+@contextmanager
+def timeout_context(seconds: float):
+    """
+    Context manager for operation timeouts.
+
+    Args:
+        seconds: Timeout in seconds
+    """
+    def timeout_handler(signum, frame):
+        raise TimeoutError(f"Operation timed out after {seconds} seconds")
+
+    signal.signal(signal.SIGALRM, timeout_handler)
+    signal.alarm(int(seconds))
+    try:
+        yield
+    finally:
+        signal.alarm(0)
 
 
 class StructuredLogger:
@@ -22,18 +46,31 @@ class StructuredLogger:
     Logs key processing stages in JSONL format for analysis and debugging.
     """
 
-    def __init__(self, log_file: str = "data/structured_log.jsonl", enabled: bool = True):
+    def __init__(
+        self,
+        log_file: Optional[str] = None,
+        enabled: Optional[bool] = None,
+        config=None
+    ):
         """
         Initialize structured logger.
 
         Args:
-            log_file: Path to JSONL log file
-            enabled: Whether logging is enabled (for performance control)
+            log_file: Path to JSONL log file (uses config if None)
+            enabled: Whether logging is enabled (uses config if None)
+            config: Observability config (loads from file if None)
         """
-        self.log_file = log_file
-        self.enabled = enabled
+        if config is None:
+            config = get_observability_config()
+
+        self.log_file = log_file or config.structured_logging.log_file
+        self.enabled = enabled if enabled is not None else config.structured_logging.enabled
         self._lock = threading.Lock()
         self._correlation_counter = 0
+
+        # Убедиться что директория существует
+        log_path = Path(self.log_file)
+        log_path.parent.mkdir(parents=True, exist_ok=True)
 
     def _get_next_correlation_id(self) -> str:
         """Get next correlation ID for tracing chains."""
@@ -42,16 +79,60 @@ class StructuredLogger:
             return f"chain_{self._correlation_counter}"
 
     def _write_log_entry(self, entry: Dict[str, Any]) -> None:
-        """Write a single log entry to the file."""
+        """Write a single log entry to the file with timeout and graceful error handling."""
         if not self.enabled:
             return
 
         try:
             with self._lock:
-                with open(self.log_file, "a", encoding="utf-8") as f:
-                    f.write(json.dumps(entry, ensure_ascii=False, default=str) + "\n")
+                # Ensure directory exists with timeout
+                with timeout_context(0.5):  # 500ms timeout for directory operations
+                    log_path = Path(self.log_file)
+                    log_path.parent.mkdir(parents=True, exist_ok=True)
+
+                # Write entry with timeout
+                with timeout_context(0.2):  # 200ms timeout for file write
+                    with open(self.log_file, "a", encoding="utf-8") as f:
+                        f.write(json.dumps(entry, ensure_ascii=False, default=str) + "\n")
+                        f.flush()  # Ensure data is written
+
+        except TimeoutError as e:
+            logger.warning(f"Timeout during structured logging: {e}")
+            # Graceful degradation: skip this entry but keep logging enabled
+        except (OSError, IOError) as e:
+            logger.warning(f"Failed to write structured log entry (I/O error): {e}")
+            # Try fallback logging
+            self._try_fallback_logging(entry)
+            # Disable logging temporarily to prevent spam
+            self.enabled = False
+            logger.error("Structured logging disabled due to persistent I/O errors")
         except Exception as e:
-            logger.warning(f"Failed to write structured log entry: {e}")
+            logger.warning(f"Failed to write structured log entry (unexpected error): {e}")
+            # Try fallback logging but keep main logging enabled
+            self._try_fallback_logging(entry)
+
+    def _try_fallback_logging(self, entry: Dict[str, Any]) -> None:
+        """
+        Attempt fallback logging when primary logging fails.
+
+        Args:
+            entry: Log entry to store
+        """
+        try:
+            # Try to log to system temp directory as fallback
+            import tempfile
+            temp_dir = Path(tempfile.gettempdir()) / "life_structured_logs_fallback"
+            temp_dir.mkdir(exist_ok=True)
+
+            fallback_file = temp_dir / f"fallback_{int(time.time())}.json"
+            with open(fallback_file, "w", encoding="utf-8") as f:
+                json.dump(entry, f, ensure_ascii=False, default=str)
+
+            logger.info(f"Log entry stored in fallback location: {fallback_file}")
+
+        except Exception as fallback_error:
+            logger.error(f"Fallback logging also failed: {fallback_error}")
+            # Final graceful degradation: log entry is lost but system continues
 
     def log_event(self, event: Any, correlation_id: Optional[str] = None) -> str:
         """
@@ -89,67 +170,56 @@ class StructuredLogger:
             meaning: Meaning object from MeaningEngine
             correlation_id: Correlation ID from event stage
         """
+        # Убираем derived metrics (significance, impact) - логируем только факт обработки
         entry = {
             "timestamp": time.time(),
             "stage": "meaning",
             "correlation_id": correlation_id,
             "event_id": getattr(event, "id", str(uuid4())),
             "event_type": getattr(event, "type", "unknown"),
-            "significance": getattr(meaning, "significance", 0.0),
-            "impact": getattr(meaning, "impact", {}),
             "data": {
                 "meaning_type": type(meaning).__name__,
-                "has_impact": bool(getattr(meaning, "impact", {})),
+                "processed": True,  # Только факт обработки, без интерпретации
             },
         }
 
         self._write_log_entry(entry)
 
-    def log_decision(
-        self, pattern: str, correlation_id: str, additional_data: Optional[Dict] = None
-    ) -> None:
+    def log_decision(self, correlation_id: str) -> None:
         """
         Log decision stage.
 
         Args:
-            pattern: Decision pattern (ignore/dampen/absorb)
             correlation_id: Correlation ID from event chain
-            additional_data: Additional decision context
         """
+        # Убираем derived metrics (pattern, additional_data) - логируем только факт принятия решения
         entry = {
             "timestamp": time.time(),
             "stage": "decision",
             "correlation_id": correlation_id,
-            "pattern": pattern,
-            "data": additional_data or {},
+            "data": {
+                "decision_made": True,  # Только факт принятия решения
+            },
         }
 
         self._write_log_entry(entry)
 
-    def log_action(
-        self,
-        action_id: str,
-        pattern: str,
-        correlation_id: str,
-        state_before: Optional[Dict] = None,
-    ) -> None:
+    def log_action(self, action_id: str, correlation_id: str) -> None:
         """
         Log action execution stage.
 
         Args:
             action_id: Unique action identifier
-            pattern: Action pattern executed
             correlation_id: Correlation ID from event chain
-            state_before: State snapshot before action
         """
+        # Убираем derived metrics (pattern, state_before) - логируем только факт выполнения действия
         entry = {
             "timestamp": time.time(),
             "stage": "action",
             "correlation_id": correlation_id,
             "action_id": action_id,
-            "pattern": pattern,
             "data": {
-                "state_before": state_before or {},
+                "action_executed": True,  # Только факт выполнения
             },
         }
 
@@ -163,15 +233,13 @@ class StructuredLogger:
             feedback: Feedback object from observe_consequences
             correlation_id: Correlation ID from action chain
         """
+        # Убираем derived metrics - логируем только факт получения обратной связи
         entry = {
             "timestamp": time.time(),
             "stage": "feedback",
             "correlation_id": correlation_id,
-            "action_id": getattr(feedback, "action_id", "unknown"),
-            "delay_ticks": getattr(feedback, "delay_ticks", 0),
             "data": {
-                "state_delta": getattr(feedback, "state_delta", {}),
-                "associated_events": getattr(feedback, "associated_events", []),
+                "feedback_received": True,  # Только факт получения обратной связи
                 "feedback_type": type(feedback).__name__,
             },
         }
@@ -196,21 +264,20 @@ class StructuredLogger:
 
         self._write_log_entry(entry)
 
-    def log_tick_end(self, tick_number: int, duration_ms: float, events_processed: int) -> None:
+    def log_tick_end(self, tick_number: int) -> None:
         """
-        Log end of a tick for performance monitoring.
+        Log end of a tick - only raw counter (tick_number).
+
+        According to ADR 001 "Passive Observation Boundaries", we only collect
+        raw counters without any derived metrics like duration_ms or events_processed.
 
         Args:
-            tick_number: Current tick number
-            duration_ms: Tick duration in milliseconds
-            events_processed: Number of events processed this tick
+            tick_number: Current tick number (raw counter)
         """
         entry = {
             "timestamp": time.time(),
             "stage": "tick_end",
             "tick_number": tick_number,
-            "duration_ms": duration_ms,
-            "events_processed": events_processed,
             "data": {},
         }
 

@@ -1,8 +1,50 @@
-# Observation API - REST API для внешнего наблюдения
+# Observation API - Устаревшая документация
 
-## Обзор
+## Важное уведомление
 
-Observation API предоставляет программный интерфейс для внешнего наблюдения и анализа поведения системы Life. API построен на FastAPI и предоставляет endpoints для получения метрик, паттернов поведения, аномалий и рекомендаций.
+⚠️ **Эта документация устарела после архитектурных изменений 2026-01-22**
+
+Система observability была полностью переработана для обеспечения **истинной пассивности**. Все API endpoints были удалены, чтобы исключить любое влияние на runtime loop системы Life.
+
+## Новые принципы (после изменений)
+
+- **Нет API endpoints** - система полностью пассивна
+- **Только raw counters** - без интерпретации или derived metrics
+- **Внешний анализ** - данные анализируются внешними инструментами
+- **PassiveDataSink** - только принимает данные при явном вызове
+
+## Доступ к данным
+
+Для доступа к данным наблюдений используйте новый компонент `RawDataAccess`:
+
+```python
+from src.observability.developer_reports import RawDataAccess
+
+# Создание экземпляра для доступа к данным
+data_access = RawDataAccess()
+
+# Получение raw наблюдений за последние часы
+observations = data_access.get_raw_observation_data(hours=24)
+
+# Получение последнего snapshot
+latest_snapshot = data_access.get_raw_snapshot_data()
+
+# Экспорт данных для внешнего анализа
+data_access.export_raw_data(hours=24, output_path="raw_data_export.json")
+```
+
+## Архитектурные изменения
+
+### Удаленные компоненты
+- ❌ Все REST API endpoints (`/health`, `/metrics/current`, etc.)
+- ❌ `ObservationAPI` класс
+- ❌ Синхронные вызовы из runtime loop
+
+### Новые компоненты
+- ✅ `PassiveDataSink` - истинно пассивный сборщик данных
+- ✅ `RawDataAccess` - доступ к raw данным без интерпретации
+- ✅ `RawSystemCounters` - только сырые счетчики
+- ✅ Внешняя интеграция без влияния на runtime
 
 ## Запуск сервера
 

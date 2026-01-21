@@ -15,15 +15,11 @@ from src.intelligence.intelligence import process_information
 from src.learning.learning import LearningEngine
 from src.meaning.engine import MeaningEngine
 from src.memory.memory import MemoryEntry
-from src.observability.structured_logger import StructuredLogger
-from src.observability.developer_reports import DeveloperReports
 from src.planning.planning import record_potential_sequences
-from src.runtime.data_collection_manager import DataCollectionManager, DataCollectionConfig
 from src.runtime.life_policy import LifePolicy
 from src.runtime.log_manager import FlushPolicy, LogManager
 from src.runtime.snapshot_manager import SnapshotManager
 from src.state.self_state import SelfState, save_snapshot
-from src.technical_monitor import TechnicalBehaviorMonitor
 
 logger = logging.getLogger(__name__)
 
@@ -236,17 +232,13 @@ def run_loop(
     stop_event=None,
     event_queue=None,
     disable_weakness_penalty=False,
-    disable_structured_logging=False,
     disable_learning=False,
     disable_adaptation=False,
-    # disable_philosophical_analysis=True,  # REMOVED: external tool only
-    # disable_philosophical_reports=False,  # REMOVED: external tool only
     disable_adaptive_processing=False,  # Включено по умолчанию для оптимизации обработки
     enable_memory_hierarchy=True,  # Включение многоуровневой системы памяти (краткосрочная/долгосрочная/архивная)
     enable_silence_detection=True,  # Включение системы осознания тишины
     log_flush_period_ticks=10,
-    enable_profiling=False,
-    enable_passive_observation=True,  # Включить пассивное наблюдение (не влияет на runtime)
+    enable_profiling=False
 ):
     """
     Runtime Loop с интеграцией Environment (этап 07)
@@ -270,23 +262,6 @@ def run_loop(
         log_flush_period_ticks: Период сброса логов в тиках
         enable_profiling: Включить профилирование runtime loop с cProfile
     """
-    # Structured logger for observability (инициализируем раньше для AdaptiveProcessingManager)
-    structured_logger = StructuredLogger(enabled=not disable_structured_logging)
-
-    # Passive observation - полностью отделено от runtime, не влияет на работу системы
-    passive_observer = None
-    if enable_passive_observation:
-        try:
-            from src.observability.async_passive_observer import AsyncPassiveObserver
-            passive_observer = AsyncPassiveObserver(
-                collection_interval=300.0,  # 5 minutes
-                snapshots_dir="data/snapshots",
-                enabled=True
-            )
-            logger.info("Passive observation enabled - collecting data in background")
-        except Exception as e:
-            logger.warning(f"Failed to initialize passive observer: {e}")
-
     # Observability полностью вынесена из runtime согласно ADR 001
 
     engine = MeaningEngine()
@@ -316,16 +291,6 @@ def run_loop(
         # Подключение эпизодической памяти к иерархии
         memory_hierarchy.set_episodic_memory(self_state.memory)
 
-    # Менеджер сбора данных для асинхронных операций
-    data_collection_config = DataCollectionConfig(
-        queue_max_size=500,  # Меньше для runtime loop
-        flush_interval=10.0,  # Частый сброс для responsiveness
-        buffer_max_size=50,   # Меньше буфер для оперативности
-    )
-    data_collection_manager = DataCollectionManager(config=data_collection_config)
-
-    # Технический монитор поведения системы с поддержкой асинхронного сохранения
-    technical_monitor = TechnicalBehaviorMonitor(data_collection_manager=data_collection_manager)
 
     # Менеджеры для управления снапшотами, логами и политикой
     snapshot_manager = SnapshotManager(period_ticks=snapshot_period, saver=save_snapshot)
@@ -999,10 +964,6 @@ def run_loop(
                 # Периодическое обслуживание DataCollectionManager теперь выполняется асинхронно
                 # в фоновом потоке AsyncDataQueue
 
-                # Log tick end with performance metrics
-                tick_duration = (time.time() - tick_start_time) * 1000  # ms
-                events_processed = len(events) if "events" in locals() else 0
-                structured_logger.log_tick_end(self_state.ticks, tick_duration, events_processed)
 
                 # Flush логов перед снапшотом (если политика требует)
                 log_manager.maybe_flush(self_state, phase="before_snapshot")
@@ -1019,17 +980,6 @@ def run_loop(
                 # чтобы избежать двойного flush.
                 log_manager.maybe_flush(self_state, phase="tick")
 
-                # Автоматическая генерация отчетов каждые 6 часов
-                current_time_check = time.time()
-                if current_time_check - last_report_time >= report_interval:
-                    try:
-                        reports = DeveloperReports()
-                        hourly_report = reports.generate_automated_report("daily", hours=1)
-                        report_path = reports.save_report(hourly_report, f"auto_report_{int(current_time_check)}.json")
-                        logger.info(f"Automatic system report generated: {report_path}")
-                        last_report_time = current_time_check
-                    except Exception as e:
-                        logger.warning(f"Failed to generate automatic report: {e}")
 
                 # Поддержка постоянного интервала тиков
                 tick_end = time.time()
@@ -1060,8 +1010,6 @@ def run_loop(
                 # Она продолжает работать в degraded состоянии ("бессмертная слабость")
                 # Остановка происходит только по внешнему сигналу (stop_event)
 
-    # Запуск DataCollectionManager для асинхронных операций
-    data_collection_manager.start()
 
     try:
         # Запуск основного цикла с профилированием или без
@@ -1099,31 +1047,6 @@ def run_loop(
         else:
             run_main_loop()
     finally:
-        # Остановка DataCollectionManager
-        data_collection_manager.stop()
+        pass
 
-        # Генерация финального отчета перед завершением
-        try:
-            reports = DeveloperReports()
-            final_report = reports.generate_automated_report("daily", hours=24)
-            report_path = reports.save_report(final_report, f"shutdown_report_{int(time.time())}.json")
-            logger.info(f"Final system report generated: {report_path}")
 
-            # Также сгенерируем текстовый отчет
-            text_report = reports.generate_text_report(hours=24)
-            text_path = Path("data/reports") / f"shutdown_report_{int(time.time())}.txt"
-            text_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(text_path, 'w', encoding='utf-8') as f:
-                f.write(text_report)
-            logger.info(f"Text report generated: {text_path}")
-
-        except Exception as e:
-            logger.warning(f"Failed to generate final report: {e}")
-
-        # Завершение работы пассивного наблюдателя
-        if passive_observer:
-            try:
-                passive_observer.shutdown(timeout=5.0)
-                logger.info("Passive observer shutdown complete")
-            except Exception as e:
-                logger.warning(f"Error shutting down passive observer: {e}")

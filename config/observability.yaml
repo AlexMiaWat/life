@@ -1,0 +1,77 @@
+# Конфигурация системы наблюдаемости Life
+
+# Основные настройки
+observability:
+  enabled: true
+  data_directory: "data"
+  logs_directory: "logs"
+
+# Настройки структурированного логирования
+structured_logging:
+  enabled: true
+  log_file: "data/structured_log.jsonl"
+  flush_period_ticks: 10
+  max_file_size_mb: 100
+  backup_count: 5
+
+# Настройки пассивного приемника данных
+passive_data_sink:
+  enabled: true
+  data_directory: "data"
+  observations_file: "passive_observations.jsonl"
+  max_file_age_days: 30
+
+# Настройки сборщика сырых данных
+raw_data_collector:
+  enabled: true
+  logs_directory: "logs"
+  snapshots_directory: "data/snapshots"
+  structured_log_file: "data/structured_log.jsonl"
+  default_observation_hours: 24
+  max_time_range_days: 30
+
+# Настройки доступа к данным
+data_access:
+  enabled: true
+  data_directory: "data"
+  observations_file: "passive_observations.jsonl"
+  snapshots_directory: "data/snapshots"
+  export_hours_default: 24
+  max_export_hours: 168  # 7 дней
+
+# Настройки единого API
+unified_api:
+  enabled: true
+  data_directory: "data"
+  logs_directory: "logs"
+  snapshots_directory: "data/snapshots"
+  structured_log_file: "data/structured_log.jsonl"
+  emergency_collection_hours: 1
+
+# Настройки обработки ошибок
+error_handling:
+  graceful_degradation: true
+  max_retries: 3
+  retry_delay_seconds: 1.0
+  disable_on_persistent_errors: true
+  error_log_file: "logs/observability_errors.log"
+
+# Настройки производительности
+performance:
+  buffer_size: 1000
+  flush_interval_seconds: 30
+  async_queue_size: 1000
+  thread_pool_size: 4
+
+# Настройки безопасности
+security:
+  allow_file_access: true
+  restrict_paths: true
+  allowed_directories:
+    - "data"
+    - "logs"
+    - "metrics"
+  deny_patterns:
+    - "**/*.env"
+    - "**/credentials*"
+    - "**/secrets*"

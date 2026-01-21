@@ -2,20 +2,16 @@
 
 ## Обзор
 
-`StructuredLogger` - это единый интерфейс для структурированного логирования всех стадий жизненного цикла системы Life. Реализует JSONL формат логов для машинной обработки и обеспечивает трассировку полных причинно-следственных цепочек.
+`StructuredLogger` - это компонент для структурированного логирования стадий жизненного цикла системы Life. Логирует только факты обработки событий без derived metrics или интерпретации результатов.
 
-**Статус:** ✅ **Полностью реализован и протестирован** (26,902 записей логов обработано)
+**Статус:** 🔄 **Рефакторинг завершен** - убраны derived metrics, только факты обработки
 
-### Runtime метрики ✅ ПОЛНОСТЬЮ РЕАЛИЗОВАНЫ
+### Изменения в версии 2.0
 
-**Все запрошенные runtime метрики уже реализованы и работают:**
-
-1. **Длительность тика (tick_duration)**: `log_tick_end(duration_ms)` - измеряется в миллисекундах
-2. **Размер очереди (queue_size)**: `log_tick_start(queue_size)` - количество событий в начале тика
-3. **Количество событий/тик (events_processed)**: `log_tick_end(events_processed)` - событий обработано в тике
-4. **Latency feedback (delay_ticks)**: `log_feedback(delay_ticks)` - задержка в тиках между действием и обратной связью
-
-**Анализ от 2026-01-20:** Все четыре метрики полностью функциональны и интегрированы в runtime loop.
+- ❌ **Убраны derived metrics**: significance, impact, pattern, state_before, delay_ticks
+- ✅ **Только факты**: логирование стадий обработки без интерпретации результатов
+- ✅ **Чистый API**: упрощенные сигнатуры методов
+- ✅ **Raw data only**: подготовка для RawDataCollector
 
 ## Расположение
 
@@ -79,11 +75,11 @@ class StructuredLogger:
 
 ### log_event(event) -> str
 
-Логирует входящее событие из очереди.
+Логирует факт получения события (только raw данные события).
 
 ```python
 correlation_id = logger.log_event(event)
-# Возвращает correlation_id для использования в цепочке
+# Возвращает correlation_id для трассировки цепочки
 ```
 
 **Формат:**
@@ -93,18 +89,17 @@ correlation_id = logger.log_event(event)
   "stage": "event",
   "correlation_id": "chain_001",
   "event_id": "event_123",
+  "event_type": "shock",
+  "intensity": 0.8,
   "data": {
-    "type": "noise|decay|recovery|shock|idle|memory_echo|social_presence|social_conflict|social_harmony|cognitive_doubt|cognitive_clarity|cognitive_confusion|existential_void|existential_purpose|existential_finitude|connection|isolation|insight|confusion|curiosity|meaning_found|void|acceptance",
-    "intensity": -1.0..1.0,
-    "original_timestamp": 1705708800.0,
-    "metadata": {...}
+    // raw данные события без интерпретации
   }
 }
 ```
 
 ### log_meaning(event, meaning, correlation_id)
 
-Логирует результат обработки MeaningEngine.
+Логирует факт обработки события MeaningEngine (без результатов интерпретации).
 
 ```python
 logger.log_meaning(event, meaning, correlation_id)
@@ -117,27 +112,20 @@ logger.log_meaning(event, meaning, correlation_id)
   "stage": "meaning",
   "correlation_id": "chain_001",
   "event_id": "event_123",
+  "event_type": "shock",
   "data": {
-    "significance": 0.0..1.0,
-    "impact": {
-      "energy": float,
-      "stability": float,
-      "integrity": float
-    },
-    "response_pattern": "ignore|dampen|absorb|amplify"
+    "meaning_type": "Meaning",
+    "processed": true
   }
 }
 ```
 
-### log_decision(pattern, correlation_id, context)
+### log_decision(correlation_id)
 
-Логирует выбор паттерна реакции Decision модулем.
+Логирует факт принятия решения (без деталей решения).
 
 ```python
-logger.log_decision(pattern, correlation_id, {
-    "significance": meaning.significance,
-    "original_impact": meaning.impact.copy()
-})
+logger.log_decision(correlation_id)
 ```
 
 **Формат:**
@@ -146,22 +134,18 @@ logger.log_decision(pattern, correlation_id, {
   "timestamp": 1705708800.156,
   "stage": "decision",
   "correlation_id": "chain_001",
-  "event_id": "event_123",
   "data": {
-    "pattern": "ignore|dampen|absorb",
-    "significance": 0.0..1.0,
-    "original_impact": {...}
+    "decision_made": true
   }
 }
 ```
 
-### log_action(action_id, pattern, correlation_id, state_before)
+### log_action(action_id, correlation_id)
 
-Логирует выполнение действия Action модулем.
+Логирует факт выполнения действия.
 
 ```python
-action_id = f"action_{tick}_{pattern}_{timestamp}"
-logger.log_action(action_id, pattern, correlation_id, state_before)
+logger.log_action(action_id, correlation_id)
 ```
 
 **Формат:**
@@ -170,22 +154,16 @@ logger.log_action(action_id, pattern, correlation_id, state_before)
   "timestamp": 1705708800.167,
   "stage": "action",
   "correlation_id": "chain_001",
-  "event_id": "event_123",
+  "action_id": "action_456",
   "data": {
-    "action_id": "action_456_dampen_1705708800000",
-    "pattern": "dampen",
-    "state_before": {
-      "energy": 95.5,
-      "stability": 0.85,
-      "integrity": 0.95
-    }
+    "action_executed": true
   }
 }
 ```
 
 ### log_feedback(feedback, correlation_id)
 
-Логирует обратную связь от выполненных действий. **Включает метрику latency (delay_ticks)**.
+Логирует факт получения обратной связи (без метрик задержки).
 
 ```python
 logger.log_feedback(feedback, correlation_id)
@@ -197,21 +175,12 @@ logger.log_feedback(feedback, correlation_id)
   "timestamp": 1705708800.178,
   "stage": "feedback",
   "correlation_id": "chain_001",
-  "event_id": "event_123",
   "data": {
-    "feedback_id": "feedback_789",
-    "type": "action_result|observation",
-    "delay_ticks": 7,
-    "content": {
-      "success": true,
-      "energy_cost": 0.01,
-      "timestamp": 1705708800.167
-    }
+    "feedback_received": true,
+    "feedback_type": "Feedback"
   }
 }
 ```
-
-**Поле delay_ticks:** Количество тиков задержки между выполнением действия и получением обратной связи.
 
 ### Метрики производительности
 
