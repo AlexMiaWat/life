@@ -184,5 +184,4 @@ class ClarityMoments:
         """Get current clarity level."""
         if self.tracker.moments:
             return self.tracker.moments[-1].intensity
-        return 0.0  # type: ignore</contents>
-</xai:function_call=FileWrite>
+        return 0.0  # type: ignore
