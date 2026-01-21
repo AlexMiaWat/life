@@ -118,12 +118,16 @@ class ConsciousnessEngine:
         # Влияние энергии
         energy_factor = getattr(self_state, 'energy', 0.5)
 
+        # Влияние осознания тишины
+        silence_factor = self._calculate_silence_consciousness_factor(event_history)
+
         # Основная формула расчета уровня сознания
         consciousness_level = (
             neural_activity * self.NEURAL_ACTIVITY_WEIGHT +
             self_reflection * self.SELF_REFLECTION_WEIGHT +
             meta_cognition * self.META_COGNITION_WEIGHT +
-            energy_factor * self.ENERGY_INFLUENCE_WEIGHT
+            energy_factor * self.ENERGY_INFLUENCE_WEIGHT +
+            silence_factor * 0.1  # Влияние осознания тишины
         )
 
         # Ограничиваем диапазон
@@ -468,6 +472,45 @@ class ConsciousnessEngine:
         abstract_indicators = sum(1 for proc in cognitive_processes
                                 if proc.get('type') in ['generalization', 'abstraction', 'concept_formation'])
         return min(1.0, abstract_indicators / 5.0)
+
+    def _calculate_silence_consciousness_factor(self, event_history: List) -> float:
+        """
+        Рассчитать влияние осознания тишины на уровень сознания.
+
+        Тишина способствует повышению осознанности, особенно комфортная тишина.
+
+        Args:
+            event_history: История недавних событий
+
+        Returns:
+            Фактор влияния тишины на сознание (0.0-1.0)
+        """
+        if not event_history:
+            return 0.0
+
+        # Ищем события silence в недавней истории
+        silence_events = [event for event in event_history if event.type == "silence"]
+
+        if not silence_events:
+            return 0.0
+
+        # Рассчитываем среднюю интенсивность событий silence
+        # Положительная интенсивность (комфортная тишина) повышает сознание
+        # Отрицательная интенсивность (тревожная тишина) меньше влияет
+        silence_intensities = [event.intensity for event in silence_events]
+        avg_silence_intensity = sum(silence_intensities) / len(silence_intensities)
+
+        # Преобразуем интенсивность в фактор сознания
+        # Положительная тишина дает бонус, отрицательная - минимальное влияние
+        if avg_silence_intensity > 0:
+            silence_factor = min(1.0, avg_silence_intensity * 0.8)  # Умеренный бонус
+        else:
+            silence_factor = max(0.0, -avg_silence_intensity * 0.3)  # Слабое влияние тревожной тишины
+
+        # Учитываем количество событий silence (больше событий = сильнее влияние)
+        event_count_factor = min(1.0, len(silence_events) / 5.0)  # Нормализация
+
+        return silence_factor * event_count_factor
 
     def _add_to_history(self, snapshot: ConsciousnessSnapshot) -> None:
         """Добавить снимок в историю."""

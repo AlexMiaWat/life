@@ -129,6 +129,8 @@ class MeaningEngine:
             "meaning_found": 1.4,  # Нахождение смысла крайне значимо
             "void": 1.3,  # Пустота очень значима
             "acceptance": 0.9,  # Принятие умеренно значимо
+            # События осознания тишины
+            "silence": 0.8,  # Тишина умеренно значима (осознание отсутствия)
         }
 
         weight = type_weight.get(event.type, 1.0)
@@ -290,6 +292,8 @@ class MeaningEngine:
             "meaning_found": {"energy": +0.9, "stability": +0.09, "integrity": +0.06},
             "void": {"energy": -1.1, "stability": -0.06, "integrity": -0.05},
             "acceptance": {"energy": +0.1, "stability": +0.04, "integrity": +0.02},
+            # События осознания тишины
+            "silence": {"energy": +0.2, "stability": +0.03, "integrity": +0.01},  # Осознание тишины способствует покою
         }
 
         base_impact = base_impacts.get(

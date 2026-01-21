@@ -53,8 +53,8 @@ class MemoryHierarchyManager:
         # Инициализация уровней памяти
         self.sensory_buffer = sensory_buffer or SensoryBuffer()
 
-        # Заглушки для будущих уровней (пока не реализованы)
-        self.episodic_memory = None  # Будет интегрировано с существующей Memory
+        # Интеграция с эпизодической памятью
+        self.episodic_memory = None  # Будет установлено при вызове set_episodic_memory
         self.semantic_store = SemanticMemoryStore(logger=self.logger)   # SemanticMemoryStore
         self.procedural_store = ProceduralMemoryStore(logger=self.logger) # ProceduralMemoryStore
 
@@ -72,6 +72,19 @@ class MemoryHierarchyManager:
         self.logger.log_event({
             "event_type": "memory_hierarchy_initialized",
             "sensory_buffer_size": self.sensory_buffer.buffer_size
+        })
+
+    def set_episodic_memory(self, memory) -> None:
+        """
+        Установить ссылку на эпизодическую память для интеграции.
+
+        Args:
+            memory: Экземпляр Memory (эпизодическая память)
+        """
+        self.episodic_memory = memory
+        self.logger.log_event({
+            "event_type": "episodic_memory_integrated",
+            "memory_entries_count": len(memory) if memory else 0
         })
 
     def add_sensory_event(self, event: Event) -> None:
@@ -143,7 +156,8 @@ class MemoryHierarchyManager:
         """
         Консолидация от сенсорного буфера к эпизодической памяти.
 
-        Анализирует паттерны событий и переносит значимые в эпизодическую память.
+        Реализует автоматический перенос событий из сенсорного буфера в эпизодическую память
+        на основе порога повторений и значимости.
 
         Args:
             self_state: Текущее состояние системы
@@ -153,14 +167,45 @@ class MemoryHierarchyManager:
         """
         transfers_count = 0
 
-        # Пока используем заглушку - в будущем будет анализировать паттерны
-        # и переносить события, которые повторяются или имеют высокую значимость
+        # Получаем события для анализа консолидации (не удаляем из буфера)
+        sensory_events = self.sensory_buffer.peek_events(max_events=None)
 
-        # Для демонстрации: переносим события с высокой интенсивностью
-        sensory_events = self.sensory_buffer.peek_events()
+        # Отладка
+        if sensory_events:
+            self.logger.log_event({
+                "event_type": "debug_sensory_consolidation",
+                "events_count": len(sensory_events),
+                "episodic_memory_available": self.episodic_memory is not None
+            })
 
         for event in sensory_events:
-            if abs(event.intensity) > 0.7:  # Высокая интенсивность
+            # Создаем идентификатор события для отслеживания повторений по типу
+            event_hash = event.type
+
+            # Увеличиваем счетчик "видов" события (сколько раз оно наблюдалось в буфере)
+            self._event_processing_counts[event_hash] = self._event_processing_counts.get(event_hash, 0) + 1
+            processing_count = self._event_processing_counts[event_hash]
+
+            # Проверяем условия для переноса в эпизодическую память:
+            # 1. Достигнут порог повторений ИЛИ
+            # 2. Высокая интенсивность (даже при первой обработке)
+            should_transfer = (
+                processing_count >= self.SENSORY_TO_EPISODIC_THRESHOLD or
+                abs(event.intensity) > 0.8  # Порог высокой интенсивности
+            )
+
+            # Отладка
+            self.logger.log_event({
+                "event_type": "debug_transfer_check",
+                "event_type": event.type,
+                "intensity": event.intensity,
+                "processing_count": processing_count,
+                "threshold": self.SENSORY_TO_EPISODIC_THRESHOLD,
+                "should_transfer": should_transfer,
+                "episodic_memory_available": self.episodic_memory is not None
+            })
+
+            if should_transfer:
                 # Создаем MemoryEntry для эпизодической памяти
                 memory_entry = MemoryEntry(
                     event_type=event.type,
@@ -170,16 +215,21 @@ class MemoryHierarchyManager:
                 )
 
                 # Добавляем в эпизодическую память (если доступна)
-                if self_state.memory:
-                    self_state.memory.add_entry(memory_entry)
+                if self.episodic_memory is not None:
+                    self.episodic_memory.append(memory_entry)
                     transfers_count += 1
                     self._transfer_stats["sensory_to_episodic"] += 1
 
                     self.logger.log_event({
                         "event_type": "sensory_to_episodic_transfer",
                         "event_type": event.type,
-                        "significance": memory_entry.meaning_significance
+                        "significance": memory_entry.meaning_significance,
+                        "processing_count": processing_count,
+                        "transfer_reason": "threshold_reached" if processing_count >= self.SENSORY_TO_EPISODIC_THRESHOLD else "high_intensity"
                     })
+
+                    # Очищаем счетчик для этого события (оно уже перенесено)
+                    del self._event_processing_counts[event_hash]
 
         return transfers_count
 
@@ -259,10 +309,13 @@ class MemoryHierarchyManager:
                 "transfers_semantic_to_procedural": self._transfer_stats["semantic_to_procedural"],
                 "last_semantic_consolidation": self._transfer_stats["last_semantic_consolidation"]
             },
-            "sensory_buffer": self.sensory_buffer.get_buffer_status(),
+            "sensory_buffer": {
+                **self.sensory_buffer.get_buffer_status(),
+                "available": self.sensory_buffer is not None
+            },
             "episodic_memory": {
                 "available": self.episodic_memory is not None,
-                "status": "not_integrated"  # Интеграция с существующей Memory планируется
+                "status": "integrated" if self.episodic_memory is not None else "not_integrated"
             },
             "semantic_store": {
                 "available": self.semantic_store is not None,

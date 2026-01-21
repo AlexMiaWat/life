@@ -247,8 +247,9 @@ def run_loop(
     # disable_philosophical_analysis=True,  # REMOVED: external tool only
     # disable_philosophical_reports=False,  # REMOVED: external tool only
     disable_clarity_moments=True,  # Отключено по умолчанию до стабилизации
-    enable_memory_hierarchy=False,  # Включение экспериментальной системы памяти
+    enable_memory_hierarchy=True,  # Включение многоуровневой системы памяти (краткосрочная/долгосрочная/архивная)
     enable_consciousness=False,  # Включение экспериментальной системы сознания
+    enable_silence_detection=True,  # Включение системы осознания тишины
     log_flush_period_ticks=10,
     enable_profiling=False,
 ):
@@ -269,8 +270,9 @@ def run_loop(
         # disable_philosophical_analysis: REMOVED - external tool only
         # disable_philosophical_reports: REMOVED - external tool only
         disable_clarity_moments: Отключить систему моментов ясности
-        enable_memory_hierarchy: Включить экспериментальную многоуровневую систему памяти
+        enable_memory_hierarchy: Включить многоуровневую систему памяти (краткосрочная/долгосрочная/архивная)
         enable_consciousness: Включить экспериментальную систему сознания
+        enable_silence_detection: Включить систему осознания тишины
         log_flush_period_ticks: Период сброса логов в тиках
         enable_profiling: Включить профилирование runtime loop с cProfile
     """
@@ -295,6 +297,8 @@ def run_loop(
     if enable_memory_hierarchy:
         from src.experimental.memory_hierarchy import MemoryHierarchyManager
         memory_hierarchy = MemoryHierarchyManager(logger=structured_logger)
+        # Подключение эпизодической памяти к иерархии
+        memory_hierarchy.set_episodic_memory(self_state.memory)
 
     if enable_consciousness:
         from src.experimental.consciousness import ConsciousnessEngine
