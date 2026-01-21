@@ -401,6 +401,190 @@ Adaptation — не оптимизация.
 Adaptation — не контроль.
 Adaptation — медленное внутреннее изменение без цели.
 
+## Механизм обратимости адаптаций
+
+### Назначение
+
+Механизм обратимости позволяет откатывать параметры адаптации к предыдущим состояниям без нарушения архитектурных принципов. Откат **НЕ является** оптимизацией или улучшением поведения — это только восстановление сохраненных состояний.
+
+### Архитектурные принципы отката
+
+- **Откат только назад во времени** — запрещен откат "вперед" или к будущим состояниям
+- **Соблюдение медленных изменений** — откат не нарушает лимит MAX_ADAPTATION_DELTA (0.01)
+- **Без интерпретации** — откат не анализирует эффективность или выбирает "лучшие" состояния
+- **Только восстановление** — откат восстанавливает параметры из истории без модификации
+
+### Методы отката
+
+#### `get_rollback_options(self_state) -> List[Dict]`
+
+Возвращает доступные варианты отката из истории адаптаций.
+
+```python
+options = adaptation_manager.get_rollback_options(self_state)
+# Возвращает список с timestamp, tick, time_diff_seconds, description
+```
+
+#### `rollback_to_timestamp(timestamp, self_state, structured_logger=None) -> Dict`
+
+Откатывает параметры к состоянию на указанное время.
+
+```python
+result = adaptation_manager.rollback_to_timestamp(timestamp, self_state)
+# Возвращает {"success": bool, "rolled_back_params": Dict, "error": str}
+```
+
+#### `rollback_steps(steps, self_state, structured_logger=None) -> Dict`
+
+Откатывает параметры на указанное количество шагов назад.
+
+```python
+result = adaptation_manager.rollback_steps(2, self_state)  # Откат на 2 шага назад
+```
+
+### Валидация отката
+
+Откат проходит многоуровневую валидацию:
+
+1. **Временная валидация** — откат только к прошлым состояниям
+2. **Доступность данных** — проверка наличия записей в истории
+3. **Лимит изменений** — откат не нарушает принцип медленных изменений (<= 0.01)
+4. **Структурная валидация** — параметры соответствуют ожидаемой структуре
+
+### HTTP API для отката
+
+#### GET /adaptation/rollback/options
+
+Получить доступные варианты отката.
+
+```bash
+curl http://localhost:8000/adaptation/rollback/options
+```
+
+**Ответ:**
+```json
+{
+  "options": [
+    {
+      "timestamp": 1705708800.0,
+      "tick": 100,
+      "changes_count": 2,
+      "time_diff_seconds": 300.5,
+      "description": "behavior_sensitivity.noise, behavior_thresholds.shock"
+    }
+  ],
+  "total_options": 1
+}
+```
+
+#### GET /adaptation/history
+
+Получить историю адаптаций.
+
+```bash
+curl http://localhost:8000/adaptation/history
+```
+
+#### POST /adaptation/rollback
+
+Выполнить откат.
+
+```bash
+# Откат к timestamp
+curl -X POST http://localhost:8000/adaptation/rollback \
+  -H "Content-Type: application/json" \
+  -d '{"type": "timestamp", "timestamp": 1705708800.0}'
+
+# Откат на 2 шага назад
+curl -X POST http://localhost:8000/adaptation/rollback \
+  -H "Content-Type: application/json" \
+  -d '{"type": "steps", "steps": 2}'
+```
+
+**Ответ при успехе:**
+```json
+{
+  "success": true,
+  "rolled_back_params": {
+    "behavior_sensitivity": {"noise": 0.15},
+    "behavior_thresholds": {"noise": 0.08},
+    "behavior_coefficients": {"dampen": 0.45}
+  },
+  "target_timestamp": 1705708800.0,
+  "actual_timestamp": 1705708800.0,
+  "tick": 100
+}
+```
+
+### Логирование откатов
+
+Все операции отката логируются через StructuredLogger в формате:
+
+```json
+{
+  "timestamp": 1705708800.0,
+  "stage": "adaptation_rollback",
+  "correlation_id": "chain_123",
+  "success": true,
+  "target_timestamp": 1705708800.0,
+  "actual_timestamp": 1705708800.0,
+  "tick": 100,
+  "rolled_back_params": {...}
+}
+```
+
+### Примеры использования
+
+#### Пример 1: Откат после нежелательных изменений
+
+```python
+# Получить доступные варианты отката
+options = adaptation_manager.get_rollback_options(self_state)
+print(f"Доступно {len(options)} вариантов отката")
+
+# Выполнить откат к первому варианту
+if options:
+    result = adaptation_manager.rollback_to_timestamp(
+        options[0]["timestamp"], self_state
+    )
+    if result["success"]:
+        print("Откат выполнен успешно")
+        self_state.save_snapshot()  # Сохранить изменения
+```
+
+#### Пример 2: API откат через HTTP
+
+```bash
+# Проверить доступные варианты
+curl http://localhost:8000/adaptation/rollback/options
+
+# Выполнить откат на 3 шага назад
+curl -X POST http://localhost:8000/adaptation/rollback \
+  -H "Content-Type: application/json" \
+  -d '{"type": "steps", "steps": 3}'
+```
+
+### Ограничения и безопасность
+
+- **Максимальная история**: 50 записей (configurable через MAX_HISTORY_SIZE)
+- **Лимит изменений**: откат ограничен MAX_ADAPTATION_DELTA (0.01) для предотвращения резких изменений
+- **Временные ограничения**: откат только к прошлым состояниям
+- **Архитектурная защита**: откат не затрагивает Decision/Action и не является оптимизацией
+
+### Тестирование механизма отката
+
+Механизм отката покрыт комплексными тестами:
+
+- **Unit-тесты**: валидация, откат к timestamp/steps, проверка лимитов
+- **Integration-тесты**: API endpoints, работа с реальным состоянием
+- **Validation-тесты**: проверка безопасности и соответствия архитектуре
+
+```bash
+# Запуск тестов отката
+pytest src/test/test_adaptation.py::TestAdaptationRollback -v
+pytest src/test/test_adaptation_rollback_api.py -v
+```
+
 ## Документация ограничений
 
 Подробные архитектурные ограничения описаны в:
@@ -425,3 +609,10 @@ Adaptation — медленное внутреннее изменение без
   - Добавлены тесты на использование параметров при деградации
   - Добавлены тесты на восстановление параметров из snapshot
   - Обновлена документация с описанием интеграции
+- **2026-01-21:** Реализован механизм обратимости адаптаций (v1.1):
+  - Добавлены методы `get_rollback_options()`, `rollback_to_timestamp()`, `rollback_steps()`
+  - Интегрирован StructuredLogger для логирования операций отката
+  - Добавлена многоуровневая валидация отката (временная, структурная, лимит изменений)
+  - Создан HTTP API: GET /adaptation/rollback/options, GET /adaptation/history, POST /adaptation/rollback
+  - Написаны комплексные тесты для механизма отката (unit и integration)
+  - Обновлена документация с примерами использования и API

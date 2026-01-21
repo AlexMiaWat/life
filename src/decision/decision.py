@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Dict, Any
 
 from src.meaning.meaning import Meaning
 from src.memory.memory import MemoryEntry
@@ -15,6 +15,122 @@ class DecisionEngine:
     def __init__(self):
         """Инициализация движка принятия решений."""
         self.decision_history = []
+
+
+def _analyze_adaptation_history(self_state: SelfState) -> dict:
+    """
+    Анализ истории адаптаций для контекстной осведомленности.
+
+    Returns:
+        dict: анализ трендов и паттернов адаптаций
+    """
+    adaptation_history = getattr(self_state, "adaptation_history", [])
+    if not adaptation_history:
+        return {
+            "trend_direction": "neutral",
+            "recent_changes_count": 0,
+            "avg_change_magnitude": 0.0,
+            "most_changed_param": None,
+            "adaptation_stability": "unknown"
+        }
+
+    # Анализ последних 10 адаптаций
+    recent_history = adaptation_history[-10:]
+
+    # Подсчет общего направления изменений
+    positive_changes = 0
+    negative_changes = 0
+    total_magnitude = 0.0
+    param_change_counts = {}
+
+    for entry in recent_history:
+        changes = entry.get("changes", {})
+        for param_group, param_changes in changes.items():
+            if isinstance(param_changes, dict):
+                for param_name, change_info in param_changes.items():
+                    if isinstance(change_info, dict):
+                        old_val = change_info.get("old", 0)
+                        new_val = change_info.get("new", 0)
+                        delta = new_val - old_val
+
+                        total_magnitude += abs(delta)
+
+                        if delta > 0.01:
+                            positive_changes += 1
+                        elif delta < -0.01:
+                            negative_changes += 1
+
+                        # Подсчет изменений по параметрам
+                        param_key = f"{param_group}.{param_name}"
+                        param_change_counts[param_key] = param_change_counts.get(param_key, 0) + 1
+
+    # Определение тренда
+    if positive_changes > negative_changes * 1.5:
+        trend_direction = "increasing"
+    elif negative_changes > positive_changes * 1.5:
+        trend_direction = "decreasing"
+    else:
+        trend_direction = "stable"
+
+    # Средняя величина изменений
+    avg_change_magnitude = total_magnitude / len(recent_history) if recent_history else 0.0
+
+    # Наиболее изменяемый параметр
+    most_changed_param = max(param_change_counts.keys(), key=lambda k: param_change_counts[k]) if param_change_counts else None
+
+    # Стабильность адаптаций
+    if avg_change_magnitude < 0.02:
+        adaptation_stability = "stable"
+    elif avg_change_magnitude < 0.05:
+        adaptation_stability = "moderate"
+    else:
+        adaptation_stability = "volatile"
+
+    return {
+        "trend_direction": trend_direction,
+        "recent_changes_count": len(recent_history),
+        "avg_change_magnitude": avg_change_magnitude,
+        "most_changed_param": most_changed_param,
+        "adaptation_stability": adaptation_stability,
+        "positive_changes": positive_changes,
+        "negative_changes": negative_changes
+    }
+
+
+def _calculate_dynamic_threshold(
+    base_threshold: float,
+    sensitivity: float,
+    energy_level: str,
+    stability_level: str
+) -> float:
+    """
+    Вычисление динамического порога на основе обученной чувствительности и состояния системы.
+
+    Args:
+        base_threshold: Базовое значение порога
+        sensitivity: Чувствительность к типу события (0.0-1.0)
+        energy_level: Уровень энергии ("low", "high")
+        stability_level: Уровень стабильности ("low", "medium", "high")
+
+    Returns:
+        float: Адаптивный порог
+    """
+    # Модификатор на основе чувствительности (0.5-1.5)
+    sensitivity_modifier = 0.5 + sensitivity
+
+    # Модификаторы состояния системы
+    energy_modifier = 0.8 if energy_level == "low" else 1.2
+    stability_modifier = (
+        0.9 if stability_level == "low"
+        else 1.1 if stability_level == "high"
+        else 1.0
+    )
+
+    # Расчет адаптивного порога
+    adaptive_threshold = base_threshold * sensitivity_modifier * energy_modifier * stability_modifier
+
+    # Ограничение диапазона для стабильности
+    return max(0.05, min(0.8, adaptive_threshold))
 
 
 def decide_response(self_state: SelfState, meaning: Meaning) -> str:
@@ -104,7 +220,7 @@ def _analyze_activated_memory(activated: List[MemoryEntry]) -> dict:
 
 def _analyze_system_context(self_state: SelfState, meaning: Meaning) -> dict:
     """
-    Анализ контекста системы для принятия решения.
+    Анализ контекста системы для принятия решения с интеграцией Learning/Adaptation параметров.
 
     Returns:
         dict: параметры контекста влияющие на выбор паттерна
@@ -132,12 +248,55 @@ def _analyze_system_context(self_state: SelfState, meaning: Meaning) -> dict:
         else "slowed"
     )
 
-    # Модификаторы из параметров
+    # Модификаторы из параметров Learning/Adaptation
     adaptation_params = getattr(self_state, "adaptation_params", {})
     behavior_thresholds = adaptation_params.get("behavior_thresholds", {})
+    behavior_sensitivity = adaptation_params.get("behavior_sensitivity", {})
+    behavior_coefficients = adaptation_params.get("behavior_coefficients", {})
 
     learning_params = getattr(self_state, "learning_params", {})
     significance_thresholds = learning_params.get("significance_thresholds", {})
+    event_type_sensitivity = learning_params.get("event_type_sensitivity", {})
+    response_coefficients = learning_params.get("response_coefficients", {})
+
+    # Анализ истории адаптаций для контекстной осведомленности
+    adaptation_analysis = _analyze_adaptation_history(self_state)
+
+    # Вычисление динамических порогов на основе обученных параметров
+    event_type = getattr(meaning, "event_type", "unknown")
+    base_sensitivity = event_type_sensitivity.get(event_type, 0.2)
+
+    # Модификация чувствительности на основе тренда адаптаций
+    adapted_sensitivity = base_sensitivity
+    if adaptation_analysis["trend_direction"] == "increasing":
+        adapted_sensitivity = min(0.9, base_sensitivity * 1.2)  # Увеличение чувствительности при росте адаптаций
+    elif adaptation_analysis["trend_direction"] == "decreasing":
+        adapted_sensitivity = max(0.1, base_sensitivity * 0.8)  # Уменьшение чувствительности при снижении адаптаций
+
+    # Адаптивные пороги на основе чувствительности, состояния и истории адаптаций
+    dynamic_ignore_threshold = _calculate_dynamic_threshold(
+        base_threshold=0.1,
+        sensitivity=adapted_sensitivity,
+        energy_level=energy_level,
+        stability_level=stability_level
+    )
+
+    dynamic_dampen_threshold = _calculate_dynamic_threshold(
+        base_threshold=0.3,
+        sensitivity=adapted_sensitivity,
+        energy_level=energy_level,
+        stability_level=stability_level
+    )
+
+    # Корректировка порогов на основе стабильности адаптаций
+    if adaptation_analysis["adaptation_stability"] == "volatile":
+        # При волатильных адаптациях делаем пороги более строгими
+        dynamic_ignore_threshold *= 0.8
+        dynamic_dampen_threshold *= 0.9
+    elif adaptation_analysis["adaptation_stability"] == "stable":
+        # При стабильных адаптациях делаем пороги более мягкими
+        dynamic_ignore_threshold *= 1.2
+        dynamic_dampen_threshold *= 1.1
 
     return {
         "energy_level": energy_level,
@@ -145,8 +304,16 @@ def _analyze_system_context(self_state: SelfState, meaning: Meaning) -> dict:
         "integrity_level": integrity_level,
         "time_perception": time_perception,
         "behavior_thresholds": behavior_thresholds,
+        "behavior_sensitivity": behavior_sensitivity,
+        "behavior_coefficients": behavior_coefficients,
         "significance_thresholds": significance_thresholds,
+        "event_type_sensitivity": event_type_sensitivity,
+        "response_coefficients": response_coefficients,
         "meaning_significance": meaning.significance,
+        "event_type": event_type,
+        "dynamic_ignore_threshold": dynamic_ignore_threshold,
+        "dynamic_dampen_threshold": dynamic_dampen_threshold,
+        "adaptation_analysis": adaptation_analysis,
     }
 
 
@@ -231,86 +398,146 @@ def _select_response_pattern(
     self_state: SelfState,
 ) -> str:
     """
-    Финальный выбор паттерна реакции на основе всех анализов.
+    Финальный выбор паттерна реакции на основе всех анализов с интеграцией Learning/Adaptation.
     """
     weighted_avg = memory_analysis["weighted_avg"]
     max_sig = memory_analysis["max_sig"]
     distribution = memory_analysis["distribution"]
 
+    # Извлечение параметров из контекста
     energy_level = context_analysis["energy_level"]
     stability_level = context_analysis["stability_level"]
     integrity_level = context_analysis["integrity_level"]
     time_perception = context_analysis["time_perception"]
     meaning_sig = context_analysis["meaning_significance"]
 
+    # Параметры Learning/Adaptation
+    behavior_coefficients = context_analysis.get("behavior_coefficients", {})
+    response_coefficients = context_analysis.get("response_coefficients", {})
+    behavior_sensitivity = context_analysis.get("behavior_sensitivity", {})
+    event_type = context_analysis.get("event_type", "unknown")
+    adaptation_analysis = context_analysis.get("adaptation_analysis", {})
+
+    # Динамические пороги
+    dynamic_ignore_threshold = context_analysis.get("dynamic_ignore_threshold", 0.1)
+    dynamic_dampen_threshold = context_analysis.get("dynamic_dampen_threshold", 0.3)
+
+    # Коэффициенты для паттернов (приоритет: behavior_coefficients > response_coefficients)
+    dampen_coeff = behavior_coefficients.get("dampen", response_coefficients.get("dampen", 0.5))
+    absorb_coeff = behavior_coefficients.get("absorb", response_coefficients.get("absorb", 1.0))
+    amplify_coeff = behavior_coefficients.get("amplify", response_coefficients.get("amplify", 1.0))
+    ignore_coeff = behavior_coefficients.get("ignore", response_coefficients.get("ignore", 0.0))
+
+    # Чувствительность к типу события для дополнительных модификаций
+    event_sensitivity = behavior_sensitivity.get(event_type, 0.2)
+
     # === Правило 1: Высокая концентрация значимых воспоминаний ===
     if distribution == "high_concentrated" or max_sig > 0.8:
+        # Учитываем коэффициент dampen при высокой концентрации
         if (
             event_rules.get("can_amplify", True)
             and stability_level == "low"
             and energy_level == "low"
+            and amplify_coeff > absorb_coeff
         ):
             # При низкой стабильности и энергии можем усилить положительные эффекты
-            if event_rules.get("positive_event", False):
+            if event_rules.get("positive_event", False) and meaning_sig > dynamic_dampen_threshold:
                 return "amplify"
         return "dampen"
 
     # === Правило 2: Низкая энергия - консервативный подход ===
-    # Но для положительных событий при низкой стабильности делаем исключение
+    # Учитываем адаптивные коэффициенты и динамические пороги
     if energy_level == "low":
         is_positive_and_unstable = (
             stability_level == "low"
             and event_rules.get("positive_event", False)
             and event_rules.get("can_amplify", True)
-            and meaning_sig > 0.4
+            and meaning_sig > dynamic_dampen_threshold * (1 + event_sensitivity)
         )
 
-        if is_positive_and_unstable:
+        if is_positive_and_unstable and amplify_coeff > dampen_coeff:
             return "amplify"  # Исключение для положительных событий при низкой стабильности
-        elif weighted_avg > 0.4 or meaning_sig > 0.3:
+        elif weighted_avg > dynamic_dampen_threshold or meaning_sig > dynamic_dampen_threshold:
             return "dampen"
-        elif meaning_sig < 0.1 and event_rules.get("can_ignore", True):
+        elif meaning_sig < dynamic_ignore_threshold and event_rules.get("can_ignore", True):
             return "ignore"
 
     # === Правило 3: Высокая стабильность - смягчение эффектов ===
+    # Учитываем коэффициент dampen при высокой стабильности
     if stability_level == "high":
-        if weighted_avg > 0.3 or meaning_sig > 0.2:
+        adjusted_dampen_threshold = dynamic_dampen_threshold * dampen_coeff
+        if weighted_avg > adjusted_dampen_threshold or meaning_sig > adjusted_dampen_threshold:
             return "dampen"
 
     # === Правило 4: Низкая стабильность - усиление положительных эффектов ===
     if stability_level == "low" and event_rules.get("can_amplify", True):
-        if event_rules.get("positive_event", False) and meaning_sig > 0.4:
+        amplify_threshold = dynamic_dampen_threshold * (1 + event_sensitivity)
+        if event_rules.get("positive_event", False) and meaning_sig > amplify_threshold and amplify_coeff > absorb_coeff:
             return "amplify"
 
     # === Правило 5: Ускоренное восприятие времени - более осторожный ===
     if time_perception == "accelerated":
-        if weighted_avg > 0.35 or meaning_sig > 0.25:
+        accelerated_threshold = dynamic_dampen_threshold * 0.8  # Более строгий порог
+        if weighted_avg > accelerated_threshold or meaning_sig > accelerated_threshold:
             return "dampen"
 
     # === Правило 6: Низкая целостность - осторожный подход ===
     if integrity_level == "low":
-        if weighted_avg > 0.5 or meaning_sig > 0.4:
+        integrity_threshold = dynamic_dampen_threshold * 0.9  # Немного мягче для целостности
+        if weighted_avg > integrity_threshold or meaning_sig > integrity_threshold:
             return "dampen"
 
-    # === Правило 7: Специфические правила по типу события ===
+    # === Правило 7: Специфические правила по типу события с учетом коэффициентов ===
     if event_rules.get("prefer_dampen", False):
-        if weighted_avg > 0.3 or meaning_sig > 0.2:
+        if weighted_avg > dynamic_dampen_threshold * dampen_coeff or meaning_sig > dynamic_dampen_threshold * dampen_coeff:
             return "dampen"
 
-    if event_rules.get("prefer_absorb", False) and weighted_avg <= 0.6:
+    if event_rules.get("prefer_absorb", False) and weighted_avg <= dynamic_dampen_threshold * absorb_coeff:
         return "absorb"
 
     if event_rules.get("can_ignore", True):
-        ignore_threshold = event_rules.get("ignore_threshold", 0.1)
-        if weighted_avg < ignore_threshold and meaning_sig < ignore_threshold:
+        ignore_threshold = event_rules.get("ignore_threshold", dynamic_ignore_threshold)
+        if weighted_avg < ignore_threshold * ignore_coeff and meaning_sig < ignore_threshold * ignore_coeff:
             return "ignore"
 
-    # === Правило 8: Взвешенный анализ средней значимости ===
-    if weighted_avg < 0.2 and meaning_sig < 0.15:
+    # === Правило 7.5: Контекстная осведомленность на основе истории адаптаций ===
+    # Анализ трендов адаптаций для корректировки поведения
+    trend_direction = adaptation_analysis.get("trend_direction", "neutral")
+    adaptation_stability = adaptation_analysis.get("adaptation_stability", "unknown")
+    avg_change_magnitude = adaptation_analysis.get("avg_change_magnitude", 0.0)
+
+    # Корректировка коэффициентов на основе тренда адаптаций
+    trend_modifier = 1.0
+    if trend_direction == "increasing" and adaptation_stability == "volatile":
+        # При росте и волатильности - более осторожный подход
+        trend_modifier = 0.9
+        if event_rules.get("can_amplify", True) and meaning_sig > dynamic_dampen_threshold:
+            # В условиях волатильности уменьшаем вероятность усиления
+            amplify_coeff *= trend_modifier
+    elif trend_direction == "stable" and adaptation_stability == "stable":
+        # При стабильности - более уверенный подход
+        trend_modifier = 1.1
+        if event_rules.get("positive_event", False) and stability_level == "medium":
+            # В стабильных условиях можем быть более смелыми с положительными событиями
+            absorb_coeff *= trend_modifier
+
+    # === Правило 8: Взвешенный анализ средней значимости с адаптивными коэффициентами ===
+    adjusted_ignore_threshold = dynamic_ignore_threshold * ignore_coeff
+    adjusted_absorb_threshold = dynamic_dampen_threshold * absorb_coeff
+    adjusted_dampen_threshold = dynamic_dampen_threshold * dampen_coeff
+
+    # Финальная корректировка порогов на основе контекста адаптаций
+    if adaptation_stability == "volatile":
+        # При волатильных адаптациях смещаем пороги к более осторожному поведению
+        adjusted_ignore_threshold *= 1.1
+        adjusted_absorb_threshold *= 0.95
+        adjusted_dampen_threshold *= 0.9
+
+    if weighted_avg < adjusted_ignore_threshold and meaning_sig < adjusted_ignore_threshold:
         return "ignore"
-    elif weighted_avg < 0.5 and meaning_sig < 0.3:
+    elif weighted_avg < adjusted_absorb_threshold and meaning_sig < adjusted_absorb_threshold:
         return "absorb"
-    elif weighted_avg >= 0.5 or meaning_sig >= 0.4:
+    elif weighted_avg >= adjusted_dampen_threshold or meaning_sig >= adjusted_dampen_threshold:
         return "dampen"
     else:
         return "absorb"

@@ -658,3 +658,7 @@ class TechnicalBehaviorMonitor:
                                          anomalies: List[Dict]) -> List[str]:
         """Сгенерировать рекомендации по снимкам. Заглушка для реализации."""
         return ["Продолжить мониторинг состояния системы"]
+
+
+# Алиас для обратной совместимости с тестами
+ExternalObserver = TechnicalBehaviorMonitor

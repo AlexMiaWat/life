@@ -214,6 +214,63 @@ class LifeHandler(BaseHTTPRequestHandler):
             self.send_header("Content-type", "application/json")
             self.end_headers()
             self.wfile.write(json.dumps(sensitivity).encode())
+        elif self.path.startswith("/adaptation/rollback/options"):
+            # GET /adaptation/rollback/options — получить доступные варианты отката
+            try:
+                from src.adaptation.adaptation import AdaptationManager
+                adaptation_manager = AdaptationManager()
+
+                # Загружаем состояние
+                try:
+                    self_state = SelfState().load_latest_snapshot()
+                except FileNotFoundError:
+                    self_state = SelfState()
+
+                # Получаем варианты отката
+                options = adaptation_manager.get_rollback_options(self_state)
+
+                self.send_response(200)
+                self.send_header("Content-type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    "options": options,
+                    "total_options": len(options)
+                }).encode())
+
+            except Exception as e:
+                logger.error(f"Error getting rollback options: {e}")
+                self.send_response(500)
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode())
+        elif self.path.startswith("/adaptation/history"):
+            # GET /adaptation/history — получить историю адаптаций
+            try:
+                # Загружаем состояние
+                try:
+                    self_state = SelfState().load_latest_snapshot()
+                except FileNotFoundError:
+                    self_state = SelfState()
+
+                # Получаем историю адаптаций
+                history = getattr(self_state, "adaptation_history", [])
+
+                # Ограничиваем размер ответа (последние 20 записей)
+                recent_history = history[-20:] if len(history) > 20 else history
+
+                self.send_response(200)
+                self.send_header("Content-type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    "history": recent_history,
+                    "total_entries": len(history),
+                    "returned_entries": len(recent_history)
+                }).encode())
+
+            except Exception as e:
+                logger.error(f"Error getting adaptation history: {e}")
+                self.send_response(500)
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode())
         else:
             self.send_response(404)
             self.end_headers()
@@ -274,6 +331,9 @@ class LifeHandler(BaseHTTPRequestHandler):
         # POST /analysis/impact-batch — анализ пакета событий
         elif self.path == "/analysis/impact-batch":
             self._handle_batch_impact_analysis()
+        # POST /adaptation/rollback — выполнить откат адаптаций
+        elif self.path == "/adaptation/rollback":
+            self._handle_adaptation_rollback()
         else:
             self.send_response(404)
             self.end_headers()
@@ -732,6 +792,88 @@ class LifeHandler(BaseHTTPRequestHandler):
         self.send_header("Content-type", "application/json")
         self.end_headers()
         self.wfile.write(json.dumps(response).encode())
+
+    def _handle_adaptation_rollback(self):
+        """Обработка POST /adaptation/rollback — откат адаптаций"""
+        from src.adaptation.adaptation import AdaptationManager
+        from src.observability.structured_logger import StructuredLogger
+
+        # Получаем тело запроса
+        content_length = int(self.headers.get("Content-Length", 0))
+        raw = self.rfile.read(content_length) if content_length > 0 else b"{}"
+
+        try:
+            request_data = json.loads(raw.decode("utf-8"))
+        except Exception:
+            self.send_response(400)
+            self.end_headers()
+            self.wfile.write(b"Invalid JSON")
+            return
+
+        # Валидируем параметры запроса
+        rollback_type = request_data.get("type")  # "timestamp" или "steps"
+        if rollback_type not in ["timestamp", "steps"]:
+            self.send_response(400)
+            self.end_headers()
+            self.wfile.write(json.dumps({"error": "type must be 'timestamp' or 'steps'"}).encode())
+            return
+
+        # Загружаем состояние
+        try:
+            self_state = SelfState().load_latest_snapshot()
+        except FileNotFoundError:
+            self_state = SelfState()
+
+        # Создаем менеджеры
+        adaptation_manager = AdaptationManager()
+        structured_logger = StructuredLogger()
+
+        try:
+            if rollback_type == "timestamp":
+                # Откат к timestamp
+                timestamp = request_data.get("timestamp")
+                if not isinstance(timestamp, (int, float)):
+                    raise ValueError("timestamp must be a number")
+
+                result = adaptation_manager.rollback_to_timestamp(
+                    timestamp, self_state, structured_logger
+                )
+
+            elif rollback_type == "steps":
+                # Откат на N шагов
+                steps = request_data.get("steps")
+                if not isinstance(steps, int) or steps <= 0:
+                    raise ValueError("steps must be a positive integer")
+
+                result = adaptation_manager.rollback_steps(
+                    steps, self_state, structured_logger
+                )
+
+            if result["success"]:
+                # Сохраняем измененное состояние
+                self_state.save_snapshot()
+
+                self.send_response(200)
+                self.send_header("Content-type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps(result).encode())
+            else:
+                self.send_response(400)
+                self.end_headers()
+                self.wfile.write(json.dumps(result).encode())
+
+        except ValueError as e:
+            logger.error(f"Validation error in adaptation rollback: {e}")
+            self.send_response(400)
+            self.end_headers()
+            self.wfile.write(json.dumps({"error": str(e)}).encode())
+
+        except Exception as e:
+            logger.error(f"Error in adaptation rollback: {e}")
+            structured_logger.log_error("adaptation_rollback", e)
+            self.send_response(500)
+            self.end_headers()
+            self.wfile.write(json.dumps({"error": str(e)}).encode())
 
     def log_request(self, code, size=-1):  # pragma: no cover
         if self.server.dev_mode:

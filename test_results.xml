@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="5" failures="0" skipped="0" tests="5" time="7.643" timestamp="2026-01-21T12:42:39.371284+00:00" hostname="601e704739a9"><testcase classname="" name="src.test.test_external_observer" time="0.000"><error message="collection failure">ImportError while importing test module '/workspace/src/test/test_external_observer.py'.
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="5" failures="0" skipped="0" tests="5" time="8.243" timestamp="2026-01-21T14:11:15.701122+00:00" hostname="601e704739a9"><testcase classname="" name="src.test.test_external_observer" time="0.000"><error message="collection failure">ImportError while importing test module '/workspace/src/test/test_external_observer.py'.
 Hint: make sure your test modules/packages have valid Python names.
 Traceback:
 /usr/local/lib/python3.10/dist-packages/_pytest/python.py:507: in importtestmodule

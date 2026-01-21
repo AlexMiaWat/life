@@ -17,9 +17,10 @@ Adaptation только медленно перестраивает поведе
 import logging
 import threading
 import time
-from typing import TYPE_CHECKING, Dict, List
+from typing import TYPE_CHECKING, Dict, List, Optional
 
 if TYPE_CHECKING:
+    from src.observability.structured_logger import StructuredLogger
     from src.state.self_state import SelfState
 
 logger = logging.getLogger(__name__)
@@ -456,6 +457,281 @@ class AdaptationManager:
 
             # ВАЖНО: Не интерпретируем историю, не используем для оптимизации
             # Просто храним факты для возможной обратимости
+
+    def get_rollback_options(self, self_state: "SelfState") -> List[Dict]:
+        """
+        Возвращает доступные варианты отката адаптаций.
+
+        Анализирует adaptation_history и возвращает список возможных состояний для отката.
+        Каждый вариант включает timestamp, tick и краткое описание изменений.
+
+        ВАЖНО: Только предоставляет информацию, без интерпретации и выбора "лучших" вариантов.
+
+        Args:
+            self_state: SelfState с adaptation_history
+
+        Returns:
+            Список словарей с вариантами отката:
+            [{
+                "timestamp": float,
+                "tick": int,
+                "changes_count": int,  # Количество измененных параметров
+                "time_diff_seconds": float,  # Сколько времени назад
+                "description": str  # Краткое описание изменений
+            }]
+        """
+        # Защита от параллельных вызовов
+        with self._lock:
+            if not hasattr(self_state, "adaptation_history") or not self_state.adaptation_history:
+                return []
+
+            current_time = time.time()
+            options = []
+
+            # Проходим по истории в обратном порядке (от новых к старым)
+            for entry in reversed(self_state.adaptation_history):
+                changes_count = sum(len(changes_dict) for changes_dict in entry.get("changes", {}).values()
+                                   if isinstance(changes_dict, dict))
+
+                time_diff = current_time - entry["timestamp"]
+
+                # Формируем описание изменений
+                description_parts = []
+                for param_key, changes_dict in entry.get("changes", {}).items():
+                    if isinstance(changes_dict, dict):
+                        param_names = list(changes_dict.keys())
+                        if len(param_names) == 1:
+                            description_parts.append(f"{param_key}.{param_names[0]}")
+                        elif len(param_names) > 1:
+                            description_parts.append(f"{param_key}({len(param_names)} params)")
+
+                description = ", ".join(description_parts) if description_parts else "no changes"
+
+                options.append({
+                    "timestamp": entry["timestamp"],
+                    "tick": entry["tick"],
+                    "changes_count": changes_count,
+                    "time_diff_seconds": time_diff,
+                    "description": description
+                })
+
+            return options
+
+    def rollback_to_timestamp(
+        self, timestamp: float, self_state: "SelfState", structured_logger: Optional["StructuredLogger"] = None
+    ) -> Dict:
+        """
+        Откатывает параметры адаптации к состоянию на указанное время.
+
+        Ищет в adaptation_history запись, ближайшую к указанному timestamp,
+        и восстанавливает параметры из old_params этой записи.
+
+        ВАЖНО: Откат только назад во времени, без "скачков вперед".
+        Откат не нарушает архитектурные принципы - это только восстановление состояния.
+
+        Args:
+            timestamp: Целевое время для отката (в секундах от epoch)
+            self_state: SelfState для отката параметров
+
+        Returns:
+            Словарь с результатом отката:
+            {
+                "success": bool,
+                "rolled_back_params": Dict,  # Восстановленные параметры
+                "target_timestamp": float,
+                "actual_timestamp": float,  # Фактическое время отката
+                "error": str (если success=False)
+            }
+
+        Raises:
+            ValueError: При недопустимых параметрах или отсутствии истории
+        """
+        # Валидация входных параметров
+        if not isinstance(timestamp, (int, float)):
+            raise ValueError(f"timestamp должен быть числом, получен {type(timestamp)}")
+
+        current_time = time.time()
+        if timestamp > current_time:
+            raise ValueError(f"Откат вперед во времени запрещен: {timestamp} > {current_time}")
+
+        # Защита от параллельных вызовов
+        with self._lock:
+            if not hasattr(self_state, "adaptation_history") or not self_state.adaptation_history:
+                raise ValueError("История адаптаций пуста, откат невозможен")
+
+            # Ищем ближайшую запись к указанному timestamp
+            closest_entry = None
+            min_diff = float('inf')
+
+            for entry in self_state.adaptation_history:
+                diff = abs(entry["timestamp"] - timestamp)
+                if diff < min_diff:
+                    min_diff = diff
+                    closest_entry = entry
+
+            if not closest_entry:
+                raise ValueError(f"Не найдена подходящая запись для timestamp {timestamp}")
+
+            # Проверяем, что откат назад во времени
+            if closest_entry["timestamp"] > current_time:
+                raise ValueError(f"Запись из будущего: {closest_entry['timestamp']} > {current_time}")
+
+            # Выполняем откат - восстанавливаем old_params из найденной записи
+            rolled_back_params = closest_entry["old_params"].copy()
+
+            # Валидируем восстановленные параметры
+            if not self._validate_rollback_params(rolled_back_params):
+                raise ValueError("Восстановленные параметры не прошли валидацию")
+
+            # ДОПОЛНИТЕЛЬНАЯ ПРОВЕРКА: Убеждаемся, что откат не нарушает принцип медленных изменений
+            # Сравниваем с текущими параметрами - изменения не должны превышать MAX_ADAPTATION_DELTA
+            current_params = getattr(self_state, "adaptation_params", {})
+            if not self._validate_rollback_delta(current_params, rolled_back_params):
+                raise ValueError(
+                    f"Откат нарушает принцип медленных изменений. "
+                    f"Изменения превышают лимит {self.MAX_ADAPTATION_DELTA}"
+                )
+
+            # Применяем откат к SelfState
+            self_state.adaptation_params = rolled_back_params
+
+            # Готовим результат отката
+            rollback_result = {
+                "success": True,
+                "rolled_back_params": rolled_back_params,
+                "target_timestamp": timestamp,
+                "actual_timestamp": closest_entry["timestamp"],
+                "tick": closest_entry["tick"]
+            }
+
+            # Логируем откат через стандартный logger
+            logger.info(
+                f"Откат адаптаций выполнен: timestamp={timestamp:.2f}, "
+                f"actual={closest_entry['timestamp']:.2f}, tick={closest_entry['tick']}"
+            )
+
+            # Логируем через StructuredLogger если доступен
+            if structured_logger:
+                structured_logger.log_adaptation_rollback(rollback_result)
+
+            return rollback_result
+
+    def rollback_steps(self, steps: int, self_state: "SelfState", structured_logger: Optional["StructuredLogger"] = None) -> Dict:
+        """
+        Откатывает параметры адаптации на указанное количество шагов назад.
+
+        Откатывает на N шагов назад в истории адаптаций.
+
+        Args:
+            steps: Количество шагов для отката (положительное число)
+            self_state: SelfState для отката параметров
+
+        Returns:
+            Словарь с результатом отката (аналогично rollback_to_timestamp)
+
+        Raises:
+            ValueError: При недопустимых параметрах
+        """
+        # Валидация входных параметров
+        if not isinstance(steps, int) or steps <= 0:
+            raise ValueError(f"steps должен быть положительным целым числом, получен {steps}")
+
+        # Защита от параллельных вызовов
+        with self._lock:
+            if not hasattr(self_state, "adaptation_history") or not self_state.adaptation_history:
+                raise ValueError("История адаптаций пуста, откат невозможен")
+
+            history_size = len(self_state.adaptation_history)
+            if steps >= history_size:
+                raise ValueError(f"Недостаточно записей в истории: запрошено {steps}, доступно {history_size}")
+
+            # Находим запись для отката (индекс с конца)
+            target_index = history_size - steps - 1  # -1 потому что индекс с 0
+            target_entry = self_state.adaptation_history[target_index]
+
+            # Используем rollback_to_timestamp для выполнения отката
+            return self.rollback_to_timestamp(target_entry["timestamp"], self_state, structured_logger)
+
+    def _validate_rollback_params(self, params: Dict) -> bool:
+        """
+        Валидирует параметры для отката.
+
+        Проверяет соответствие параметров архитектурным ограничениям.
+
+        Args:
+            params: Параметры для валидации
+
+        Returns:
+            True если параметры валидны для отката
+        """
+        if not isinstance(params, dict):
+            return False
+
+        # Проверяем наличие основных ключей
+        required_keys = {"behavior_sensitivity", "behavior_thresholds", "behavior_coefficients"}
+        if not all(key in params for key in required_keys):
+            return False
+
+        # Проверяем структуру вложенных словарей
+        for key in required_keys:
+            if not isinstance(params[key], dict):
+                return False
+
+            # Проверяем значения параметров (должны быть в допустимых диапазонах)
+            for param_name, value in params[key].items():
+                if not isinstance(value, (int, float)):
+                    return False
+                if not (0.0 <= value <= 1.0):
+                    return False
+
+        return True
+
+    def _validate_rollback_delta(self, current_params: Dict, rollback_params: Dict) -> bool:
+        """
+        Проверяет, что откат не нарушает принцип медленных изменений.
+
+        Сравнивает текущие параметры с параметрами отката и проверяет,
+        что изменения не превышают MAX_ADAPTATION_DELTA.
+
+        Args:
+            current_params: Текущие параметры SelfState
+            rollback_params: Параметры для отката
+
+        Returns:
+            True если изменения соответствуют принципу медленных изменений
+        """
+        # Если текущие параметры пустые, откат разрешен
+        if not current_params:
+            return True
+
+        # Проверяем изменения для каждого параметра
+        for key in ["behavior_sensitivity", "behavior_thresholds", "behavior_coefficients"]:
+            if key in rollback_params and key in current_params:
+                rollback_dict = rollback_params[key]
+                current_dict = current_params[key]
+
+                if isinstance(rollback_dict, dict) and isinstance(current_dict, dict):
+                    for param_name, rollback_value in rollback_dict.items():
+                        if param_name in current_dict:
+                            current_value = current_dict[param_name]
+
+                            # Проверяем, что значения не None
+                            if current_value is None or rollback_value is None:
+                                continue
+
+                            # Вычисляем изменение
+                            delta = abs(rollback_value - current_value)
+
+                            # Если изменение превышает лимит, откат запрещен
+                            if delta > self.MAX_ADAPTATION_DELTA + self._VALIDATION_TOLERANCE:
+                                logger.warning(
+                                    f"Откат запрещен: параметр {key}.{param_name} изменяется "
+                                    f"слишком сильно: {delta} > {self.MAX_ADAPTATION_DELTA} "
+                                    f"(current={current_value}, rollback={rollback_value})"
+                                )
+                                return False
+
+        return True
 
     def _init_behavior_params_from_learning(self, learning_params: Dict) -> Dict:
         """

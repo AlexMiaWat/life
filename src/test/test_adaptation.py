@@ -705,3 +705,277 @@ class TestAdaptationRuntimeLoop:
         assert existing_params["behavior_sensitivity"]["decay"] == 0.25
         assert "behavior_thresholds" in existing_params
         assert existing_params["behavior_thresholds"]["noise"] == 0.1
+
+
+@pytest.mark.unit
+class TestAdaptationRollback:
+    """Тесты для механизма отката адаптаций"""
+
+    def test_get_rollback_options_empty_history(self):
+        """Тест получения опций отката с пустой историей"""
+        manager = AdaptationManager()
+        self_state = SelfState()
+
+        options = manager.get_rollback_options(self_state)
+
+        assert isinstance(options, list)
+        assert len(options) == 0
+
+    def test_get_rollback_options_with_history(self):
+        """Тест получения опций отката с историей"""
+        manager = AdaptationManager()
+        self_state = SelfState()
+
+        # Создаем тестовую историю
+        current_time = time.time()
+        self_state.adaptation_history = [
+            {
+                "timestamp": current_time - 300,  # 5 минут назад
+                "tick": 100,
+                "old_params": {"behavior_sensitivity": {"noise": 0.1}},
+                "new_params": {"behavior_sensitivity": {"noise": 0.11}},
+                "changes": {"behavior_sensitivity": {"noise": {"old": 0.1, "new": 0.11, "delta": 0.01}}},
+                "learning_params_snapshot": {}
+            },
+            {
+                "timestamp": current_time - 150,  # 2.5 минуты назад
+                "tick": 200,
+                "old_params": {"behavior_sensitivity": {"noise": 0.11}},
+                "new_params": {"behavior_sensitivity": {"noise": 0.12}},
+                "changes": {"behavior_sensitivity": {"noise": {"old": 0.11, "new": 0.12, "delta": 0.01}}},
+                "learning_params_snapshot": {}
+            }
+        ]
+
+        options = manager.get_rollback_options(self_state)
+
+        assert len(options) == 2
+        # Опции должны быть отсортированы от новых к старым
+        assert options[0]["tick"] == 200
+        assert options[1]["tick"] == 100
+        assert all("timestamp" in opt for opt in options)
+        assert all("time_diff_seconds" in opt for opt in options)
+        assert all("description" in opt for opt in options)
+
+    def test_rollback_to_timestamp_success(self):
+        """Тест успешного отката к timestamp"""
+        manager = AdaptationManager()
+        self_state = SelfState()
+
+        # Устанавливаем начальные параметры (недавно измененные на 0.01)
+        self_state.adaptation_params = {
+            "behavior_sensitivity": {"noise": 0.11},  # +0.01 от целевого
+            "behavior_thresholds": {"noise": 0.06},   # +0.01 от целевого
+            "behavior_coefficients": {"dampen": 0.31}  # +0.01 от целевого
+        }
+
+        # Создаем историю с записью для отката (предыдущее состояние)
+        rollback_time = time.time() - 60  # 1 минута назад
+        self_state.adaptation_history = [
+            {
+                "timestamp": rollback_time,
+                "tick": 50,
+                "old_params": {
+                    "behavior_sensitivity": {"noise": 0.1},   # Целевое состояние
+                    "behavior_thresholds": {"noise": 0.05},   # Целевое состояние
+                    "behavior_coefficients": {"dampen": 0.3}   # Целевое состояние
+                },
+                "new_params": {
+                    "behavior_sensitivity": {"noise": 0.11},  # Изменение +0.01
+                    "behavior_thresholds": {"noise": 0.06},    # Изменение +0.01
+                    "behavior_coefficients": {"dampen": 0.31}  # Изменение +0.01
+                },
+                "changes": {},
+                "learning_params_snapshot": {}
+            }
+        ]
+
+        result = manager.rollback_to_timestamp(rollback_time, self_state)
+
+        assert result["success"] is True
+        assert result["actual_timestamp"] == rollback_time
+        assert result["tick"] == 50
+
+        # Проверяем, что параметры были восстановлены
+        assert self_state.adaptation_params["behavior_sensitivity"]["noise"] == 0.1
+        assert self_state.adaptation_params["behavior_thresholds"]["noise"] == 0.05
+        assert self_state.adaptation_params["behavior_coefficients"]["dampen"] == 0.3
+
+    def test_rollback_to_timestamp_future_fails(self):
+        """Тест отката в будущее (должен失败)"""
+        manager = AdaptationManager()
+        self_state = SelfState()
+
+        future_time = time.time() + 3600  # 1 час в будущем
+
+        with pytest.raises(ValueError, match="Откат вперед во времени запрещен"):
+            manager.rollback_to_timestamp(future_time, self_state)
+
+    def test_rollback_to_timestamp_no_history_fails(self):
+        """Тест отката без истории (должен失败)"""
+        manager = AdaptationManager()
+        self_state = SelfState()
+
+        current_time = time.time()
+
+        with pytest.raises(ValueError, match="История адаптаций пуста"):
+            manager.rollback_to_timestamp(current_time, self_state)
+
+    def test_rollback_steps_success(self):
+        """Тест успешного отката на N шагов"""
+        manager = AdaptationManager()
+        self_state = SelfState()
+
+        # Устанавливаем начальные параметры
+        self_state.adaptation_params = {
+            "behavior_sensitivity": {"noise": 0.12}
+        }
+
+        # Создаем историю с двумя записями
+        base_time = time.time()
+        self_state.adaptation_history = [
+            {
+                "timestamp": base_time - 120,
+                "tick": 25,
+                "old_params": {"behavior_sensitivity": {"noise": 0.1}},
+                "new_params": {"behavior_sensitivity": {"noise": 0.11}},
+                "changes": {},
+                "learning_params_snapshot": {}
+            },
+            {
+                "timestamp": base_time - 60,
+                "tick": 50,
+                "old_params": {"behavior_sensitivity": {"noise": 0.11}},
+                "new_params": {"behavior_sensitivity": {"noise": 0.12}},
+                "changes": {},
+                "learning_params_snapshot": {}
+            }
+        ]
+
+        # Откат на 1 шаг назад
+        result = manager.rollback_steps(1, self_state)
+
+        assert result["success"] is True
+        assert result["tick"] == 50  # Должен откатиться к последней записи
+        assert self_state.adaptation_params["behavior_sensitivity"]["noise"] == 0.11
+
+    def test_rollback_steps_too_many_fails(self):
+        """Тест отката с недостаточным количеством записей в истории"""
+        manager = AdaptationManager()
+        self_state = SelfState()
+
+        # Создаем историю с одной записью
+        self_state.adaptation_history = [
+            {
+                "timestamp": time.time() - 60,
+                "tick": 25,
+                "old_params": {"behavior_sensitivity": {"noise": 0.1}},
+                "new_params": {"behavior_sensitivity": {"noise": 0.11}},
+                "changes": {},
+                "learning_params_snapshot": {}
+            }
+        ]
+
+        # Пытаемся откатиться на 5 шагов (слишком много)
+        with pytest.raises(ValueError, match="Недостаточно записей в истории"):
+            manager.rollback_steps(5, self_state)
+
+    def test_rollback_validation_delta_limit(self):
+        """Тест проверки лимита изменений при откате"""
+        manager = AdaptationManager()
+        self_state = SelfState()
+
+        # Устанавливаем текущие параметры
+        self_state.adaptation_params = {
+            "behavior_sensitivity": {"noise": 0.5}
+        }
+
+        # Создаем запись с изменением, превышающим лимит (0.011 > 0.01 + tolerance)
+        rollback_time = time.time() - 60
+        self_state.adaptation_history = [
+            {
+                "timestamp": rollback_time,
+                "tick": 25,
+                "old_params": {
+                    "behavior_sensitivity": {"noise": 0.489}  # Изменение 0.011 > лимита
+                },
+                "new_params": {"behavior_sensitivity": {"noise": 0.5}},
+                "changes": {},
+                "learning_params_snapshot": {}
+            }
+        ]
+
+        # Откат должен быть отклонен из-за нарушения лимита изменений
+        with pytest.raises(ValueError, match="Откат нарушает принцип медленных изменений"):
+            manager.rollback_to_timestamp(rollback_time, self_state)
+
+    def test_validate_rollback_params_valid(self):
+        """Тест валидации корректных параметров отката"""
+        manager = AdaptationManager()
+
+        valid_params = {
+            "behavior_sensitivity": {"noise": 0.5, "shock": 0.8},
+            "behavior_thresholds": {"noise": 0.2, "shock": 0.3},
+            "behavior_coefficients": {"dampen": 0.6, "absorb": 0.9}
+        }
+
+        assert manager._validate_rollback_params(valid_params) is True
+
+    def test_validate_rollback_params_invalid(self):
+        """Тест валидации некорректных параметров отката"""
+        manager = AdaptationManager()
+
+        # Отсутствует обязательный ключ
+        invalid_params = {
+            "behavior_sensitivity": {"noise": 0.5},
+            "behavior_thresholds": {"noise": 0.2}
+            # Отсутствует behavior_coefficients
+        }
+
+        assert manager._validate_rollback_params(invalid_params) is False
+
+        # Значение вне диапазона
+        invalid_params2 = {
+            "behavior_sensitivity": {"noise": 1.5},  # > 1.0
+            "behavior_thresholds": {"noise": 0.2},
+            "behavior_coefficients": {"dampen": 0.6}
+        }
+
+        assert manager._validate_rollback_params(invalid_params2) is False
+
+    def test_rollback_preserves_other_state_fields(self):
+        """Тест, что откат не затрагивает другие поля состояния"""
+        manager = AdaptationManager()
+        self_state = SelfState()
+
+        # Устанавливаем различные поля состояния
+        self_state.energy = 80.0
+        self_state.stability = 0.9
+        self_state.learning_params = {"test": "value"}
+        self_state.adaptation_params = {
+            "behavior_sensitivity": {"noise": 0.15}
+        }
+
+        # Создаем историю для отката
+        rollback_time = time.time() - 30
+        self_state.adaptation_history = [
+            {
+                "timestamp": rollback_time,
+                "tick": 10,
+                "old_params": {"behavior_sensitivity": {"noise": 0.1}},
+                "new_params": {"behavior_sensitivity": {"noise": 0.11}},
+                "changes": {},
+                "learning_params_snapshot": {}
+            }
+        ]
+
+        # Выполняем откат
+        result = manager.rollback_to_timestamp(rollback_time, self_state)
+
+        assert result["success"] is True
+        # Проверяем, что другие поля не изменились
+        assert self_state.energy == 80.0
+        assert self_state.stability == 0.9
+        assert self_state.learning_params == {"test": "value"}
+        # А adaptation_params изменились
+        assert self_state.adaptation_params["behavior_sensitivity"]["noise"] == 0.1

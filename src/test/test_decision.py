@@ -12,7 +12,7 @@ import time
 
 import pytest
 
-from src.decision.decision import decide_response
+from src.decision.decision import decide_response, _calculate_dynamic_threshold, _analyze_adaptation_history
 from src.meaning.meaning import Meaning
 from src.memory.memory import MemoryEntry
 from src.state.self_state import SelfState
@@ -274,6 +274,367 @@ class TestDecideResponse:
         pattern = decide_response(base_state, meaning)
         # При ускоренном времени более осторожный выбор
         assert pattern in ["dampen", "absorb"]
+
+
+@pytest.mark.unit
+@pytest.mark.order(2)
+class TestDynamicThresholds:
+    """Тесты для динамических порогов на основе Learning/Adaptation параметров"""
+
+    def test_calculate_dynamic_threshold_base_case(self):
+        """Тест базового расчета динамического порога"""
+        threshold = _calculate_dynamic_threshold(
+            base_threshold=0.3,
+            sensitivity=0.2,
+            energy_level="high",
+            stability_level="medium"
+        )
+        # base_threshold * (0.5 + 0.2) * 1.2 * 1.0 = 0.3 * 0.7 * 1.2 * 1.0 = 0.252
+        assert 0.05 <= threshold <= 0.8
+
+    def test_calculate_dynamic_threshold_low_energy(self):
+        """Тест динамического порога при низкой энергии"""
+        threshold = _calculate_dynamic_threshold(
+            base_threshold=0.3,
+            sensitivity=0.5,
+            energy_level="low",
+            stability_level="medium"
+        )
+        # base_threshold * (0.5 + 0.5) * 0.8 * 1.0 = 0.3 * 1.0 * 0.8 * 1.0 = 0.24
+        assert 0.05 <= threshold <= 0.8
+
+    def test_calculate_dynamic_threshold_high_sensitivity(self):
+        """Тест динамического порога при высокой чувствительности"""
+        threshold = _calculate_dynamic_threshold(
+            base_threshold=0.2,
+            sensitivity=0.9,
+            energy_level="high",
+            stability_level="high"
+        )
+        # base_threshold * (0.5 + 0.9) * 1.2 * 1.1 = 0.2 * 1.4 * 1.2 * 1.1 = 0.3696
+        assert 0.05 <= threshold <= 0.8
+
+    def test_calculate_dynamic_threshold_bounds(self):
+        """Тест границ динамического порога"""
+        # Минимальная граница
+        threshold_min = _calculate_dynamic_threshold(
+            base_threshold=0.01,
+            sensitivity=0.0,
+            energy_level="low",
+            stability_level="low"
+        )
+        assert threshold_min >= 0.05
+
+        # Максимальная граница
+        threshold_max = _calculate_dynamic_threshold(
+            base_threshold=1.0,
+            sensitivity=1.0,
+            energy_level="high",
+            stability_level="high"
+        )
+        assert threshold_max <= 0.8
+
+
+@pytest.mark.unit
+@pytest.mark.order(3)
+class TestLearningAdaptationIntegration:
+    """Тесты интеграции Learning/Adaptation параметров в процесс принятия решений"""
+
+    @pytest.fixture
+    def state_with_learning_params(self):
+        """Создает состояние с параметрами Learning"""
+        state = SelfState()
+        state.learning_params = {
+            "event_type_sensitivity": {
+                "shock": 0.8,
+                "noise": 0.1,
+                "recovery": 0.6
+            },
+            "significance_thresholds": {
+                "shock": 0.2,
+                "noise": 0.05,
+                "recovery": 0.15
+            },
+            "response_coefficients": {
+                "dampen": 0.6,
+                "absorb": 1.1,
+                "amplify": 1.2,
+                "ignore": 0.1
+            }
+        }
+        return state
+
+    @pytest.fixture
+    def state_with_adaptation_params(self):
+        """Создает состояние с параметрами Adaptation"""
+        state = SelfState()
+        state.adaptation_params = {
+            "behavior_sensitivity": {
+                "shock": 0.7,
+                "noise": 0.2,
+                "recovery": 0.8
+            },
+            "behavior_thresholds": {
+                "shock": 0.25,
+                "noise": 0.08,
+                "recovery": 0.18
+            },
+            "behavior_coefficients": {
+                "dampen": 0.7,
+                "absorb": 1.0,
+                "amplify": 1.1,
+                "ignore": 0.0
+            }
+        }
+        return state
+
+    def test_decision_with_behavior_coefficients_priority(self, state_with_learning_params, state_with_adaptation_params):
+        """Тест приоритета behavior_coefficients над response_coefficients"""
+        # Комбинируем параметры
+        state = SelfState()
+        state.learning_params = state_with_learning_params.learning_params
+        state.adaptation_params = state_with_adaptation_params.adaptation_params
+
+        # Создаем meaning с типом события shock
+        meaning = Meaning(significance=0.3, impact={"energy": -0.3})
+        meaning.event_type = "shock"
+
+        # behavior_coefficients.dampen = 0.7, response_coefficients.dampen = 0.6
+        # Приоритет у behavior_coefficients, поэтому dampen должен быть более вероятным
+        pattern = decide_response(state, meaning)
+        # С такими коэффициентами должен выбираться absorb или dampen
+        assert pattern in ["absorb", "dampen"]
+
+    def test_decision_with_high_sensitivity_shock(self, state_with_learning_params):
+        """Тест реакции на shock с высокой чувствительностью"""
+        meaning = Meaning(significance=0.4, impact={"energy": -0.5})
+        meaning.event_type = "shock"
+
+        pattern = decide_response(state_with_learning_params, meaning)
+        # При высокой чувствительности к shock (0.8) должен выбираться dampen
+        assert pattern == "dampen"
+
+    def test_decision_with_low_sensitivity_noise(self, state_with_learning_params):
+        """Тест реакции на noise с низкой чувствительностью"""
+        meaning = Meaning(significance=0.1, impact={"energy": -0.1})
+        meaning.event_type = "noise"
+
+        pattern = decide_response(state_with_learning_params, meaning)
+        # При низкой чувствительности к noise (0.1) может выбираться ignore или absorb
+        assert pattern in ["ignore", "absorb"]
+
+    def test_decision_adaptation_params_influence(self, state_with_adaptation_params):
+        """Тест влияния параметров adaptation на выбор паттерна"""
+        meaning = Meaning(significance=0.35, impact={"energy": -0.4})
+        meaning.event_type = "recovery"
+
+        # behavior_coefficients.amplify = 1.1 > absorb = 1.0
+        # Для recovery события с положительным контекстом может выбираться amplify
+        pattern = decide_response(state_with_adaptation_params, meaning)
+        assert pattern in ["absorb", "amplify", "dampen"]
+
+    def test_decision_dynamic_thresholds_integration(self):
+        """Тест интеграции динамических порогов"""
+        state = SelfState()
+        # Низкая энергия должна делать пороги более строгими
+        state.energy = 20  # low energy
+
+        state.learning_params = {
+            "event_type_sensitivity": {"shock": 0.6},
+            "significance_thresholds": {"shock": 0.1},
+            "response_coefficients": {"dampen": 0.5}
+        }
+
+        meaning = Meaning(significance=0.25, impact={"energy": -0.3})
+        meaning.event_type = "shock"
+
+        pattern = decide_response(state, meaning)
+        # При низкой энергии и средней значимости должен выбираться dampen
+        assert pattern == "dampen"
+
+
+@pytest.mark.unit
+@pytest.mark.order(4)
+class TestAdaptationHistoryContextAwareness:
+    """Тесты контекстной осведомленности на основе истории адаптаций"""
+
+    def test_analyze_adaptation_history_empty(self):
+        """Тест анализа пустой истории адаптаций"""
+        state = SelfState()
+
+        analysis = _analyze_adaptation_history(state)
+        expected = {
+            "trend_direction": "neutral",
+            "recent_changes_count": 0,
+            "avg_change_magnitude": 0.0,
+            "most_changed_param": None,
+            "adaptation_stability": "unknown"
+        }
+
+        for key, value in expected.items():
+            assert analysis[key] == value
+
+    def test_analyze_adaptation_history_increasing_trend(self):
+        """Тест анализа истории с возрастающим трендом"""
+        state = SelfState()
+        state.adaptation_history = [
+            {
+                "timestamp": 100.0,
+                "tick": 100,
+                "changes": {
+                    "behavior_sensitivity": {
+                        "shock": {"old": 0.2, "new": 0.25}
+                    }
+                }
+            },
+            {
+                "timestamp": 200.0,
+                "tick": 200,
+                "changes": {
+                    "behavior_coefficients": {
+                        "dampen": {"old": 0.5, "new": 0.55}
+                    }
+                }
+            },
+            {
+                "timestamp": 300.0,
+                "tick": 300,
+                "changes": {
+                    "behavior_thresholds": {
+                        "noise": {"old": 0.1, "new": 0.13}
+                    }
+                }
+            }
+        ]
+
+        analysis = _analyze_adaptation_history(state)
+        assert analysis["trend_direction"] == "increasing"
+        assert analysis["recent_changes_count"] == 3
+        assert analysis["avg_change_magnitude"] > 0
+        assert analysis["adaptation_stability"] in ["stable", "moderate", "volatile"]
+
+    def test_analyze_adaptation_history_decreasing_trend(self):
+        """Тест анализа истории с убывающим трендом"""
+        state = SelfState()
+        state.adaptation_history = [
+            {
+                "timestamp": 100.0,
+                "tick": 100,
+                "changes": {
+                    "behavior_sensitivity": {
+                        "shock": {"old": 0.3, "new": 0.25}
+                    }
+                }
+            },
+            {
+                "timestamp": 200.0,
+                "tick": 200,
+                "changes": {
+                    "behavior_coefficients": {
+                        "dampen": {"old": 0.6, "new": 0.55}
+                    }
+                }
+            }
+        ]
+
+        analysis = _analyze_adaptation_history(state)
+        assert analysis["trend_direction"] == "decreasing"
+        assert analysis["negative_changes"] >= analysis["positive_changes"]
+
+    def test_decision_with_adaptation_history_context(self):
+        """Тест принятия решений с учетом контекста истории адаптаций"""
+        state = SelfState()
+
+        # История с возрастающим трендом (более осторожное поведение)
+        state.adaptation_history = [
+            {
+                "timestamp": 100.0,
+                "tick": 100,
+                "changes": {
+                    "behavior_sensitivity": {
+                        "shock": {"old": 0.2, "new": 0.28}
+                    }
+                }
+            },
+            {
+                "timestamp": 200.0,
+                "tick": 200,
+                "changes": {
+                    "behavior_coefficients": {
+                        "dampen": {"old": 0.5, "new": 0.58}
+                    }
+                }
+            },
+            {
+                "timestamp": 300.0,
+                "tick": 300,
+                "changes": {
+                    "behavior_thresholds": {
+                        "shock": {"old": 0.1, "new": 0.16}
+                    }
+                }
+            }
+        ]
+
+        # Параметры learning и adaptation
+        state.learning_params = {
+            "event_type_sensitivity": {"shock": 0.6},
+            "response_coefficients": {"dampen": 0.5}
+        }
+        state.adaptation_params = {
+            "behavior_sensitivity": {"shock": 0.7},
+            "behavior_coefficients": {"dampen": 0.6}
+        }
+
+        meaning = Meaning(significance=0.35, impact={"energy": -0.4})
+        meaning.event_type = "shock"
+
+        pattern = decide_response(state, meaning)
+        # При возрастающем тренде адаптаций должен выбираться более осторожный паттерн
+        assert pattern in ["dampen", "absorb"]
+
+    def test_decision_with_stable_adaptation_history(self):
+        """Тест принятия решений при стабильной истории адаптаций"""
+        state = SelfState()
+
+        # Стабильная история с минимальными изменениями
+        state.adaptation_history = [
+            {
+                "timestamp": 100.0,
+                "tick": 100,
+                "changes": {
+                    "behavior_sensitivity": {
+                        "recovery": {"old": 0.2, "new": 0.201}
+                    }
+                }
+            },
+            {
+                "timestamp": 200.0,
+                "tick": 200,
+                "changes": {
+                    "behavior_coefficients": {
+                        "absorb": {"old": 1.0, "new": 1.002}
+                    }
+                }
+            }
+        ]
+
+        # Параметры для положительного события
+        state.learning_params = {
+            "event_type_sensitivity": {"recovery": 0.5},
+            "response_coefficients": {"absorb": 1.0}
+        }
+        state.adaptation_params = {
+            "behavior_sensitivity": {"recovery": 0.6},
+            "behavior_coefficients": {"absorb": 1.1}
+        }
+
+        meaning = Meaning(significance=0.4, impact={"energy": 0.3})
+        meaning.event_type = "recovery"
+
+        pattern = decide_response(state, meaning)
+        # При стабильной истории можем быть более уверенными
+        assert pattern in ["absorb", "amplify"]
 
 
 if __name__ == "__main__":

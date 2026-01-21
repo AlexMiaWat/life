@@ -241,3 +241,32 @@ class StructuredLogger:
         }
 
         self._write_log_entry(entry)
+
+    def log_adaptation_rollback(
+        self,
+        rollback_result: Dict[str, Any],
+        correlation_id: Optional[str] = None,
+    ) -> None:
+        """
+        Log adaptation rollback operation.
+
+        Args:
+            rollback_result: Result from rollback operation
+            correlation_id: Correlation ID for tracing
+        """
+        if correlation_id is None:
+            correlation_id = self._get_next_correlation_id()
+
+        entry = {
+            "timestamp": time.time(),
+            "stage": "adaptation_rollback",
+            "correlation_id": correlation_id,
+            "success": rollback_result.get("success", False),
+            "target_timestamp": rollback_result.get("target_timestamp"),
+            "actual_timestamp": rollback_result.get("actual_timestamp"),
+            "tick": rollback_result.get("tick"),
+            "error": rollback_result.get("error"),
+            "rolled_back_params": rollback_result.get("rolled_back_params"),
+        }
+
+        self._write_log_entry(entry)
