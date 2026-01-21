@@ -61,6 +61,10 @@ class SelfState:
     _log_buffer_size: int = field(default=100, init=False, repr=False)
     _loading_from_snapshot: bool = field(default=False, init=False, repr=False)
 
+    # Кэш для оптимизации API сериализации
+    _api_cache: dict = field(default_factory=dict, init=False, repr=False)
+    _api_cache_timestamp: float = field(default=0.0, init=False, repr=False)
+
     # === Subjective time modulation parameters (defaults) ===
     subjective_time_base_rate: float = 1.0
     subjective_time_rate_min: float = 0.1
@@ -99,6 +103,123 @@ class SelfState:
             self.memory = Memory(archive=self.archive_memory)
         # Помечаем объект как инициализированный после __post_init__
         object.__setattr__(self, "_initialized", True)
+
+    def _invalidate_api_cache(self) -> None:
+        """Инвалидирует кэш API сериализации"""
+        self._api_cache.clear()
+        self._api_cache_timestamp = 0.0
+
+    def get_serialization_metrics(self) -> dict:
+        """
+        Возвращает метрики производительности сериализации для мониторинга.
+
+        Returns:
+            dict: Метрики сериализации (cache hits, misses, avg times, etc.)
+        """
+        from src.runtime.performance_metrics import performance_metrics
+
+        return {
+            "api_cache_size": len(self._api_cache),
+            "api_cache_timestamp": self._api_cache_timestamp,
+            "save_snapshot_avg_time": performance_metrics.get_average_time("save_snapshot"),
+            "save_snapshot_last_time": performance_metrics.get_last_time("save_snapshot"),
+            "load_snapshot_avg_time": performance_metrics.get_average_time("load_snapshot"),
+            "load_snapshot_last_time": performance_metrics.get_last_time("load_snapshot"),
+        }
+
+    def _create_base_state_dict(self) -> dict:
+        """
+        Создает базовый словарь состояния без больших структур.
+        Оптимизированная версия, избегает повторного прохождения по полям.
+        """
+        # Предварительно определенный набор безопасных полей для копирования
+        safe_fields = {
+            # Identity
+            "life_id", "birth_timestamp",
+            # Temporal
+            "age", "ticks", "subjective_time",
+            # Vital
+            "energy", "integrity", "stability",
+            # Internal dynamics
+            "fatigue", "tension",
+            # Cognitive layers
+            "intelligence", "planning",
+            # Learning & Adaptation
+            "learning_params", "adaptation_params", "adaptation_history",
+            # Subjective time
+            "subjective_time_base_rate", "subjective_time_rate_min", "subjective_time_rate_max",
+            "subjective_time_intensity_coeff", "subjective_time_stability_coeff",
+            "subjective_time_energy_coeff", "subjective_time_intensity_smoothing",
+            "last_event_intensity", "time_ratio_history",
+            # Rhythms
+            "circadian_phase", "circadian_period", "recovery_efficiency", "stability_modifier",
+            # Experimental
+            "echo_count", "last_echo_time", "clarity_state", "clarity_duration", "clarity_modifier",
+            # Control
+            "active", "last_significance"
+        }
+
+        state_dict = {}
+        # Оптимизированное копирование безопасных полей
+        for field_name in safe_fields:
+            if hasattr(self, field_name):
+                try:
+                    value = getattr(self, field_name)
+                    state_dict[field_name] = value
+                except AttributeError:
+                    continue
+
+        return state_dict
+
+    def _apply_limits_to_state_dict(self, state_dict: dict, limits: dict) -> dict:
+        """
+        Применяет лимиты к большим структурам в словаре состояния.
+        Оптимизированная обработка с минимальным копированием.
+        """
+        # Обработка memory (по умолчанию не включаем, только если явно указан лимит)
+        memory_limit = limits.get("memory_limit")
+        if memory_limit is not None and self.memory is not None:
+            # Используем кэшированную сериализацию
+            memory_entries = (
+                list(self.memory)[-memory_limit:] if memory_limit > 0 else []
+            )
+            state_dict["memory"] = [
+                {
+                    "event_type": entry.event_type,
+                    "meaning_significance": entry.meaning_significance,
+                    "timestamp": entry.timestamp,
+                    "weight": entry.weight,
+                    "feedback_data": entry.feedback_data,
+                }
+                for entry in memory_entries
+            ]
+
+        # Оптимизированная обработка других больших структур
+        # recent_events
+        events_limit = limits.get("events_limit")
+        if events_limit is not None and events_limit > 0:
+            if "recent_events" in state_dict and isinstance(state_dict["recent_events"], list):
+                state_dict["recent_events"] = state_dict["recent_events"][-events_limit:]
+
+        # energy_history
+        energy_history_limit = limits.get("energy_history_limit")
+        if energy_history_limit is not None and energy_history_limit > 0:
+            if "energy_history" in state_dict and isinstance(state_dict["energy_history"], list):
+                state_dict["energy_history"] = state_dict["energy_history"][-energy_history_limit:]
+
+        # stability_history
+        stability_history_limit = limits.get("stability_history_limit")
+        if stability_history_limit is not None and stability_history_limit > 0:
+            if "stability_history" in state_dict and isinstance(state_dict["stability_history"], list):
+                state_dict["stability_history"] = state_dict["stability_history"][-stability_history_limit:]
+
+        # adaptation_history
+        adaptation_history_limit = limits.get("adaptation_history_limit")
+        if adaptation_history_limit is not None and adaptation_history_limit > 0:
+            if "adaptation_history" in state_dict and isinstance(state_dict["adaptation_history"], list):
+                state_dict["adaptation_history"] = state_dict["adaptation_history"][-adaptation_history_limit:]
+
+        return state_dict
 
     def _validate_field(
         self, field_name: str, value: float, clamp: bool = False
@@ -314,6 +435,8 @@ class SelfState:
                 # Логируем изменение (если значение изменилось)
                 if is_initialized and old_value is not None and old_value != value:
                     self._log_change(name, old_value, value)
+                    # Инвалидируем кэш API при изменении состояния
+                    self._invalidate_api_cache()
 
                 # Active обновляется только при явном изменении или в специальных случаях
                 # Не автоматически при изменении vital параметров
@@ -364,6 +487,8 @@ class SelfState:
             # Логируем изменение (только после инициализации и если значение изменилось)
             if is_initialized and old_value is not None and old_value != value:
                 self._log_change(name, old_value, value)
+                # Инвалидируем кэш API при изменении состояния
+                self._invalidate_api_cache()
 
             # Active обновляется только при явном изменении или в специальных случаях
             # Не автоматически при изменении vital параметров
@@ -687,6 +812,7 @@ class SelfState:
         Получить безопасный словарь состояния для публичного API.
 
         Thread-safe: использует lock для обеспечения консистентности данных.
+        Оптимизировано: использует кэширование для избежания повторных вычислений.
 
         Исключает:
         - Transient поля (activated_memory, last_pattern)
@@ -714,31 +840,56 @@ class SelfState:
         Returns:
             dict: Безопасный словарь состояния для публичного API
         """
-        # Thread-safe чтение состояния
+        import time
+
+        # Создаем ключ кэша на основе параметров
+        cache_key = (include_optional, tuple(sorted(limits.items())) if limits else None)
+
+        # Thread-safe проверка кэша
         with self._api_lock:
-            # Создаем словарь вручную, избегая проблемных полей
-            state_dict = {}
-            for field_name in SelfState.__dataclass_fields__:
-                if not field_name.startswith("_"):  # Пропускаем внутренние поля
-                    try:
-                        value = getattr(self, field_name)
-                        # Пропускаем не сериализуемые объекты
-                        if field_name not in ["_api_lock", "archive_memory", "memory"]:
-                            state_dict[field_name] = value
-                    except AttributeError:
-                        continue
+            # Проверяем кэш (TTL = 0.1 секунды для API)
+            current_time = time.time()
+            if (
+                cache_key in self._api_cache
+                and (current_time - self._api_cache_timestamp) < 0.1
+            ):
+                # Возвращаем копию из кэша
+                return self._api_cache[cache_key].copy()
 
-        # Исключаем transient поля
-        state_dict.pop("activated_memory", None)
-        state_dict.pop("last_pattern", None)
+            # Создаем базовый словарь состояния (оптимизированная версия)
+            state_dict = self._create_base_state_dict()
 
-        # Исключаем внутренние поля (начинающиеся с _)
-        keys_to_remove = [key for key in state_dict.keys() if key.startswith("_")]
-        for key in keys_to_remove:
-            state_dict.pop(key, None)
+            # Обрабатываем limits
+            if limits is None:
+                limits = {}
 
-        # Исключаем не сериализуемые объекты
-        state_dict.pop("archive_memory", None)
+            # Обработка больших структур с оптимизацией
+            state_dict = self._apply_limits_to_state_dict(state_dict, limits)
+
+            # Если include_optional=False, исключаем опциональные поля
+            if not include_optional:
+                optional_fields = [
+                    "life_id",
+                    "birth_timestamp",
+                    "learning_params",
+                    "adaptation_params",
+                    "planning",
+                    "intelligence",
+                    "subjective_time_base_rate",
+                    "subjective_time_rate_min",
+                    "subjective_time_rate_max",
+                    "subjective_time_intensity_coeff",
+                    "subjective_time_stability_coeff",
+                    "subjective_time_energy_coeff",
+                ]
+                for field_name in optional_fields:
+                    state_dict.pop(field_name, None)
+
+            # Кэшируем результат
+            self._api_cache[cache_key] = state_dict.copy()
+            self._api_cache_timestamp = current_time
+
+        return state_dict
 
         # Обрабатываем limits
         if limits is None:
@@ -834,6 +985,33 @@ class SelfState:
                 state_dict.pop(field_name, None)
 
         return state_dict
+
+    def _create_optimized_snapshot_data(self) -> dict:
+        """
+        Создает оптимизированные данные snapshot для сериализации.
+        Исключает transient поля и большие структуры, использует кэширование.
+        """
+        # Используем оптимизированное создание базового словаря
+        snapshot = self._create_base_state_dict()
+
+        # Исключаем transient поля
+        snapshot.pop("activated_memory", None)
+        snapshot.pop("last_pattern", None)
+
+        # Исключаем большие структуры для уменьшения размера файла
+        # Эти данные могут быть восстановлены из логов или не критичны для перезапуска
+        large_fields_to_exclude = [
+            "energy_history", "stability_history", "time_ratio_history",
+            "adaptation_history", "recent_events"
+        ]
+        for field in large_fields_to_exclude:
+            snapshot.pop(field, None)
+
+        # Оптимизированная конвертация Memory с кэшированием
+        if isinstance(self.memory, Memory):
+            snapshot["memory"] = self.memory.get_serialized_entries()
+
+        return snapshot
 
     def _validate_learning_params(self, params: dict) -> dict:
         """
@@ -1177,8 +1355,29 @@ class SelfState:
         # Сортировать по номеру тика
         snapshots.sort(key=lambda p: int(p.stem.split("_")[1]))
         latest = snapshots[-1]
-        with latest.open("r") as f:
-            data = json.load(f)
+
+        import logging
+        logger = logging.getLogger(__name__)
+
+        try:
+            with latest.open("r", encoding='utf-8') as f:
+                data = json.load(f)
+        except (json.JSONDecodeError, UnicodeDecodeError) as e:
+            logger.error(f"Failed to parse snapshot file {latest}: {e}")
+            # Попробовать предыдущий snapshot, если есть
+            if len(snapshots) > 1:
+                prev_snapshot = snapshots[-2]
+                logger.warning(f"Trying previous snapshot: {prev_snapshot}")
+                try:
+                    with prev_snapshot.open("r", encoding='utf-8') as f:
+                        data = json.load(f)
+                    logger.info(f"Successfully loaded previous snapshot: {prev_snapshot}")
+                except (json.JSONDecodeError, UnicodeDecodeError) as e2:
+                    logger.error(f"Previous snapshot also corrupted: {e2}")
+                    raise RuntimeError(f"All available snapshots are corrupted. Latest: {e}, Previous: {e2}")
+            else:
+                raise RuntimeError(f"Snapshot file corrupted and no backup available: {e}")
+
         # Создаем новый экземпляр для загрузки данных
         temp_state = SelfState()
         return temp_state._load_snapshot_from_data(data)
@@ -1235,7 +1434,12 @@ class SelfState:
         # Конвертировать memory из list of dict в list of MemoryEntry
         memory_entries = []
         if "memory" in mapped_data:
-            memory_entries = [MemoryEntry(**entry) for entry in mapped_data["memory"]]
+            for i, entry in enumerate(mapped_data["memory"]):
+                try:
+                    memory_entries.append(MemoryEntry(**entry))
+                except (TypeError, ValueError) as e:
+                    logger.warning(f"Skipping corrupted memory entry {i}: {e}. Entry data: {entry}")
+                    # Продолжаем с остальными записями
             mapped_data.pop("memory")  # Удаляем из mapped_data, инициализируем отдельно
 
         # Создать экземпляр, разрешив изменение immutable полей для загрузки
@@ -1258,8 +1462,27 @@ class SelfState:
         for entry in memory_entries:
             state.memory.append(entry)
 
+        # Финальная валидация загруженного состояния
+        if state.energy < 0 or state.energy > 100:
+            logger.warning(f"Invalid energy value in snapshot: {state.energy}, clamping to [0, 100]")
+            state.energy = max(0, min(100, state.energy))
+
+        if state.integrity < 0 or state.integrity > 1:
+            logger.warning(f"Invalid integrity value in snapshot: {state.integrity}, clamping to [0, 1]")
+            state.integrity = max(0, min(1, state.integrity))
+
+        if state.stability < 0 or state.stability > 1:
+            logger.warning(f"Invalid stability value in snapshot: {state.stability}, clamping to [0, 1]")
+            state.stability = max(0, min(1, state.stability))
+
+        if state.ticks < 0:
+            logger.warning(f"Invalid ticks value in snapshot: {state.ticks}, setting to 0")
+            state.ticks = 0
+
         logger.info(
-            "Snapshot загружен успешно с валидацией learning_params и adaptation_params"
+            f"Snapshot загружен успешно. Тики: {state.ticks}, Энергия: {state.energy:.1f}, "
+            f"Целостность: {state.integrity:.3f}, Стабильность: {state.stability:.3f}, "
+            f"Записей памяти: {len(memory_entries)}"
         )
         return state
 
@@ -1273,10 +1496,10 @@ def create_initial_state() -> SelfState:
     return state
 
 
-def save_snapshot(state: SelfState):
+def save_snapshot(state: SelfState, compress_large: bool = True):
     """
     Сохраняет текущее состояние жизни как отдельный JSON файл.
-    Оптимизированная сериализация с исключением transient полей.
+    Оптимизированная сериализация с компрессией больших файлов.
 
     ПРИМЕЧАНИЕ: Логирование временно отключается во время сериализации для производительности.
     Изменения состояния, которые могут произойти во время вызова asdict() (например,
@@ -1287,7 +1510,9 @@ def save_snapshot(state: SelfState):
 
     Args:
         state: Состояние для сохранения
+        compress_large: Если True, использует gzip компрессию для больших snapshots (>50KB)
     """
+    import gzip
     from src.runtime.performance_metrics import measure_time
 
     # Временно отключаем логирование для сериализации
@@ -1297,46 +1522,54 @@ def save_snapshot(state: SelfState):
 
     try:
         with measure_time("save_snapshot"):
-            # Создаем snapshot вручную, избегая проблем с asdict и RLock
-            snapshot = {}
-            for field_name in SelfState.__dataclass_fields__:
-                if not field_name.startswith("_"):  # Пропускаем внутренние поля
-                    try:
-                        value = getattr(state, field_name)
-                        # Пропускаем не сериализуемые объекты
-                        if field_name not in ["_api_lock", "archive_memory", "memory"]:
-                            snapshot[field_name] = value
-                    except AttributeError:
-                        continue
-
-            # Исключаем transient поля и большие структуры для производительности
-            snapshot.pop("activated_memory", None)
-            snapshot.pop("last_pattern", None)
-            # Исключаем большие структуры, которые не нужны для snapshot
-            snapshot.pop("energy_history", None)
-            snapshot.pop("stability_history", None)
-            snapshot.pop("time_ratio_history", None)
-            snapshot.pop("adaptation_history", None)
-            snapshot.pop("recent_events", None)
-
-            # Оптимизированная конвертация Memory в list с кэшированием
-            if isinstance(state.memory, Memory):
-                # Используем кэшированную сериализацию для производительности
-                snapshot["memory"] = state.memory.get_serialized_entries()
+            # Создаем snapshot с оптимизацией
+            snapshot = state._create_optimized_snapshot_data()
 
             tick = snapshot["ticks"]
             filename = SNAPSHOT_DIR / f"snapshot_{tick:06d}.json"
 
             # Атомарная замена: сначала пишем во временный файл, затем переименовываем
-            # Это гарантирует, что читатели никогда не увидят частично записанный файл
             temp_filename = SNAPSHOT_DIR / f"snapshot_{tick:06d}.tmp"
 
-            # Оптимизированная запись без лишних отступов (меньше размер файла)
-            with temp_filename.open("w") as f:
-                json.dump(snapshot, f, separators=(",", ":"), default=str)
+            # Проверяем размер данных для решения о компрессии
+            json_str = json.dumps(snapshot, separators=(",", ":"), default=str)
+            data_size = len(json_str.encode('utf-8'))
 
-            # Атомарное переименование - это гарантирует консистентность для читателей
-            temp_filename.replace(filename)
+            # Компрессия для больших файлов (>50KB)
+            if compress_large and data_size > 50 * 1024:
+                compressed_filename = SNAPSHOT_DIR / f"snapshot_{tick:06d}.json.gz"
+                compressed_temp = SNAPSHOT_DIR / f"snapshot_{tick:06d}.tmp.gz"
+
+                # Пишем сжатый файл
+                with gzip.open(compressed_temp, 'wt', encoding='utf-8', compresslevel=6) as f:
+                    f.write(json_str)
+
+                # Атомарное переименование сжатого файла
+                compressed_temp.replace(compressed_filename)
+
+                # Удаляем несжатый файл если существует
+                if filename.exists():
+                    filename.unlink()
+
+                # Создаем символическую ссылку для обратной совместимости
+                try:
+                    if not filename.exists():
+                        filename.symlink_to(compressed_filename.name + '.gz')
+                except OSError:
+                    # Игнорируем ошибки создания symlink (например, на Windows)
+                    pass
+            else:
+                # Стандартная запись без компрессии
+                with temp_filename.open("w") as f:
+                    f.write(json_str)
+
+                # Атомарное переименование
+                temp_filename.replace(filename)
+
+                # Удаляем сжатый файл если существует
+                compressed_filename = SNAPSHOT_DIR / f"snapshot_{tick:06d}.json.gz"
+                if compressed_filename.exists():
+                    compressed_filename.unlink()
     finally:
         # Восстанавливаем логирование
         if logging_was_enabled:
@@ -1345,15 +1578,27 @@ def save_snapshot(state: SelfState):
 
 def load_snapshot(tick: int) -> SelfState:
     """
-    Загружает снимок по номеру тика с валидацией параметров
+    Загружает снимок по номеру тика с валидацией параметров.
+    Поддерживает как обычные, так и сжатые (gzip) файлы.
     """
+    import gzip
+    from src.runtime.performance_metrics import measure_time
+
     filename = SNAPSHOT_DIR / f"snapshot_{tick:06d}.json"
-    if filename.exists():
-        with filename.open("r") as f:
-            data = json.load(f)
+    compressed_filename = SNAPSHOT_DIR / f"snapshot_{tick:06d}.json.gz"
+
+    with measure_time("load_snapshot"):
+        # Проверяем обычный файл
+        if filename.exists():
+            with filename.open("r") as f:
+                data = json.load(f)
+        # Проверяем сжатый файл
+        elif compressed_filename.exists():
+            with gzip.open(compressed_filename, 'rt', encoding='utf-8') as f:
+                data = json.load(f)
+        else:
+            raise FileNotFoundError(f"Snapshot {tick} не найден")
 
         # Создаем временный экземпляр для доступа к методам валидации
         temp_state = SelfState()
         return temp_state._load_snapshot_from_data(data)
-    else:
-        raise FileNotFoundError(f"Snapshot {tick} не найден")

@@ -1,0 +1,36 @@
+{
+  "timestamp": 1768992986.3636043,
+  "performance": {
+    "memory_efficiency": 0.78,
+    "learning_progress": 0.72,
+    "decision_speed": 0.01,
+    "decision_accuracy": 0.8,
+    "overall_performance": 0.5775
+  },
+  "stability": {
+    "state_consistency": 0.34,
+    "behavior_predictability": 0.5,
+    "parameter_stability": 0.5,
+    "overall_stability": 0.43600000000000005
+  },
+  "adaptability": {
+    "learning_rate": 0.05,
+    "adaptation_rate": 0.03,
+    "change_responsiveness": 0.0,
+    "overall_adaptability": 0.032
+  },
+  "integrity": {
+    "data_consistency": 1.0,
+    "structural_integrity": 1.0,
+    "logical_coherence": 1.0,
+    "overall_integrity": 1.0
+  },
+  "overall_assessment": {
+    "performance_score": 0.5775,
+    "stability_score": 0.43600000000000005,
+    "adaptability_score": 0.032,
+    "integrity_score": 1.0,
+    "overall_score": 0.511375,
+    "status": "adequate"
+  }
+}

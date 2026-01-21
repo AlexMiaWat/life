@@ -21,6 +21,7 @@ from src.runtime.life_policy import LifePolicy
 from src.runtime.log_manager import FlushPolicy, LogManager
 from src.runtime.snapshot_manager import SnapshotManager
 from src.state.self_state import SelfState, save_snapshot
+from src.technical_monitor import TechnicalBehaviorMonitor
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +30,7 @@ LEARNING_INTERVAL = 75  # Вызов Learning раз в 75 тиков (межд�
 ADAPTATION_INTERVAL = 100  # Вызов Adaptation раз в 100 тиков (реже чем Learning)
 ARCHIVE_INTERVAL = 50  # Вызов архивации раз в 50 тиков
 DECAY_INTERVAL = 10  # Вызов затухания весов раз в 10 тиков
+METRICS_COLLECTION_INTERVAL = 100  # Сбор технических метрик раз в 100 тиков
 
 # Константы для работы с памятью
 MEMORY_DECAY_FACTOR = 0.99  # Фактор затухания весов памяти
@@ -237,6 +239,9 @@ def run_loop(
     )  # Internal Event Generator (Memory Echoes)
     pending_actions = []  # Список ожидающих Feedback действий
 
+    # Технический монитор поведения системы
+    technical_monitor = TechnicalBehaviorMonitor()
+
     # Менеджеры для управления снапшотами, логами и политикой
     snapshot_manager = SnapshotManager(
         period_ticks=snapshot_period, saver=save_snapshot
@@ -263,6 +268,7 @@ def run_loop(
 
     # Счетчики для внутренних событий
     ticks_since_last_memory_echo = 0
+    ticks_since_last_metrics_collection = 0
 
     def run_main_loop():
         """Основной цикл runtime loop - выделен для профилирования"""
@@ -302,6 +308,66 @@ def run_loop(
 
                 # Обновление внутренних ритмов
                 self_state.update_circadian_rhythm(dt)
+
+                # Технический мониторинг: сбор метрик через регулярные интервалы
+                ticks_since_last_metrics_collection += 1
+                if ticks_since_last_metrics_collection >= METRICS_COLLECTION_INTERVAL:
+                    try:
+                        # Создаем mock decision engine с историей решений из self_state
+                        class MockDecisionEngine:
+                            def get_recent_decisions(self, limit=100):
+                                # Извлекаем недавние решения из памяти или действий
+                                decisions = []
+                                # Ищем записи о решениях в памяти
+                                for entry in reversed(self_state.memory):
+                                    if hasattr(entry, 'event_type') and entry.event_type in ['decision', 'action']:
+                                        decision_data = {
+                                            'timestamp': getattr(entry, 'timestamp', time.time()),
+                                            'type': getattr(entry, 'event_type', 'unknown'),
+                                            'data': getattr(entry, 'data', {}) if hasattr(entry, 'data') else {}
+                                        }
+                                        decisions.append(decision_data)
+                                        if len(decisions) >= limit:
+                                            break
+                                return decisions
+
+                            def get_statistics(self):
+                                return {
+                                    'total_decisions': len([e for e in self_state.memory if hasattr(e, 'event_type') and e.event_type in ['decision', 'action']]),
+                                    'average_time': 0.01,  # Заглушка
+                                    'accuracy': 0.8  # Заглушка
+                                }
+
+                        mock_decision_engine = MockDecisionEngine()
+
+                        # Захватываем снимок состояния системы
+                        snapshot = technical_monitor.capture_system_snapshot(
+                            self_state=self_state,
+                            memory=self_state.memory,
+                            learning_engine=learning_engine,
+                            adaptation_manager=adaptation_manager,
+                            decision_engine=mock_decision_engine
+                        )
+
+                        # Анализируем снимок
+                        report = technical_monitor.analyze_snapshot(snapshot)
+
+                        # Сохраняем отчет в файл
+                        import os
+                        metrics_dir = os.path.join(os.getcwd(), 'metrics')
+                        os.makedirs(metrics_dir, exist_ok=True)
+
+                        timestamp = int(time.time())
+                        filename = f"technical_report_{timestamp}.json"
+                        filepath = os.path.join(metrics_dir, filename)
+
+                        technical_monitor.save_report(report, filepath)
+                        logger.debug(f"Technical metrics report saved: {filepath}")
+
+                    except Exception as e:
+                        logger.warning(f"Failed to collect technical metrics: {e}")
+                    finally:
+                        ticks_since_last_metrics_collection = 0
 
                 # Clarity Moments: Отключено до стабилизации системы
                 # if clarity_moments:

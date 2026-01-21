@@ -1,0 +1,43 @@
+{
+  "self_state": {
+    "life_id": "test_life_123",
+    "age": 150.5,
+    "ticks": 1500,
+    "energy": 0.75,
+    "stability": 0.85,
+    "integrity": 0.92,
+    "adaptation_level": 0.68
+  },
+  "memory_stats": {
+    "total_entries": 250,
+    "efficiency": 0.78,
+    "avg_significance": 0.65
+  },
+  "learning_params": {
+    "learning_rate": 0.05,
+    "progress": 0.72,
+    "iterations": 1200
+  },
+  "adaptation_params": {
+    "adaptation_rate": 0.03,
+    "stability": 0.88,
+    "threshold": 0.6
+  },
+  "decision_history": [
+    {
+      "timestamp": 1704327000.0,
+      "type": "learning",
+      "data": {"confidence": 0.8}
+    },
+    {
+      "timestamp": 1704327100.0,
+      "type": "adaptation",
+      "data": {"adjustment": 0.1}
+    },
+    {
+      "timestamp": 1704327200.0,
+      "type": "decision",
+      "data": {"outcome": "success"}
+    }
+  ]
+}
