@@ -20,9 +20,9 @@ import pytest
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root / "src"))
 
-from src.observability.state_tracker import StateTracker
-from src.observability.component_monitor import ComponentMonitor
-from src.observability.data_collector import DataCollector
+from src.observability.async_passive_observer import AsyncPassiveObserver
+from src.observability.developer_reports import DeveloperReports
+from src.observability.external_observer import RawDataCollector
 from src.state.self_state import SelfState
 
 
@@ -33,11 +33,15 @@ class TestObservabilityRuntimeIntegration:
     def setup_method(self):
         """Настройка перед каждым тестом"""
         self.temp_files = []
+        self.temp_dirs = []
 
     def teardown_method(self):
         """Очистка после каждого теста"""
         for temp_file in self.temp_files:
             Path(temp_file).unlink(missing_ok=True)
+        for temp_dir in self.temp_dirs:
+            import shutil
+            shutil.rmtree(temp_dir, ignore_errors=True)
 
     def create_temp_file(self, suffix='.jsonl'):
         """Создание временного файла"""
@@ -46,341 +50,279 @@ class TestObservabilityRuntimeIntegration:
         self.temp_files.append(temp_path)
         return temp_path
 
+    def create_temp_dir(self):
+        """Создание временной директории"""
+        temp_dir = tempfile.mkdtemp()
+        self.temp_dirs.append(temp_dir)
+        return temp_dir
+
     def create_real_self_state(self):
         """Создание реального SelfState с компонентами"""
         self_state = SelfState()
 
-        # Настраиваем базовые параметры
+        # Инициализируем основные параметры
         self_state.energy = 0.8
-        self_state.stability = 0.7
-        self_state.integrity = 0.9
-        self_state.fatigue = 0.2
-        self_state.tension = 0.3
-        self_state.age = 100.0
-        self_state.subjective_time = 95.0
-        self_state.ticks = 50
+        self_state.stability = 0.9
+        self_state.integrity = 0.95
+        self_state.fatigue = 0.1
+        self_state.tension = 0.2
+        self_state.age = 1000.0
+        self_state.ticks = 500
 
-        # Счетчики компонентов
-        self_state.action_count = 25
-        self_state.decision_count = 15
-        self_state.feedback_count = 10
+        # Инициализируем память
+        self_state.memory = []
+        self_state.memory_episodic_size = 150
+        self_state.memory_archive_size = 300
+        self_state.memory_recent_events = 25
 
-        # Память
-        from src.memory.memory_types import MemoryEntry
-        episodic_memory = [
-            MemoryEntry(event_type="test_event", meaning_significance=0.5, timestamp=time.time())
-            for _ in range(10)
-        ]
-        # Инициализируем memory как Mock с episodic_memory
-        memory_mock = Mock()
-        memory_mock.episodic_memory = episodic_memory
-        memory_mock.recent_events = [{"event": f"event_{i}"} for i in range(5)]
-        self_state.memory = memory_mock
+        # Инициализируем параметры обучения
+        self_state.learning_params = {
+            "learning_rate": 0.01,
+            "adaptation_rate": 0.005,
+            "memory_decay": 0.001,
+            "pattern_recognition_threshold": 0.7
+        }
 
-        # Learning engine (Mock для теста)
-        learning_engine = Mock()
-        learning_engine.params = {"lr": 0.01, "epochs": 100, "threshold": 0.5}
-        learning_engine.operation_count = 20
-        self_state.learning_engine = learning_engine
-
-        # Adaptation manager (Mock для теста)
-        adaptation_manager = Mock()
-        adaptation_manager.params = {"rate": 0.1, "window": 10, "sensitivity": 0.8}
-        adaptation_manager.operation_count = 15
-        self_state.adaptation_manager = adaptation_manager
-
-        # Decision engine (Mock для теста)
-        decision_engine = Mock()
-        decision_engine.decision_queue = [Mock() for _ in range(3)]
-        decision_engine.operation_count = 12
-        self_state.decision_engine = decision_engine
-
-        # Action executor (Mock для теста)
-        action_executor = Mock()
-        action_executor.action_queue = [Mock() for _ in range(2)]
-        action_executor.operation_count = 18
-        self_state.action_executor = action_executor
+        # Инициализируем параметры адаптации
+        self_state.adaptation_params = {
+            "energy_threshold": 0.3,
+            "stability_threshold": 0.5,
+            "recovery_rate": 0.02,
+            "stress_tolerance": 0.8
+        }
 
         return self_state
 
+    @pytest.mark.slow
     def test_full_observability_integration_with_runtime(self):
-        """Полная интеграция observability с runtime компонентами"""
-        # Создаем компоненты observability
-        state_tracker = StateTracker()
-        component_monitor = ComponentMonitor()
-        data_collector = DataCollector(storage_path=self.create_temp_file())
+        """Полная интеграция observability с runtime системой"""
+        # Создаем временные директории
+        data_dir = self.create_temp_dir()
+        snapshots_dir = Path(data_dir) / "snapshots"
+        snapshots_dir.mkdir()
 
-        # Создаем реальный SelfState
+        # Создаем SelfState
         self_state = self.create_real_self_state()
 
-        # Выполняем сбор данных (как в runtime loop)
-        state_snapshot = state_tracker.collect_state_data(self_state)
-        component_stats = component_monitor.collect_component_stats(self_state)
+        # Создаем snapshot файл
+        snapshot_path = snapshots_dir / "test_snapshot.json"
+        snapshot_data = {
+            "timestamp": time.time(),
+            "energy": self_state.energy,
+            "stability": self_state.stability,
+            "integrity": self_state.integrity,
+            "fatigue": self_state.fatigue,
+            "tension": self_state.tension,
+            "age": self_state.age,
+            "ticks": self_state.ticks,
+            "memory_episodic_size": self_state.memory_episodic_size,
+            "memory_archive_size": self_state.memory_archive_size,
+            "memory_recent_events": self_state.memory_recent_events,
+            "learning_params_count": len(self_state.learning_params),
+            "adaptation_params_count": len(self_state.adaptation_params),
+            "decision_queue_size": 5,
+            "action_queue_size": 2
+        }
 
-        # Сохраняем данные
-        data_collector.collect_state_data(state_snapshot)
-        data_collector.collect_component_data(component_stats)
-        data_collector.flush()
+        with open(snapshot_path, 'w') as f:
+            import json
+            json.dump(snapshot_data, f)
 
-        # Проверяем корректность собранных данных
-        assert state_snapshot.energy == 0.8
-        assert state_snapshot.memory_size == 10  # episodic_memory
-        assert state_snapshot.recent_events_count == 5
-        assert state_snapshot.learning_params_count == 3
-        assert state_snapshot.adaptation_params_count == 3
+        # Создаем AsyncPassiveObserver
+        observer = AsyncPassiveObserver(
+            collection_interval=1.0,  # Быстрый сбор для теста
+            snapshots_dir=str(snapshots_dir),
+            enabled=True
+        )
 
-        assert component_stats.memory_episodic_size == 10
-        assert component_stats.learning_params_count == 3
-        assert component_stats.adaptation_operations == 15
-        assert component_stats.decision_queue_size == 3
-        assert component_stats.action_queue_size == 2
+        try:
+            # Даем время на сбор данных
+            time.sleep(2.0)
 
-        # Проверяем сохранение данных
-        state_data = data_collector.get_recent_data(data_type="state")
-        component_data = data_collector.get_recent_data(data_type="component")
+            # Создаем RawDataCollector
+            collector = RawDataCollector(snapshots_directory=snapshots_dir)
 
-        assert len(state_data) == 1
-        assert len(component_data) == 1
+            # Собираем данные
+            report = collector.collect_raw_counters_from_snapshots([snapshot_path])
 
-        # Проверяем что данные соответствуют snapshot
-        saved_state = state_data[0]
-        assert saved_state.data['energy'] == 0.8
-        assert saved_state.data['memory_size'] == 10
+            # Проверяем структуру отчета
+            assert report is not None
+            assert report.raw_counters.cycle_count == 1  # Один snapshot
+            assert report.raw_counters.memory_entries_count == 450  # episodic + archive
 
-        saved_component = component_data[0]
-        assert saved_component.data['memory_episodic_size'] == 10
-        assert saved_component.data['learning_operations'] == 20
+            # Создаем отчеты
+            reports = DeveloperReports(data_directory=data_dir)
+            daily_report = reports.generate_automated_report("daily", hours=1)
 
-    def test_observability_during_runtime_simulation(self):
-        """Тестирование observability во время симуляции runtime"""
-        # Создаем компоненты
-        state_tracker = StateTracker()
-        component_monitor = ComponentMonitor()
-        data_collector = DataCollector(storage_path=self.create_temp_file())
+            # Проверяем структуру отчета
+            assert "health" in daily_report
+            assert "metrics" in daily_report
+            assert "insights" in daily_report
 
-        self_state = self.create_real_self_state()
+        finally:
+            observer.shutdown(timeout=2.0)
 
-        # Симулируем несколько тиков runtime
-        snapshots_collected = []
-        stats_collected = []
+    def test_observability_data_collection_from_snapshots(self):
+        """Тест сбора данных из snapshot файлов"""
+        # Создаем временную директорию
+        snapshots_dir = Path(self.create_temp_dir())
 
-        for tick in range(5):
-            # Имитируем изменения состояния
-            self_state.energy = 0.8 - tick * 0.05  # постепенное снижение энергии
-            self_state.ticks = 50 + tick
-
-            # Добавляем записи в память
-            from src.memory.memory_types import MemoryEntry
-            new_entry = MemoryEntry(
-                event_type=f"tick_event_{tick}",
-                meaning_significance=0.5,
-                timestamp=time.time()
-            )
-            self_state.memory.episodic_memory.append(new_entry)
-
-            # Сбор данных observability
-            snapshot = state_tracker.collect_state_data(self_state)
-            stats = component_monitor.collect_component_stats(self_state)
-
-            snapshots_collected.append(snapshot)
-            stats_collected.append(stats)
-
-            # Сохранение
-            data_collector.collect_state_data(snapshot)
-            data_collector.collect_component_data(stats)
-
-        # Принудительный сброс буфера
-        data_collector.flush()
-
-        # Проверяем что данные собирались на каждом тике
-        assert len(snapshots_collected) == 5
-        assert len(stats_collected) == 5
-
-        # Проверяем постепенное изменение данных
-        for i in range(5):
-            assert snapshots_collected[i].energy == 0.8 - i * 0.05
-            assert snapshots_collected[i].ticks == 50 + i
-            assert snapshots_collected[i].memory_size == 10 + i + 1  # базовые 10 + добавленные + текущий
-
-        # Проверяем сохранение всех данных
-        all_data = data_collector.get_recent_data()
-        assert len(all_data) == 10  # 5 state + 5 component
-
-        # Проверяем сортировку (последние данные первыми)
-        state_data = [d for d in all_data if d.data_type == "state"]
-        assert len(state_data) == 5
-        # Первый элемент должен иметь минимальную энергию (последний тик)
-        assert abs(state_data[0].data['energy'] - 0.6) < 0.01  # 0.8 - 4*0.05
-
-    def test_observability_performance_under_load(self):
-        """Тестирование производительности observability под нагрузкой"""
-        state_tracker = StateTracker()
-        component_monitor = ComponentMonitor()
-        data_collector = DataCollector(storage_path=self.create_temp_file())
-
-        self_state = self.create_real_self_state()
-
-        # Измеряем время сбора данных при многократном вызове
-        iterations = 100
-        start_time = time.time()
-
-        for _ in range(iterations):
-            snapshot = state_tracker.collect_state_data(self_state)
-            stats = component_monitor.collect_component_stats(self_state)
-            data_collector.collect_state_data(snapshot)
-            data_collector.collect_component_data(stats)
-
-        end_time = time.time()
-        total_time = end_time - start_time
-        avg_time_per_iteration = total_time / iterations
-
-        # Проверяем что среднее время разумное (< 0.005 сек на итерацию)
-        assert avg_time_per_iteration < 0.005
-
-        # Проверяем что все данные собраны
-        data_collector.flush()
-        all_data = data_collector.get_recent_data(limit=iterations * 2)
-        assert len(all_data) == iterations * 2  # state + component для каждой итерации
-
-    def test_observability_with_concurrent_runtime(self):
-        """Тестирование observability с имитацией concorrency"""
-        state_tracker = StateTracker()
-        component_monitor = ComponentMonitor()
-        data_collector = DataCollector(storage_path=self.create_temp_file())
-
-        self_state = self.create_real_self_state()
-
-        results = []
-        errors = []
-
-        def collect_data_iteration(iteration_id):
-            """Функция для сбора данных в отдельном потоке"""
-            try:
-                # Имитируем изменения состояния
-                self_state.energy = 0.8 - (iteration_id % 5) * 0.05
-                self_state.ticks = 50 + iteration_id
-
-                # Сбор данных
-                snapshot = state_tracker.collect_state_data(self_state)
-                stats = component_monitor.collect_component_stats(self_state)
-
-                data_collector.collect_state_data(snapshot)
-                data_collector.collect_component_data(stats)
-
-                results.append({
-                    'iteration': iteration_id,
-                    'energy': snapshot.energy,
-                    'ticks': snapshot.ticks
-                })
-            except Exception as e:
-                errors.append(f"Iteration {iteration_id}: {e}")
-
-        # Запускаем несколько потоков
-        threads = []
-        for i in range(10):
-            thread = threading.Thread(target=collect_data_iteration, args=(i,))
-            threads.append(thread)
-            thread.start()
-
-        # Ждем завершения всех потоков
-        for thread in threads:
-            thread.join()
-
-        # Проверяем что нет ошибок
-        assert len(errors) == 0, f"Errors occurred: {errors}"
-
-        # Проверяем что все результаты собраны
-        assert len(results) == 10
-
-        # Сбрасываем буфер и проверяем сохранение
-        data_collector.flush()
-        all_data = data_collector.get_recent_data()
-        assert len(all_data) == 20  # 10 state + 10 component
-
-    def test_observability_error_recovery_in_runtime(self):
-        """Тестирование восстановления после ошибок в runtime условиях"""
-        state_tracker = StateTracker()
-        component_monitor = ComponentMonitor()
-        data_collector = DataCollector(storage_path=self.create_temp_file())
-
-        self_state = self.create_real_self_state()
-
-        # Имитируем повреждение компонентов
-        self_state.memory = None  # Повреждаем память
-        self_state.learning_engine = None  # Повреждаем learning
-
-        # Сбор данных должен пройти без исключений
-        snapshot = state_tracker.collect_state_data(self_state)
-        stats = component_monitor.collect_component_stats(self_state)
-
-        data_collector.collect_state_data(snapshot)
-        data_collector.collect_component_data(stats)
-        data_collector.flush()
-
-        # Проверяем что система продолжила работать
-        assert snapshot is not None
-        assert stats is not None
-
-        # Проверяем что поврежденные компоненты дали значения по умолчанию
-        assert snapshot.memory_size == 0  # поврежденная память
-        assert snapshot.learning_params_count == 0  # поврежденный learning
-        assert stats.memory_episodic_size == 0  # поврежденная память
-        assert stats.learning_params_count == 0  # поврежденный learning
-
-        # Проверяем что данные сохранены
-        all_data = data_collector.get_recent_data()
-        assert len(all_data) == 2  # state + component
-
-    def test_observability_data_consistency_across_runtime(self):
-        """Проверка согласованности данных observability в runtime"""
-        state_tracker = StateTracker()
-        component_monitor = ComponentMonitor()
-        data_collector = DataCollector(storage_path=self.create_temp_file())
-
-        self_state = self.create_real_self_state()
-
-        # Выполняем несколько циклов сбора
-        for cycle in range(3):
-            # Изменяем состояние
-            self_state.energy -= 0.05
-            self_state.ticks += 1
-
-            # Добавляем действие в память
-            from src.memory.memory_types import MemoryEntry
-            entry = MemoryEntry(
-                event_type="cycle_action",
-                meaning_significance=0.5,
-                timestamp=time.time()
-            )
-            self_state.memory.episodic_memory.append(entry)
-
-            # Сбор данных
-            snapshot = state_tracker.collect_state_data(self_state)
-            stats = component_monitor.collect_component_stats(self_state)
-
-            data_collector.collect_state_data(snapshot)
-            data_collector.collect_component_data(stats)
-
-        data_collector.flush()
-
-        # Получаем все собранные данные
-        state_data = data_collector.get_recent_data(data_type="state")
-        component_data = data_collector.get_recent_data(data_type="component")
-
-        assert len(state_data) == 3
-        assert len(component_data) == 3
-
-        # Проверяем последовательность данных (state_data[0] - самые свежие)
+        # Создаем тестовые snapshot файлы
+        snapshots_data = []
         for i in range(3):
-            # Энергия уменьшается: state_data[0]=0.65, [1]=0.70, [2]=0.75
-            expected_energy = 0.65 + i * 0.05
-            assert abs(state_data[i].data['energy'] - expected_energy) < 0.01
+            snapshot_path = snapshots_dir / f"snapshot_{i}.json"
+            data = {
+                "timestamp": time.time() + i * 10,
+                "energy": 0.8 - i * 0.1,
+                "stability": 0.9 - i * 0.05,
+                "memory_size": 100 + i * 50,
+                "error_count": i,
+                "action_count": 10 + i * 5,
+                "event_count": 20 + i * 10,
+                "state_change_count": 5 + i
+            }
+            snapshots_data.append(data)
 
-            # Ticks должны расти
-            expected_ticks = 53 - i  # 50 + 3 (после 3 циклов)
-            assert state_data[i].data['ticks'] == expected_ticks
+            with open(snapshot_path, 'w') as f:
+                import json
+                json.dump(data, f)
 
-            # Размер памяти должен расти
-            expected_memory = 13 - i  # 10 + 3 (после 3 циклов)
-            assert state_data[i].data['memory_size'] == expected_memory
-            assert component_data[i].data['memory_episodic_size'] == expected_memory
+        # Создаем коллектор
+        collector = RawDataCollector(snapshots_directory=snapshots_dir)
+
+        # Собираем данные
+        snapshot_paths = list(snapshots_dir.glob("*.json"))
+        report = collector.collect_raw_counters_from_snapshots(snapshot_paths)
+
+        # Проверяем результаты
+        assert report is not None
+        assert report.raw_counters.cycle_count == 3  # Три snapshot
+        assert report.raw_counters.memory_entries_count == 100 + 150 + 200  # Сумма memory_size
+        assert report.raw_counters.error_count == 0 + 1 + 2  # Сумма error_count
+        assert report.raw_counters.action_count == 10 + 15 + 20  # Сумма action_count
+
+    def test_developer_reports_generation(self):
+        """Тест генерации отчетов для разработчиков"""
+        # Создаем временную директорию с данными
+        data_dir = self.create_temp_dir()
+
+        # Создаем файл с пассивными наблюдениями
+        obs_file = Path(data_dir) / "passive_observations.jsonl"
+        observations = []
+
+        base_time = time.time()
+        for i in range(10):
+            obs = {
+                "timestamp": base_time + i * 60,  # Каждую минуту
+                "observation_type": "passive_snapshot",
+                "system_state": {
+                    "energy": 0.8 - i * 0.02,
+                    "stability": 0.85 + i * 0.005,
+                    "integrity": 0.9,
+                    "fatigue": 0.1 + i * 0.01,
+                    "tension": 0.15,
+                    "age": 1000 + i * 10,
+                    "ticks": 500 + i * 5
+                },
+                "memory": {
+                    "episodic_size": 100 + i * 10,
+                    "archive_size": 200 + i * 20,
+                    "recent_events": 20 + i * 2
+                },
+                "processing": {
+                    "learning_params": 4,
+                    "adaptation_params": 4,
+                    "decision_queue": 3 + i,
+                    "action_queue": 1 + i
+                }
+            }
+            observations.append(obs)
+
+        with open(obs_file, 'w') as f:
+            import json
+            for obs in observations:
+                f.write(json.dumps(obs) + '\n')
+
+        # Создаем генератор отчетов
+        reports = DeveloperReports(data_directory=data_dir)
+
+        # Генерируем отчеты
+        daily_report = reports.generate_automated_report("daily", hours=1)
+        health_report = reports.generate_system_health_check()
+        text_report = reports.generate_text_report(hours=1)
+
+        # Проверяем структуру отчетов
+        assert daily_report is not None
+        assert "health" in daily_report
+        assert "metrics" in daily_report
+        assert "insights" in daily_report
+
+        assert health_report is not None
+        assert "snapshot_found" in health_report
+
+        assert text_report is not None
+        assert "SYSTEM OBSERVABILITY REPORT" in text_report
+        assert "HEALTH ASSESSMENT" in text_report
+
+    def test_observability_error_handling(self):
+        """Тест обработки ошибок в observability"""
+        # Создаем временную директорию
+        data_dir = self.create_temp_dir()
+
+        # Создаем RawDataCollector без директорий
+        collector = RawDataCollector()
+
+        # Проверяем, что ошибки обрабатываются корректно
+        report = collector.collect_raw_counters_from_logs(
+            start_time=time.time() - 3600,
+            end_time=time.time()
+        )
+
+        # Должен вернуться отчет с значениями по умолчанию
+        assert report is not None
+        assert report.raw_counters.cycle_count == 0
+        assert report.raw_counters.error_count == 0
+
+    def test_async_passive_observer_lifecycle(self):
+        """Тест жизненного цикла AsyncPassiveObserver"""
+        # Создаем временную директорию
+        data_dir = self.create_temp_dir()
+        snapshots_dir = Path(data_dir) / "snapshots"
+        snapshots_dir.mkdir()
+
+        # Создаем snapshot
+        snapshot_path = snapshots_dir / "test.json"
+        with open(snapshot_path, 'w') as f:
+            import json
+            json.dump({"timestamp": time.time(), "energy": 0.8}, f)
+
+        # Создаем observer
+        observer = AsyncPassiveObserver(
+            collection_interval=0.5,
+            snapshots_dir=str(snapshots_dir),
+            enabled=False  # Начинаем disabled
+        )
+
+        # Проверяем статус
+        status = observer.get_status()
+        assert status["enabled"] is False
+        assert status["thread_alive"] is False
+
+        # Включаем
+        observer.enable()
+        time.sleep(0.1)  # Даем время на запуск
+
+        status = observer.get_status()
+        assert status["enabled"] is True
+        assert status["thread_alive"] is True
+
+        # Даем время на сбор данных
+        time.sleep(1.0)
+
+        # Отключаем
+        observer.disable()
+        observer.shutdown(timeout=1.0)
+
+        status = observer.get_status()
+        assert status["enabled"] is False
+        assert status["thread_alive"] is False

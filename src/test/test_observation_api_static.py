@@ -23,8 +23,6 @@ sys.path.insert(0, str(project_root / "src"))
 from src.observability.observation_api import (
     app,
     MetricsResponse,
-    BehaviorPatternResponse,
-    ObservationReportResponse,
     HealthResponse,
     ErrorResponse,
 )
@@ -53,30 +51,12 @@ class TestObservationAPIStatic:
         assert hasattr(MetricsResponse, "__fields__")
         required_fields = [
             'timestamp', 'cycle_count', 'uptime_seconds', 'memory_entries_count',
-            'learning_effectiveness', 'adaptation_rate', 'decision_success_rate',
-            'error_count', 'integrity_score', 'energy_level', 'action_count',
-            'event_processing_rate', 'state_change_frequency'
+            'error_count', 'action_count', 'event_processing_rate', 'state_change_frequency'
         ]
         for field in required_fields:
             assert field in MetricsResponse.__fields__
 
-        # BehaviorPatternResponse
-        assert hasattr(BehaviorPatternResponse, "__fields__")
-        required_fields = [
-            'pattern_type', 'description', 'frequency', 'impact_score',
-            'first_observed', 'last_observed', 'metadata'
-        ]
-        for field in required_fields:
-            assert field in BehaviorPatternResponse.__fields__
 
-        # ObservationReportResponse
-        assert hasattr(ObservationReportResponse, "__fields__")
-        required_fields = [
-            'observation_period', 'metrics_summary', 'behavior_patterns',
-            'trends', 'anomalies', 'recommendations'
-        ]
-        for field in required_fields:
-            assert field in ObservationReportResponse.__fields__
 
         # HealthResponse
         assert hasattr(HealthResponse, "__fields__")
@@ -99,10 +79,7 @@ class TestObservationAPIStatic:
             "/observe/logs",
             "/observe/snapshots",
             "/metrics/current",
-            "/patterns",
-            "/history/summary",
-            "/anomalies",
-            "/recommendations"
+            "/history/summary"
         ]
 
         for route in expected_routes:
@@ -119,10 +96,7 @@ class TestObservationAPIStatic:
         assert "GET" in route_methods.get("/observe/logs", [])
         assert "GET" in route_methods.get("/observe/snapshots", [])
         assert "GET" in route_methods.get("/metrics/current", [])
-        assert "GET" in route_methods.get("/patterns", [])
         assert "GET" in route_methods.get("/history/summary", [])
-        assert "GET" in route_methods.get("/anomalies", [])
-        assert "GET" in route_methods.get("/recommendations", [])
 
     def test_model_creation(self):
         """Проверка создания экземпляров моделей"""
@@ -142,18 +116,13 @@ class TestObservationAPIStatic:
             cycle_count=100,
             uptime_seconds=3600.0,
             memory_entries_count=50,
-            learning_effectiveness=0.8,
-            adaptation_rate=0.6,
-            decision_success_rate=0.9,
             error_count=2,
-            integrity_score=0.95,
-            energy_level=0.7,
             action_count=25,
             event_processing_rate=10.5,
             state_change_frequency=5.2
         )
         assert metrics.cycle_count == 100
-        assert metrics.energy_level == 0.7
+        assert metrics.error_count == 2
 
         # ErrorResponse
         error = ErrorResponse(
@@ -222,8 +191,7 @@ class TestObservationAPIStatic:
         # Проверяем что все response модели наследуются от BaseModel
         from pydantic import BaseModel
 
-        models = [MetricsResponse, BehaviorPatternResponse, ObservationReportResponse,
-                 HealthResponse, ErrorResponse]
+        models = [MetricsResponse, HealthResponse, ErrorResponse]
 
         for model in models:
             assert issubclass(model, BaseModel), f"Model {model.__name__} should inherit from BaseModel"
@@ -235,5 +203,4 @@ class TestObservationAPIStatic:
             if hasattr(route, 'response_model'):
                 response_model = route.response_model
                 if response_model:
-                    assert response_model in [MetricsResponse, BehaviorPatternResponse,
-                                            ObservationReportResponse, HealthResponse, ErrorResponse]
+                    assert response_model in [MetricsResponse, HealthResponse, ErrorResponse]

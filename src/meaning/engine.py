@@ -135,6 +135,21 @@ class MeaningEngine:
             "acceptance": 0.9,  # Принятие умеренно значимо
             # События осознания тишины
             "silence": 0.8,  # Тишина умеренно значима (осознание отсутствия)
+            # Новые эмоциональные события
+            "joy": 1.1,  # Радость значима позитивно
+            "sadness": 0.9,  # Грусть умеренно значима
+            "fear": 1.2,  # Страх очень значим
+            "calm": 0.8,  # Спокойствие умеренно значимо
+            # Новые физические события
+            "discomfort": 0.7,  # Дискомфорт мало значим
+            "comfort": 0.8,  # Комфорт умеренно значим
+            "fatigue": 0.9,  # Усталость умеренно значима
+            # Новые временные события
+            "anticipation": 0.7,  # Ожидание мало значимо
+            "boredom": 0.6,  # Скука незначима
+            # Новые креативные события
+            "inspiration": 1.3,  # Вдохновение очень значимо
+            "creative_dissonance": 0.8,  # Творческий тупик умеренно значим
         }
 
         weight = type_weight.get(event.type, 1.0)
@@ -292,6 +307,21 @@ class MeaningEngine:
                 "stability": +0.03,
                 "integrity": +0.01,
             },  # Осознание тишины способствует покою
+            # Новые эмоциональные события
+            "joy": {"energy": +0.5, "stability": +0.06, "integrity": +0.03},  # Радость повышает энергию и стабильность
+            "sadness": {"energy": -0.4, "stability": -0.05, "integrity": -0.02},  # Грусть снижает энергию
+            "fear": {"energy": -0.6, "stability": -0.08, "integrity": -0.04},  # Страх сильно дестабилизирует
+            "calm": {"energy": +0.1, "stability": +0.04, "integrity": +0.02},  # Спокойствие стабилизирует
+            # Новые физические события
+            "discomfort": {"energy": -0.3, "stability": -0.04, "integrity": -0.01},  # Дискомфорт снижает энергию
+            "comfort": {"energy": +0.3, "stability": +0.03, "integrity": +0.02},  # Комфорт повышает энергию
+            "fatigue": {"energy": -0.4, "stability": -0.02, "integrity": -0.01},  # Усталость снижает энергию
+            # Новые временные события
+            "anticipation": {"energy": -0.1, "stability": -0.03, "integrity": 0.0},  # Ожидание немного дестабилизирует
+            "boredom": {"energy": -0.2, "stability": -0.02, "integrity": -0.01},  # Скука снижает энергию
+            # Новые креативные события
+            "inspiration": {"energy": +0.4, "stability": +0.05, "integrity": +0.04},  # Вдохновение сильно повышает энергию
+            "creative_dissonance": {"energy": -0.2, "stability": -0.03, "integrity": -0.02},  # Творческий тупик дестабилизирует
         }
 
         base_impact = base_impacts.get(
@@ -303,6 +333,12 @@ class MeaningEngine:
         for param, delta in base_impact.items():
             scaled_delta = delta * abs(event.intensity) * significance
             scaled_impact[param] = scaled_delta
+
+        # Специальная обработка memory_echo с конкретными воспоминаниями
+        if event.type == "memory_echo" and "original_memory" in event.metadata:
+            scaled_impact = self._apply_memory_echo_emotional_impact(
+                event, scaled_impact, self_state
+            )
 
         # ИНТЕГРАЦИЯ: Используем adaptation_params.behavior_coefficients для модификации влияния
         # (коэффициенты применяются позже в response_pattern, но здесь можем учесть базовую модификацию)
@@ -413,3 +449,109 @@ class MeaningEngine:
 
         # 5. Создание Meaning
         return Meaning(event_id=str(id(event)), significance=significance, impact=final_impact)
+
+    def _apply_memory_echo_emotional_impact(
+        self, event: Event, base_impact: Dict[str, float], self_state: Union[SelfState, Dict]
+    ) -> Dict[str, float]:
+        """
+        Применяет эмоциональное влияние конкретного воспоминания к базовому impact'у memory_echo.
+
+        Args:
+            event: memory_echo событие с данными оригинального воспоминания
+            base_impact: базовое влияние memory_echo события
+            self_state: текущее состояние системы
+
+        Returns:
+            Модифицированный impact с учетом эмоционального влияния
+        """
+        if "original_memory" not in event.metadata:
+            return base_impact
+
+        original_memory = event.metadata["original_memory"]
+        emotional_impact = original_memory.get("emotional_impact", "neutral")
+        original_event_type = original_memory.get("event_type", "unknown")
+
+        # Модификаторы влияния на основе типа оригинального события
+        emotional_modifiers = {
+            # Позитивные воспоминания усиливают положительные эффекты
+            "recovery": {"energy": +0.3, "stability": +0.05, "integrity": +0.02},
+            "social_harmony": {"energy": +0.2, "stability": +0.08, "integrity": +0.03},
+            "learning_achievement": {"energy": +0.25, "stability": +0.06, "integrity": +0.04},
+
+            # Негативные воспоминания создают смешанные эффекты (ностальгия/травма)
+            "shock": {"energy": -0.2, "stability": -0.03, "integrity": -0.01},
+            "decay": {"energy": -0.15, "stability": -0.02, "integrity": -0.02},
+            "crisis": {"energy": -0.25, "stability": -0.04, "integrity": -0.03},
+            "disruption": {"energy": -0.1, "stability": -0.03, "integrity": -0.01},
+
+            # Нейтральные воспоминания минимально влияют
+            "noise": {"energy": -0.05, "stability": 0.0, "integrity": 0.0},
+            "idle": {"energy": -0.03, "stability": +0.01, "integrity": 0.0},
+            "adaptation": {"energy": 0.0, "stability": +0.02, "integrity": +0.01},
+            "routine": {"energy": 0.0, "stability": +0.01, "integrity": 0.0},
+        }
+
+        # Получаем модификатор для типа оригинального события
+        modifier = emotional_modifiers.get(original_event_type, {"energy": 0.0, "stability": 0.0, "integrity": 0.0})
+
+        # Контекстуальная модификация на основе текущего состояния
+        context_modifier = self._get_memory_echo_context_modifier(emotional_impact, self_state)
+
+        # Применяем модификаторы к базовому impact'у
+        modified_impact = base_impact.copy()
+        for param in ["energy", "stability", "integrity"]:
+            # Эмоциональный модификатор
+            emotional_delta = modifier.get(param, 0.0) * abs(event.intensity)
+            modified_impact[param] += emotional_delta
+
+            # Контекстуальный модификатор (усиливает или ослабляет эмоциональное влияние)
+            modified_impact[param] *= context_modifier
+
+        return modified_impact
+
+    def _get_memory_echo_context_modifier(self, emotional_impact: str, self_state: Union[SelfState, Dict]) -> float:
+        """
+        Вычисляет контекстуальный модификатор для memory_echo на основе текущего состояния.
+
+        Args:
+            emotional_impact: тип эмоционального влияния ("positive", "negative", "neutral")
+            self_state: текущее состояние системы
+
+        Returns:
+            Модификатор интенсивности влияния (0.5 - 2.0)
+        """
+        base_modifier = 1.0
+
+        # Получаем параметры состояния
+        if isinstance(self_state, dict):
+            stability = self_state.get("stability", 1.0)
+            energy = self_state.get("energy", 100.0)
+            fatigue = self_state.get("fatigue", 0.0)
+        else:
+            stability = self_state.stability
+            energy = self_state.energy
+            fatigue = self_state.fatigue
+
+        # Модификация на основе стабильности
+        if stability < 0.3:
+            # При низкой стабильности воспоминания влияют сильнее
+            if emotional_impact == "positive":
+                base_modifier *= 1.5  # Позитивные воспоминания помогают больше
+            elif emotional_impact == "negative":
+                base_modifier *= 0.7  # Негативные воспоминания смягчаются
+        elif stability > 0.8:
+            # При высокой стабильности влияние воспоминаний умеренное
+            base_modifier *= 0.9
+
+        # Модификация на основе энергии
+        if energy < 30.0 and emotional_impact == "positive":
+            base_modifier *= 1.3  # Позитивные воспоминания помогают при низкой энергии
+        elif energy > 80.0 and emotional_impact == "negative":
+            base_modifier *= 0.8  # Негативные воспоминания меньше влияют при высокой энергии
+
+        # Модификация на основе усталости
+        if fatigue > 0.7 and emotional_impact == "positive":
+            base_modifier *= 1.2  # Позитивные воспоминания помогают при усталости
+
+        # Ограничиваем диапазон
+        return max(0.5, min(2.0, base_modifier))

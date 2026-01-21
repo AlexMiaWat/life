@@ -7,5 +7,12 @@
 
 from .sensory_buffer import SensoryBuffer
 from .hierarchy_manager import MemoryHierarchyManager
+from .semantic_store import SemanticMemoryStore
+from .procedural_store import ProceduralMemoryStore
 
-__all__ = ["SensoryBuffer", "MemoryHierarchyManager"]
+__all__ = [
+    "SensoryBuffer",
+    "MemoryHierarchyManager",
+    "SemanticMemoryStore",
+    "ProceduralMemoryStore",
+]

@@ -1,0 +1,114 @@
+name: Extended Tests
+
+on:
+  workflow_dispatch:  # Ручной запуск
+    inputs:
+      test_categories:
+        description: 'Категории тестов для запуска (slow, real_server, e2e, dev_mode)'
+        required: false
+        default: 'slow,real_server,e2e,dev_mode'
+        type: string
+  schedule:
+    - cron: '0 2 * * 1-5'  # Каждую ночь с понедельника по пятницу в 2:00 UTC
+
+env:
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  extended-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - test-category:
+              name: "slow"
+              marker: "slow"
+              description: "Медленные тесты (>30 сек)"
+              timeout: 60  # Увеличенное время для медленных тестов
+          - test-category:
+              name: "real_server"
+              marker: "real_server"
+              description: "Тесты с реальным сервером"
+              timeout: 45
+          - test-category:
+              name: "e2e"
+              marker: "e2e"
+              description: "End-to-end тесты"
+              timeout: 30
+          - test-category:
+              name: "dev_mode"
+              marker: "dev_mode"
+              description: "Тесты режима разработки"
+              timeout: 20
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Cache pip dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt', '**/pyproject.toml') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-cov pytest-order pytest-xdist hypothesis
+
+    - name: Run ${{ matrix.test-category.description }}
+      timeout-minutes: ${{ matrix.test-category.timeout }}
+      if: contains(github.event.inputs.test_categories, matrix.test-category.name) || github.event_name == 'schedule'
+      run: |
+        echo "🧪 Запуск ${{ matrix.test-category.description }}..."
+
+        # Для real_server тестов может потребоваться дополнительная настройка
+        if [ "${{ matrix.test-category.name }}" = "real_server" ]; then
+          echo "Настройка инфраструктуры для real_server тестов..."
+          # Здесь можно добавить настройку сервера, базы данных и т.д.
+        fi
+
+        # Запускаем только выбранную категорию
+        pytest src/test/ -m "${{ matrix.test-category.marker }}" --tb=short -v \
+          --junitxml=test-results-extended-${{ matrix.test-category.name }}.xml \
+          --cov=src --cov-report=xml --cov-report=term-missing \
+          --cov-append --cov-branch
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always() && (contains(github.event.inputs.test_categories, matrix.test-category.name) || github.event_name == 'schedule')
+      with:
+        name: extended-test-results-${{ matrix.test-category.name }}
+        path: test-results-extended-${{ matrix.test-category.name }}.xml
+        retention-days: 7
+
+    - name: Upload coverage data
+      uses: actions/upload-artifact@v4
+      if: always() && (contains(github.event.inputs.test_categories, matrix.test-category.name) || github.event_name == 'schedule')
+      with:
+        name: extended-coverage-data-${{ matrix.test-category.name }}
+        path: .coverage*
+        retention-days: 7
+
+  notify:
+    runs-on: ubuntu-latest
+    needs: extended-tests
+    if: always() && github.event_name == 'schedule'
+    steps:
+    - name: Notify about extended test results
+      run: |
+        if [ "${{ needs.extended-tests.result }}" = "success" ]; then
+          echo "✅ Extended tests passed"
+        else
+          echo "❌ Extended tests failed"
+          # Здесь можно добавить отправку уведомлений
+        fi

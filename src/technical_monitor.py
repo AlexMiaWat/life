@@ -21,8 +21,11 @@ import logging
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Any, Union
+from typing import Dict, List, Optional, Any, Union, TYPE_CHECKING
 from abc import ABC, abstractmethod
+
+if TYPE_CHECKING:
+    from src.runtime.data_collection_manager import DataCollectionManager
 
 logger = logging.getLogger(__name__)
 
@@ -103,11 +106,19 @@ class TechnicalBehaviorMonitor:
     без философских интерпретаций.
     """
 
-    def __init__(self):
-        """Инициализация технического монитора."""
+    def __init__(self, data_collection_manager: Optional['DataCollectionManager'] = None):
+        """
+        Инициализация технического монитора.
+
+        Args:
+            data_collection_manager: Менеджер сбора данных для асинхронного сохранения
+        """
         # История отчетов для анализа трендов
         self.report_history: List[TechnicalReport] = []
         self.max_history_size = 100
+
+        # Менеджер сбора данных для асинхронных операций
+        self.data_collection_manager = data_collection_manager
 
     def capture_system_snapshot(
         self, self_state, memory, learning_engine, adaptation_manager, decision_engine
@@ -678,30 +689,56 @@ class TechnicalBehaviorMonitor:
 
         return {"direction": direction, "magnitude": min(magnitude, 1.0), "slope": slope}
 
-    def save_report(self, report: TechnicalReport, filepath: str):
+    def save_report(self, report: TechnicalReport, filepath: str, async_save: bool = True):
         """
         Сохранить отчет в файл.
 
         Args:
             report: Отчет для сохранения
             filepath: Путь к файлу
+            async_save: Использовать асинхронное сохранение через DataCollectionManager
+        """
+        data = {
+            "timestamp": report.timestamp,
+            "performance": report.performance,
+            "stability": report.stability,
+            "adaptability": report.adaptability,
+            "integrity": report.integrity,
+            "overall_assessment": report.overall_assessment,
+        }
+
+        # Если есть DataCollectionManager и запрошено асинхронное сохранение
+        if async_save and self.data_collection_manager:
+            success = self.data_collection_manager.save_technical_report(
+                report_data=data,
+                base_dir=str(Path(filepath).parent),
+                filename_prefix=Path(filepath).stem
+            )
+            if success:
+                logger.debug(f"Technical report queued for async save: {filepath}")
+            else:
+                logger.warning(f"Failed to queue technical report for async save: {filepath}")
+                # Fallback to synchronous save
+                self._save_report_sync(data, filepath)
+        else:
+            # Синхронное сохранение
+            self._save_report_sync(data, filepath)
+
+    def _save_report_sync(self, data: Dict[str, Any], filepath: str) -> None:
+        """
+        Синхронное сохранение отчета (fallback метод).
+
+        Args:
+            data: Данные отчета
+            filepath: Путь к файлу
         """
         try:
-            data = {
-                "timestamp": report.timestamp,
-                "performance": report.performance,
-                "stability": report.stability,
-                "adaptability": report.adaptability,
-                "integrity": report.integrity,
-                "overall_assessment": report.overall_assessment,
-            }
-
             with open(filepath, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
 
-            logger.info(f"Report saved to {filepath}")
+            logger.info(f"Report saved synchronously to {filepath}")
         except Exception as e:
-            logger.error(f"Failed to save report: {e}")
+            logger.error(f"Failed to save report synchronously: {e}")
 
     def load_report(self, filepath: str) -> Optional[TechnicalReport]:
         """

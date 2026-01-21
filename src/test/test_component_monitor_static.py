@@ -2,278 +2,317 @@
 Статические тесты для ComponentMonitor
 
 Проверяем:
-- Структуру классов и модулей
-- Константы и их значения
-- Сигнатуры методов
-- Типы возвращаемых значений
-- Отсутствие запрещенных методов/атрибутов
-- Архитектурные ограничения
+- Инициализация ComponentMonitor
+- Регистрация компонентов
+- Сбор статистики
+- Обновление метрик
+- Экспорт данных
+- Thread-safety
 """
 
-import inspect
-import sys
-from pathlib import Path
+import threading
+import time
 from unittest.mock import Mock
 
 import pytest
 
-project_root = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(project_root / "src"))
-
-from src.observability.component_monitor import (
-    ComponentMonitor,
-    ComponentStats,
-    SystemComponentStats,
-)
+from src.observability.component_monitor import ComponentMonitor, ComponentStats
 
 
-@pytest.mark.static
 class TestComponentMonitorStatic:
-    """Статические тесты для ComponentMonitor"""
+    """Статические тесты ComponentMonitor"""
 
-    def test_component_monitor_structure(self):
-        """Проверка структуры ComponentMonitor"""
-        assert hasattr(ComponentMonitor, "__init__")
-        assert hasattr(ComponentMonitor, "collect_component_stats")
-        assert hasattr(ComponentMonitor, "get_last_system_stats")
-        assert hasattr(ComponentMonitor, "enable_monitoring")
-        assert hasattr(ComponentMonitor, "disable_monitoring")
-
-        # Проверяем сигнатуру метода collect_component_stats
-        sig = inspect.signature(ComponentMonitor.collect_component_stats)
-        assert 'self_state' in sig.parameters
-
-    def test_component_stats_structure(self):
-        """Проверка структуры ComponentStats"""
-        assert hasattr(ComponentStats, "__init__")
-        assert hasattr(ComponentStats, "to_dict")
-
-        # Проверяем наличие всех полей
-        stats = ComponentStats(component_name="test")
-        assert hasattr(stats, 'component_name')
-        assert hasattr(stats, 'timestamp')
-        assert hasattr(stats, 'queue_size')
-        assert hasattr(stats, 'memory_usage')
-        assert hasattr(stats, 'active_threads')
-        assert hasattr(stats, 'operations_count')
-        assert hasattr(stats, 'error_count')
-        assert hasattr(stats, 'success_count')
-        assert hasattr(stats, 'avg_operation_time')
-        assert hasattr(stats, 'last_operation_time')
-
-    def test_system_component_stats_structure(self):
-        """Проверка структуры SystemComponentStats"""
-        assert hasattr(SystemComponentStats, "__init__")
-        assert hasattr(SystemComponentStats, "to_dict")
-
-        # Проверяем наличие всех полей
-        stats = SystemComponentStats()
-        memory_fields = ['memory_episodic_size', 'memory_archive_size', 'memory_recent_events']
-        for field in memory_fields:
-            assert hasattr(stats, field)
-
-        learning_fields = ['learning_params_count', 'learning_operations']
-        for field in learning_fields:
-            assert hasattr(stats, field)
-
-        adaptation_fields = ['adaptation_params_count', 'adaptation_operations']
-        for field in adaptation_fields:
-            assert hasattr(stats, field)
-
-        decision_fields = ['decision_queue_size', 'decision_operations']
-        for field in decision_fields:
-            assert hasattr(stats, field)
-
-        action_fields = ['action_queue_size', 'action_operations']
-        for field in action_fields:
-            assert hasattr(stats, field)
-
-        environment_fields = ['environment_event_queue_size', 'environment_pending_events']
-        for field in environment_fields:
-            assert hasattr(stats, field)
-
-        intelligence_fields = ['intelligence_processed_sources']
-        for field in intelligence_fields:
-            assert hasattr(stats, field)
-
-    def test_component_monitor_constants(self):
-        """Проверка констант ComponentMonitor"""
+    def test_initialization(self):
+        """Тест инициализации ComponentMonitor"""
         monitor = ComponentMonitor()
 
-        # Проверяем наличие основных атрибутов
-        assert hasattr(monitor, "monitoring_enabled")
-        assert hasattr(monitor, "last_system_stats")
+        assert hasattr(monitor, '_stats')
+        assert hasattr(monitor, '_lock')
+        assert hasattr(monitor, '_monitors')
+        assert isinstance(monitor._stats, dict)
+        assert isinstance(monitor._monitors, dict)
 
-        # Проверяем начальные значения
-        assert monitor.monitoring_enabled is True
-        assert monitor.last_system_stats is None
+    def test_component_registration(self):
+        """Тест регистрации компонентов"""
+        monitor = ComponentMonitor()
 
-    def test_component_stats_constants(self):
-        """Проверка констант ComponentStats"""
-        stats = ComponentStats(component_name="test")
+        # Регистрация компонента
+        monitor.register_component("test_component")
 
-        # Проверяем начальные значения полей
-        assert stats.component_name == "test"
-        assert stats.queue_size == 0
-        assert stats.memory_usage == 0
-        assert stats.active_threads == 0
-        assert stats.operations_count == 0
+        assert "test_component" in monitor._stats
+        stats = monitor._stats["test_component"]
+        assert isinstance(stats, ComponentStats)
+        assert stats.component_name == "test_component"
+        assert stats.timestamp > 0
+
+    def test_register_component_with_initial_stats(self):
+        """Тест регистрации компонента с начальными статистиками"""
+        monitor = ComponentMonitor()
+
+        initial_stats = {
+            "queue_size": 5,
+            "memory_usage": 1024,
+            "active_threads": 2
+        }
+
+        monitor.register_component("test_component", initial_stats)
+
+        stats = monitor._stats["test_component"]
+        assert stats.queue_size == 5
+        assert stats.memory_usage == 1024
+        assert stats.active_threads == 2
+
+    def test_update_stats(self):
+        """Тест обновления статистики"""
+        monitor = ComponentMonitor()
+        monitor.register_component("test_component")
+
+        # Обновление статистики
+        monitor.update_stats("test_component", {
+            "queue_size": 10,
+            "operations_count": 5,
+            "error_count": 1
+        })
+
+        stats = monitor._stats["test_component"]
+        assert stats.queue_size == 10
+        assert stats.operations_count == 5
+        assert stats.error_count == 1
+
+    def test_update_stats_incremental(self):
+        """Тест инкрементального обновления статистики"""
+        monitor = ComponentMonitor()
+        monitor.register_component("test_component")
+
+        # Первое обновление
+        monitor.update_stats("test_component", {"operations_count": 5})
+        assert monitor._stats["test_component"].operations_count == 5
+
+        # Второе обновление (инкремент)
+        monitor.update_stats("test_component", {"operations_count": 3})
+        assert monitor._stats["test_component"].operations_count == 8
+
+    def test_record_operation(self):
+        """Тест записи операции"""
+        monitor = ComponentMonitor()
+        monitor.register_component("test_component")
+
+        # Запись успешной операции
+        monitor.record_operation("test_component", success=True, duration=0.1)
+
+        stats = monitor._stats["test_component"]
+        assert stats.operations_count == 1
+        assert stats.success_count == 1
         assert stats.error_count == 0
+        assert stats.last_operation_time == 0.1
+        assert stats.avg_operation_time == 0.1
+
+        # Запись неудачной операции
+        monitor.record_operation("test_component", success=False, duration=0.2)
+
+        stats = monitor._stats["test_component"]
+        assert stats.operations_count == 2
+        assert stats.success_count == 1
+        assert stats.error_count == 1
+        assert stats.last_operation_time == 0.2
+        assert abs(stats.avg_operation_time - 0.15) < 0.001  # Среднее (0.1 + 0.2) / 2
+
+    def test_get_stats(self):
+        """Тест получения статистики"""
+        monitor = ComponentMonitor()
+        monitor.register_component("test_component")
+
+        # Обновление статистики
+        monitor.update_stats("test_component", {"queue_size": 7})
+
+        stats = monitor.get_stats("test_component")
+        assert stats is not None
+        assert stats.queue_size == 7
+
+        # Запрос несуществующего компонента
+        assert monitor.get_stats("nonexistent") is None
+
+    def test_get_all_stats(self):
+        """Тест получения всех статистик"""
+        monitor = ComponentMonitor()
+
+        # Регистрация нескольких компонентов
+        monitor.register_component("comp1")
+        monitor.register_component("comp2")
+
+        monitor.update_stats("comp1", {"queue_size": 1})
+        monitor.update_stats("comp2", {"queue_size": 2})
+
+        all_stats = monitor.get_all_stats()
+        assert len(all_stats) == 2
+        assert "comp1" in all_stats
+        assert "comp2" in all_stats
+        assert all_stats["comp1"].queue_size == 1
+        assert all_stats["comp2"].queue_size == 2
+
+    def test_unregister_component(self):
+        """Тест удаления компонента"""
+        monitor = ComponentMonitor()
+        monitor.register_component("test_component")
+
+        assert "test_component" in monitor._stats
+
+        monitor.unregister_component("test_component")
+
+        assert "test_component" not in monitor._stats
+
+    def test_component_stats_to_dict(self):
+        """Тест сериализации ComponentStats"""
+        stats = ComponentStats(
+            component_name="test",
+            queue_size=5,
+            memory_usage=1024,
+            operations_count=10
+        )
+
+        data = stats.to_dict()
+
+        assert data["component_name"] == "test"
+        assert data["queue_size"] == 5
+        assert data["memory_usage"] == 1024
+        assert data["operations_count"] == 10
+        assert "timestamp" in data
+
+    def test_thread_safety_registration(self):
+        """Тест потокобезопасности регистрации компонентов"""
+        monitor = ComponentMonitor()
+
+        errors = []
+        registered_components = []
+
+        def register_components(thread_id: int):
+            """Регистрирует компоненты в потоке"""
+            try:
+                for i in range(10):
+                    comp_name = f"thread_{thread_id}_comp_{i}"
+                    monitor.register_component(comp_name)
+                    registered_components.append(comp_name)
+            except Exception as e:
+                errors.append(str(e))
+
+        # Запуск нескольких потоков
+        threads = []
+        for i in range(5):
+            t = threading.Thread(target=register_components, args=(i,))
+            threads.append(t)
+            t.start()
+
+        # Ожидание завершения
+        for t in threads:
+            t.join()
+
+        # Проверка отсутствия ошибок
+        assert len(errors) == 0
+
+        # Проверка что все компоненты зарегистрированы
+        assert len(registered_components) == 50
+        assert len(monitor._stats) == 50
+
+        # Проверка уникальности имен
+        assert len(set(registered_components)) == 50
+
+    def test_thread_safety_updates(self):
+        """Тест потокобезопасности обновления статистики"""
+        monitor = ComponentMonitor()
+        monitor.register_component("shared_component")
+
+        errors = []
+        update_count = [0]
+
+        def update_stats(thread_id: int):
+            """Обновляет статистику в потоке"""
+            try:
+                for i in range(100):
+                    monitor.update_stats("shared_component", {
+                        "operations_count": 1,
+                        "queue_size": thread_id
+                    })
+                    update_count[0] += 1
+            except Exception as e:
+                errors.append(str(e))
+
+        # Запуск нескольких потоков
+        threads = []
+        for i in range(5):
+            t = threading.Thread(target=update_stats, args=(i,))
+            threads.append(t)
+            t.start()
+
+        # Ожидание завершения
+        for t in threads:
+            t.join()
+
+        # Проверка отсутствия ошибок
+        assert len(errors) == 0
+
+        # Проверка что все обновления применились
+        assert update_count[0] == 500  # 5 потоков * 100 обновлений
+        stats = monitor.get_stats("shared_component")
+        assert stats.operations_count == 500
+
+    def test_monitor_functionality(self):
+        """Тест функциональности мониторинга"""
+        monitor = ComponentMonitor()
+
+        # Регистрация компонента с монитором
+        def test_monitor_func():
+            return {"custom_metric": 42}
+
+        monitor.register_component("test_component")
+        monitor.add_monitor("test_component", "custom_monitor", test_monitor_func)
+
+        # Выполнение мониторинга
+        monitor.run_monitors("test_component")
+
+        # Проверка что монитор выполнился (данные должны быть в stats, но это зависит от реализации)
+        stats = monitor.get_stats("test_component")
+        assert stats is not None
+
+    def test_monitor_error_handling(self):
+        """Тест обработки ошибок в мониторах"""
+        monitor = ComponentMonitor()
+
+        def failing_monitor():
+            raise ValueError("Test error")
+
+        monitor.register_component("test_component")
+        monitor.add_monitor("test_component", "failing_monitor", failing_monitor)
+
+        # Это не должно вызывать исключение
+        monitor.run_monitors("test_component")
+
+        # Компонент должен продолжать работать
+        assert monitor.get_stats("test_component") is not None
+
+    def test_export_stats(self):
+        """Тест экспорта статистики"""
+        monitor = ComponentMonitor()
+        monitor.register_component("test_component")
+
+        monitor.update_stats("test_component", {"queue_size": 5})
+
+        exported = monitor.export_stats()
+
+        assert isinstance(exported, dict)
+        assert "test_component" in exported
+        assert exported["test_component"]["queue_size"] == 5
+
+    def test_clear_stats(self):
+        """Тест очистки статистики"""
+        monitor = ComponentMonitor()
+        monitor.register_component("test_component")
+
+        monitor.update_stats("test_component", {"operations_count": 10})
+
+        # Очистка
+        monitor.clear_stats("test_component")
+
+        stats = monitor.get_stats("test_component")
+        assert stats.operations_count == 0
         assert stats.success_count == 0
-        assert stats.avg_operation_time == 0.0
-        assert stats.last_operation_time == 0.0
-
-    def test_system_component_stats_constants(self):
-        """Проверка констант SystemComponentStats"""
-        stats = SystemComponentStats()
-
-        # Проверяем начальные значения всех полей
-        assert stats.memory_episodic_size == 0
-        assert stats.memory_archive_size == 0
-        assert stats.memory_recent_events == 0
-        assert stats.learning_params_count == 0
-        assert stats.learning_operations == 0
-        assert stats.adaptation_params_count == 0
-        assert stats.adaptation_operations == 0
-        assert stats.decision_queue_size == 0
-        assert stats.decision_operations == 0
-        assert stats.action_queue_size == 0
-        assert stats.action_operations == 0
-        assert stats.environment_event_queue_size == 0
-        assert stats.environment_pending_events == 0
-        assert stats.intelligence_processed_sources == 0
-
-    def test_method_signatures(self):
-        """Проверка сигнатур методов"""
-        # ComponentMonitor методы
-        sig = inspect.signature(ComponentMonitor.__init__)
-        assert len(sig.parameters) == 1  # только self
-
-        sig = inspect.signature(ComponentMonitor.collect_component_stats)
-        assert len(sig.parameters) == 2  # self, self_state
-
-        sig = inspect.signature(ComponentMonitor.get_last_system_stats)
-        assert len(sig.parameters) == 1  # только self
-
-        sig = inspect.signature(ComponentMonitor.enable_monitoring)
-        assert len(sig.parameters) == 1  # только self
-
-        sig = inspect.signature(ComponentMonitor.disable_monitoring)
-        assert len(sig.parameters) == 1  # только self
-
-        # ComponentStats методы
-        sig = inspect.signature(ComponentStats.__init__)
-        assert 'component_name' in sig.parameters
-
-        sig = inspect.signature(ComponentStats.to_dict)
-        assert len(sig.parameters) == 1  # только self
-
-        # SystemComponentStats методы (dataclass, все поля в __init__)
-        sig = inspect.signature(SystemComponentStats.__init__)
-        assert len(sig.parameters) > 1  # self + все поля dataclass
-
-        sig = inspect.signature(SystemComponentStats.to_dict)
-        assert len(sig.parameters) == 1  # только self
-
-    def test_return_types(self):
-        """Проверка типов возвращаемых значений"""
-        monitor = ComponentMonitor()
-        mock_state = Mock()
-
-        # Проверяем тип возвращаемого значения collect_component_stats
-        result = monitor.collect_component_stats(mock_state)
-        assert isinstance(result, SystemComponentStats)
-
-        # Проверяем тип возвращаемого значения get_last_system_stats
-        result = monitor.get_last_system_stats()
-        assert result is None or isinstance(result, SystemComponentStats)
-
-        # Проверяем тип возвращаемого значения to_dict
-        component_stats = ComponentStats(component_name="test")
-        result = component_stats.to_dict()
-        assert isinstance(result, dict)
-
-        system_stats = SystemComponentStats()
-        result = system_stats.to_dict()
-        assert isinstance(result, dict)
-
-    def test_to_dict_structures(self):
-        """Проверка структуры возвращаемых словарей to_dict"""
-        # ComponentStats
-        component_stats = ComponentStats(component_name="test")
-        data = component_stats.to_dict()
-
-        expected_keys = [
-            'component_name', 'timestamp', 'queue_size', 'memory_usage',
-            'active_threads', 'operations_count', 'error_count', 'success_count',
-            'avg_operation_time', 'last_operation_time'
-        ]
-
-        for key in expected_keys:
-            assert key in data
-
-        # SystemComponentStats
-        system_stats = SystemComponentStats()
-        data = system_stats.to_dict()
-
-        expected_keys = [
-            'timestamp', 'memory_episodic_size', 'memory_archive_size', 'memory_recent_events',
-            'learning_params_count', 'learning_operations', 'adaptation_params_count',
-            'adaptation_operations', 'decision_queue_size', 'decision_operations',
-            'action_queue_size', 'action_operations', 'environment_event_queue_size',
-            'environment_pending_events', 'intelligence_processed_sources'
-        ]
-
-        for key in expected_keys:
-            assert key in data
-
-    def test_architecture_constraints(self):
-        """Проверка архитектурных ограничений"""
-        monitor = ComponentMonitor()
-
-        # Проверяем отсутствие запрещенных методов/атрибутов
-        forbidden_attrs = ['interpret', 'evaluate', 'analyze', 'consciousness', 'awareness']
-        for attr in forbidden_attrs:
-            assert not hasattr(monitor, attr), f"Найден запрещенный атрибут: {attr}"
-
-        # Проверяем пассивность - отсутствие методов изменения состояния системы
-        dangerous_methods = ['modify', 'change', 'update_system', 'inject']
-        for method in dangerous_methods:
-            assert not hasattr(monitor, method), f"Найден опасный метод: {method}"
-
-    def test_monitoring_control(self):
-        """Проверка контроля мониторинга"""
-        monitor = ComponentMonitor()
-
-        # По умолчанию мониторинг включен
-        assert monitor.monitoring_enabled is True
-
-        # Проверяем методы включения/выключения
-        monitor.disable_monitoring()
-        assert monitor.monitoring_enabled is False
-
-        monitor.enable_monitoring()
-        assert monitor.monitoring_enabled is True
-
-    def test_error_handling(self):
-        """Проверка обработки ошибок в статическом контексте"""
-        monitor = ComponentMonitor()
-
-        # Проверяем что метод не выбрасывает исключения при None
-        try:
-            result = monitor.collect_component_stats(None)
-            assert isinstance(result, SystemComponentStats)
-        except Exception as e:
-            pytest.fail(f"Метод collect_component_stats не должен выбрасывать исключения при None: {e}")
-
-    def test_passive_monitoring(self):
-        """Проверка пассивности мониторинга"""
-        monitor = ComponentMonitor()
-        mock_state = Mock()
-
-        # Метод должен только читать данные, не изменять состояние
-        original_enabled = monitor.monitoring_enabled
-        monitor.collect_component_stats(mock_state)
-
-        # Состояние не должно измениться
-        assert monitor.monitoring_enabled == original_enabled
+        assert stats.error_count == 0

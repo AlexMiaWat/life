@@ -5,13 +5,14 @@ from typing import Dict, List, Optional
 
 from .index_engine import MemoryIndexEngine, MemoryQuery
 from .memory_types import MemoryEntry
+from .memory_interface import EpisodicMemoryInterface, MemoryStatistics
 
 # Папка для архивов
 ARCHIVE_DIR = Path("data/archive")
 ARCHIVE_DIR.mkdir(parents=True, exist_ok=True)
 
 
-class ArchiveMemory:
+class ArchiveMemory(EpisodicMemoryInterface):
     """
     Архивная память для долгосрочного хранения записей.
     Хранит записи, которые были перенесены из активной памяти.
@@ -80,6 +81,7 @@ class ArchiveMemory:
         min_significance: Optional[float] = None,
         start_timestamp: Optional[float] = None,
         end_timestamp: Optional[float] = None,
+        limit: Optional[int] = None,
     ) -> List[MemoryEntry]:
         """
         Получает записи из архива с фильтрацией.
@@ -100,7 +102,13 @@ class ArchiveMemory:
             start_timestamp=start_timestamp,
             end_timestamp=end_timestamp,
         )
-        return self._index_engine.search(query)
+        results = self._index_engine.search(query)
+
+        # Применяем ограничение по количеству
+        if limit is not None:
+            results = results[:limit]
+
+        return results
 
     def get_all_entries(self) -> List[MemoryEntry]:
         """Возвращает все записи из архива."""
@@ -118,9 +126,85 @@ class ArchiveMemory:
         """
         return self._index_engine.search(query)
 
+    @property
     def size(self) -> int:
         """Возвращает количество записей в архиве."""
         return len(self._entries)
+
+    def get_statistics(self) -> MemoryStatistics:
+        """
+        Получить статистику архивной памяти.
+
+        Returns:
+            MemoryStatistics: Статистика использования
+        """
+        if not self._entries:
+            return MemoryStatistics(
+                total_entries=0,
+                memory_type="archive"
+            )
+
+        total_significance = sum(entry.meaning_significance for entry in self._entries)
+        timestamps = [entry.timestamp for entry in self._entries]
+
+        return MemoryStatistics(
+            total_entries=len(self._entries),
+            archived_entries=len(self._entries),
+            average_significance=total_significance / len(self._entries),
+            oldest_timestamp=min(timestamps),
+            newest_timestamp=max(timestamps),
+            memory_type="archive"
+        )
+
+    def validate_integrity(self) -> bool:
+        """
+        Проверить целостность архивной памяти.
+
+        Returns:
+            bool: True если данные корректны
+        """
+        try:
+            # Проверяем, что все записи имеют правильную структуру
+            for entry in self._entries:
+                if not hasattr(entry, 'event_type') or not hasattr(entry, 'timestamp'):
+                    return False
+                if not isinstance(entry.meaning_significance, (int, float)):
+                    return False
+                if not isinstance(entry.weight, (int, float)):
+                    return False
+            return True
+        except Exception:
+            return False
+
+    def clear(self) -> None:
+        """Очистить архив (используется с осторожностью)."""
+        self._entries = []
+        self._index_engine = MemoryIndexEngine()
+
+    def is_empty(self) -> bool:
+        """
+        Проверить, пуст ли архив.
+
+        Returns:
+            bool: True если архив пуст
+        """
+        return len(self._entries) == 0
+
+    def archive_old_entries(
+        self,
+        max_age: Optional[float] = None,
+        min_weight: Optional[float] = None,
+        min_significance: Optional[float] = None,
+    ) -> int:
+        """
+        Архивная память уже содержит архивированные записи.
+        Этот метод не применим для ArchiveMemory.
+
+        Returns:
+            int: Всегда возвращает 0
+        """
+        # ArchiveMemory - это уже архив, метод не применим
+        return 0
 
     def save_archive(self):
         """Сохраняет архив в файл."""
@@ -134,7 +218,7 @@ class ArchiveMemory:
         self._index_engine = MemoryIndexEngine()  # Создаем новый индекс
 
 
-class Memory(list):
+class Memory(list, EpisodicMemoryInterface):
     """
     Активная память с поддержкой архивации и оптимизацией сериализации.
     """
@@ -375,37 +459,74 @@ class Memory(list):
 
             return min_weight_count
 
-    def get_statistics(self) -> Dict:
+    def get_statistics(self) -> MemoryStatistics:
         """
         Возвращает статистику использования памяти.
 
         Returns:
-            Словарь со статистикой
+            MemoryStatistics: Статистика памяти
         """
         if not self:
-            return {
-                "active_entries": 0,
-                "archive_entries": self.archive.size(),
-                "event_types": {},
-                "avg_significance": 0.0,
-                "oldest_timestamp": None,
-                "newest_timestamp": None,
-            }
+            return MemoryStatistics(
+                total_entries=self.archive.size if hasattr(self.archive, 'size') else 0,
+                active_entries=0,
+                archived_entries=self.archive.size if hasattr(self.archive, 'size') else 0,
+                memory_type="episodic"
+            )
 
-        event_types = {}
         total_significance = 0.0
         timestamps = []
 
         for entry in self:
-            event_types[entry.event_type] = event_types.get(entry.event_type, 0) + 1
             total_significance += entry.meaning_significance
             timestamps.append(entry.timestamp)
 
-        return {
-            "active_entries": len(self),
-            "archive_entries": self.archive.size(),
-            "event_types": event_types,
-            "avg_significance": total_significance / len(self) if self else 0.0,
-            "oldest_timestamp": min(timestamps) if timestamps else None,
-            "newest_timestamp": max(timestamps) if timestamps else None,
-        }
+        return MemoryStatistics(
+            total_entries=len(self) + (self.archive.size if hasattr(self.archive, 'size') else 0),
+            active_entries=len(self),
+            archived_entries=self.archive.size if hasattr(self.archive, 'size') else 0,
+            average_significance=total_significance / len(self) if self else 0.0,
+            oldest_timestamp=min(timestamps) if timestamps else None,
+            newest_timestamp=max(timestamps) if timestamps else None,
+            memory_type="episodic"
+        )
+
+    def validate_integrity(self) -> bool:
+        """
+        Проверить целостность эпизодической памяти.
+
+        Returns:
+            bool: True если данные корректны
+        """
+        try:
+            # Проверяем активную память
+            for entry in self:
+                if not hasattr(entry, 'event_type') or not hasattr(entry, 'timestamp'):
+                    return False
+                if not isinstance(entry.meaning_significance, (int, float)):
+                    return False
+                if not isinstance(entry.weight, (int, float)):
+                    return False
+
+            # Проверяем архив, если он есть
+            if hasattr(self.archive, 'validate_integrity'):
+                return self.archive.validate_integrity()
+
+            return True
+        except Exception:
+            return False
+
+    @property
+    def size(self) -> int:
+        """Получить общий размер памяти (активная + архив)."""
+        archive_size = self.archive.size if hasattr(self.archive, 'size') else 0
+        return len(self) + archive_size
+
+    def is_empty(self) -> bool:
+        """
+        Проверить, пустая ли память.
+
+        Returns:
+            bool: True если память полностью пуста
+        """
+        return len(self) == 0 and (not hasattr(self.archive, 'size') or self.archive.size == 0)

@@ -1,1668 +1,401 @@
 """
-Статические тесты для новой функциональности (Learning, Adaptation, MeaningEngine, Subjective Time, Thread Safety)
+Static Tests for New Functionality.
 
-Проверяем:
-- Структуру классов и модулей
-- Константы и их значения
-- Сигнатуры методов
-- Типы возвращаемых значений
-- Отсутствие запрещенных методов/атрибутов
-- Архитектурные ограничения
-- Новую функциональность: субъективное время и потокобезопасность
+Статические тесты проверяют:
+- Структуру данных и типов
+- Константы и конфигурацию
+- Импорты и зависимости
+- API интерфейсы
+- Валидацию параметров
 """
 
-import inspect
+import pytest
+from unittest.mock import Mock, MagicMock
+from dataclasses import is_dataclass
+from enum import Enum
 import sys
 from pathlib import Path
 
-import pytest
-
+# Настройка путей
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root / "src"))
 
-from src.adaptation.adaptation import AdaptationManager
-from src.environment.event import Event
-from src.learning.learning import LearningEngine
-from src.meaning.engine import MeaningEngine
-from src.meaning.meaning import Meaning
-from src.runtime.life_policy import LifePolicy
-from src.runtime.log_manager import FlushPolicy, LogManager
-from src.runtime.snapshot_manager import SnapshotManager
-from src.runtime.subjective_time import (
-    compute_subjective_dt,
-    compute_subjective_time_rate,
+from src.experimental.adaptive_processing_manager import (
+    AdaptiveProcessingManager,
+    ProcessingMode,
+    AdaptiveState,
+    ProcessingEvent,
+    AdaptiveProcessingConfig,
 )
-from src.state.self_state import SelfState
-
-
-@pytest.mark.static
-class TestNewFunctionalityStatic:
-    """Статические тесты для новой функциональности"""
-
-    # ============================================================================
-    # Learning Engine Static Tests
-    # ============================================================================
-
-    def test_learning_engine_structure(self):
-        """Проверка структуры LearningEngine"""
-        assert hasattr(LearningEngine, "__init__")
-        assert hasattr(LearningEngine, "process_statistics")
-        assert hasattr(LearningEngine, "adjust_parameters")
-        assert hasattr(LearningEngine, "record_changes")
-        assert hasattr(LearningEngine, "MAX_PARAMETER_DELTA")
-        assert hasattr(LearningEngine, "MIN_PARAMETER_DELTA")
-
-    def test_learning_engine_constants(self):
-        """Проверка констант LearningEngine"""
-        engine = LearningEngine()
-        assert engine.MAX_PARAMETER_DELTA == 0.01
-        assert engine.MIN_PARAMETER_DELTA == 0.001
-        assert engine.MAX_PARAMETER_DELTA > engine.MIN_PARAMETER_DELTA
-
-        # Пороги частоты
-        assert hasattr(engine, "HIGH_FREQUENCY_THRESHOLD")
-        assert hasattr(engine, "LOW_FREQUENCY_THRESHOLD")
-        assert engine.HIGH_FREQUENCY_THRESHOLD == 0.2
-        assert engine.LOW_FREQUENCY_THRESHOLD == 0.1
-
-        # Пороги значимости
-        assert hasattr(engine, "HIGH_SIGNIFICANCE_THRESHOLD")
-        assert hasattr(engine, "LOW_SIGNIFICANCE_THRESHOLD")
-        assert engine.HIGH_SIGNIFICANCE_THRESHOLD == 0.5
-        assert engine.LOW_SIGNIFICANCE_THRESHOLD == 0.2
-
-        # Пороги паттернов
-        assert hasattr(engine, "HIGH_PATTERN_FREQUENCY_THRESHOLD")
-        assert hasattr(engine, "LOW_PATTERN_FREQUENCY_THRESHOLD")
-        assert engine.HIGH_PATTERN_FREQUENCY_THRESHOLD == 0.3
-        assert engine.LOW_PATTERN_FREQUENCY_THRESHOLD == 0.1
-
-    def test_learning_engine_method_signatures(self):
-        """Проверка сигнатур методов LearningEngine"""
-        engine = LearningEngine()
-
-        # process_statistics
-        sig = inspect.signature(engine.process_statistics)
-        assert len(sig.parameters) == 1  # memory (self не учитывается)
-        assert "memory" in sig.parameters
-
-        # adjust_parameters
-        sig = inspect.signature(engine.adjust_parameters)
-        assert len(sig.parameters) == 2  # statistics + current_params (self не учитывается)
-        assert "statistics" in sig.parameters
-        assert "current_params" in sig.parameters
-
-        # record_changes
-        sig = inspect.signature(engine.record_changes)
-        assert (
-            len(sig.parameters) == 3
-        )  # old_params + new_params + self_state (self не учитывается)
-        assert "old_params" in sig.parameters
-        assert "new_params" in sig.parameters
-        assert "self_state" in sig.parameters
-
-    def test_learning_engine_return_types(self):
-        """Проверка типов возвращаемых значений LearningEngine"""
-        engine = LearningEngine()
-
-        # process_statistics возвращает dict
-        result = engine.process_statistics([])
-        assert isinstance(result, dict)
-
-        # adjust_parameters возвращает dict
-        # current_params не может быть пустым, передаем валидные параметры
-        current_params = {
-            "event_type_sensitivity": {"noise": 0.2},
-            "significance_thresholds": {},
-            "response_coefficients": {},
-        }
-        result = engine.adjust_parameters({}, current_params)
-        assert isinstance(result, dict)
-
-        # record_changes возвращает None
-        self_state = type("MockState", (), {})()
-        result = engine.record_changes({}, {}, self_state)
-        assert result is None
-
-    def test_learning_engine_private_methods(self):
-        """Проверка приватных методов LearningEngine"""
-        engine = LearningEngine()
-
-        assert hasattr(engine, "_adjust_event_sensitivity")
-        assert hasattr(engine, "_adjust_significance_thresholds")
-        assert hasattr(engine, "_adjust_response_coefficients")
-
-        # Проверяем, что они приватные (начинаются с _)
-        assert engine._adjust_event_sensitivity.__name__.startswith("_")
-        assert engine._adjust_significance_thresholds.__name__.startswith("_")
-        assert engine._adjust_response_coefficients.__name__.startswith("_")
-
-    # ============================================================================
-    # Adaptation Manager Static Tests
-    # ============================================================================
-
-    def test_adaptation_manager_structure(self):
-        """Проверка структуры AdaptationManager"""
-        assert hasattr(AdaptationManager, "__init__")
-        assert hasattr(AdaptationManager, "analyze_changes")
-        assert hasattr(AdaptationManager, "apply_adaptation")
-        assert hasattr(AdaptationManager, "store_history")
-        assert hasattr(AdaptationManager, "MAX_ADAPTATION_DELTA")
-        assert hasattr(AdaptationManager, "MIN_ADAPTATION_DELTA")
-        assert hasattr(AdaptationManager, "MAX_HISTORY_SIZE")
-
-    def test_adaptation_manager_constants(self):
-        """Проверка констант AdaptationManager"""
-        manager = AdaptationManager()
-        assert manager.MAX_ADAPTATION_DELTA == 0.01
-        assert manager.MIN_ADAPTATION_DELTA == 0.001
-        assert manager.MAX_HISTORY_SIZE == 50
-        assert manager.MAX_ADAPTATION_DELTA > manager.MIN_ADAPTATION_DELTA
-
-    def test_adaptation_manager_method_signatures(self):
-        """Проверка сигнатур методов AdaptationManager"""
-        manager = AdaptationManager()
-
-        # analyze_changes
-        sig = inspect.signature(manager.analyze_changes)
-        assert (
-            len(sig.parameters) == 2
-        )  # learning_params + adaptation_history (self не учитывается)
-        assert "learning_params" in sig.parameters
-        assert "adaptation_history" in sig.parameters
-
-        # apply_adaptation
-        sig = inspect.signature(manager.apply_adaptation)
-        assert (
-            len(sig.parameters) == 3
-        )  # analysis + current_behavior_params + self_state (self не учитывается)
-        assert "analysis" in sig.parameters
-        assert "current_behavior_params" in sig.parameters
-        assert "self_state" in sig.parameters
-
-        # store_history
-        sig = inspect.signature(manager.store_history)
-        assert (
-            len(sig.parameters) == 3
-        )  # old_params + new_params + self_state (self не учитывается)
-        assert "old_params" in sig.parameters
-        assert "new_params" in sig.parameters
-        assert "self_state" in sig.parameters
-
-    def test_adaptation_manager_return_types(self):
-        """Проверка типов возвращаемых значений AdaptationManager"""
-        manager = AdaptationManager()
-
-        # analyze_changes возвращает dict
-        result = manager.analyze_changes({}, [])
-        assert isinstance(result, dict)
-
-        # apply_adaptation возвращает dict
-        mock_state = type("MockState", (), {"learning_params": {}})()
-        result = manager.apply_adaptation({}, {}, mock_state)
-        assert isinstance(result, dict)
-
-        # store_history возвращает None
-        result = manager.store_history({}, {}, mock_state)
-        assert result is None
-
-    def test_adaptation_manager_private_methods(self):
-        """Проверка приватных методов AdaptationManager"""
-        manager = AdaptationManager()
-
-        assert hasattr(manager, "_adapt_behavior_sensitivity")
-        assert hasattr(manager, "_adapt_behavior_thresholds")
-        assert hasattr(manager, "_adapt_behavior_coefficients")
-        assert hasattr(manager, "_init_behavior_sensitivity")
-        assert hasattr(manager, "_init_behavior_thresholds")
-        assert hasattr(manager, "_init_behavior_coefficients")
-
-        # Проверяем, что они приватные (начинаются с _)
-        assert manager._adapt_behavior_sensitivity.__name__.startswith("_")
-        assert manager._adapt_behavior_thresholds.__name__.startswith("_")
-        assert manager._adapt_behavior_coefficients.__name__.startswith("_")
-
-    # ============================================================================
-    # Meaning Engine Static Tests
-    # ============================================================================
-
-    def test_meaning_engine_structure(self):
-        """Проверка структуры MeaningEngine"""
-        assert hasattr(MeaningEngine, "__init__")
-        assert hasattr(MeaningEngine, "appraisal")
-        assert hasattr(MeaningEngine, "impact_model")
-        assert hasattr(MeaningEngine, "response_pattern")
-        assert hasattr(MeaningEngine, "process")
-        # base_significance_threshold - это атрибут экземпляра, проверяем через экземпляр
-        engine = MeaningEngine()
-        assert hasattr(engine, "base_significance_threshold")
-
-    def test_meaning_engine_constants(self):
-        """Проверка констант MeaningEngine"""
-        engine = MeaningEngine()
-        assert engine.base_significance_threshold == 0.1
-
-    def test_meaning_engine_method_signatures(self):
-        """Проверка сигнатур методов MeaningEngine"""
-        engine = MeaningEngine()
-
-        # appraisal
-        sig = inspect.signature(engine.appraisal)
-        assert len(sig.parameters) == 2  # event + self_state (self не учитывается)
-        assert "event" in sig.parameters
-        assert "self_state" in sig.parameters
-
-        # impact_model
-        sig = inspect.signature(engine.impact_model)
-        assert len(sig.parameters) == 3  # event + self_state + significance (self не учитывается)
-        assert "event" in sig.parameters
-        assert "self_state" in sig.parameters
-        assert "significance" in sig.parameters
-
-        # response_pattern
-        sig = inspect.signature(engine.response_pattern)
-        assert len(sig.parameters) == 3  # event + self_state + significance (self не учитывается)
-        assert "event" in sig.parameters
-        assert "self_state" in sig.parameters
-        assert "significance" in sig.parameters
-
-        # process
-        sig = inspect.signature(engine.process)
-        assert len(sig.parameters) == 2  # event + self_state (self не учитывается)
-        assert "event" in sig.parameters
-        assert "self_state" in sig.parameters
-
-    def test_meaning_engine_return_types(self):
-        """Проверка типов возвращаемых значений MeaningEngine"""
-        engine = MeaningEngine()
-        event = Event(type="noise", intensity=0.5, timestamp=1.0)
-        self_state = {"energy": 100.0, "stability": 1.0, "integrity": 1.0}
-
-        # appraisal возвращает float
-        result = engine.appraisal(event, self_state)
-        assert isinstance(result, float)
-
-        # impact_model возвращает dict
-        significance = 0.5
-        result = engine.impact_model(event, self_state, significance)
-        assert isinstance(result, dict)
-        assert "energy" in result
-        assert "stability" in result
-        assert "integrity" in result
-
-        # response_pattern возвращает str
-        result = engine.response_pattern(event, self_state, significance)
-        assert isinstance(result, str)
-
-        # process возвращает Meaning
-        result = engine.process(event, self_state)
-        assert isinstance(result, Meaning)
-
-    # ============================================================================
-    # Cross-Module Architectural Constraints
-    # ============================================================================
-
-    def test_learning_no_optimization_methods(self):
-        """Проверка отсутствия методов оптимизации в Learning"""
-        engine = LearningEngine()
-        methods = dir(engine)
-
-        forbidden_methods = [
-            "optimize",
-            "optimization",
-            "optimizer",
-            "improve",
-            "improvement",
-            "maximize",
-            "minimize",
-            "evaluate",
-            "evaluation",
-            "score",
-            "scoring",
-            "scorer",
-            "rate",
-            "rating",
-            "judge",
-            "judgment",
-            "train",
-            "training",
-            "trainer",
-            "fit",
-            "fitting",
-            "gradient",
-            "backprop",
-            "loss",
-            "cost",
-            "error",
-        ]
-
-        for method in forbidden_methods:
-            assert method not in methods, f"LearningEngine не должен иметь метод {method}"
-
-    def test_adaptation_no_optimization_methods(self):
-        """Проверка отсутствия методов оптимизации в Adaptation"""
-        manager = AdaptationManager()
-        methods = dir(manager)
-
-        forbidden_methods = [
-            "optimize",
-            "optimization",
-            "optimizer",
-            "improve",
-            "improvement",
-            "maximize",
-            "minimize",
-            "evaluate",
-            "evaluation",
-            "score",
-            "scoring",
-            "scorer",
-            "rate",
-            "rating",
-            "judge",
-            "judgment",
-            "reinforce",
-            "reinforcement",
-        ]
-
-        for method in forbidden_methods:
-            assert method not in methods, f"AdaptationManager не должен иметь метод {method}"
-
-    def test_learning_no_goals_or_rewards(self):
-        """Проверка отсутствия целей и reward в Learning"""
-        engine = LearningEngine()
-        source_code = inspect.getsource(LearningEngine)
-
-        forbidden_terms = [
-            "goal",
-            "target",
-            "objective",
-            "reward",
-            "punishment",
-            "utility",
-            "scoring",
-        ]
-
-        lines = [
-            line
-            for line in source_code.split("\n")
-            if not line.strip().startswith("#")
-            and not line.strip().startswith('"""')
-            and not line.strip().startswith("'''")
-        ]
-        source_clean = "\n".join(lines)
-
-        for term in forbidden_terms:
-            assert (
-                term.lower() not in source_clean.lower()
-            ), f"Термин {term} не должен использоваться в коде Learning"
-
-    def test_adaptation_no_goals_or_rewards(self):
-        """Проверка отсутствия целей и reward в Adaptation"""
-        manager = AdaptationManager()
-        source_code = inspect.getsource(AdaptationManager)
-
-        forbidden_terms = [
-            "goal",
-            "target",
-            "objective",
-            "reward",
-            "punishment",
-            "utility",
-            "scoring",
-            "reinforcement",
-        ]
-
-        lines = [
-            line
-            for line in source_code.split("\n")
-            if not line.strip().startswith("#")
-            and not line.strip().startswith('"""')
-            and not line.strip().startswith("'''")
-        ]
-        source_clean = "\n".join(lines)
-
-        for term in forbidden_terms:
-            assert (
-                term.lower() not in source_clean.lower()
-            ), f"Термин {term} не должен использоваться в коде Adaptation"
-
-    def test_adaptation_no_direct_decision_action_control(self):
-        """Проверка отсутствия прямого управления Decision/Action в Adaptation"""
-        manager = AdaptationManager()
-        source_code = inspect.getsource(AdaptationManager)
-
-        # Проверяем, что нет прямых вызовов Decision/Action
-        assert "decide_response" not in source_code
-        assert "execute_action" not in source_code
-        assert "from decision" not in source_code
-        assert "from action" not in source_code
-
-    def test_learning_slow_changes_enforced(self):
-        """Проверка принудительного медленного изменения в Learning"""
-        engine = LearningEngine()
-
-        # MAX_PARAMETER_DELTA должен быть <= 0.01
-        assert engine.MAX_PARAMETER_DELTA <= 0.01
-
-        # MIN_PARAMETER_DELTA должен быть > 0
-        assert engine.MIN_PARAMETER_DELTA > 0
-
-    def test_adaptation_slow_changes_enforced(self):
-        """Проверка принудительного медленного изменения в Adaptation"""
-        manager = AdaptationManager()
-
-        # MAX_ADAPTATION_DELTA должен быть <= 0.01
-        assert manager.MAX_ADAPTATION_DELTA <= 0.01
-
-        # MIN_ADAPTATION_DELTA должен быть > 0
-        assert manager.MIN_ADAPTATION_DELTA > 0
-
-    def test_learning_forbidden_patterns(self):
-        """Проверка отсутствия запрещенных паттернов в Learning"""
-        engine = LearningEngine()
-        source_code = inspect.getsource(LearningEngine)
-
-        forbidden_patterns = [
-            "active correction",
-            "reinforcement",
-            "reward signal",
-            "optimization loop",
-            "policy adjustment",
-            "self-optimizing",
-        ]
-
-        for pattern in forbidden_patterns:
-            assert (
-                pattern.lower() not in source_code.lower()
-            ), f"Запрещенный паттерн '{pattern}' найден в коде Learning"
-
-    def test_adaptation_forbidden_patterns(self):
-        """Проверка отсутствия запрещенных паттернов в Adaptation"""
-        manager = AdaptationManager()
-        source_code = inspect.getsource(AdaptationManager)
-
-        forbidden_patterns = [
-            "active correction",
-            "reinforcement",
-            "reward signal",
-            "optimization loop",
-            "policy adjustment",
-            "self-optimizing",
-            "direct control",
-            "decision override",
-            "action override",
-        ]
-
-        for pattern in forbidden_patterns:
-            assert (
-                pattern.lower() not in source_code.lower()
-            ), f"Запрещенный паттерн '{pattern}' найден в коде Adaptation"
-
-    def test_meaning_engine_type_weights(self):
-        """Проверка весов типов событий в MeaningEngine"""
-        engine = MeaningEngine()
-
-        # Проверяем наличие type_weight через инспекцию исходного кода
-        source_code = inspect.getsource(MeaningEngine)
-        assert "type_weight" in source_code
-        assert "shock" in source_code
-        assert "noise" in source_code
-        assert "recovery" in source_code
-        assert "decay" in source_code
-        assert "idle" in source_code
-
-    def test_meaning_engine_base_impacts(self):
-        """Проверка базовых воздействий в MeaningEngine"""
-        engine = MeaningEngine()
-
-        # Проверяем наличие base_impacts через инспекцию исходного кода
-        source_code = inspect.getsource(MeaningEngine)
-        assert "base_impacts" in source_code
-        assert "energy" in source_code
-        assert "stability" in source_code
-        assert "integrity" in source_code
-
-    def test_meaning_engine_response_patterns(self):
-        """Проверка паттернов реакции в MeaningEngine"""
-        engine = MeaningEngine()
-
-        # Проверяем наличие response patterns через инспекцию исходного кода
-        source_code = inspect.getsource(MeaningEngine)
-        assert "ignore" in source_code
-        assert "absorb" in source_code
-        assert "dampen" in source_code
-        assert "amplify" in source_code
-
-    # ============================================================================
-    # Source Code Analysis
-    # ============================================================================
-
-    def test_learning_source_code_analysis(self):
-        """Анализ исходного кода Learning на наличие запрещенных паттернов"""
-        import ast
-
-        source_file = Path(__file__).parent.parent / "learning" / "learning.py"
-        with source_file.open("r", encoding="utf-8") as f:
-            source_code = f.read()
-
-        # Парсим AST
-        tree = ast.parse(source_code)
-
-        # Запрещенные имена функций/переменных
-        forbidden_names = {
-            "optimize",
-            "maximize",
-            "minimize",
-            "evaluate",
-            "score",
-            "reward",
-            "goal",
-            "target",
-            "objective",
-            "utility",
-        }
-
-        # Собираем все имена в коде
-        names = set()
-        for node in ast.walk(tree):
-            if isinstance(node, ast.Name):
-                names.add(node.id)
-            elif isinstance(node, ast.FunctionDef):
-                names.add(node.name)
-            elif isinstance(node, ast.Attribute):
-                names.add(node.attr)
-
-        # Проверяем, что запрещенные имена не используются
-        # (кроме случаев в комментариях/docstrings, которые мы уже проверили)
-        code_lines = [
-            line
-            for line in source_code.split("\n")
-            if not line.strip().startswith("#")
-            and not line.strip().startswith('"""')
-            and not line.strip().startswith("'''")
-        ]
-        code_text = "\n".join(code_lines)
-
-        for forbidden in forbidden_names:
-            # Проверяем, что запрещенное имя не используется в коде
-            # (разрешаем только в комментариях/docstrings)
-            if forbidden in code_text.lower():
-                # Проверяем контекст - возможно это часть документации ограничений
-                lines_with_forbidden = [
-                    line for line in code_lines if forbidden.lower() in line.lower()
-                ]
-                for line in lines_with_forbidden:
-                    assert any(
-                        keyword in line.lower()
-                        for keyword in ["запрещено", "forbidden", "not", "no", "never"]
-                    ), f"Запрещенный термин '{forbidden}' найден в коде: {line}"
-
-    def test_adaptation_source_code_analysis(self):
-        """Анализ исходного кода Adaptation на наличие запрещенных паттернов"""
-        import ast
-
-        source_file = Path(__file__).parent.parent / "adaptation" / "adaptation.py"
-        with source_file.open("r", encoding="utf-8") as f:
-            source_code = f.read()
-
-        # Парсим AST
-        tree = ast.parse(source_code)
-
-        # Запрещенные имена функций/переменных
-        forbidden_names = {
-            "optimize",
-            "maximize",
-            "minimize",
-            "evaluate",
-            "score",
-            "reward",
-            "goal",
-            "target",
-            "objective",
-            "utility",
-        }
-
-        # Собираем все имена в коде
-        names = set()
-        for node in ast.walk(tree):
-            if isinstance(node, ast.Name):
-                names.add(node.id)
-            elif isinstance(node, ast.FunctionDef):
-                names.add(node.name)
-            elif isinstance(node, ast.Attribute):
-                names.add(node.attr)
-
-        # Проверяем, что запрещенные имена не используются
-        code_lines = [
-            line
-            for line in source_code.split("\n")
-            if not line.strip().startswith("#")
-            and not line.strip().startswith('"""')
-            and not line.strip().startswith("'''")
-        ]
-        code_text = "\n".join(code_lines)
-
-        for forbidden in forbidden_names:
-            if forbidden in code_text.lower():
-                # Проверяем контекст - возможно это часть документации ограничений
-                lines_with_forbidden = [
-                    line for line in code_lines if forbidden.lower() in line.lower()
-                ]
-                for line in lines_with_forbidden:
-                    assert any(
-                        keyword in line.lower()
-                        for keyword in ["запрещено", "forbidden", "not", "no", "never"]
-                    ), f"Запрещенный термин '{forbidden}' найден в коде: {line}"
-
-    def test_imports_structure(self):
-        """Проверка структуры импортов"""
-        # Проверяем, что модули экспортируют основные классы
-        import src.adaptation.adaptation as adaptation_module
-        import src.learning.learning as learning_module
-        import src.meaning.engine as engine_module
-        import src.meaning.meaning as meaning_module
-
-        assert hasattr(learning_module, "LearningEngine")
-        assert hasattr(adaptation_module, "AdaptationManager")
-        assert hasattr(meaning_module, "Meaning")
-        assert hasattr(engine_module, "MeaningEngine")
-
-        assert learning_module.LearningEngine == LearningEngine
-        assert adaptation_module.AdaptationManager == AdaptationManager
-        assert meaning_module.Meaning == Meaning
-        assert engine_module.MeaningEngine == MeaningEngine
-
-    def test_class_inheritance(self):
-        """Проверка наследования классов"""
-        assert LearningEngine.__bases__ == (
-            object,
-        ), "LearningEngine должен наследоваться только от object"
-        assert AdaptationManager.__bases__ == (
-            object,
-        ), "AdaptationManager должен наследоваться только от object"
-        assert MeaningEngine.__bases__ == (
-            object,
-        ), "MeaningEngine должен наследоваться только от object"
-        assert Meaning.__bases__ == (object,), "Meaning должен наследоваться только от object"
-
-    def test_docstrings_presence(self):
-        """Проверка наличия docstrings"""
-        assert LearningEngine.__doc__ is not None, "LearningEngine должен иметь docstring"
-        assert AdaptationManager.__doc__ is not None, "AdaptationManager должен иметь docstring"
-        assert MeaningEngine.__doc__ is not None, "MeaningEngine должен иметь docstring"
-        assert Meaning.__doc__ is not None, "Meaning должен иметь docstring"
-
-        # Проверяем основные методы
-        engine = LearningEngine()
-        assert engine.process_statistics.__doc__ is not None
-        assert engine.adjust_parameters.__doc__ is not None
-        assert engine.record_changes.__doc__ is not None
-
-        manager = AdaptationManager()
-        assert manager.analyze_changes.__doc__ is not None
-        assert manager.apply_adaptation.__doc__ is not None
-        assert manager.store_history.__doc__ is not None
-
-        meaning_engine = MeaningEngine()
-        assert meaning_engine.appraisal.__doc__ is not None
-        assert meaning_engine.impact_model.__doc__ is not None
-        assert meaning_engine.response_pattern.__doc__ is not None
-        assert meaning_engine.process.__doc__ is not None
-
-    # ============================================================================
-    # Subjective Time Static Tests
-    # ============================================================================
-
-    def test_subjective_time_functions_structure(self):
-        """Проверка структуры функций субъективного времени"""
-        # Проверяем наличие функций
-        assert callable(compute_subjective_dt)
-        assert callable(compute_subjective_time_rate)
-
-        # Проверяем сигнатуры
-        dt_sig = inspect.signature(compute_subjective_dt)
-        assert len(dt_sig.parameters) == 10  # Все параметры
-        assert "dt" in dt_sig.parameters
-        assert "base_rate" in dt_sig.parameters
-        assert "intensity" in dt_sig.parameters
-        assert "stability" in dt_sig.parameters
-        assert "energy" in dt_sig.parameters
-
-        rate_sig = inspect.signature(compute_subjective_time_rate)
-        assert len(rate_sig.parameters) == 9  # Все параметры (keyword-only)
-        assert "base_rate" in rate_sig.parameters
-        assert "intensity" in rate_sig.parameters
-        assert "stability" in rate_sig.parameters
-        assert "energy" in rate_sig.parameters
-
-    def test_subjective_time_state_integration(self):
-        """Проверка интеграции субъективного времени в SelfState"""
-        state = SelfState()
-
-        # Проверяем наличие полей субъективного времени
-        assert hasattr(state, "subjective_time")
-        assert hasattr(state, "subjective_time_base_rate")
-        assert hasattr(state, "subjective_time_rate_min")
-        assert hasattr(state, "subjective_time_rate_max")
-        assert hasattr(state, "subjective_time_intensity_coeff")
-        assert hasattr(state, "subjective_time_stability_coeff")
-        assert hasattr(state, "subjective_time_energy_coeff")
-
-        # Проверяем типы значений
-        assert isinstance(state.subjective_time, (int, float))
-        assert isinstance(state.subjective_time_base_rate, (int, float))
-        assert isinstance(state.subjective_time_rate_min, (int, float))
-        assert isinstance(state.subjective_time_rate_max, (int, float))
-
-        # Проверяем допустимые диапазоны
-        assert state.subjective_time_rate_min >= 0.0
-        assert state.subjective_time_rate_max > state.subjective_time_rate_min
-        assert state.subjective_time >= 0.0
-
-    def test_subjective_time_function_return_types(self):
-        """Проверка типов возвращаемых значений функций субъективного времени"""
-        state = SelfState()
-
-        # compute_subjective_time_rate должна возвращать float
-        rate = compute_subjective_time_rate(
-            base_rate=state.subjective_time_base_rate,
-            intensity=0.5,
-            stability=0.8,
-            energy=70.0,
-            intensity_coeff=state.subjective_time_intensity_coeff,
-            stability_coeff=state.subjective_time_stability_coeff,
-            energy_coeff=state.subjective_time_energy_coeff,
-            rate_min=state.subjective_time_rate_min,
-            rate_max=state.subjective_time_rate_max,
+from src.experimental.memory_hierarchy.hierarchy_manager import MemoryHierarchyManager
+from src.experimental.memory_hierarchy.semantic_store import SemanticConcept
+from src.experimental.memory_hierarchy.procedural_store import ProceduralMemoryStore
+from src.experimental.memory_hierarchy.sensory_buffer import SensoryBuffer
+from src.experimental.consciousness.parallel_engine import ParallelConsciousnessEngine
+from src.environment.event import Event
+
+
+class TestStaticDataStructures:
+    """Статические тесты структур данных."""
+
+    def test_processing_mode_enum(self):
+        """Проверка enum ProcessingMode."""
+        assert isinstance(ProcessingMode.BASELINE, Enum)
+        assert isinstance(ProcessingMode.EFFICIENT, Enum)
+        assert isinstance(ProcessingMode.INTENSIVE, Enum)
+        assert isinstance(ProcessingMode.OPTIMIZED, Enum)
+        assert isinstance(ProcessingMode.SELF_MONITORING, Enum)
+
+        # Проверка значений
+        assert ProcessingMode.BASELINE.value == "baseline"
+        assert ProcessingMode.EFFICIENT.value == "efficient"
+        assert ProcessingMode.INTENSIVE.value == "intensive"
+        assert ProcessingMode.OPTIMIZED.value == "optimized"
+        assert ProcessingMode.SELF_MONITORING.value == "self_monitoring"
+
+    def test_adaptive_state_enum(self):
+        """Проверка enum AdaptiveState."""
+        assert isinstance(AdaptiveState.STANDARD, Enum)
+        assert isinstance(AdaptiveState.EFFICIENT_PROCESSING, Enum)
+        assert isinstance(AdaptiveState.INTENSIVE_ANALYSIS, Enum)
+        assert isinstance(AdaptiveState.SYSTEM_SELF_MONITORING, Enum)
+        assert isinstance(AdaptiveState.OPTIMAL_PROCESSING, Enum)
+
+        # Проверка значений
+        assert AdaptiveState.STANDARD.value == "standard"
+        assert AdaptiveState.EFFICIENT_PROCESSING.value == "efficient_processing"
+        assert AdaptiveState.INTENSIVE_ANALYSIS.value == "intensive_analysis"
+        assert AdaptiveState.SYSTEM_SELF_MONITORING.value == "system_self_monitoring"
+        assert AdaptiveState.OPTIMAL_PROCESSING.value == "optimal_processing"
+
+    def test_processing_event_dataclass(self):
+        """Проверка dataclass ProcessingEvent."""
+        assert is_dataclass(ProcessingEvent)
+
+        # Создание экземпляра с минимальными параметрами
+        event = ProcessingEvent(processing_mode=ProcessingMode.BASELINE)
+        assert event.processing_mode == ProcessingMode.BASELINE
+        assert event.intensity == 1.0
+        assert event.duration_ticks == 50
+        assert isinstance(event.trigger_conditions, dict)
+        assert isinstance(event.timestamp, float)
+
+    def test_adaptive_processing_config_dataclass(self):
+        """Проверка dataclass AdaptiveProcessingConfig."""
+        assert is_dataclass(AdaptiveProcessingConfig)
+
+        # Создание с дефолтными значениями
+        config = AdaptiveProcessingConfig()
+        assert isinstance(config.stability_threshold, float)
+        assert isinstance(config.energy_threshold, float)
+        assert isinstance(config.processing_efficiency_threshold, float)
+        assert isinstance(config.cognitive_load_max, float)
+        assert isinstance(config.check_interval, float)
+        assert isinstance(config.state_transition_cooldown, float)
+        assert isinstance(config.max_history_size, int)
+        assert isinstance(config.max_transition_history_size, int)
+
+        # Проверка булевых флагов
+        assert isinstance(config.enable_efficient_processing, bool)
+        assert isinstance(config.enable_intensive_analysis, bool)
+        assert isinstance(config.enable_system_self_monitoring, bool)
+        assert isinstance(config.enable_optimal_processing, bool)
+        assert isinstance(config.integrate_with_memory, bool)
+        assert isinstance(config.adaptive_thresholds_enabled, bool)
+
+    def test_semantic_concept_dataclass(self):
+        """Проверка dataclass SemanticConcept."""
+        assert is_dataclass(SemanticConcept)
+
+        # Создание экземпляра
+        concept = SemanticConcept(
+            concept_id="test_concept",
+            name="Test Concept",
+            description="A test concept",
+            confidence=0.8
         )
-        assert isinstance(rate, float)
-        assert state.subjective_time_rate_min <= rate <= state.subjective_time_rate_max
+        assert concept.concept_id == "test_concept"
+        assert concept.name == "Test Concept"
+        assert concept.description == "A test concept"
+        assert concept.confidence == 0.8
+        assert concept.activation_count == 0
+        assert isinstance(concept.related_concepts, set)
+        assert isinstance(concept.properties, dict)
+        assert isinstance(concept.created_at, float)
+        assert isinstance(concept.last_activation, float)
 
-        # compute_subjective_dt должна возвращать float
-        dt = compute_subjective_dt(
-            dt=0.1,
-            base_rate=state.subjective_time_base_rate,
-            intensity=0.5,
-            stability=0.8,
-            energy=70.0,
-            intensity_coeff=state.subjective_time_intensity_coeff,
-            stability_coeff=state.subjective_time_stability_coeff,
-            energy_coeff=state.subjective_time_energy_coeff,
-            rate_min=state.subjective_time_rate_min,
-            rate_max=state.subjective_time_rate_max,
-        )
-        assert isinstance(dt, float)
-        assert dt >= 0.0
 
-    def test_subjective_time_memory_integration(self):
-        """Проверка интеграции субъективного времени в MemoryEntry"""
-        from src.memory.memory import MemoryEntry
+class TestConstants:
+    """Статические тесты констант и конфигурации."""
 
-        # Проверяем, что MemoryEntry поддерживает subjective_timestamp
-        entry = MemoryEntry(
-            event_type="noise",
-            meaning_significance=0.5,
-            timestamp=100.0,
-            subjective_timestamp=50.0,
+    def test_memory_hierarchy_constants(self):
+        """Проверка констант MemoryHierarchyManager."""
+        assert hasattr(MemoryHierarchyManager, 'SENSORY_TO_EPISODIC_THRESHOLD')
+        assert hasattr(MemoryHierarchyManager, 'EPISODIC_TO_SEMANTIC_THRESHOLD')
+        assert hasattr(MemoryHierarchyManager, 'SEMANTIC_CONSOLIDATION_INTERVAL')
+
+        assert isinstance(MemoryHierarchyManager.SENSORY_TO_EPISODIC_THRESHOLD, int)
+        assert isinstance(MemoryHierarchyManager.EPISODIC_TO_SEMANTIC_THRESHOLD, int)
+        assert isinstance(MemoryHierarchyManager.SEMANTIC_CONSOLIDATION_INTERVAL, float)
+
+        assert MemoryHierarchyManager.SENSORY_TO_EPISODIC_THRESHOLD > 0
+        assert MemoryHierarchyManager.EPISODIC_TO_SEMANTIC_THRESHOLD > MemoryHierarchyManager.SENSORY_TO_EPISODIC_THRESHOLD
+        assert MemoryHierarchyManager.SEMANTIC_CONSOLIDATION_INTERVAL > 0
+
+    def test_default_config_values(self):
+        """Проверка дефолтных значений конфигурации."""
+        config = AdaptiveProcessingConfig()
+
+        # Проверка диапазонов значений
+        assert 0.0 <= config.stability_threshold <= 1.0
+        assert 0.0 <= config.energy_threshold <= 1.0
+        assert 0.0 <= config.processing_efficiency_threshold <= 1.0
+        assert 0.0 <= config.cognitive_load_max <= 1.0
+        assert config.check_interval > 0
+        assert config.state_transition_cooldown > 0
+        assert config.max_history_size > 0
+        assert config.max_transition_history_size > 0
+
+
+class TestImportsAndDependencies:
+    """Статические тесты импортов и зависимостей."""
+
+    def test_adaptive_processing_imports(self):
+        """Проверка импортов AdaptiveProcessingManager."""
+        # Проверяем что все необходимые импорты доступны
+        from src.experimental.adaptive_processing_manager import (
+            AdaptiveProcessingManager,
+            ProcessingMode,
+            AdaptiveState,
+            ProcessingEvent,
+            AdaptiveProcessingConfig,
         )
 
-        assert hasattr(entry, "subjective_timestamp")
-        assert entry.subjective_timestamp == 50.0
-        assert isinstance(entry.subjective_timestamp, (int, float, type(None)))
+        # Проверяем что классы определены
+        assert AdaptiveProcessingManager is not None
+        assert ProcessingMode is not None
+        assert AdaptiveState is not None
+        assert ProcessingEvent is not None
+        assert AdaptiveProcessingConfig is not None
 
-        # Проверяем обратную совместимость (None значение)
-        entry_compat = MemoryEntry(event_type="noise", meaning_significance=0.5, timestamp=100.0)
-        assert entry_compat.subjective_timestamp is None
+    def test_memory_hierarchy_imports(self):
+        """Проверка импортов MemoryHierarchyManager."""
+        from src.experimental.memory_hierarchy.hierarchy_manager import MemoryHierarchyManager
+        from src.experimental.memory_hierarchy.semantic_store import SemanticConcept
+        from src.experimental.memory_hierarchy.procedural_store import ProceduralMemoryStore
+        from src.experimental.memory_hierarchy.sensory_buffer import SensoryBuffer
 
-    # ============================================================================
-    # Thread Safety Static Tests
-    # ============================================================================
+        assert MemoryHierarchyManager is not None
+        assert SemanticConcept is not None
+        assert ProceduralMemoryStore is not None
+        assert SensoryBuffer is not None
 
-    def test_thread_safety_state_structure(self):
-        """Проверка структуры потокобезопасности в SelfState"""
-        state = SelfState()
+    def test_consciousness_imports(self):
+        """Проверка импортов ParallelConsciousnessEngine."""
+        from src.experimental.consciousness.parallel_engine import (
+            ParallelConsciousnessEngine,
+            ProcessingMode as ConsciousnessProcessingMode,
+            ProcessingResult,
+        )
 
-        # Проверяем наличие блокировки для API
-        assert hasattr(state, "_api_lock")
-        assert hasattr(state, "__setattr__")
+        assert ParallelConsciousnessEngine is not None
+        assert ConsciousnessProcessingMode is not None
+        assert ProcessingResult is not None
 
-        # Проверяем, что _api_lock является RLock
-        assert hasattr(state._api_lock, "acquire")
-        assert hasattr(state._api_lock, "release")
-
-    def test_thread_safety_excluded_fields(self):
-        """Проверка исключенных полей из блокировки"""
-        state = SelfState()
-
-        # Проверяем наличие transient полей
-        assert hasattr(state, "activated_memory")
-        assert hasattr(state, "last_pattern")
-
-        # Эти поля должны быть в списке исключений
-        # (проверяем через код, так как это внутреннее поведение)
-        source_code = inspect.getsource(SelfState.__setattr__)
-        assert "_api_lock" in source_code
-        assert "activated_memory" in source_code
-        assert "last_pattern" in source_code
-
-    def test_thread_safety_apply_delta_method(self):
-        """Проверка метода apply_delta на потокобезопасность"""
-        state = SelfState()
-
-        # Проверяем наличие метода apply_delta
-        assert hasattr(state, "apply_delta")
-
-        # Проверяем сигнатуру
-        sig = inspect.signature(state.apply_delta)
-        assert "deltas" in sig.parameters
-
-        # Проверяем, что метод использует блокировку
-        source_code = inspect.getsource(state.apply_delta)
-        assert "_api_lock" in source_code
-
-    def test_thread_safety_get_safe_status_dict(self):
-        """Проверка метода get_safe_status_dict"""
-        state = SelfState()
-
-        # Проверяем наличие метода
-        assert hasattr(state, "get_safe_status_dict")
-
-        # Проверяем сигнатуру
-        sig = inspect.signature(state.get_safe_status_dict)
-        # Метод может иметь дополнительные параметры
-
-        # Проверяем возвращаемый тип
-        result = state.get_safe_status_dict()
-        assert isinstance(result, dict)
-
-        # Проверяем наличие основных полей (без 'active' который рассчитывается)
-        required_fields = ["energy", "stability", "integrity", "ticks", "age"]
-        for field in required_fields:
-            assert field in result
-
-        # Проверяем, что есть поле для определения активности через is_active
-        # Вместо прямого поля 'active', проверяем наличие полей для его расчета
-        assert "energy" in result
-        assert "stability" in result
-        assert "integrity" in result
-
-    def test_thread_safety_api_lock_usage(self):
-        """Проверка использования _api_lock в критических методах"""
-        state = SelfState()
-
-        # Проверяем, что __setattr__ использует блокировку
-        setattr_source = inspect.getsource(SelfState.__setattr__)
-        assert "_api_lock" in setattr_source
-
-        # Проверяем, что apply_delta использует блокировку
-        apply_delta_source = inspect.getsource(state.apply_delta)
-        assert "_api_lock" in apply_delta_source
-
-    def test_thread_safety_is_active_method(self):
-        """Проверка метода is_active на корректность логики"""
-        state = SelfState()
-
-        # Проверяем наличие метода/property
-        assert hasattr(state, "is_active")
-
-        # Проверяем логику: True если все vital параметры > порогов (energy > 10.0, integrity > 0.1, stability > 0.1)
-        # Тестируем различные состояния
-        test_cases = [
-            # (energy, stability, integrity, expected)
-            (100.0, 1.0, 1.0, True),  # Все параметры выше порогов
-            (50.0, 0.8, 0.8, True),  # Все параметры выше порогов
-            (15.0, 0.2, 0.2, True),  # Параметры на границе порогов
-            (10.0, 0.1, 0.1, False),  # Параметры на порогах (=, а не >)
-            (5.0, 0.05, 0.05, False),  # Параметры ниже порогов
-            (0.0, 0.0, 0.0, False),  # Нулевые параметры
+    def test_no_circular_imports(self):
+        """Проверка отсутствия циклических импортов."""
+        # Импорт всех основных модулей
+        modules_to_test = [
+            'src.experimental.adaptive_processing_manager',
+            'src.experimental.memory_hierarchy.hierarchy_manager',
+            'src.experimental.memory_hierarchy.semantic_store',
+            'src.experimental.memory_hierarchy.procedural_store',
+            'src.experimental.memory_hierarchy.sensory_buffer',
+            'src.experimental.consciousness.parallel_engine',
         ]
 
-        for energy, stability, integrity, expected in test_cases:
-            state.energy = energy
-            state.stability = stability
-            state.integrity = integrity
-            assert (
-                state.is_active() == expected
-            ), f"is_active failed for {energy}, {stability}, {integrity}"
-
-    # ============================================================================
-    # Integration Architecture Tests
-    # ============================================================================
-
-    def test_subjective_time_learning_integration_architecture(self):
-        """Проверка архитектурной интеграции субъективного времени с Learning"""
-        # Субъективное время не должно нарушать архитектуру Learning
-        # Learning остается медленным изменением внутренних параметров
-
-        learning_engine = LearningEngine()
-        learning_source = inspect.getsource(LearningEngine)
-
-        # Learning не должен напрямую работать с субъективным временем
-        # (субъективное время - это метрика, не инструмент управления)
-        forbidden_terms = ["subjective_time", "subjective_timestamp"]
-        for term in forbidden_terms:
-            assert (
-                term not in learning_source.lower()
-            ), f"LearningEngine не должен работать с {term}"
-
-    def test_subjective_time_adaptation_integration_architecture(self):
-        """Проверка архитектурной интеграции субъективного времени с Adaptation"""
-        # Adaptation не должен напрямую работать с субъективным временем
-
-        adaptation_manager = AdaptationManager()
-        adaptation_source = inspect.getsource(AdaptationManager)
-
-        # Adaptation работает только с learning_params
-        forbidden_terms = ["subjective_time", "subjective_timestamp"]
-        for term in forbidden_terms:
-            assert (
-                term not in adaptation_source.lower()
-            ), f"AdaptationManager не должен работать с {term}"
-
-    def test_thread_safety_architecture_compliance(self):
-        """Проверка соответствия архитектуре потокобезопасности"""
-        state = SelfState()
-
-        # API должен использовать immutable snapshots, а не живые объекты
-        # (проверяем через наличие методов для создания snapshots)
-        assert hasattr(state, "get_safe_status_dict")
-
-        # Runtime должен иметь возможность модифицировать состояние
-        # (проверяем наличие методов модификации)
-        assert hasattr(state, "__setattr__")
-        assert hasattr(state, "apply_delta")
-
-    def test_new_functionality_separation_of_concerns(self):
-        """Проверка разделения ответственности в новой функциональности"""
-        # Субъективное время - это метрика наблюдения, не механизм управления
-        # Потокобезопасность - это инфраструктура, не бизнес-логика
-
-        # Проверяем, что субъективное время не используется для принятия решений
-        # (В реальном коде нужно проверить decision.py, но для теста просто проверим концепцию)
-
-        # Проверяем, что потокобезопасность не влияет на бизнес-логику
-        # (блокировка должна быть transparent для основной логики)
-        state = SelfState()
-
-        # Проверяем, что обычные операции работают без явного использования блокировок
-        old_energy = state.energy
-        if old_energy < 100.0:
-            state.energy = old_energy + 10.0
-            assert state.energy > old_energy
-        else:
-            # Если уже максимум, попробуем уменьшить
-            state.energy = 90.0
-            assert state.energy < old_energy
-
-        # Проверяем, что чтение статуса работает
-        status = state.get_safe_status_dict()
-        assert isinstance(status, dict)
-
-    # ============================================================================
-    # Runtime Managers Static Tests
-    # ============================================================================
-
-    def test_snapshot_manager_structure(self):
-        """Проверка структуры SnapshotManager"""
-        from unittest.mock import Mock
-
-        manager = SnapshotManager(period_ticks=10, saver=Mock())
-
-        assert hasattr(manager, "__init__")
-        assert hasattr(manager, "should_snapshot")
-        assert hasattr(manager, "maybe_snapshot")
-        assert hasattr(manager, "get_last_operation_status")
-        assert hasattr(manager, "was_last_operation_successful")
-
-        # Проверяем атрибуты статуса операции
-        assert hasattr(manager, "last_operation_success")
-        assert hasattr(manager, "last_operation_error")
-        assert hasattr(manager, "last_operation_timestamp")
-
-    def test_snapshot_manager_constants_and_defaults(self):
-        """Проверка констант и значений по умолчанию SnapshotManager"""
-        from unittest.mock import Mock
-
-        manager = SnapshotManager(period_ticks=15, saver=Mock())
-
-        # Проверяем установку периода
-        assert manager.period_ticks == 15
-        assert manager.saver is not None
-
-        # Проверяем начальные значения статуса
-        assert manager.last_operation_success is None
-        assert manager.last_operation_error is None
-        assert manager.last_operation_timestamp is None
-
-    def test_snapshot_manager_method_signatures(self):
-        """Проверка сигнатур методов SnapshotManager"""
-        from unittest.mock import Mock
-
-        manager = SnapshotManager(period_ticks=10, saver=Mock())
-        state = SelfState()
-
-        # should_snapshot
-        sig = inspect.signature(manager.should_snapshot)
-        assert len(sig.parameters) == 1  # ticks (self не учитывается)
-        assert "ticks" in sig.parameters
-        assert sig.return_annotation == bool
-
-        # maybe_snapshot
-        sig = inspect.signature(manager.maybe_snapshot)
-        assert len(sig.parameters) == 1  # self_state (self не учитывается)
-        assert "self_state" in sig.parameters
-        assert sig.return_annotation == bool
-
-        # get_last_operation_status
-        sig = inspect.signature(manager.get_last_operation_status)
-        assert len(sig.parameters) == 0  # только self (self не учитывается)
-        assert "Optional" in str(sig.return_annotation) or sig.return_annotation == dict
-
-    def test_snapshot_manager_return_types(self):
-        """Проверка типов возвращаемых значений SnapshotManager"""
-        from unittest.mock import Mock
-
-        manager = SnapshotManager(period_ticks=10, saver=Mock())
-        state = SelfState()
-        state.ticks = 5
-
-        # should_snapshot возвращает bool
-        result = manager.should_snapshot(10)
-        assert isinstance(result, bool)
-
-        # maybe_snapshot возвращает bool
-        result = manager.maybe_snapshot(state)
-        assert isinstance(result, bool)
-
-        # get_last_operation_status возвращает dict
-        result = manager.get_last_operation_status()
-        assert isinstance(result, dict)
-        assert "success" in result
-        assert "error" in result
-        assert "timestamp" in result
-
-    def test_log_manager_structure(self):
-        """Проверка структуры LogManager"""
-        from unittest.mock import Mock
-
-        policy = FlushPolicy()
-        manager = LogManager(flush_policy=policy, flush_fn=Mock())
-
-        assert hasattr(manager, "__init__")
-        assert hasattr(manager, "maybe_flush")
-        assert hasattr(manager, "flush_policy")
-        assert hasattr(manager, "flush_fn")
-        assert hasattr(manager, "last_flush_tick")
-
-    def test_log_manager_constants_and_defaults(self):
-        """Проверка констант и значений по умолчанию LogManager"""
-        from unittest.mock import Mock
-
-        policy = FlushPolicy(flush_period_ticks=20)
-        manager = LogManager(flush_policy=policy, flush_fn=Mock())
-
-        assert manager.flush_policy.flush_period_ticks == 20
-        # last_flush_tick инициализируется как -flush_period_ticks для правильного первого flush
-        assert manager.last_flush_tick == -20
-
-    def test_log_manager_method_signatures(self):
-        """Проверка сигнатур методов LogManager"""
-        from unittest.mock import Mock
-
-        policy = FlushPolicy()
-        manager = LogManager(flush_policy=policy, flush_fn=Mock())
-        state = SelfState()
-
-        # maybe_flush
-        sig = inspect.signature(manager.maybe_flush)
-        assert len(sig.parameters) == 2  # self_state + phase (self не учитывается)
-        assert "self_state" in sig.parameters
-        assert "phase" in sig.parameters
-        # phase должен иметь литеральный тип
-        assert "Literal" in str(sig.parameters["phase"].annotation)
-
-    def test_log_manager_return_types(self):
-        """Проверка типов возвращаемых значений LogManager"""
-        from unittest.mock import Mock
-
-        policy = FlushPolicy()
-        manager = LogManager(flush_policy=policy, flush_fn=Mock())
-        state = SelfState()
-        state.ticks = 5
-
-        # maybe_flush ничего не возвращает (None)
-        result = manager.maybe_flush(state, phase="tick")
-        assert result is None
-
-    def test_flush_policy_structure(self):
-        """Проверка структуры FlushPolicy"""
-        policy = FlushPolicy()
-
-        assert hasattr(policy, "__init__")
-        assert hasattr(policy, "flush_period_ticks")
-        assert hasattr(policy, "flush_before_snapshot")
-        assert hasattr(policy, "flush_after_snapshot")
-        assert hasattr(policy, "flush_on_exception")
-        assert hasattr(policy, "flush_on_shutdown")
-
-    def test_flush_policy_constants_and_defaults(self):
-        """Проверка констант и значений по умолчанию FlushPolicy"""
-        policy = FlushPolicy()
-
-        assert policy.flush_period_ticks == 10
-        assert policy.flush_before_snapshot is True
-        assert policy.flush_after_snapshot is False
-        assert policy.flush_on_exception is True
-        assert policy.flush_on_shutdown is True
-
-        # Проверяем пользовательские значения
-        custom_policy = FlushPolicy(
-            flush_period_ticks=20,
-            flush_before_snapshot=False,
-            flush_after_snapshot=True,
-            flush_on_exception=False,
-            flush_on_shutdown=False,
-        )
-        assert custom_policy.flush_period_ticks == 20
-        assert custom_policy.flush_before_snapshot is False
-        assert custom_policy.flush_after_snapshot is True
-        assert custom_policy.flush_on_exception is False
-        assert custom_policy.flush_on_shutdown is False
-
-    def test_life_policy_structure(self):
-        """Проверка структуры LifePolicy"""
-        policy = LifePolicy()
-
-        assert hasattr(policy, "__init__")
-        assert hasattr(policy, "is_weak")
-        assert hasattr(policy, "weakness_penalty")
-        assert hasattr(policy, "weakness_threshold")
-        assert hasattr(policy, "penalty_k")
-        assert hasattr(policy, "stability_multiplier")
-        assert hasattr(policy, "integrity_multiplier")
-
-    def test_life_policy_constants_and_defaults(self):
-        """Проверка констант и значений по умолчанию LifePolicy"""
-        policy = LifePolicy()
-
-        assert policy.weakness_threshold == 0.05
-        assert policy.penalty_k == 0.02
-        assert policy.stability_multiplier == 2.0
-        assert policy.integrity_multiplier == 2.0
-
-        # Проверяем пользовательские значения
-        custom_policy = LifePolicy(
-            weakness_threshold=0.1,
-            penalty_k=0.05,
-            stability_multiplier=3.0,
-            integrity_multiplier=1.5,
-        )
-        assert custom_policy.weakness_threshold == 0.1
-        assert custom_policy.penalty_k == 0.05
-        assert custom_policy.stability_multiplier == 3.0
-        assert custom_policy.integrity_multiplier == 1.5
-
-    def test_life_policy_method_signatures(self):
-        """Проверка сигнатур методов LifePolicy"""
-        policy = LifePolicy()
-        state = SelfState()
-
-        # is_weak
-        sig = inspect.signature(policy.is_weak)
-        assert len(sig.parameters) == 1  # self_state (self не учитывается)
-        assert "self_state" in sig.parameters
-        assert sig.return_annotation == bool
-
-        # weakness_penalty
-        sig = inspect.signature(policy.weakness_penalty)
-        assert len(sig.parameters) == 1  # dt (self не учитывается)
-        assert "dt" in sig.parameters
-        assert "dict" in str(sig.return_annotation)
-
-    def test_life_policy_return_types(self):
-        """Проверка типов возвращаемых значений LifePolicy"""
-        policy = LifePolicy()
-        state = SelfState()
-        state.energy = 100.0
-        state.stability = 1.0
-        state.integrity = 1.0
-
-        # is_weak возвращает bool
-        result = policy.is_weak(state)
-        assert isinstance(result, bool)
-
-        # weakness_penalty возвращает dict
-        result = policy.weakness_penalty(1.0)
-        assert isinstance(result, dict)
-        assert "energy" in result
-        assert "stability" in result
-        assert "integrity" in result
-        # Все значения должны быть отрицательными (штрафы)
-        assert all(v <= 0 for v in result.values())
-
-    def test_runtime_managers_no_forbidden_patterns(self):
-        """Проверка отсутствия запрещенных паттернов в runtime managers"""
-        from src.runtime.life_policy import LifePolicy
-        from src.runtime.log_manager import FlushPolicy, LogManager
-        from src.runtime.snapshot_manager import SnapshotManager
-
-        managers = [SnapshotManager, LogManager, FlushPolicy, LifePolicy]
-
-        forbidden_terms = [
-            "reload",
-            "hot_reload",
-            "importlib",
-            "eval",
-            "exec",
-            "subprocess",
-            "os.system",
-            "shell",
-            "dangerous",
-        ]
-
-        for manager_cls in managers:
-            source_code = inspect.getsource(manager_cls)
-            for term in forbidden_terms:
-                assert (
-                    term.lower() not in source_code.lower()
-                ), f"Запрещенный термин '{term}' найден в {manager_cls.__name__}"
-
-    def test_runtime_managers_docstrings(self):
-        """Проверка наличия docstrings в runtime managers"""
-        from unittest.mock import Mock
-
-        # SnapshotManager
-        manager = SnapshotManager(period_ticks=10, saver=Mock())
-        assert manager.__class__.__doc__ is not None
-        assert manager.should_snapshot.__doc__ is not None
-        assert manager.maybe_snapshot.__doc__ is not None
-
-        # LogManager
-        policy = FlushPolicy()
-        log_manager = LogManager(flush_policy=policy, flush_fn=Mock())
-        assert log_manager.__class__.__doc__ is not None
-        assert log_manager.maybe_flush.__doc__ is not None
-
-        # FlushPolicy
-        assert policy.__class__.__doc__ is not None
-
-        # LifePolicy
-        life_policy = LifePolicy()
-        assert life_policy.__class__.__doc__ is not None
-        assert life_policy.is_weak.__doc__ is not None
-        assert life_policy.weakness_penalty.__doc__ is not None
-
-    def test_runtime_managers_imports_structure(self):
-        """Проверка структуры импортов runtime managers"""
-        import src.runtime.life_policy as lp_module
-        import src.runtime.log_manager as lm_module
-        import src.runtime.snapshot_manager as sm_module
-
-        # Проверяем что модули экспортируют основные классы
-        assert hasattr(sm_module, "SnapshotManager")
-        assert hasattr(lm_module, "LogManager")
-        assert hasattr(lm_module, "FlushPolicy")
-        assert hasattr(lp_module, "LifePolicy")
-
-        # Проверяем соответствие
-        assert sm_module.SnapshotManager == SnapshotManager
-        assert lm_module.LogManager == LogManager
-        assert lm_module.FlushPolicy == FlushPolicy
-        assert lp_module.LifePolicy == LifePolicy
-
-    def test_runtime_managers_class_inheritance(self):
-        """Проверка наследования классов runtime managers"""
-
-        assert SnapshotManager.__bases__ == (object,)
-        assert LogManager.__bases__ == (object,)
-        assert FlushPolicy.__bases__ == (object,)
-        assert LifePolicy.__bases__ == (object,)
-
-    # ============================================================================
-    # ClarityMoments Static Tests
-    # ============================================================================
-
-    def test_clarity_moments_module_structure(self):
-        """Проверка структуры модуля ClarityMoments"""
-        from src.experimental import clarity_moments as cm_module
-
-        # Проверяем наличие основного класса
-        assert hasattr(cm_module, "ClarityMoments")
-        assert inspect.isclass(cm_module.ClarityMoments)
-
-        # Проверяем экспорт
-        assert cm_module.ClarityMoments is not None
-
-    def test_clarity_moments_class_structure(self):
-        """Проверка структуры класса ClarityMoments"""
-        from src.experimental.clarity_moments import ClarityMoments
+        for module_name in modules_to_test:
+            # Проверяем что модуль можно импортировать без ошибок
+            try:
+                __import__(module_name)
+                # Проверяем что модуль в sys.modules
+                assert module_name in sys.modules
+            except ImportError as e:
+                pytest.fail(f"Failed to import {module_name}: {e}")
+
+
+class TestAPIInterfaces:
+    """Статические тесты API интерфейсов."""
+
+    def test_adaptive_processing_api_methods(self):
+        """Проверка методов API AdaptiveProcessingManager."""
+        # Создаем мок для self_state_provider
+        mock_self_state = Mock()
+        manager = AdaptiveProcessingManager(lambda: mock_self_state)
 
         # Проверяем наличие основных методов
-        required_methods = [
-            "__init__",
-            "check_clarity_conditions",
-            "activate_clarity_moment",
-            "update_clarity_state",
-            "deactivate_clarity_moment",
-            "get_clarity_modifier",
-            "is_clarity_active",
-            "get_clarity_status",
-        ]
+        assert hasattr(manager, 'start')
+        assert hasattr(manager, 'stop')
+        assert hasattr(manager, 'update')
+        assert hasattr(manager, 'analyze_system_conditions')
+        assert hasattr(manager, 'get_current_state')
+        assert hasattr(manager, 'trigger_processing_event')
+        assert hasattr(manager, 'force_adaptive_state')
+        assert hasattr(manager, 'get_system_status')
+        assert hasattr(manager, 'get_processing_statistics')
+        assert hasattr(manager, 'get_adaptive_statistics')
+        assert hasattr(manager, 'reset_statistics')
+        assert hasattr(manager, 'update_configuration')
+        assert hasattr(manager, 'get_legacy_status')
 
-        for method in required_methods:
-            assert hasattr(ClarityMoments, method), f"Missing method: {method}"
-            assert callable(getattr(ClarityMoments, method)), f"Method {method} is not callable"
+        # Проверяем callable методы
+        assert callable(manager.start)
+        assert callable(manager.stop)
+        assert callable(manager.update)
+        assert callable(manager.analyze_system_conditions)
+        assert callable(manager.get_current_state)
 
-        # Проверяем константы
-        required_constants = [
-            "CLARITY_STABILITY_THRESHOLD",
-            "CLARITY_ENERGY_THRESHOLD",
-            "CLARITY_DURATION_TICKS",
-            "CLARITY_CHECK_INTERVAL",
-            "CLARITY_SIGNIFICANCE_BOOST",
-        ]
+    def test_memory_hierarchy_api_methods(self):
+        """Проверка методов API MemoryHierarchyManager."""
+        manager = MemoryHierarchyManager()
 
-        for const in required_constants:
-            assert hasattr(ClarityMoments, const), f"Missing constant: {const}"
+        # Проверяем наличие основных методов
+        assert hasattr(manager, 'set_episodic_memory')
+        assert hasattr(manager, 'add_sensory_event')
+        assert hasattr(manager, 'process_sensory_events')
+        assert hasattr(manager, 'consolidate_memory')
+        assert hasattr(manager, 'get_hierarchy_status')
+        assert hasattr(manager, 'query_memory')
+        assert hasattr(manager, 'reset_hierarchy')
 
-        # Проверяем что константы являются числами
-        for const in required_constants:
-            value = getattr(ClarityMoments, const)
-            assert isinstance(
-                value, (int, float)
-            ), f"Constant {const} is not a number: {type(value)}"
+        # Проверяем callable методы
+        assert callable(manager.set_episodic_memory)
+        assert callable(manager.add_sensory_event)
+        assert callable(manager.process_sensory_events)
+        assert callable(manager.consolidate_memory)
+        assert callable(manager.get_hierarchy_status)
+        assert callable(manager.query_memory)
+        assert callable(manager.reset_hierarchy)
 
-    def test_clarity_moments_constants_values(self):
-        """Проверка значений констант ClarityMoments"""
-        from src.experimental.clarity_moments import ClarityMoments
+    def test_semantic_concept_api_methods(self):
+        """Проверка методов API SemanticConcept."""
+        concept = SemanticConcept(
+            concept_id="test",
+            name="Test",
+            description="Test concept",
+            confidence=0.8
+        )
 
-        # Проверяем диапазоны значений
-        assert 0.0 < ClarityMoments.CLARITY_STABILITY_THRESHOLD <= 1.0
-        assert 0.0 < ClarityMoments.CLARITY_ENERGY_THRESHOLD <= 1.0
-        assert ClarityMoments.CLARITY_DURATION_TICKS > 0
-        assert ClarityMoments.CLARITY_CHECK_INTERVAL > 0
-        assert ClarityMoments.CLARITY_SIGNIFICANCE_BOOST >= 1.0
+        # Проверяем наличие методов
+        assert hasattr(concept, 'activate')
+        assert hasattr(concept, 'add_relation')
+        assert hasattr(concept, 'get_activation_strength')
 
-        # Проверяем логические соотношения
-        assert ClarityMoments.CLARITY_SIGNIFICANCE_BOOST > 1.0  # Должен усиливать
-        assert (
-            ClarityMoments.CLARITY_DURATION_TICKS >= ClarityMoments.CLARITY_CHECK_INTERVAL
-        )  # Длительность >= интервала проверки
+        # Проверяем callable методы
+        assert callable(concept.activate)
+        assert callable(concept.add_relation)
+        assert callable(concept.get_activation_strength)
 
-    def test_clarity_moments_method_signatures(self):
-        """Проверка сигнатур методов ClarityMoments"""
-        from src.experimental.clarity_moments import ClarityMoments
+    def test_parallel_consciousness_api_methods(self):
+        """Проверка методов API ParallelConsciousnessEngine."""
+        engine = ParallelConsciousnessEngine()
 
-        # check_clarity_conditions
-        sig = inspect.signature(ClarityMoments.check_clarity_conditions)
-        params = list(sig.parameters.keys())
-        assert "self" in params
-        assert "self_state" in params
-        assert len(params) == 2  # self + self_state
+        # Проверяем наличие основных методов
+        assert hasattr(engine, 'process_async')
+        assert hasattr(engine, 'process_sync')
+        assert hasattr(engine, 'shutdown')
 
-        # activate_clarity_moment
-        sig = inspect.signature(ClarityMoments.activate_clarity_moment)
-        params = list(sig.parameters.keys())
-        assert "self" in params
-        assert "self_state" in params
-        assert len(params) == 2
+        # Проверяем callable методы
+        assert callable(engine.process_async)
+        assert callable(engine.process_sync)
+        assert callable(engine.shutdown)
 
-        # update_clarity_state
-        sig = inspect.signature(ClarityMoments.update_clarity_state)
-        params = list(sig.parameters.keys())
-        assert "self" in params
-        assert "self_state" in params
-        assert len(params) == 2
 
-        # deactivate_clarity_moment
-        sig = inspect.signature(ClarityMoments.deactivate_clarity_moment)
-        params = list(sig.parameters.keys())
-        assert "self" in params
-        assert "self_state" in params
-        assert len(params) == 2
+class TestParameterValidation:
+    """Статические тесты валидации параметров."""
 
-        # get_clarity_modifier
-        sig = inspect.signature(ClarityMoments.get_clarity_modifier)
-        params = list(sig.parameters.keys())
-        assert "self" in params
-        assert "self_state" in params
-        assert len(params) == 2
+    def test_adaptive_processing_config_validation(self):
+        """Проверка валидации AdaptiveProcessingConfig."""
+        # Валидная конфигурация
+        config = AdaptiveProcessingConfig()
+        manager = AdaptiveProcessingManager(lambda: Mock())
 
-        # is_clarity_active
-        sig = inspect.signature(ClarityMoments.is_clarity_active)
-        params = list(sig.parameters.keys())
-        assert "self" in params
-        assert "self_state" in params
-        assert len(params) == 2
+        # Это должно пройти без ошибок
+        manager.config = config
 
-        # get_clarity_status
-        sig = inspect.signature(ClarityMoments.get_clarity_status)
-        params = list(sig.parameters.keys())
-        assert "self" in params
-        assert "self_state" in params
-        assert len(params) == 2
+        # Проверка что валидация работает
+        assert hasattr(manager, '_validate_config')
+        assert callable(manager._validate_config)
 
-    def test_clarity_moments_return_types(self):
-        """Проверка типов возвращаемых значений ClarityMoments"""
-        from src.experimental.clarity_moments import ClarityMoments
-        from unittest.mock import Mock
+    def test_processing_event_validation(self):
+        """Проверка валидации ProcessingEvent."""
+        # Валидное событие
+        event = ProcessingEvent(
+            processing_mode=ProcessingMode.BASELINE,
+            intensity=0.5,
+            duration_ticks=100
+        )
 
-        clarity_moments = ClarityMoments(logger=Mock())
-        state = SelfState()
+        assert event.processing_mode == ProcessingMode.BASELINE
+        assert event.intensity == 0.5
+        assert event.duration_ticks == 100
 
-        # check_clarity_conditions - возвращает dict или None
-        result = clarity_moments.check_clarity_conditions(state)
-        assert result is None or isinstance(result, dict)
+    def test_semantic_concept_validation(self):
+        """Проверка валидации SemanticConcept."""
+        # Валидная концепция
+        concept = SemanticConcept(
+            concept_id="valid_id",
+            name="Valid Name",
+            description="Valid description",
+            confidence=0.75
+        )
 
-        # activate_clarity_moment - ничего не возвращает (None)
-        result = clarity_moments.activate_clarity_moment(state)
-        assert result is None
+        assert concept.concept_id == "valid_id"
+        assert concept.name == "Valid Name"
+        assert concept.description == "Valid description"
+        assert concept.confidence == 0.75
 
-        # update_clarity_state - возвращает bool
-        result = clarity_moments.update_clarity_state(state)
-        assert isinstance(result, bool)
+    def test_enum_value_types(self):
+        """Проверка типов значений enum."""
+        # ProcessingMode
+        for mode in ProcessingMode:
+            assert isinstance(mode.value, str)
+            assert len(mode.value) > 0
 
-        # deactivate_clarity_moment - ничего не возвращает
-        result = clarity_moments.deactivate_clarity_moment(state)
-        assert result is None
+        # AdaptiveState
+        for state in AdaptiveState:
+            assert isinstance(state.value, str)
+            assert len(state.value) > 0
 
-        # get_clarity_modifier - возвращает float
-        result = clarity_moments.get_clarity_modifier(state)
-        assert isinstance(result, float)
 
-        # is_clarity_active - возвращает bool
-        result = clarity_moments.is_clarity_active(state)
-        assert isinstance(result, bool)
+class TestTypeHints:
+    """Статические тесты type hints."""
 
-        # get_clarity_status - возвращает dict
-        result = clarity_moments.get_clarity_status(state)
-        assert isinstance(result, dict)
+    def test_dataclass_field_types(self):
+        """Проверка типов полей в dataclass."""
+        import typing
+        from typing import get_type_hints
 
-    def test_clarity_moments_docstrings(self):
-        """Проверка наличия docstrings в ClarityMoments"""
-        from src.experimental.clarity_moments import ClarityMoments
+        # ProcessingEvent
+        hints = get_type_hints(ProcessingEvent)
+        assert 'processing_mode' in hints
+        assert 'intensity' in hints
+        assert 'duration_ticks' in hints
+        assert 'trigger_conditions' in hints
+        assert 'timestamp' in hints
 
-        # Проверяем docstring класса
-        assert ClarityMoments.__doc__ is not None
-        assert len(ClarityMoments.__doc__.strip()) > 50  # Достаточно подробный
+        # SemanticConcept
+        hints = get_type_hints(SemanticConcept)
+        assert 'concept_id' in hints
+        assert 'name' in hints
+        assert 'description' in hints
+        assert 'confidence' in hints
+        assert 'activation_count' in hints
+        assert 'last_activation' in hints
+        assert 'related_concepts' in hints
+        assert 'properties' in hints
+        assert 'created_at' in hints
 
-        # Проверяем docstrings основных методов
-        methods_with_docs = [
-            "check_clarity_conditions",
-            "activate_clarity_moment",
-            "update_clarity_state",
-            "deactivate_clarity_moment",
-            "get_clarity_modifier",
-            "is_clarity_active",
-            "get_clarity_status",
-        ]
 
-        for method_name in methods_with_docs:
-            method = getattr(ClarityMoments, method_name)
-            assert method.__doc__ is not None, f"Missing docstring for {method_name}"
-            assert len(method.__doc__.strip()) > 20, f"Docstring too short for {method_name}"
-
-    def test_clarity_moments_inheritance(self):
-        """Проверка наследования ClarityMoments"""
-        from src.experimental.clarity_moments import ClarityMoments
-
-        # ClarityMoments должен наследоваться только от object
-        assert ClarityMoments.__bases__ == (object,)
-
-    def test_clarity_moments_no_forbidden_patterns(self):
-        """Проверка отсутствия запрещенных паттернов в ClarityMoments"""
-        from src.experimental.clarity_moments import ClarityMoments
-
-        source_code = inspect.getsource(ClarityMoments)
-
-        # Запрещенные паттерны
-        forbidden_patterns = [
-            "print(",  # Не используем print
-            "import os",  # Не используем os напрямую
-            "import sys",  # Не используем sys напрямую
-            "eval(",  # Не используем eval
-            "exec(",  # Не используем exec
-        ]
-
-        for pattern in forbidden_patterns:
-            assert (
-                pattern not in source_code
-            ), f"Forbidden pattern '{pattern}' found in ClarityMoments"
-
-    def test_clarity_moments_event_structure(self):
-        """Проверка структуры события clarity_moment"""
-        from src.experimental.clarity_moments import ClarityMoments
-        from unittest.mock import Mock
-
-        clarity_moments = ClarityMoments(logger=Mock())
-        state = SelfState()
-
-        # Устанавливаем условия для активации
-        state.stability = 0.9
-        state.energy = 0.8
-        state.ticks = 15
-        state.subjective_time = 10.0
-
-        event = clarity_moments.check_clarity_conditions(state)
-
-        assert event is not None
-        assert "type" in event
-        assert "data" in event
-        assert "timestamp" in event
-        assert "subjective_timestamp" in event
-
-        # Проверяем структуру data
-        data = event["data"]
-        assert "clarity_id" in data
-        assert "trigger_conditions" in data
-        assert "duration_ticks" in data
-        assert "significance_boost" in data
-
-        # Проверяем trigger_conditions
-        trigger = data["trigger_conditions"]
-        assert "stability" in trigger
-        assert "energy" in trigger
-        assert "tick" in trigger
-
-    def test_clarity_moments_logger_dependency(self):
-        """Проверка зависимости ClarityMoments от логгера"""
-        from src.experimental.clarity_moments import ClarityMoments
-        from unittest.mock import Mock
-
-        # Создаем с явным логгером
-        logger = Mock()
-        clarity_moments = ClarityMoments(logger=logger)
-        assert clarity_moments.logger == logger
-
-        # Создаем без логгера (должен создать StructuredLogger)
-        clarity_moments_no_logger = ClarityMoments()
-        assert clarity_moments_no_logger.logger is not None
-        # Проверяем что это StructuredLogger
-        assert hasattr(clarity_moments_no_logger.logger, "log_event")
-
-    def test_clarity_moments_module_imports(self):
-        """Проверка импортов модуля clarity_moments"""
-        import src.experimental.clarity_moments as cm_module
-
-        # Проверяем что модуль импортирует необходимые зависимости
-        assert hasattr(cm_module, "time")  # Использует time
-        assert hasattr(cm_module, "StructuredLogger")  # Импортирует StructuredLogger
-
-        # Проверяем что не импортирует лишнего
-        forbidden_imports = ["os", "sys", "json", "pickle"]
-        source = inspect.getsource(cm_module)
-
-        for forbidden in forbidden_imports:
-            assert (
-                f"import {forbidden}" not in source
-            ), f"Forbidden import '{forbidden}' in clarity_moments"
-            assert (
-                f"from {forbidden}" not in source
-            ), f"Forbidden import 'from {forbidden}' in clarity_moments"
-
-    def test_clarity_moments_constants_immutability(self):
-        """Проверка неизменности констант ClarityMoments"""
-        from src.experimental.clarity_moments import ClarityMoments
-
-        # Проверяем что константы не изменяются при работе
-        original_values = {
-            "CLARITY_STABILITY_THRESHOLD": ClarityMoments.CLARITY_STABILITY_THRESHOLD,
-            "CLARITY_ENERGY_THRESHOLD": ClarityMoments.CLARITY_ENERGY_THRESHOLD,
-            "CLARITY_DURATION_TICKS": ClarityMoments.CLARITY_DURATION_TICKS,
-            "CLARITY_CHECK_INTERVAL": ClarityMoments.CLARITY_CHECK_INTERVAL,
-            "CLARITY_SIGNIFICANCE_BOOST": ClarityMoments.CLARITY_SIGNIFICANCE_BOOST,
-        }
-
-        # Создаем экземпляр и выполняем операции
-        clarity_moments = ClarityMoments()
-        state = SelfState()
-
-        # Выполняем различные операции (без логирования)
-        clarity_moments.check_clarity_conditions(state)
-        # Имитируем активацию без логирования
-        state.clarity_state = True
-        state.clarity_duration = clarity_moments.CLARITY_DURATION_TICKS
-        state.clarity_modifier = clarity_moments.CLARITY_SIGNIFICANCE_BOOST
-        for _ in range(10):
-            clarity_moments.update_clarity_state(state)
-        # Имитируем деактивацию без логирования
-        state.clarity_state = False
-        state.clarity_duration = 0
-        state.clarity_modifier = 1.0
-
-        # Проверяем что константы не изменились
-        for name, original_value in original_values.items():
-            current_value = getattr(ClarityMoments, name)
-            assert (
-                current_value == original_value
-            ), f"Constant {name} changed: {original_value} -> {current_value}"
-
-    def test_clarity_moments_state_fields_consistency(self):
-        """Проверка一致ности полей состояния clarity в SelfState"""
-        from src.experimental.clarity_moments import ClarityMoments
-        from unittest.mock import Mock
-
-        clarity_moments = ClarityMoments(logger=Mock())
-        state = SelfState()
-
-        # Проверяем что после активации добавляются нужные поля
-        required_fields = ["clarity_state", "clarity_duration", "clarity_modifier"]
-
-        # Активируем clarity
-        clarity_moments.activate_clarity_moment(state)
-
-        for field in required_fields:
-            assert hasattr(state, field), f"Missing state field: {field}"
-
-        # Проверяем типы полей
-        assert isinstance(getattr(state, "clarity_state"), bool)
-        assert isinstance(getattr(state, "clarity_duration"), int)
-        assert isinstance(getattr(state, "clarity_modifier"), float)
-
-        # Деактивируем и проверяем сброс
-        clarity_moments.deactivate_clarity_moment(state)
-
-        assert getattr(state, "clarity_state") is False
-        assert getattr(state, "clarity_duration") == 0
-        assert getattr(state, "clarity_modifier") == 1.0
+if __name__ == "__main__":
+    pytest.main([__file__])

@@ -13,7 +13,6 @@ import tempfile
 from src.observability.external_observer import (
     ExternalObserver,
     SystemMetrics,
-    BehaviorPattern,
     ObservationReport,
 )
 

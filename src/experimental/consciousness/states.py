@@ -5,7 +5,7 @@ Backward compatibility for consciousness states API.
 """
 
 from enum import Enum
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from dataclasses import dataclass
 
 from src.experimental.adaptive_processing_manager import AdaptiveState
@@ -139,9 +139,5 @@ class ConsciousnessStateManager:
         }
 
 
-# Global state manager instance
-import time
-from typing import List  # Import here for Python 3.10 compatibility
-
-state_manager = ConsciousnessStateManager()</contents>
-</xai:function_call=FileWrite>
+# Global state manager instance - commented out to avoid import issues
+# state_manager = ConsciousnessStateManager()

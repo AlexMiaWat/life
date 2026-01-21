@@ -16,7 +16,9 @@ from src.learning.learning import LearningEngine
 from src.meaning.engine import MeaningEngine
 from src.memory.memory import MemoryEntry
 from src.observability.structured_logger import StructuredLogger
+from src.observability.developer_reports import DeveloperReports
 from src.planning.planning import record_potential_sequences
+from src.runtime.data_collection_manager import DataCollectionManager, DataCollectionConfig
 from src.runtime.life_policy import LifePolicy
 from src.runtime.log_manager import FlushPolicy, LogManager
 from src.runtime.snapshot_manager import SnapshotManager
@@ -242,10 +244,9 @@ def run_loop(
     disable_adaptive_processing=False,  # Включено по умолчанию для оптимизации обработки
     enable_memory_hierarchy=True,  # Включение многоуровневой системы памяти (краткосрочная/долгосрочная/архивная)
     enable_silence_detection=True,  # Включение системы осознания тишины
-    enable_passive_observation=False,  # Включение пассивного наблюдения за поведением системы
-    observation_collection_interval=10,  # Интервал сбора данных наблюдения (в тиках)
     log_flush_period_ticks=10,
     enable_profiling=False,
+    enable_passive_observation=True,  # Включить пассивное наблюдение (не влияет на runtime)
 ):
     """
     Runtime Loop с интеграцией Environment (этап 07)
@@ -266,32 +267,27 @@ def run_loop(
         disable_adaptive_processing: Отключить адаптивную систему обработки
         enable_memory_hierarchy: Включить многоуровневую систему памяти (краткосрочная/долгосрочная/архивная)
         enable_silence_detection: Включить систему осознания тишины
-        enable_passive_observation: Включить пассивное наблюдение за поведением системы
-        observation_collection_interval: Интервал сбора данных наблюдения (в тиках)
         log_flush_period_ticks: Период сброса логов в тиках
         enable_profiling: Включить профилирование runtime loop с cProfile
     """
     # Structured logger for observability (инициализируем раньше для AdaptiveProcessingManager)
     structured_logger = StructuredLogger(enabled=not disable_structured_logging)
 
-    # Passive observation components (пассивное наблюдение без интерпретации)
-    state_tracker = None
-    component_monitor = None
-    data_collector = None
-    history_manager = None
-
+    # Passive observation - полностью отделено от runtime, не влияет на работу системы
+    passive_observer = None
     if enable_passive_observation:
-        from src.observability import StateTracker, ComponentMonitor, DataCollector, HistoryManager
+        try:
+            from src.observability.async_passive_observer import AsyncPassiveObserver
+            passive_observer = AsyncPassiveObserver(
+                collection_interval=300.0,  # 5 minutes
+                snapshots_dir="data/snapshots",
+                enabled=True
+            )
+            logger.info("Passive observation enabled - collecting data in background")
+        except Exception as e:
+            logger.warning(f"Failed to initialize passive observer: {e}")
 
-        state_tracker = StateTracker()
-        component_monitor = ComponentMonitor()
-        data_collector = DataCollector(storage_path="data/observation_data.jsonl")
-        history_manager = HistoryManager(storage_path="data/history_data.jsonl")
-
-        structured_logger.log_event({
-            "event_type": "passive_observation_enabled",
-            "collection_interval": observation_collection_interval,
-        })
+    # Observability полностью вынесена из runtime согласно ADR 001
 
     engine = MeaningEngine()
     learning_engine = LearningEngine()  # Learning Engine (Этап 14)
@@ -305,6 +301,9 @@ def run_loop(
         ) if not disable_adaptive_processing else None
     )  # Clarity Moments System
     internal_generator = InternalEventGenerator()  # Internal Event Generator (Memory Echoes)
+    # Настройка доступа к памяти для генерации конкретных эхо-воспоминаний
+    if hasattr(self_state, 'memory'):
+        internal_generator.set_memory(self_state.memory)
     pending_actions = []  # Список ожидающих Feedback действий
 
     # Экспериментальные компоненты (опционально)
@@ -317,8 +316,16 @@ def run_loop(
         # Подключение эпизодической памяти к иерархии
         memory_hierarchy.set_episodic_memory(self_state.memory)
 
-    # Технический монитор поведения системы
-    technical_monitor = TechnicalBehaviorMonitor()
+    # Менеджер сбора данных для асинхронных операций
+    data_collection_config = DataCollectionConfig(
+        queue_max_size=500,  # Меньше для runtime loop
+        flush_interval=10.0,  # Частый сброс для responsiveness
+        buffer_max_size=50,   # Меньше буфер для оперативности
+    )
+    data_collection_manager = DataCollectionManager(config=data_collection_config)
+
+    # Технический монитор поведения системы с поддержкой асинхронного сохранения
+    technical_monitor = TechnicalBehaviorMonitor(data_collection_manager=data_collection_manager)
 
     # Менеджеры для управления снапшотами, логами и политикой
     snapshot_manager = SnapshotManager(period_ticks=snapshot_period, saver=save_snapshot)
@@ -345,11 +352,12 @@ def run_loop(
     # Счетчики для внутренних событий
     ticks_since_last_memory_echo = 0
     ticks_since_last_metrics_collection = 0
-    ticks_since_last_observation = 0
+    last_report_time = time.time()  # Время последнего автоматического отчета
+    report_interval = 6 * 3600  # Генерировать отчет каждые 6 часов
 
     def run_main_loop():
         """Основной цикл runtime loop - выделен для профилирования"""
-        nonlocal learning_errors, adaptation_errors, ticks_since_last_memory_echo
+        nonlocal learning_errors, adaptation_errors, ticks_since_last_memory_echo, ticks_since_last_metrics_collection
         last_time = time.time()  # Инициализация last_time в начале цикла
         while stop_event is None or not stop_event.is_set():
             try:
@@ -384,7 +392,7 @@ def run_loop(
                 # Обновление внутренних ритмов
                 self_state.update_circadian_rhythm(dt)
 
-                # Технический мониторинг: сбор метрик через регулярные интервалы
+                # Технический мониторинг: сбор метрик через регулярные интервалы (асинхронно)
                 ticks_since_last_metrics_collection += 1
                 if ticks_since_last_metrics_collection >= METRICS_COLLECTION_INTERVAL:
                     try:
@@ -429,60 +437,28 @@ def run_loop(
 
                         mock_decision_engine = MockDecisionEngine()
 
-                        # Захватываем снимок состояния системы
-                        snapshot = technical_monitor.capture_system_snapshot(
+                        # Ставим операцию сбора метрик в асинхронную очередь
+                        success = data_collection_manager.collect_technical_metrics(
                             self_state=self_state,
                             memory=self_state.memory,
                             learning_engine=learning_engine,
                             adaptation_manager=adaptation_manager,
                             decision_engine=mock_decision_engine,
+                            base_dir="metrics",
+                            filename_prefix="technical_report"
                         )
 
-                        # Анализируем снимок
-                        report = technical_monitor.analyze_snapshot(snapshot)
-
-                        # Сохраняем отчет в файл
-                        import os
-
-                        metrics_dir = os.path.join(os.getcwd(), "metrics")
-                        os.makedirs(metrics_dir, exist_ok=True)
-
-                        timestamp = int(time.time())
-                        filename = f"technical_report_{timestamp}.json"
-                        filepath = os.path.join(metrics_dir, filename)
-
-                        technical_monitor.save_report(report, filepath)
-                        logger.debug(f"Technical metrics report saved: {filepath}")
+                        if success:
+                            logger.debug("Technical metrics collection queued for async processing")
+                        else:
+                            logger.warning("Failed to queue technical metrics collection")
 
                     except Exception as e:
-                        logger.warning(f"Failed to collect technical metrics: {e}")
+                        logger.warning(f"Failed to queue technical metrics collection: {e}")
                     finally:
                         ticks_since_last_metrics_collection = 0
 
-                # Passive observation: сбор данных через регулярные интервалы
-                ticks_since_last_observation += 1
-                if enable_passive_observation and ticks_since_last_observation >= observation_collection_interval:
-                    try:
-                        # Сбор данных SelfState
-                        if state_tracker:
-                            state_snapshot = state_tracker.collect_state_data(self_state)
-                            if data_collector:
-                                data_collector.collect_state_data(state_snapshot)
-                            if history_manager:
-                                history_manager.add_snapshot("state", state_snapshot.to_dict())
-
-                        # Сбор данных компонентов
-                        if component_monitor:
-                            component_stats = component_monitor.collect_component_stats(self_state)
-                            if data_collector:
-                                data_collector.collect_component_data(component_stats)
-                            if history_manager:
-                                history_manager.add_snapshot("components", component_stats.to_dict())
-
-                        ticks_since_last_observation = 0
-
-                    except Exception as e:
-                        logger.warning(f"Failed to collect observation data: {e}")
+                # Async passive observation: данные собираются в фоне без влияния на runtime
 
                 # Адаптивная система обработки
                 if adaptive_processing_manager:
@@ -726,9 +702,9 @@ def run_loop(
 
                 # Проверяем необходимость генерации memory echo
                 if internal_generator.should_generate_echo(
-                    ticks_since_last_memory_echo, memory_pressure
+                    ticks_since_last_memory_echo, memory_pressure, self_state
                 ):
-                    internal_event = internal_generator.generate_memory_echo(memory_stats)
+                    internal_event = internal_generator.generate_memory_echo(self_state, memory_stats)
                     if internal_event:
                         logger.debug(f"[LOOP] Generated internal event: {internal_event.type}")
                         # Добавляем внутреннее событие в очередь для обработки на следующем тике
@@ -1020,6 +996,9 @@ def run_loop(
                 except Exception as e:
                     logger.error(f"Ошибка в monitor: {e}", exc_info=True)
 
+                # Периодическое обслуживание DataCollectionManager теперь выполняется асинхронно
+                # в фоновом потоке AsyncDataQueue
+
                 # Log tick end with performance metrics
                 tick_duration = (time.time() - tick_start_time) * 1000  # ms
                 events_processed = len(events) if "events" in locals() else 0
@@ -1039,6 +1018,18 @@ def run_loop(
                 # Примечание: flush после снапшота обрабатывается только в фазе "after_snapshot" выше,
                 # чтобы избежать двойного flush.
                 log_manager.maybe_flush(self_state, phase="tick")
+
+                # Автоматическая генерация отчетов каждые 6 часов
+                current_time_check = time.time()
+                if current_time_check - last_report_time >= report_interval:
+                    try:
+                        reports = DeveloperReports()
+                        hourly_report = reports.generate_automated_report("daily", hours=1)
+                        report_path = reports.save_report(hourly_report, f"auto_report_{int(current_time_check)}.json")
+                        logger.info(f"Automatic system report generated: {report_path}")
+                        last_report_time = current_time_check
+                    except Exception as e:
+                        logger.warning(f"Failed to generate automatic report: {e}")
 
                 # Поддержка постоянного интервала тиков
                 tick_end = time.time()
@@ -1060,6 +1051,8 @@ def run_loop(
                         {"event_type": "adaptive_processing_manager_stopped"}
                     )
 
+                # Observability не требует остановки - внешняя система
+
                 # Flush логов при завершении (обязательно)
                 log_manager.maybe_flush(self_state, phase="shutdown")
 
@@ -1067,37 +1060,70 @@ def run_loop(
                 # Она продолжает работать в degraded состоянии ("бессмертная слабость")
                 # Остановка происходит только по внешнему сигналу (stop_event)
 
-    # Запуск основного цикла с профилированием или без
-    if enable_profiling:
-        logger.info("[PROFILING] Включено профилирование runtime loop с cProfile")
-        profiler = cProfile.Profile()
-        try:
-            profiler.enable()
+    # Запуск DataCollectionManager для асинхронных операций
+    data_collection_manager.start()
+
+    try:
+        # Запуск основного цикла с профилированием или без
+        if enable_profiling:
+            logger.info("[PROFILING] Включено профилирование runtime loop с cProfile")
+            profiler = cProfile.Profile()
+            try:
+                profiler.enable()
+                run_main_loop()
+            finally:
+                profiler.disable()
+                # Сохраняем результаты профилирования
+                import os
+                import pstats
+                from io import StringIO
+
+                # Создаем директорию data если не существует
+                os.makedirs("data", exist_ok=True)
+
+                stats = pstats.Stats(profiler, stream=StringIO())
+                stats.sort_stats("cumulative")
+                stats.print_stats(50)  # Top 50 функций
+
+                # Сохраняем в файл для анализа
+                profile_filename = f"data/runtime_loop_profile_{int(time.time())}.prof"
+                profiler.dump_stats(profile_filename)
+                logger.info(f"[PROFILING] Результаты профилирования сохранены в {profile_filename}")
+
+                # Выводим краткую статистику в лог
+                s = StringIO()
+                stats = pstats.Stats(profiler, stream=s)
+                stats.sort_stats("cumulative")
+                stats.print_stats(10)
+                logger.info(f"[PROFILING] Top 10 функций по cumulative time:\n{s.getvalue()}")
+        else:
             run_main_loop()
-        finally:
-            profiler.disable()
-            # Сохраняем результаты профилирования
-            import os
-            import pstats
-            from io import StringIO
+    finally:
+        # Остановка DataCollectionManager
+        data_collection_manager.stop()
 
-            # Создаем директорию data если не существует
-            os.makedirs("data", exist_ok=True)
+        # Генерация финального отчета перед завершением
+        try:
+            reports = DeveloperReports()
+            final_report = reports.generate_automated_report("daily", hours=24)
+            report_path = reports.save_report(final_report, f"shutdown_report_{int(time.time())}.json")
+            logger.info(f"Final system report generated: {report_path}")
 
-            stats = pstats.Stats(profiler, stream=StringIO())
-            stats.sort_stats("cumulative")
-            stats.print_stats(50)  # Top 50 функций
+            # Также сгенерируем текстовый отчет
+            text_report = reports.generate_text_report(hours=24)
+            text_path = Path("data/reports") / f"shutdown_report_{int(time.time())}.txt"
+            text_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(text_path, 'w', encoding='utf-8') as f:
+                f.write(text_report)
+            logger.info(f"Text report generated: {text_path}")
 
-            # Сохраняем в файл для анализа
-            profile_filename = f"data/runtime_loop_profile_{int(time.time())}.prof"
-            profiler.dump_stats(profile_filename)
-            logger.info(f"[PROFILING] Результаты профилирования сохранены в {profile_filename}")
+        except Exception as e:
+            logger.warning(f"Failed to generate final report: {e}")
 
-            # Выводим краткую статистику в лог
-            s = StringIO()
-            stats = pstats.Stats(profiler, stream=s)
-            stats.sort_stats("cumulative")
-            stats.print_stats(10)
-            logger.info(f"[PROFILING] Top 10 функций по cumulative time:\n{s.getvalue()}")
-    else:
-        run_main_loop()
+        # Завершение работы пассивного наблюдателя
+        if passive_observer:
+            try:
+                passive_observer.shutdown(timeout=5.0)
+                logger.info("Passive observer shutdown complete")
+            except Exception as e:
+                logger.warning(f"Error shutting down passive observer: {e}")

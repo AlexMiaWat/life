@@ -41,7 +41,6 @@ class BatchImpactAnalysis:
     cumulative_impact: Dict[str, float]
     final_state: Dict[str, float]
     risk_assessment: str  # low, medium, high, critical
-    recommendations: List[str]
 
 
 class ImpactAnalyzer:
@@ -168,10 +167,7 @@ class ImpactAnalyzer:
         # Оценка рисков
         risk_assessment = self._assess_risk(cumulative_impact, final_state)
 
-        # Рекомендации
-        recommendations = self._generate_recommendations(
-            cumulative_impact, final_state, len(events)
-        )
+        # Рекомендации удалены согласно ADR 001 - пассивное наблюдение
 
         return BatchImpactAnalysis(
             events=events,
@@ -179,7 +175,6 @@ class ImpactAnalyzer:
             cumulative_impact=cumulative_impact,
             final_state=final_state,
             risk_assessment=risk_assessment,
-            recommendations=recommendations,
         )
 
     def _determine_response_pattern(self, meaning, self_state: SelfState) -> str:
@@ -252,47 +247,6 @@ class ImpactAnalyzer:
 
         return "low"
 
-    def _generate_recommendations(
-        self, cumulative_impact: Dict[str, float], final_state: Dict[str, float], event_count: int
-    ) -> List[str]:
-        """Сгенерировать рекомендации на основе анализа"""
-        recommendations = []
-
-        energy_drop = cumulative_impact.get("energy", 0.0)
-        stability_drop = cumulative_impact.get("stability", 0.0)
-        integrity_drop = cumulative_impact.get("integrity", 0.0)
-
-        final_energy = final_state.get("energy", 100.0)
-        final_stability = final_state.get("stability", 1.0)
-
-        if event_count > 10:
-            recommendations.append("Большое количество событий может вызвать перегрузку системы")
-
-        if energy_drop < -30.0:
-            recommendations.append(
-                "Значительная потеря энергии - рассмотрите добавление восстановительных событий"
-            )
-
-        if stability_drop < -0.3:
-            recommendations.append("Снижение стабильности - добавьте стабилизирующие воздействия")
-
-        if final_energy < 20.0:
-            recommendations.append(
-                "Критически низкий уровень энергии - требуется немедленное восстановление"
-            )
-
-        if final_stability < 0.3:
-            recommendations.append(
-                "Критически низкая стабильность - избегайте дополнительных стрессов"
-            )
-
-        if integrity_drop < -0.3:
-            recommendations.append("Потеря целостности - система может стать нестабильной")
-
-        if not recommendations:
-            recommendations.append("Воздействие выглядит безопасным для применения")
-
-        return recommendations
 
     def get_sensitivity_analysis(self, self_state: SelfState) -> Dict[str, Any]:
         """

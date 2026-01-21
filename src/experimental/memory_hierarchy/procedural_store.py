@@ -12,6 +12,13 @@ from dataclasses import dataclass, field
 from collections import defaultdict
 
 from src.observability.structured_logger import StructuredLogger
+import sys
+# Import interfaces through sys.modules to ensure we get the same object
+_memory_interface_module = sys.modules.get('memory.memory_interface')
+if _memory_interface_module is None:
+    import memory.memory_interface as _memory_interface_module
+ProceduralMemoryInterface = _memory_interface_module.ProceduralMemoryInterface
+MemoryStatistics = _memory_interface_module.MemoryStatistics
 
 logger = logging.getLogger(__name__)
 
@@ -220,7 +227,7 @@ class DecisionPattern:
         return matches / total_conditions if total_conditions > 0 else 0.0
 
 
-class ProceduralMemoryStore:
+class ProceduralMemoryStore(ProceduralMemoryInterface):
     """
     Хранилище процедурной памяти.
 
@@ -575,18 +582,13 @@ class ProceduralMemoryStore:
             del self._patterns[pattern_id]
             self._stats["total_patterns"] -= 1
 
-    def get_statistics(self) -> Dict[str, Any]:
+    def get_statistics(self) -> MemoryStatistics:
         """
         Получить статистику процедурного хранилища.
 
         Returns:
-            Статистика использования
+            MemoryStatistics: Статистика использования
         """
-        total_executions = self._stats["automated_executions"] + self._stats["manual_executions"]
-        automation_rate = (
-            self._stats["automated_executions"] / total_executions if total_executions > 0 else 0
-        )
-
         # Средняя эффективность паттернов
         avg_effectiveness = 0.0
         if self._patterns:
@@ -594,15 +596,55 @@ class ProceduralMemoryStore:
                 p.get_effectiveness_score() for p in self._patterns.values()
             ) / len(self._patterns)
 
-        return {
-            "total_patterns": self._stats["total_patterns"],
-            "total_decision_patterns": self._stats["total_decision_patterns"],
-            "automated_executions": self._stats["automated_executions"],
-            "manual_executions": self._stats["manual_executions"],
-            "automation_rate": automation_rate,
-            "average_pattern_effectiveness": avg_effectiveness,
-            "last_optimization": self._stats["last_optimization"],
-        }
+        return MemoryStatistics(
+            total_entries=self._stats["total_patterns"],
+            average_significance=avg_effectiveness,  # Используем эффективность как значимость
+            memory_type="procedural"
+        )
+
+    def validate_integrity(self) -> bool:
+        """
+        Проверить целостность процедурного хранилища.
+
+        Returns:
+            bool: True если данные корректны
+        """
+        try:
+            # Проверяем паттерны
+            for pattern_id, pattern in self._patterns.items():
+                if not hasattr(pattern, 'pattern_id') or pattern.pattern_id != pattern_id:
+                    return False
+                if not isinstance(pattern.success_rate, (int, float)):
+                    return False
+
+            # Проверяем паттерны решений
+            for condition_hash, pattern in self._decision_patterns.items():
+                if not hasattr(pattern, 'pattern_id'):
+                    return False
+                if not isinstance(pattern.confidence, (int, float)):
+                    return False
+
+            return True
+        except Exception:
+            return False
+
+    @property
+    def size(self) -> int:
+        """Получить размер процедурной памяти."""
+        return len(self._patterns)
+
+    def is_empty(self) -> bool:
+        """
+        Проверить, пустое ли процедурное хранилище.
+
+        Returns:
+            bool: True если хранилище пустое
+        """
+        return len(self._patterns) == 0
+
+    def clear(self) -> None:
+        """Очистить процедурное хранилище."""
+        self.clear_store()
 
     def clear_store(self) -> None:
         """Очистить все данные хранилища."""

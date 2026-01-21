@@ -14,8 +14,7 @@ from enum import Enum
 
 from src.experimental.adaptive_processing_manager import (
     AdaptiveProcessingManager,
-    ProcessingMode,
-    ProcessingResult
+    ProcessingMode
 )
 
 
@@ -43,7 +42,10 @@ class ParallelConsciousnessEngine:
     def __init__(self, max_workers: int = 4, mode: ProcessingMode = ProcessingMode.THREADING):
         self.max_workers = max_workers
         self.mode = mode
-        self.adaptive_manager = AdaptiveProcessingManager()
+        # Create a dummy self_state_provider for compatibility
+        def dummy_self_state_provider():
+            return None
+        self.adaptive_manager = AdaptiveProcessingManager(dummy_self_state_provider)
         self.executor = ThreadPoolExecutor(max_workers=self.max_workers) if mode == ProcessingMode.THREADING else None
 
     async def process_async(self, tasks: List[Dict[str, Any]]) -> List[ProcessingResult]:
@@ -197,8 +199,3 @@ class ParallelConsciousnessEngine:
         if self.executor:
             self.executor.shutdown(wait=True)
             self.executor = None
-
-
-# Global instance
-engine = ParallelConsciousnessEngine()</contents>
-</xai:function_call=FileWrite>

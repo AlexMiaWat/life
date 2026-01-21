@@ -68,3 +68,106 @@ htmlcov/
 codeAgentProjectStatus.md
 todo/CURRENT.md
 test_results_full.xml
+metrics/*
+
+# Test artifacts and logs
+src.*
+test_*
+test_results*.xml
+test_execution_output.txt
+test_output.txt
+test_report.json
+*.jsonl
+
+# Application artifacts
+apps/__pycache__/
+scripts/__pycache__/
+
+# Additional temp files
+=*
+codeAgentProjectStatus.md
+current_plan_task_*.md
+*.xml
+
+# Additional test artifacts
+.pytest_cache/v/cache/
+coverage.lcov
+.cache/
+nosetests.xml
+# Test reports and logs
+test_reports/
+test_logs/
+# Performance test artifacts
+benchmark_results.json
+perf_*.json
+# Hypothesis test data
+.hypothesis/
+# Allure reports
+allure-results/
+allure-report/
+# Temporary test directories
+test_temp/
+temp_test_data/
+
+# Additional Python artifacts
+*.pyc
+*.pyo
+__pycache__/
+*.egg
+*.egg-info/
+dist/
+build/
+*.whl
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# IDE files
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+
+# Test coverage and reports
+.coverage
+coverage.xml
+htmlcov/
+.pytest_cache/
+.tox/
+.cache/
+nosetests.xml
+
+# Performance and benchmark results
+benchmark_results.json
+perf_*.json
+metrics/
+
+# Additional test artifacts
+test_results*.xml
+test_execution_output.txt
+test_output.txt
+test_report.json
+*.jsonl
+
+# Hypothesis
+.hypothesis/
+
+# Allure reports
+allure-results/
+allure-report/
+
+# Documentation artifacts
+docs/results/temp_*.md
+docs/results/draft_*.md

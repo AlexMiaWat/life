@@ -332,6 +332,58 @@ def run_loop(self_state, monitor, tick_interval=1.0, snapshot_period=10, ...):
 - **Митигация**: documentation, training, code organization
 - **Вероятность**: Низкая (четкое разделение ответственности)
 
+## Дополнительный рефакторинг: Асинхронный сбор данных (2026-01-21)
+
+### Контекст
+После первоначального рефакторинга runtime loop были выявлены дополнительные проблемы с производительностью, связанные с синхронными операциями сбора данных в hot-path цикла.
+
+### Проблемы
+- **Синхронные I/O операции**: `technical_monitor.save_report()` блокировал основной цикл
+- **Блокирующие проверки**: `data_collector` выполнял синхронные проверки файловой системы
+- **CSV запись в цикле**: `observation_api` записывал файлы синхронно
+
+### Решение: Асинхронная инфраструктура сбора данных
+
+#### AsyncDataQueue
+```python
+class AsyncDataQueue:
+    """
+    Асинхронная очередь операций сбора данных с приоритетами и retry логикой.
+    """
+    def __init__(self, max_size=1000, max_retries=3, retry_delay=1.0)
+    def put(self, operation: DataOperation) -> bool
+    def get_stats() -> Dict[str, Any]
+```
+
+#### DataCollectionManager
+```python
+class DataCollectionManager:
+    """
+    Координатор асинхронных операций сбора данных.
+    """
+    def __init__(self, config: DataCollectionConfig)
+    def save_technical_report(self, data, base_dir, filename_prefix) -> bool
+    def buffer_metrics_data(self, metrics_data, data_type) -> None
+    def save_csv_data(self, headers, rows, base_dir, filename_prefix) -> bool
+    def periodic_maintenance() -> None  # Вызывается в runtime loop
+```
+
+#### Интеграция в runtime loop
+```python
+# Инициализация
+data_collection_manager = DataCollectionManager(config)
+technical_monitor = TechnicalMonitor(data_collection_manager=data_collection_manager)
+
+# В основном цикле
+data_collection_manager.periodic_maintenance()  # Проверка буферов
+```
+
+### Преимущества
+- **Полная изоляция I/O**: Hot-path содержит только бизнес-логику
+- **Асинхронная надежность**: Retry логика и fallback механизмы
+- **Масштабируемость**: Буферы и очереди предотвращают перегрузку
+- **Мониторинг**: Полная статистика операций сбора данных
+
 ## Связанные документы
 
 - [docs/architecture/overview.md](../architecture/overview.md) — обзор архитектуры
@@ -339,4 +391,6 @@ def run_loop(self_state, monitor, tick_interval=1.0, snapshot_period=10, ...):
 - [src/runtime/snapshot_manager.py](../../src/runtime/snapshot_manager.py) — SnapshotManager
 - [src/runtime/log_manager.py](../../src/runtime/log_manager.py) — LogManager и FlushPolicy
 - [src/runtime/life_policy.py](../../src/runtime/life_policy.py) — LifePolicy
+- [src/runtime/async_data_queue.py](../../src/runtime/async_data_queue.py) — AsyncDataQueue
+- [src/runtime/data_collection_manager.py](../../src/runtime/data_collection_manager.py) — DataCollectionManager
 - [src/test/test_runtime_managers.py](../../src/test/test_runtime_managers.py) — тесты менеджеров

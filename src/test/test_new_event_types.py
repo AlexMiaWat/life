@@ -63,6 +63,17 @@ class TestNewEventTypes:
             "meaning_found",
             "void",
             "acceptance",
+            "joy",
+            "sadness",
+            "fear",
+            "calm",
+            "discomfort",
+            "comfort",
+            "fatigue",
+            "anticipation",
+            "boredom",
+            "inspiration",
+            "creative_dissonance",
         }
 
         for new_type in new_types:
@@ -94,6 +105,21 @@ class TestNewEventTypes:
             ("meaning_found", 0.0, 0.9),
             ("void", -0.8, 0.0),
             ("acceptance", 0.0, 0.5),
+            # Новые эмоциональные события
+            ("joy", 0.0, 0.8),
+            ("sadness", -0.7, 0.0),
+            ("fear", -0.8, 0.0),
+            ("calm", 0.0, 0.6),
+            # Новые физические события
+            ("discomfort", -0.6, 0.0),
+            ("comfort", 0.0, 0.7),
+            ("fatigue", -0.5, 0.0),
+            # Новые временные события
+            ("anticipation", -0.3, 0.5),
+            ("boredom", -0.4, 0.0),
+            # Новые креативные события
+            ("inspiration", 0.0, 0.9),
+            ("creative_dissonance", -0.5, 0.0),
         ],
     )
     def test_new_event_intensity_ranges(self, generator, event_type, expected_min, expected_max):
@@ -134,6 +160,17 @@ class TestNewEventTypes:
             "meaning_found",
             "void",
             "acceptance",
+            "joy",
+            "sadness",
+            "fear",
+            "calm",
+            "discomfort",
+            "comfort",
+            "fatigue",
+            "anticipation",
+            "boredom",
+            "inspiration",
+            "creative_dissonance",
         ]
 
         for event_type in new_types:
@@ -169,6 +206,21 @@ class TestNewEventTypes:
             ("meaning_found", 0.6, "positive", "positive", "positive"),
             ("void", -0.5, "negative", "negative", "negative"),
             ("acceptance", 0.3, "positive", "positive", "positive"),
+            # Новые эмоциональные события
+            ("joy", 0.4, "positive", "positive", "positive"),
+            ("sadness", -0.3, "negative", "negative", "negative"),
+            ("fear", -0.5, "negative", "negative", "negative"),
+            ("calm", 0.3, "positive", "positive", "positive"),
+            # Новые физические события
+            ("discomfort", -0.4, "negative", "negative", "negative"),
+            ("comfort", 0.4, "positive", "positive", "positive"),
+            ("fatigue", -0.3, "negative", "zero", "negative"),
+            # Новые временные события
+            ("anticipation", 0.2, "negative", "negative", "zero"),
+            ("boredom", -0.3, "negative", "negative", "negative"),
+            # Новые креативные события
+            ("inspiration", 0.5, "positive", "positive", "positive"),
+            ("creative_dissonance", -0.4, "negative", "negative", "negative"),
         ]
 
         def check_sign(value, expected_sign):
@@ -227,6 +279,21 @@ class TestNewEventTypes:
             ("meaning_found", (1.3, 1.5)),  # 1.4
             ("void", (1.2, 1.4)),  # 1.3
             ("acceptance", (0.8, 1.0)),  # 0.9
+            # Новые эмоциональные события
+            ("joy", (1.0, 1.2)),  # 1.1
+            ("sadness", (0.8, 1.0)),  # 0.9
+            ("fear", (1.1, 1.3)),  # 1.2
+            ("calm", (0.7, 0.9)),  # 0.8
+            # Новые физические события
+            ("discomfort", (0.6, 0.8)),  # 0.7
+            ("comfort", (0.7, 0.9)),  # 0.8
+            ("fatigue", (0.8, 1.0)),  # 0.9
+            # Новые временные события
+            ("anticipation", (0.6, 0.8)),  # 0.7
+            ("boredom", (0.5, 0.7)),  # 0.6
+            # Новые креативные события
+            ("inspiration", (1.2, 1.4)),  # 1.3
+            ("creative_dissonance", (0.7, 0.9)),  # 0.8
         ]
 
         for event_type, (min_weight, max_weight) in test_cases:
@@ -260,6 +327,17 @@ class TestNewEventTypes:
             "meaning_found",
             "void",
             "acceptance",
+            "joy",
+            "sadness",
+            "fear",
+            "calm",
+            "discomfort",
+            "comfort",
+            "fatigue",
+            "anticipation",
+            "boredom",
+            "inspiration",
+            "creative_dissonance",
         ],
     )
     def test_new_event_types_response_patterns(self, meaning_engine, self_state, event_type):
@@ -292,6 +370,17 @@ class TestNewEventTypes:
             "meaning_found",
             "void",
             "acceptance",
+            "joy",
+            "sadness",
+            "fear",
+            "calm",
+            "discomfort",
+            "comfort",
+            "fatigue",
+            "anticipation",
+            "boredom",
+            "inspiration",
+            "creative_dissonance",
         ]:
             event = Event(type=event_type, intensity=0.5, timestamp=1000.0)
             meaning = meaning_engine.process(event, self_state)
@@ -319,32 +408,26 @@ class TestNewEventTypes:
             event_counts[event.type] = event_counts.get(event.type, 0) + 1
 
         # Проверяем, что новые типы генерируются с правильной частотой
+        # Только действительно новые типы (эмоциональные, физические, временные, креативные)
         expected_percentages = {
-            "social_presence": 0.019,
-            "social_conflict": 0.014,
-            "social_harmony": 0.014,
-            "cognitive_doubt": 0.019,
-            "cognitive_clarity": 0.014,
-            "cognitive_confusion": 0.019,
-            "existential_void": 0.009,
-            "existential_purpose": 0.008,
-            "existential_finitude": 0.011,
-            # Новые типы с весом 0.01 каждый
-            "connection": 0.01,
-            "isolation": 0.01,
-            "insight": 0.01,
-            "confusion": 0.01,
-            "curiosity": 0.01,
-            "meaning_found": 0.01,
-            "void": 0.01,
-            "acceptance": 0.01,
+            "joy": 0.015,
+            "sadness": 0.012,
+            "fear": 0.010,
+            "calm": 0.016,
+            "discomfort": 0.012,
+            "comfort": 0.015,
+            "fatigue": 0.014,
+            "anticipation": 0.013,
+            "boredom": 0.011,
+            "inspiration": 0.017,
+            "creative_dissonance": 0.010,
         }
 
         total_new_events = sum(event_counts.get(t, 0) for t in expected_percentages.keys())
         total_events_with_new = sum(event_counts.values())
 
-        # Общая доля новых событий должна быть около 21%
+        # Общая доля новых событий должна быть около 15%
         new_events_ratio = total_new_events / total_events_with_new
         assert (
-            0.18 <= new_events_ratio <= 0.24
-        ), f"Доля новых событий {new_events_ratio:.3f} вне ожидаемого диапазона [0.18, 0.24]"
+            0.12 <= new_events_ratio <= 0.18
+        ), f"Доля новых событий {new_events_ratio:.3f} вне ожидаемого диапазона [0.12, 0.18]"

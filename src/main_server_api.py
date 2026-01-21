@@ -762,7 +762,6 @@ class LifeHandler(BaseHTTPRequestHandler):
                 "final_state": analysis.final_state,
                 "risk_assessment": analysis.risk_assessment,
             },
-            "recommendations": analysis.recommendations,
             "predictions": [
                 {
                     "event": {"type": pred.event.type, "intensity": pred.event.intensity},

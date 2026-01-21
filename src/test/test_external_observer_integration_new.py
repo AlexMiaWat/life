@@ -16,7 +16,7 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
-from src.observability.external_observer import ExternalObserver, SystemMetrics, BehaviorPattern
+from src.observability.external_observer import ExternalObserver, SystemMetrics
 from src.state.self_state import SelfState
 from src.observability.structured_logger import StructuredLogger
 from src.runtime.loop import run_loop

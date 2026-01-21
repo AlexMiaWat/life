@@ -12,6 +12,13 @@ from dataclasses import dataclass, field
 from collections import defaultdict
 
 from src.observability.structured_logger import StructuredLogger
+import sys
+# Import interfaces through sys.modules to ensure we get the same object
+_memory_interface_module = sys.modules.get('memory.memory_interface')
+if _memory_interface_module is None:
+    import memory.memory_interface as _memory_interface_module
+SemanticMemoryInterface = _memory_interface_module.SemanticMemoryInterface
+MemoryStatistics = _memory_interface_module.MemoryStatistics
 
 logger = logging.getLogger(__name__)
 
@@ -79,7 +86,7 @@ class SemanticAssociation:
         self.last_updated = time.time()
 
 
-class SemanticMemoryStore:
+class SemanticMemoryStore(SemanticMemoryInterface):
     """
     Хранилище семантической памяти.
 
@@ -363,12 +370,12 @@ class SemanticMemoryStore:
             if source_id in self._concept_relations[target_id]:
                 self._concept_relations[target_id].remove(source_id)
 
-    def get_statistics(self) -> Dict[str, Any]:
+    def get_statistics(self) -> MemoryStatistics:
         """
         Получить статистику семантического хранилища.
 
         Returns:
-            Статистика использования
+            MemoryStatistics: Статистика использования
         """
         current_time = time.time()
 
@@ -388,13 +395,56 @@ class SemanticMemoryStore:
             avg_confidence = 0.0
             avg_activation = 0.0
 
-        return {
-            "total_concepts": self._stats["total_concepts"],
-            "total_associations": self._stats["total_associations"],
-            "average_confidence": avg_confidence,
-            "average_activation": avg_activation,
-            "last_consolidation": self._stats["last_consolidation"],
-        }
+        return MemoryStatistics(
+            total_entries=concept_count,
+            average_significance=avg_confidence,  # Используем confidence как значимость
+            memory_type="semantic"
+        )
+
+    def validate_integrity(self) -> bool:
+        """
+        Проверить целостность семантического хранилища.
+
+        Returns:
+            bool: True если данные корректны
+        """
+        try:
+            # Проверяем концепции
+            for concept_id, concept in self._concepts.items():
+                if not hasattr(concept, 'concept_id') or concept.concept_id != concept_id:
+                    return False
+                if not isinstance(concept.confidence, (int, float)):
+                    return False
+
+            # Проверяем ассоциации
+            for key, association in self._associations.items():
+                source_id, target_id = key
+                if source_id not in self._concepts or target_id not in self._concepts:
+                    return False
+                if not isinstance(association.strength, (int, float)):
+                    return False
+
+            return True
+        except Exception:
+            return False
+
+    @property
+    def size(self) -> int:
+        """Получить размер семантической памяти."""
+        return len(self._concepts)
+
+    def is_empty(self) -> bool:
+        """
+        Проверить, пустое ли семантическое хранилище.
+
+        Returns:
+            bool: True если хранилище пустое
+        """
+        return len(self._concepts) == 0
+
+    def clear(self) -> None:
+        """Очистить семантическое хранилище."""
+        self.clear_store()
 
     def clear_store(self) -> None:
         """Очистить все данные хранилища."""

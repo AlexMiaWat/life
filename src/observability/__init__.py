@@ -1,21 +1,18 @@
 """
 Observability module for Life system.
 
-Provides passive monitoring and data collection without interpretation.
+Simplified observability with passive data collection and automated reporting.
+Provides essential monitoring tools for developers without runtime interference.
 """
 
-from .state_tracker import StateTracker, StateSnapshot
-from .component_monitor import ComponentMonitor, ComponentStats, SystemComponentStats
-from .data_collector import DataCollector, ObservationData
-from .history_manager import HistoryManager, HistoryEntry
-from .observation_api import ObservationExporter, create_timestamped_filename, export_all_data
+from .external_observer import RawDataCollector, RawSystemCounters, RawDataReport
+from .async_passive_observer import AsyncPassiveObserver
+from .developer_reports import DeveloperReports
 from .structured_logger import StructuredLogger
 
 __all__ = [
-    "StateTracker", "StateSnapshot",
-    "ComponentMonitor", "ComponentStats", "SystemComponentStats",
-    "DataCollector", "ObservationData",
-    "HistoryManager", "HistoryEntry",
-    "ObservationExporter", "create_timestamped_filename", "export_all_data",
+    "RawDataCollector", "RawSystemCounters", "RawDataReport",
+    "AsyncPassiveObserver",
+    "DeveloperReports",
     "StructuredLogger"
 ]

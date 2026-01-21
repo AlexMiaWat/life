@@ -35,6 +35,17 @@ class EventGenerator:
         - void: [-0.8, 0.0] (ощущение пустоты, отсутствия содержания)
         - acceptance: [0.0, 0.5] (принятие текущего состояния)
         - silence: [-0.4, 0.6] (осознание тишины - комфортная или тревожная)
+        - joy: [0.0, 0.8] (радость, положительное эмоциональное состояние)
+        - sadness: [-0.7, 0.0] (грусть, печаль)
+        - fear: [-0.8, 0.0] (страх, тревога)
+        - calm: [0.0, 0.6] (спокойствие, умиротворение)
+        - discomfort: [-0.6, 0.0] (физический дискомфорт)
+        - comfort: [0.0, 0.7] (физический комфорт)
+        - fatigue: [-0.5, 0.0] (усталость, истощение)
+        - anticipation: [-0.3, 0.5] (ожидание - может быть положительным или отрицательным)
+        - boredom: [-0.4, 0.0] (скука, отсутствие стимуляции)
+        - inspiration: [0.0, 0.9] (вдохновение, творческий подъем)
+        - creative_dissonance: [-0.5, 0.0] (творческий тупик, отсутствие идей)
         """
         types = [
             "noise",
@@ -61,32 +72,54 @@ class EventGenerator:
             "void",
             "acceptance",
             "silence",
+            "joy",
+            "sadness",
+            "fear",
+            "calm",
+            "discomfort",
+            "comfort",
+            "fatigue",
+            "anticipation",
+            "boredom",
+            "inspiration",
+            "creative_dissonance",
         ]
         weights = [
-            0.347,  # noise (скорректирован для учета нового типа silence)
-            0.241,  # decay (скорректирован для учета нового типа silence)
-            0.178,  # recovery (скорректирован для учета нового типа silence)
-            0.039,  # shock (скорректирован для учета нового типа silence)
-            0.039,  # idle (скорректирован для учета нового типа silence)
+            0.250,  # noise (скорректирован для новых типов)
+            0.180,  # decay (скорректирован для новых типов)
+            0.130,  # recovery (скорректирован для новых типов)
+            0.030,  # shock (скорректирован для новых типов)
+            0.030,  # idle (скорректирован для новых типов)
             0.0,  # memory_echo (генерируется только внутренне)
-            0.014,  # social_presence (скорректирован для учета нового типа silence)
-            0.010,  # social_conflict (скорректирован для учета нового типа silence)
-            0.010,  # social_harmony (скорректирован для учета нового типа silence)
-            0.014,  # cognitive_doubt (скорректирован для учета нового типа silence)
-            0.010,  # cognitive_clarity (скорректирован для учета нового типа silence)
-            0.014,  # cognitive_confusion (скорректирован для учета нового типа silence)
-            0.007,  # existential_void (скорректирован для учета нового типа silence)
-            0.006,  # existential_purpose (скорректирован для учета нового типа silence)
-            0.008,  # existential_finitude (скорректирован для учета нового типа silence)
-            0.007,  # connection (скорректирован для учета нового типа silence)
-            0.007,  # isolation (скорректирован для учета нового типа silence)
-            0.007,  # insight (скорректирован для учета нового типа silence)
-            0.007,  # confusion (скорректирован для учета нового типа silence)
-            0.007,  # curiosity (скорректирован для учета нового типа silence)
-            0.007,  # meaning_found (скорректирован для учета нового типа silence)
-            0.007,  # void (скорректирован для учета нового типа silence)
-            0.007,  # acceptance (скорректирован для учета нового типа silence)
-            0.005,  # silence (низкая вероятность, генерируется преимущественно детектором)
+            0.010,  # social_presence (скорректирован для новых типов)
+            0.006,  # social_conflict (скорректирован для новых типов)
+            0.006,  # social_harmony (скорректирован для новых типов)
+            0.010,  # cognitive_doubt (скорректирован для новых типов)
+            0.006,  # cognitive_clarity (скорректирован для новых типов)
+            0.010,  # cognitive_confusion (скорректирован для новых типов)
+            0.005,  # existential_void (скорректирован для новых типов)
+            0.004,  # existential_purpose (скорректирован для новых типов)
+            0.006,  # existential_finitude (скорректирован для новых типов)
+            0.005,  # connection (скорректирован для новых типов)
+            0.005,  # isolation (скорректирован для новых типов)
+            0.005,  # insight (скорректирован для новых типов)
+            0.005,  # confusion (скорректирован для новых типов)
+            0.005,  # curiosity (скорректирован для новых типов)
+            0.005,  # meaning_found (скорректирован для новых типов)
+            0.005,  # void (скорректирован для новых типов)
+            0.005,  # acceptance (скорректирован для новых типов)
+            0.003,  # silence (низкая вероятность, генерируется преимущественно детектором)
+            0.015,  # joy (новый тип)
+            0.012,  # sadness (новый тип)
+            0.010,  # fear (новый тип)
+            0.016,  # calm (новый тип)
+            0.012,  # discomfort (новый тип)
+            0.015,  # comfort (новый тип)
+            0.014,  # fatigue (новый тип)
+            0.013,  # anticipation (новый тип)
+            0.011,  # boredom (новый тип)
+            0.017,  # inspiration (новый тип)
+            0.010,  # creative_dissonance (новый тип)
         ]
         event_type = random.choices(types, weights=weights)[0]
 
@@ -141,6 +174,30 @@ class EventGenerator:
             intensity = random.uniform(
                 -0.4, 0.6
             )  # Тишина может быть комфортной (положительной) или тревожной (отрицательной)
+        elif event_type == "joy":
+            intensity = random.uniform(0.0, 0.8)  # Радость всегда положительна
+        elif event_type == "sadness":
+            intensity = random.uniform(-0.7, 0.0)  # Грусть всегда негативна
+        elif event_type == "fear":
+            intensity = random.uniform(-0.8, 0.0)  # Страх всегда негативен
+        elif event_type == "calm":
+            intensity = random.uniform(0.0, 0.6)  # Спокойствие всегда положительно
+        elif event_type == "discomfort":
+            intensity = random.uniform(-0.6, 0.0)  # Дискомфорт всегда негативен
+        elif event_type == "comfort":
+            intensity = random.uniform(0.0, 0.7)  # Комфорт всегда положителен
+        elif event_type == "fatigue":
+            intensity = random.uniform(-0.5, 0.0)  # Усталость всегда негативна
+        elif event_type == "anticipation":
+            intensity = random.uniform(
+                -0.3, 0.5
+            )  # Ожидание может быть как положительным, так и отрицательным
+        elif event_type == "boredom":
+            intensity = random.uniform(-0.4, 0.0)  # Скука всегда негативна
+        elif event_type == "inspiration":
+            intensity = random.uniform(0.0, 0.9)  # Вдохновение всегда положительно
+        elif event_type == "creative_dissonance":
+            intensity = random.uniform(-0.5, 0.0)  # Творческий тупик всегда негативен
         else:  # idle
             intensity = 0.0
 

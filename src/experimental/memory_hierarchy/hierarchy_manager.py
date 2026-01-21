@@ -87,7 +87,7 @@ class MemoryHierarchyManager:
         self.logger.log_event(
             {
                 "event_type": "episodic_memory_integrated",
-                "memory_entries_count": len(memory) if memory else 0,
+                "memory_entries_count": memory.size() if hasattr(memory, 'size') and memory else len(memory) if memory else 0,
             }
         )
 
@@ -228,7 +228,10 @@ class MemoryHierarchyManager:
 
                 # Добавляем в эпизодическую память (если доступна)
                 if self.episodic_memory is not None:
-                    self.episodic_memory.append(memory_entry)
+                    if hasattr(self.episodic_memory, 'append'):
+                        self.episodic_memory.append(memory_entry)
+                    elif hasattr(self.episodic_memory, 'add_entry'):
+                        self.episodic_memory.add_entry(memory_entry)
                     transfers_count += 1
                     self._transfer_stats["sensory_to_episodic"] += 1
 

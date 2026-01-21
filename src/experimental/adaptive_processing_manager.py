@@ -590,6 +590,16 @@ class AdaptiveProcessingManager:
                 "target_state": target_state.value,
             })
 
+    def analyze_system_conditions(self) -> Optional[ProcessingEvent]:
+        """Analyze current system conditions and return processing event if needed."""
+        self_state = self.self_state_provider()
+        return self._detect_processing_conditions(self_state)
+
+    def get_current_state(self) -> Dict[str, Any]:
+        """Get current adaptive processing state."""
+        self_state = self.self_state_provider()
+        return self._determine_adaptive_state(self_state)
+
     def _add_to_processing_history(self, self_state, processing_event: ProcessingEvent) -> None:
         """Добавить событие обработки в историю SelfState."""
         history_entry = {

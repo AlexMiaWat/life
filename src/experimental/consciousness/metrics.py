@@ -168,6 +168,5 @@ class ConsciousnessMetrics:
             return "\n".join(lines)
 
 
-# Global metrics instance
-metrics = ConsciousnessMetrics()</contents>
-</xai:function_call=FileWrite>
+# Global metrics instance - commented out to avoid import issues
+# metrics = ConsciousnessMetrics()
