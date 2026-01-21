@@ -1,0 +1,180 @@
+{"timestamp": 1768987749.483188, "stage": "tick_start", "tick_number": 0, "queue_size": 5, "data": {}}
+{"timestamp": 1768987749.4866612, "stage": "event", "correlation_id": "chain_1", "event_id": "c45b7470-b369-4713-aaa1-9e3ed393c660", "event_type": "noise", "intensity": 0.3, "data": {}}
+{"timestamp": 1768987749.4985309, "stage": "event", "correlation_id": "chain_2", "event_id": "b5f92300-1ec7-495f-8338-0208d8ee3e7b", "event_type": "noise", "intensity": 0.3, "data": {}}
+{"timestamp": 1768987749.508052, "stage": "event", "correlation_id": "chain_3", "event_id": "34b68531-22a9-453a-80eb-e4a8b962b290", "event_type": "noise", "intensity": 0.3, "data": {}}
+{"timestamp": 1768987749.5170856, "stage": "event", "correlation_id": "chain_4", "event_id": "0154c27f-4756-4c28-b64c-c0b638741662", "event_type": "noise", "intensity": 0.3, "data": {}}
+{"timestamp": 1768987749.5258226, "stage": "event", "correlation_id": "chain_5", "event_id": "1317e6bb-1ee1-46f7-9689-4055ff064798", "event_type": "noise", "intensity": 0.3, "data": {}}
+{"timestamp": 1768987749.534441, "stage": "meaning", "correlation_id": "chain_1", "event_id": "8da9a692-6845-4f82-b182-c1bee2014d3e", "event_type": "noise", "significance": 0.15, "impact": {"energy": -0.00675, "stability": -0.00045, "integrity": 0.0}, "data": {"meaning_type": "Meaning", "has_impact": true}}
+{"timestamp": 1768987749.5441003, "stage": "decision", "correlation_id": "chain_1", "pattern": "absorb", "data": {"significance": 0.15, "original_impact": {"energy": -0.00675, "stability": -0.00045, "integrity": 0.0}}}
+{"timestamp": 1768987749.5538955, "stage": "action", "correlation_id": "chain_1", "action_id": "action_1_absorb_1768987749553", "pattern": "absorb", "data": {"state_before": {"energy": 100.0, "stability": 1.0, "integrity": 1.0}}}
+{"timestamp": 1768987749.563667, "stage": "meaning", "correlation_id": "chain_2", "event_id": "9692621e-f529-4a90-a261-83822cb570b2", "event_type": "noise", "significance": 0.15, "impact": {"energy": -0.00675, "stability": -0.00045, "integrity": 0.0}, "data": {"meaning_type": "Meaning", "has_impact": true}}
+{"timestamp": 1768987749.5748122, "stage": "decision", "correlation_id": "chain_2", "pattern": "absorb", "data": {"significance": 0.15, "original_impact": {"energy": -0.00675, "stability": -0.00045, "integrity": 0.0}}}
+{"timestamp": 1768987749.5845566, "stage": "action", "correlation_id": "chain_2", "action_id": "action_1_absorb_1768987749584", "pattern": "absorb", "data": {"state_before": {"energy": 99.99325, "stability": 0.99955, "integrity": 1.0}}}
+{"timestamp": 1768987749.5938501, "stage": "meaning", "correlation_id": "chain_3", "event_id": "1bbaa3e7-ca56-4bad-bda3-21e12e1dff35", "event_type": "noise", "significance": 0.15, "impact": {"energy": -0.00675, "stability": -0.00045, "integrity": 0.0}, "data": {"meaning_type": "Meaning", "has_impact": true}}
+{"timestamp": 1768987749.6028295, "stage": "decision", "correlation_id": "chain_3", "pattern": "absorb", "data": {"significance": 0.15, "original_impact": {"energy": -0.00675, "stability": -0.00045, "integrity": 0.0}}}
+{"timestamp": 1768987749.6127121, "stage": "action", "correlation_id": "chain_3", "action_id": "action_1_absorb_1768987749612", "pattern": "absorb", "data": {"state_before": {"energy": 99.9865, "stability": 0.9991000000000001, "integrity": 1.0}}}
+{"timestamp": 1768987749.6257887, "stage": "meaning", "correlation_id": "chain_4", "event_id": "6093e3f4-eb66-4404-bfd6-d5f19175b845", "event_type": "noise", "significance": 0.15, "impact": {"energy": -0.00675, "stability": -0.00045, "integrity": 0.0}, "data": {"meaning_type": "Meaning", "has_impact": true}}
+{"timestamp": 1768987749.6355796, "stage": "decision", "correlation_id": "chain_4", "pattern": "absorb", "data": {"significance": 0.15, "original_impact": {"energy": -0.00675, "stability": -0.00045, "integrity": 0.0}}}
+{"timestamp": 1768987749.646816, "stage": "action", "correlation_id": "chain_4", "action_id": "action_1_absorb_1768987749646", "pattern": "absorb", "data": {"state_before": {"energy": 99.97975000000001, "stability": 0.9986500000000001, "integrity": 1.0}}}
+{"timestamp": 1768987749.659546, "stage": "meaning", "correlation_id": "chain_5", "event_id": "c377ffe5-e59b-4bb2-a876-249e2f135d23", "event_type": "noise", "significance": 0.15, "impact": {"energy": -0.00675, "stability": -0.00045, "integrity": 0.0}, "data": {"meaning_type": "Meaning", "has_impact": true}}
+{"timestamp": 1768987749.6707327, "stage": "decision", "correlation_id": "chain_5", "pattern": "absorb", "data": {"significance": 0.15, "original_impact": {"energy": -0.00675, "stability": -0.00045, "integrity": 0.0}}}
+{"timestamp": 1768987749.6805656, "stage": "action", "correlation_id": "chain_5", "action_id": "action_1_absorb_1768987749680", "pattern": "absorb", "data": {"state_before": {"energy": 99.97300000000001, "stability": 0.9982000000000002, "integrity": 1.0}}}
+{"timestamp": 1768987749.6906183, "stage": "tick_end", "tick_number": 1, "duration_ms": 207.42416381835938, "events_processed": 5, "data": {}}
+{"timestamp": 1768987749.7107837, "stage": "tick_start", "tick_number": 0, "queue_size": 3, "data": {}}
+{"timestamp": 1768987749.716578, "stage": "event", "correlation_id": "chain_1", "event_id": "f33d983d-982c-47e5-ac73-1140ecd4bb23", "event_type": "noise", "intensity": 0.4, "data": {}}
+{"timestamp": 1768987749.7283177, "stage": "event", "correlation_id": "chain_2", "event_id": "ce4391d1-6a70-49f9-b767-f585fd6f87fe", "event_type": "shock", "intensity": -0.6, "data": {}}
+{"timestamp": 1768987749.7377415, "stage": "event", "correlation_id": "chain_3", "event_id": "79c5d9eb-88a1-4672-94e5-676a57d63c7c", "event_type": "recovery", "intensity": 0.5, "data": {}}
+{"timestamp": 1768987749.7470374, "stage": "meaning", "correlation_id": "chain_1", "event_id": "6a908d5f-73ba-49bd-9429-1a9539cbce5c", "event_type": "noise", "significance": 0.2, "impact": {"energy": -0.012, "stability": -0.0008, "integrity": 0.0}, "data": {"meaning_type": "Meaning", "has_impact": true}}
+{"timestamp": 1768987749.7563887, "stage": "decision", "correlation_id": "chain_1", "pattern": "absorb", "data": {"significance": 0.2, "original_impact": {"energy": -0.012, "stability": -0.0008, "integrity": 0.0}}}
+{"timestamp": 1768987749.765507, "stage": "action", "correlation_id": "chain_1", "action_id": "action_1_absorb_1768987749765", "pattern": "absorb", "data": {"state_before": {"energy": 100.0, "stability": 1.0, "integrity": 1.0}}}
+{"timestamp": 1768987749.7747843, "stage": "meaning", "correlation_id": "chain_2", "event_id": "d22dae23-6636-4732-ab65-e051c6fcfd23", "event_type": "shock", "significance": 0.8999999999999999, "impact": {"energy": -0.4049999999999999, "stability": -0.026999999999999996, "integrity": -0.013499999999999998}, "data": {"meaning_type": "Meaning", "has_impact": true}}
+{"timestamp": 1768987749.7838848, "stage": "decision", "correlation_id": "chain_2", "pattern": "dampen", "data": {"significance": 0.8999999999999999, "original_impact": {"energy": -0.4049999999999999, "stability": -0.026999999999999996, "integrity": -0.013499999999999998}}}
+{"timestamp": 1768987749.79309, "stage": "action", "correlation_id": "chain_2", "action_id": "action_1_dampen_1768987749793", "pattern": "dampen", "data": {"state_before": {"energy": 99.988, "stability": 0.9992, "integrity": 1.0}}}
+{"timestamp": 1768987749.804021, "stage": "meaning", "correlation_id": "chain_3", "event_id": "988c7cad-d6f4-4bbd-9709-be3ec1434c30", "event_type": "recovery", "significance": 0.5, "impact": {"energy": 0.125, "stability": 0.00625, "integrity": 0.0025}, "data": {"meaning_type": "Meaning", "has_impact": true}}
+{"timestamp": 1768987749.8144302, "stage": "decision", "correlation_id": "chain_3", "pattern": "dampen", "data": {"significance": 0.5, "original_impact": {"energy": 0.125, "stability": 0.00625, "integrity": 0.0025}}}
+{"timestamp": 1768987749.8250017, "stage": "action", "correlation_id": "chain_3", "action_id": "action_1_dampen_1768987749824", "pattern": "dampen", "data": {"state_before": {"energy": 99.7805, "stability": 0.9857, "integrity": 0.99325}}}
+{"timestamp": 1768987749.8351934, "stage": "tick_end", "tick_number": 1, "duration_ms": 124.40228462219238, "events_processed": 3, "data": {}}
+{"timestamp": 1768987749.8511124, "stage": "tick_start", "tick_number": 1, "queue_size": 0, "data": {}}
+{"timestamp": 1768987749.8562431, "stage": "tick_end", "tick_number": 2, "duration_ms": 5.130529403686523, "events_processed": 3, "data": {}}
+{"timestamp": 1768987749.87277, "stage": "tick_start", "tick_number": 2, "queue_size": 0, "data": {}}
+{"timestamp": 1768987749.8792582, "stage": "tick_end", "tick_number": 3, "duration_ms": 6.488323211669922, "events_processed": 3, "data": {}}
+{"timestamp": 1768987749.8951488, "stage": "tick_start", "tick_number": 3, "queue_size": 0, "data": {}}
+{"timestamp": 1768987749.901868, "stage": "tick_end", "tick_number": 4, "duration_ms": 6.729841232299805, "events_processed": 3, "data": {}}
+{"timestamp": 1768987749.9187229, "stage": "tick_start", "tick_number": 4, "queue_size": 0, "data": {}}
+{"timestamp": 1768987749.9249527, "stage": "feedback", "correlation_id": "feedback_chain", "action_id": "action_1_dampen_1768987749803", "delay_ticks": 4, "data": {"state_delta": {"energy": -0.14999999999999147, "stability": -0.010374999999999912, "integrity": -0.00550000000000006}, "associated_events": [], "feedback_type": "FeedbackRecord"}}
+{"timestamp": 1768987749.935771, "stage": "tick_end", "tick_number": 5, "duration_ms": 17.046451568603516, "events_processed": 3, "data": {}}
+{"timestamp": 1768987749.9513175, "stage": "tick_start", "tick_number": 5, "queue_size": 0, "data": {}}
+{"timestamp": 1768987749.9569736, "stage": "feedback", "correlation_id": "feedback_chain", "action_id": "action_1_dampen_1768987749835", "delay_ticks": 5, "data": {"state_delta": {"energy": 0.05750000000000455, "stability": 0.0031250000000000444, "integrity": 0.0012499999999999734}, "associated_events": [], "feedback_type": "FeedbackRecord"}}
+{"timestamp": 1768987749.9661367, "stage": "tick_end", "tick_number": 6, "duration_ms": 14.818429946899414, "events_processed": 3, "data": {}}
+{"timestamp": 1768987749.9853396, "stage": "tick_start", "tick_number": 6, "queue_size": 0, "data": {}}
+{"timestamp": 1768987749.9917555, "stage": "feedback", "correlation_id": "feedback_chain", "action_id": "action_1_absorb_1768987749774", "delay_ticks": 6, "data": {"state_delta": {"energy": -0.16199999999999193, "stability": -0.011174999999999935, "integrity": -0.00550000000000006}, "associated_events": [], "feedback_type": "FeedbackRecord"}}
+{"timestamp": 1768987750.0011985, "stage": "tick_end", "tick_number": 7, "duration_ms": 15.859127044677734, "events_processed": 3, "data": {}}
+{"timestamp": 1768987750.019652, "stage": "tick_start", "tick_number": 0, "queue_size": 1, "data": {}}
+{"timestamp": 1768987750.0234573, "stage": "event", "correlation_id": "chain_1", "event_id": "75138f8f-dd93-4830-a298-9f250ec00a1e", "event_type": "shock", "intensity": -0.8, "data": {}}
+{"timestamp": 1768987750.0333896, "stage": "meaning", "correlation_id": "chain_1", "event_id": "076e55a6-1f6e-4af1-a2bb-19a6dbf1b688", "event_type": "shock", "significance": 1.0, "impact": {"energy": -0.6000000000000001, "stability": -0.04000000000000001, "integrity": -0.020000000000000004}, "data": {"meaning_type": "Meaning", "has_impact": true}}
+{"timestamp": 1768987750.0430112, "stage": "decision", "correlation_id": "chain_1", "pattern": "dampen", "data": {"significance": 1.0, "original_impact": {"energy": -0.6000000000000001, "stability": -0.04000000000000001, "integrity": -0.020000000000000004}}}
+{"timestamp": 1768987750.0527377, "stage": "action", "correlation_id": "chain_1", "action_id": "action_1_dampen_1768987750052", "pattern": "dampen", "data": {"state_before": {"energy": 100.0, "stability": 1.0, "integrity": 1.0}}}
+{"timestamp": 1768987750.062544, "stage": "tick_end", "tick_number": 1, "duration_ms": 42.883872985839844, "events_processed": 1, "data": {}}
+{"timestamp": 1768987750.0805645, "stage": "tick_start", "tick_number": 1, "queue_size": 0, "data": {}}
+{"timestamp": 1768987750.0883605, "stage": "tick_end", "tick_number": 2, "duration_ms": 7.795572280883789, "events_processed": 1, "data": {}}
+{"timestamp": 1768987750.1034021, "stage": "tick_start", "tick_number": 2, "queue_size": 0, "data": {}}
+{"timestamp": 1768987750.1105201, "stage": "tick_end", "tick_number": 3, "duration_ms": 7.14111328125, "events_processed": 1, "data": {}}
+{"timestamp": 1768987750.1268754, "stage": "tick_start", "tick_number": 3, "queue_size": 0, "data": {}}
+{"timestamp": 1768987750.1321502, "stage": "tick_end", "tick_number": 4, "duration_ms": 5.272865295410156, "events_processed": 1, "data": {}}
+{"timestamp": 1768987750.1470535, "stage": "tick_start", "tick_number": 4, "queue_size": 0, "data": {}}
+{"timestamp": 1768987750.15289, "stage": "tick_end", "tick_number": 5, "duration_ms": 5.836009979248047, "events_processed": 1, "data": {}}
+{"timestamp": 1768987750.1693773, "stage": "tick_start", "tick_number": 5, "queue_size": 0, "data": {}}
+{"timestamp": 1768987750.1753235, "stage": "tick_end", "tick_number": 6, "duration_ms": 5.947351455688477, "events_processed": 1, "data": {}}
+{"timestamp": 1768987750.1914606, "stage": "tick_start", "tick_number": 6, "queue_size": 0, "data": {}}
+{"timestamp": 1768987750.1981041, "stage": "tick_end", "tick_number": 7, "duration_ms": 6.643056869506836, "events_processed": 1, "data": {}}
+{"timestamp": 1768987750.2142882, "stage": "tick_start", "tick_number": 7, "queue_size": 0, "data": {}}
+{"timestamp": 1768987750.2210233, "stage": "tick_end", "tick_number": 8, "duration_ms": 6.732702255249023, "events_processed": 1, "data": {}}
+{"timestamp": 1768987750.2438478, "stage": "tick_start", "tick_number": 0, "queue_size": 0, "data": {}}
+{"timestamp": 1768987750.2496326, "stage": "tick_end", "tick_number": 1, "duration_ms": 5.772829055786133, "events_processed": 0, "data": {}}
+{"timestamp": 1768987750.2690423, "stage": "tick_start", "tick_number": 1, "queue_size": 0, "data": {}}
+{"timestamp": 1768987750.2776885, "stage": "tick_end", "tick_number": 2, "duration_ms": 8.637428283691406, "events_processed": 0, "data": {}}
+{"timestamp": 1768987750.2947178, "stage": "tick_start", "tick_number": 2, "queue_size": 0, "data": {}}
+{"timestamp": 1768987750.3026907, "stage": "tick_end", "tick_number": 3, "duration_ms": 7.9631805419921875, "events_processed": 0, "data": {}}
+{"timestamp": 1768987750.3221812, "stage": "tick_start", "tick_number": 3, "queue_size": 0, "data": {}}
+{"timestamp": 1768987750.3306644, "stage": "tick_end", "tick_number": 4, "duration_ms": 8.474588394165039, "events_processed": 0, "data": {}}
+{"timestamp": 1768987750.3460066, "stage": "tick_start", "tick_number": 4, "queue_size": 0, "data": {}}
+{"timestamp": 1768987750.3526213, "stage": "tick_end", "tick_number": 5, "duration_ms": 6.605863571166992, "events_processed": 0, "data": {}}
+{"timestamp": 1768987750.369049, "stage": "tick_start", "tick_number": 5, "queue_size": 0, "data": {}}
+{"timestamp": 1768987750.376546, "stage": "tick_end", "tick_number": 6, "duration_ms": 7.488250732421875, "events_processed": 0, "data": {}}
+{"timestamp": 1768987750.3931806, "stage": "tick_start", "tick_number": 6, "queue_size": 0, "data": {}}
+{"timestamp": 1768987750.4003673, "stage": "tick_end", "tick_number": 7, "duration_ms": 7.176399230957031, "events_processed": 0, "data": {}}
+{"timestamp": 1768987750.4160652, "stage": "tick_start", "tick_number": 7, "queue_size": 0, "data": {}}
+{"timestamp": 1768987750.4226878, "stage": "tick_end", "tick_number": 8, "duration_ms": 6.613016128540039, "events_processed": 0, "data": {}}
+{"timestamp": 1768987750.4420455, "stage": "tick_start", "tick_number": 8, "queue_size": 0, "data": {}}
+{"timestamp": 1768987750.4498467, "stage": "tick_end", "tick_number": 9, "duration_ms": 7.791042327880859, "events_processed": 0, "data": {}}
+{"timestamp": 1768987750.4684465, "stage": "tick_start", "tick_number": 9, "queue_size": 0, "data": {}}
+{"timestamp": 1768987750.475072, "stage": "tick_end", "tick_number": 10, "duration_ms": 6.6165924072265625, "events_processed": 0, "data": {}}
+{"timestamp": 1768987750.4943728, "stage": "tick_start", "tick_number": 10, "queue_size": 0, "data": {}}
+{"timestamp": 1768987750.502613, "stage": "tick_end", "tick_number": 11, "duration_ms": 8.231639862060547, "events_processed": 0, "data": {}}
+{"timestamp": 1768987750.5201082, "stage": "tick_start", "tick_number": 11, "queue_size": 0, "data": {}}
+{"timestamp": 1768987750.5284326, "stage": "tick_end", "tick_number": 12, "duration_ms": 8.315324783325195, "events_processed": 0, "data": {}}
+{"timestamp": 1768987750.5432434, "stage": "tick_start", "tick_number": 12, "queue_size": 0, "data": {}}
+{"timestamp": 1768987750.5486937, "stage": "tick_end", "tick_number": 13, "duration_ms": 5.440235137939453, "events_processed": 0, "data": {}}
+{"timestamp": 1768987750.5684297, "stage": "tick_start", "tick_number": 0, "queue_size": 0, "data": {}}
+{"timestamp": 1768987750.572306, "stage": "tick_end", "tick_number": 1, "duration_ms": 3.8640499114990234, "events_processed": 0, "data": {}}
+{"timestamp": 1768987750.5895345, "stage": "tick_start", "tick_number": 1, "queue_size": 0, "data": {}}
+{"timestamp": 1768987750.595609, "stage": "tick_end", "tick_number": 2, "duration_ms": 6.065845489501953, "events_processed": 0, "data": {}}
+{"timestamp": 1768987750.6113625, "stage": "tick_start", "tick_number": 2, "queue_size": 0, "data": {}}
+{"timestamp": 1768987750.6186872, "stage": "tick_end", "tick_number": 3, "duration_ms": 7.315397262573242, "events_processed": 0, "data": {}}
+{"timestamp": 1768987750.6349251, "stage": "tick_start", "tick_number": 3, "queue_size": 0, "data": {}}
+{"timestamp": 1768987750.640543, "stage": "tick_end", "tick_number": 4, "duration_ms": 5.608081817626953, "events_processed": 0, "data": {}}
+{"timestamp": 1768987750.6563678, "stage": "tick_start", "tick_number": 4, "queue_size": 0, "data": {}}
+{"timestamp": 1768987750.6632273, "stage": "tick_end", "tick_number": 5, "duration_ms": 6.8511962890625, "events_processed": 0, "data": {}}
+{"timestamp": 1768987750.6795385, "stage": "tick_start", "tick_number": 5, "queue_size": 0, "data": {}}
+{"timestamp": 1768987750.686766, "stage": "tick_end", "tick_number": 6, "duration_ms": 7.217645645141602, "events_processed": 0, "data": {}}
+{"timestamp": 1768987750.7016823, "stage": "tick_start", "tick_number": 6, "queue_size": 0, "data": {}}
+{"timestamp": 1768987750.7092173, "stage": "tick_end", "tick_number": 7, "duration_ms": 7.525444030761719, "events_processed": 0, "data": {}}
+{"timestamp": 1768987750.7258677, "stage": "tick_start", "tick_number": 7, "queue_size": 0, "data": {}}
+{"timestamp": 1768987750.731817, "stage": "tick_end", "tick_number": 8, "duration_ms": 5.940675735473633, "events_processed": 0, "data": {}}
+{"timestamp": 1768987750.7483559, "stage": "tick_start", "tick_number": 8, "queue_size": 0, "data": {}}
+{"timestamp": 1768987750.7563434, "stage": "tick_end", "tick_number": 9, "duration_ms": 7.9784393310546875, "events_processed": 0, "data": {}}
+{"timestamp": 1768987750.7719975, "stage": "tick_start", "tick_number": 9, "queue_size": 0, "data": {}}
+{"timestamp": 1768987750.7788856, "stage": "tick_end", "tick_number": 10, "duration_ms": 6.880044937133789, "events_processed": 0, "data": {}}
+{"timestamp": 1768987750.7972186, "stage": "tick_start", "tick_number": 10, "queue_size": 0, "data": {}}
+{"timestamp": 1768987750.8056638, "stage": "tick_end", "tick_number": 11, "duration_ms": 8.435964584350586, "events_processed": 0, "data": {}}
+{"timestamp": 1768987750.8206937, "stage": "tick_start", "tick_number": 11, "queue_size": 0, "data": {}}
+{"timestamp": 1768987750.8286455, "stage": "tick_end", "tick_number": 12, "duration_ms": 7.941007614135742, "events_processed": 0, "data": {}}
+{"timestamp": 1768987750.845446, "stage": "tick_start", "tick_number": 12, "queue_size": 0, "data": {}}
+{"timestamp": 1768987750.8515337, "stage": "tick_end", "tick_number": 13, "duration_ms": 6.0787200927734375, "events_processed": 0, "data": {}}
+{"timestamp": 1768987750.8678129, "stage": "tick_start", "tick_number": 13, "queue_size": 0, "data": {}}
+{"timestamp": 1768987750.8735752, "stage": "tick_end", "tick_number": 14, "duration_ms": 5.752325057983398, "events_processed": 0, "data": {}}
+{"timestamp": 1768987750.8894267, "stage": "tick_start", "tick_number": 14, "queue_size": 0, "data": {}}
+{"timestamp": 1768987750.8952725, "stage": "tick_end", "tick_number": 15, "duration_ms": 5.837202072143555, "events_processed": 0, "data": {}}
+{"timestamp": 1768987750.9117217, "stage": "tick_start", "tick_number": 15, "queue_size": 0, "data": {}}
+{"timestamp": 1768987750.9183753, "stage": "tick_end", "tick_number": 16, "duration_ms": 6.638765335083008, "events_processed": 0, "data": {}}
+{"timestamp": 1768987750.9386227, "stage": "tick_start", "tick_number": 16, "queue_size": 0, "data": {}}
+{"timestamp": 1768987750.9489, "stage": "tick_end", "tick_number": 17, "duration_ms": 10.268926620483398, "events_processed": 0, "data": {}}
+{"timestamp": 1768987750.967, "stage": "tick_start", "tick_number": 17, "queue_size": 0, "data": {}}
+{"timestamp": 1768987750.974558, "stage": "tick_end", "tick_number": 18, "duration_ms": 7.549524307250977, "events_processed": 0, "data": {}}
+{"timestamp": 1768987750.997559, "stage": "tick_start", "tick_number": 0, "queue_size": 1, "data": {}}
+{"timestamp": 1768987751.004302, "stage": "event", "correlation_id": "chain_1", "event_id": "93c95ce4-d431-4464-badb-a65d8177f5fb", "event_type": "noise", "intensity": 0.5, "data": {}}
+{"timestamp": 1768987751.0189655, "stage": "meaning", "correlation_id": "chain_1", "event_id": "11211649-698a-44a4-b089-4116180cde9a", "event_type": "noise", "significance": 0.25, "impact": {"energy": -0.01875, "stability": -0.00125, "integrity": 0.0}, "data": {"meaning_type": "Meaning", "has_impact": true}}
+{"timestamp": 1768987751.0337813, "stage": "decision", "correlation_id": "chain_1", "pattern": "dampen", "data": {"significance": 0.25, "original_impact": {"energy": -0.01875, "stability": -0.00125, "integrity": 0.0}}}
+{"timestamp": 1768987751.0461898, "stage": "action", "correlation_id": "chain_1", "action_id": "action_1_dampen_1768987751046", "pattern": "dampen", "data": {"state_before": {"energy": 100.0, "stability": 1.0, "integrity": 1.0}}}
+{"timestamp": 1768987751.057551, "stage": "tick_end", "tick_number": 1, "duration_ms": 59.98492240905762, "events_processed": 1, "data": {}}
+{"timestamp": 1768987751.0741875, "stage": "tick_start", "tick_number": 1, "queue_size": 0, "data": {}}
+{"timestamp": 1768987751.084478, "stage": "tick_end", "tick_number": 2, "duration_ms": 10.28895378112793, "events_processed": 1, "data": {}}
+{"timestamp": 1768987751.1006727, "stage": "tick_start", "tick_number": 2, "queue_size": 0, "data": {}}
+{"timestamp": 1768987751.1053386, "stage": "tick_end", "tick_number": 3, "duration_ms": 4.666328430175781, "events_processed": 1, "data": {}}
+{"timestamp": 1768987751.122738, "stage": "tick_start", "tick_number": 3, "queue_size": 0, "data": {}}
+{"timestamp": 1768987751.131304, "stage": "tick_end", "tick_number": 4, "duration_ms": 8.566856384277344, "events_processed": 1, "data": {}}
+{"timestamp": 1768987751.148974, "stage": "tick_start", "tick_number": 4, "queue_size": 0, "data": {}}
+{"timestamp": 1768987751.1543157, "stage": "feedback", "correlation_id": "feedback_chain", "action_id": "action_1_dampen_1768987751057", "delay_ticks": 4, "data": {"state_delta": {"energy": -0.014375000000001137, "stability": -0.0006249999999999867, "integrity": 0.0}, "associated_events": [], "feedback_type": "FeedbackRecord"}}
+{"timestamp": 1768987751.1648247, "stage": "tick_end", "tick_number": 5, "duration_ms": 15.850067138671875, "events_processed": 1, "data": {}}
+{"timestamp": 1768987751.1846762, "stage": "tick_start", "tick_number": 5, "queue_size": 0, "data": {}}
+{"timestamp": 1768987751.192602, "stage": "tick_end", "tick_number": 6, "duration_ms": 7.923364639282227, "events_processed": 1, "data": {}}
+{"timestamp": 1768987751.218428, "stage": "tick_start", "tick_number": 0, "queue_size": 0, "data": {}}
+{"timestamp": 1768987751.2207708, "stage": "tick_end", "tick_number": 1, "duration_ms": 2.334117889404297, "events_processed": 0, "data": {}}
+{"timestamp": 1768987751.2367961, "stage": "tick_start", "tick_number": 1, "queue_size": 0, "data": {}}
+{"timestamp": 1768987751.2431571, "stage": "tick_end", "tick_number": 2, "duration_ms": 6.353139877319336, "events_processed": 0, "data": {}}
+{"timestamp": 1768987751.2581344, "stage": "tick_start", "tick_number": 2, "queue_size": 0, "data": {}}
+{"timestamp": 1768987751.2638438, "stage": "tick_end", "tick_number": 3, "duration_ms": 5.700826644897461, "events_processed": 0, "data": {}}
+{"timestamp": 1768987751.2795875, "stage": "tick_start", "tick_number": 3, "queue_size": 0, "data": {}}
+{"timestamp": 1768987751.2850673, "stage": "tick_end", "tick_number": 4, "duration_ms": 5.471944808959961, "events_processed": 0, "data": {}}
+{"timestamp": 1768987751.3002784, "stage": "tick_start", "tick_number": 4, "queue_size": 0, "data": {}}
+{"timestamp": 1768987751.3081665, "stage": "tick_end", "tick_number": 5, "duration_ms": 7.879018783569336, "events_processed": 0, "data": {}}
+{"timestamp": 1768987751.3243968, "stage": "tick_start", "tick_number": 5, "queue_size": 0, "data": {}}
+{"timestamp": 1768987751.3331838, "stage": "tick_end", "tick_number": 6, "duration_ms": 8.777618408203125, "events_processed": 0, "data": {}}
+{"timestamp": 1768987751.3490574, "stage": "tick_start", "tick_number": 6, "queue_size": 0, "data": {}}
+{"timestamp": 1768987751.3552454, "stage": "tick_end", "tick_number": 7, "duration_ms": 6.178617477416992, "events_processed": 0, "data": {}}
+{"timestamp": 1768987751.37095, "stage": "tick_start", "tick_number": 7, "queue_size": 0, "data": {}}
+{"timestamp": 1768987751.3775198, "stage": "tick_end", "tick_number": 8, "duration_ms": 6.560802459716797, "events_processed": 0, "data": {}}
+{"timestamp": 1768987751.3933127, "stage": "tick_start", "tick_number": 8, "queue_size": 0, "data": {}}
+{"timestamp": 1768987751.398539, "stage": "tick_end", "tick_number": 9, "duration_ms": 5.218029022216797, "events_processed": 0, "data": {}}
+{"timestamp": 1768987751.4140778, "stage": "tick_start", "tick_number": 9, "queue_size": 0, "data": {}}
+{"timestamp": 1768987751.4211147, "stage": "tick_end", "tick_number": 10, "duration_ms": 7.028102874755859, "events_processed": 0, "data": {}}
+{"timestamp": 1768987751.4406755, "stage": "tick_start", "tick_number": 0, "queue_size": 0, "data": {}}
+{"timestamp": 1768987751.4441261, "stage": "tick_end", "tick_number": 1, "duration_ms": 3.4418106079101562, "events_processed": 0, "data": {}}
+{"timestamp": 1768987751.4622924, "stage": "tick_start", "tick_number": 1, "queue_size": 0, "data": {}}
+{"timestamp": 1768987751.4689171, "stage": "tick_end", "tick_number": 2, "duration_ms": 6.615161895751953, "events_processed": 0, "data": {}}
+{"timestamp": 1768987751.4867535, "stage": "tick_start", "tick_number": 2, "queue_size": 0, "data": {}}
+{"timestamp": 1768987751.493702, "stage": "tick_end", "tick_number": 3, "duration_ms": 6.938457489013672, "events_processed": 0, "data": {}}
+{"timestamp": 1768987751.5107558, "stage": "tick_start", "tick_number": 3, "queue_size": 0, "data": {}}
+{"timestamp": 1768987751.5175145, "stage": "tick_end", "tick_number": 4, "duration_ms": 6.747722625732422, "events_processed": 0, "data": {}}
+{"timestamp": 1768987751.533025, "stage": "tick_start", "tick_number": 4, "queue_size": 0, "data": {}}
+{"timestamp": 1768987751.539445, "stage": "tick_end", "tick_number": 5, "duration_ms": 6.345033645629883, "events_processed": 0, "data": {}}

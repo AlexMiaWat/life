@@ -16,8 +16,6 @@ from src.learning.learning import LearningEngine
 from src.meaning.engine import MeaningEngine
 from src.memory.memory import MemoryEntry
 from src.observability.structured_logger import StructuredLogger
-from src.philosophical.philosophical_analyzer import PhilosophicalAnalyzer
-from src.philosophical.visualization import PhilosophicalVisualizer
 from src.planning.planning import record_potential_sequences
 from src.runtime.life_policy import LifePolicy
 from src.runtime.log_manager import FlushPolicy, LogManager
@@ -29,8 +27,6 @@ logger = logging.getLogger(__name__)
 # Константы для интервалов вызова компонентов (в тиков)
 LEARNING_INTERVAL = 75  # Вызов Learning раз в 75 тиков (между 50-100)
 ADAPTATION_INTERVAL = 100  # Вызов Adaptation раз в 100 тиков (реже чем Learning)
-# PHILOSOPHICAL_ANALYSIS_INTERVAL = 75  # REMOVED: external tool only
-# PHILOSOPHICAL_REPORT_INTERVAL = 500  # REMOVED: external tool only
 ARCHIVE_INTERVAL = 50  # Вызов архивации раз в 50 тиков
 DECAY_INTERVAL = 10  # Вызов затухания весов раз в 10 тиков
 
@@ -233,8 +229,6 @@ def run_loop(
     engine = MeaningEngine()
     learning_engine = LearningEngine()  # Learning Engine (Этап 14)
     adaptation_manager = AdaptationManager()  # Adaptation Manager (Этап 15)
-    # philosophical_analyzer = PhilosophicalAnalyzer()  # Philosophical Analysis (Этап 16) - REMOVED: violates architecture
-    # philosophical_visualizer = PhilosophicalVisualizer()  # Philosophical Visualization - REMOVED
     # clarity_moments = (
     #     ClarityMoments(logger=structured_logger) if not disable_clarity_moments else None
     # )  # Clarity Moments System
