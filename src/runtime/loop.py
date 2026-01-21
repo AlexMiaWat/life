@@ -188,6 +188,50 @@ def _safe_copy_dict(d: dict) -> dict:
         return d.copy()
 
 
+def _record_adaptation_params_change(self_state, old_params: dict, new_params: dict) -> None:
+    """
+    Записывает изменения adaptation_params в историю для анализа эволюции.
+
+    Args:
+        self_state: Экземпляр SelfState для записи истории
+        old_params: Параметры до изменения
+        new_params: Параметры после изменения
+    """
+    # Определяем, какие параметры изменились
+    changes = {}
+    for key in set(old_params.keys()) | set(new_params.keys()):
+        old_value = old_params.get(key)
+        new_value = new_params.get(key)
+        if old_value != new_value:
+            changes[key] = {
+                "old_value": old_value,
+                "new_value": new_value
+            }
+
+    if not changes:
+        return  # Нет изменений
+
+    # Создаем запись истории
+    history_entry = {
+        "timestamp": time.time(),
+        "tick": getattr(self_state, "ticks", 0),
+        "old_params": old_params.copy(),
+        "new_params": new_params.copy(),
+        "changes": changes,
+        "learning_params_snapshot": getattr(self_state, "learning_params", {}).copy(),
+    }
+
+    # Thread-safe добавление в историю
+    if not hasattr(self_state, "adaptation_params_history"):
+        self_state.adaptation_params_history = []
+
+    self_state.adaptation_params_history.append(history_entry)
+
+    # Ограничиваем размер истории (последние 50 записей)
+    if len(self_state.adaptation_params_history) > 50:
+        self_state.adaptation_params_history = self_state.adaptation_params_history[-50:]
+
+
 def run_loop(
     self_state: SelfState,
     monitor,
@@ -843,6 +887,11 @@ def run_loop(
                                 old_behavior_params,
                                 new_behavior_params,
                                 self_state,
+                            )
+
+                            # Записываем изменения в adaptation_params_history для анализа эволюции
+                            _record_adaptation_params_change(
+                                self_state, old_behavior_params, new_behavior_params
                             )
                     except (TypeError, ValueError) as e:
                         logger.error(

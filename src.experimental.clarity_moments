@@ -6,3 +6,4 @@
 {"timestamp": 1768986906.1805086, "stage": "event", "correlation_id": "chain_1", "event_id": "759b84e9-c519-4de0-bd0c-9d8443ecea56", "event_type": "unknown", "intensity": 0.0, "data": {}}
 {"timestamp": 1768986992.3069103, "stage": "event", "correlation_id": "chain_1", "event_id": "75f32044-9f9f-424b-bd54-3b188bc7776e", "event_type": "unknown", "intensity": 0.0, "data": {}}
 {"timestamp": 1768992203.7577357, "stage": "event", "correlation_id": "chain_1", "event_id": "6c6aa65f-10a2-488c-9f51-abca79627823", "event_type": "unknown", "intensity": 0.0, "data": {}}
+{"timestamp": 123456.789, "stage": "event", "correlation_id": "chain_1", "event_id": "0d07bc25-9599-47f3-a42a-af084e9f738b", "event_type": "unknown", "intensity": 0.0, "data": {}}

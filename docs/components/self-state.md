@@ -31,6 +31,7 @@ SelfState обеспечивает **потокобезопасность** ме
 *   **v2.6:** Добавлены комплексные тесты race conditions для API /status (14 новых тестов), покрывающие все сценарии конкурентного доступа во время тиков.
 *   **v2.7:** Добавлены оптимизации производительности - кэширование сериализации памяти, метрики производительности для save_snapshot, оптимизированная работа с Memory.
 *   **v2.8:** Добавлена система кэширования API сериализации (_api_cache, _api_cache_timestamp), методы get_serialization_metrics(), _create_base_state_dict(), _apply_limits_to_state_dict(), автоматическая инвалидация кэша при изменениях состояния.
+*   **v2.9:** Добавлена система истории изменений параметров (parameter_history, learning_params_history, adaptation_params_history) и методы анализа эволюции (get_parameter_evolution, get_evolution_trends, get_parameter_correlations).
 
 ## Структура состояния
 
@@ -78,6 +79,7 @@ SelfState обеспечивает **потокобезопасность** ме
 *   `last_significance` (float): Значимость последнего обработанного события.
 *   `energy_history` (list): История значений энергии.
 *   `stability_history` (list): История значений стабильности.
+*   `parameter_history` (list[ParameterChange]): История всех изменений параметров для анализа эволюции (новая функциональность v2.9).
 *   `activated_memory` (list): Активированные записи памяти для текущего события (transient, не сохраняется в snapshot).
 *   `last_pattern` (str): Последний выбранный паттерн decision (transient, не сохраняется в snapshot).
 
@@ -86,6 +88,8 @@ SelfState обеспечивает **потокобезопасность** ме
 *   `learning_params` (dict): Параметры для Learning Engine (event_type_sensitivity, significance_thresholds, response_coefficients).
 *   `adaptation_params` (dict): Параметры поведения для Adaptation Manager (behavior_sensitivity, behavior_thresholds, behavior_coefficients).
 *   `adaptation_history` (list): История адаптаций для обратимости.
+*   `learning_params_history` (list): История изменений learning_params для анализа эволюции (новая функциональность v2.9).
+*   `adaptation_params_history` (list): История изменений adaptation_params для анализа эволюции (новая функциональность v2.9).
 
 ### 8. Subjective Time (Субъективное время)
 Параметры для модели субъективного времени (метрика восприятия времени).
@@ -724,6 +728,92 @@ if os.path.exists(snapshot_path):
     print(f"Загружено состояние с энергией: {loaded_state.energy}")
     print(f"Загружено записей памяти: {len(loaded_state.memory)}")
 ```
+
+## История изменений параметров (v2.9)
+
+### Назначение
+Новая система истории изменений параметров позволяет анализировать эволюцию поведения Life со временем. Вместо простого хранения значений, система теперь отслеживает все изменения параметров с контекстом и причиной изменения.
+
+### Структура ParameterChange
+```python
+@dataclass
+class ParameterChange:
+    timestamp: float      # Время изменения (Unix timestamp)
+    tick: int            # Номер тика, на котором произошло изменение
+    parameter_name: str   # Имя измененного параметра
+    old_value: Any       # Значение до изменения
+    new_value: Any       # Значение после изменения
+    reason: str          # Причина изменения ("delta_application", "learning_update", "adaptation_update")
+    context: dict        # Дополнительная информация
+```
+
+### Типы истории
+
+#### 1. parameter_history
+Общая история всех изменений основных параметров SelfState:
+- **energy**, **integrity**, **stability** - жизненно важные параметры
+- **fatigue**, **tension** - параметры внутренней динамики
+- **age**, **subjective_time** - временные параметры
+
+#### 2. learning_params_history
+История изменений параметров обучения:
+- **event_type_sensitivity** - чувствительность к типам событий
+- **significance_thresholds** - пороги игнорирования событий
+- **response_coefficients** - коэффициенты реакций
+
+#### 3. adaptation_params_history
+История изменений параметров адаптации:
+- **behavior_sensitivity** - чувствительность поведения
+- **behavior_thresholds** - пороги поведенческих реакций
+- **behavior_coefficients** - коэффициенты поведенческих эффектов
+
+### Методы анализа эволюции
+
+#### get_parameter_evolution(parameter_name, time_range=None)
+Возвращает историю изменений конкретного параметра.
+```python
+# Получить эволюцию энергии за последний час
+evolution = state.get_parameter_evolution("energy", time_range=(time.time()-3600, time.time()))
+for change in evolution:
+    print(f"Энергия: {change.old_value} -> {change.new_value} (причина: {change.reason})")
+```
+
+#### get_evolution_trends(time_window=3600.0)
+Анализирует тренды эволюции параметров за заданное время.
+```python
+trends = state.get_evolution_trends(time_window=3600.0)
+for param, data in trends.items():
+    print(f"{param}: {data['trend_direction']} ({data['changes_count']} изменений)")
+```
+
+#### get_parameter_correlations(param1, param2, time_window=3600.0)
+Анализирует взаимосвязи между изменениями параметров.
+```python
+correlation = state.get_parameter_correlations("energy", "stability")
+print(f"Корреляция: {correlation['correlation']:.2f}")
+```
+
+### Ограничения размера
+Для предотвращения переполнения памяти установлены лимиты:
+- **parameter_history**: максимум 1000 последних изменений
+- **learning_params_history**: максимум 100 последних изменений
+- **adaptation_params_history**: максимум 50 последних изменений
+
+### Сериализация
+Новые поля истории включаются в сериализацию состояния, но по умолчанию не возвращаются в API для экономии трафика. Для включения используйте параметры лимитов:
+```python
+# Включить историю параметров в API ответ
+state_dict = state.get_safe_status_dict(limits={
+    "parameter_history_limit": 100,
+    "learning_params_history_limit": 50,
+    "adaptation_params_history_limit": 20
+})
+```
+
+### Производительность
+- История изменений минимально влияет на производительность runtime loop
+- Thread-safe реализация через существующие блокировки
+- Автоматическая ротация истории для предотвращения утечек памяти
 
 ## Связанные документы
 

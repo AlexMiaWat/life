@@ -23,6 +23,22 @@ MAX_LOG_FILE_SIZE = 10 * 1024 * 1024  # 10MB в байтах
 
 
 @dataclass
+class ParameterChange:
+    """
+    Структура для отслеживания изменений параметров системы.
+
+    Используется для анализа эволюции параметров Life со временем.
+    """
+    timestamp: float
+    tick: int
+    parameter_name: str
+    old_value: any
+    new_value: any
+    reason: str  # Причина изменения: "delta_application", "learning_update", "adaptation_update", etc.
+    context: dict = field(default_factory=dict)  # Дополнительная информация о изменении
+
+
+@dataclass
 class SelfState:
     # Thread-safety lock для API доступа
     _api_lock: threading.RLock = field(
@@ -46,6 +62,7 @@ class SelfState:
     last_significance: float = 0.0
     energy_history: list = field(default_factory=list)
     stability_history: list = field(default_factory=list)
+    parameter_history: list[ParameterChange] = field(default_factory=list)  # История изменений всех параметров для анализа эволюции
     planning: dict = field(default_factory=dict)
     intelligence: dict = field(default_factory=dict)
     memory: Optional[Memory] = field(default=None)  # Активная память с поддержкой архивации
@@ -146,6 +163,7 @@ class SelfState:
             "intelligence", "planning",
             # Learning & Adaptation
             "learning_params", "adaptation_params", "adaptation_history",
+            "parameter_history", "learning_params_history", "adaptation_params_history",
             # Subjective time
             "subjective_time_base_rate", "subjective_time_rate_min", "subjective_time_rate_max",
             "subjective_time_intensity_coeff", "subjective_time_stability_coeff",
@@ -218,6 +236,33 @@ class SelfState:
         if adaptation_history_limit is not None and adaptation_history_limit > 0:
             if "adaptation_history" in state_dict and isinstance(state_dict["adaptation_history"], list):
                 state_dict["adaptation_history"] = state_dict["adaptation_history"][-adaptation_history_limit:]
+
+        # parameter_history
+        parameter_history_limit = limits.get("parameter_history_limit")
+        if parameter_history_limit is not None and parameter_history_limit > 0:
+            if "parameter_history" in state_dict and isinstance(state_dict["parameter_history"], list):
+                state_dict["parameter_history"] = state_dict["parameter_history"][-parameter_history_limit:]
+        else:
+            # По умолчанию не включаем parameter_history (слишком много данных)
+            state_dict.pop("parameter_history", None)
+
+        # learning_params_history
+        learning_params_history_limit = limits.get("learning_params_history_limit")
+        if learning_params_history_limit is not None and learning_params_history_limit > 0:
+            if "learning_params_history" in state_dict and isinstance(state_dict["learning_params_history"], list):
+                state_dict["learning_params_history"] = state_dict["learning_params_history"][-learning_params_history_limit:]
+        else:
+            # По умолчанию не включаем learning_params_history
+            state_dict.pop("learning_params_history", None)
+
+        # adaptation_params_history
+        adaptation_params_history_limit = limits.get("adaptation_params_history_limit")
+        if adaptation_params_history_limit is not None and adaptation_params_history_limit > 0:
+            if "adaptation_params_history" in state_dict and isinstance(state_dict["adaptation_params_history"], list):
+                state_dict["adaptation_params_history"] = state_dict["adaptation_params_history"][-adaptation_params_history_limit:]
+        else:
+            # По умолчанию не включаем adaptation_params_history
+            state_dict.pop("adaptation_params_history", None)
 
         return state_dict
 
@@ -311,9 +356,41 @@ class SelfState:
         """Проверка, является ли поле критичным (vital параметры)"""
         return field_name in ["energy", "integrity", "stability"]
 
+    def _record_parameter_change(self, parameter_name: str, old_value, new_value, reason: str, context: dict = None) -> None:
+        """
+        Записывает изменение параметра в parameter_history для анализа эволюции.
+
+        Args:
+            parameter_name: Имя измененного параметра
+            old_value: Старое значение
+            new_value: Новое значение
+            reason: Причина изменения ("delta_application", "learning_update", "adaptation_update", etc.)
+            context: Дополнительная информация о изменении
+        """
+        if context is None:
+            context = {}
+
+        change = ParameterChange(
+            timestamp=time.time(),
+            tick=self.ticks,
+            parameter_name=parameter_name,
+            old_value=old_value,
+            new_value=new_value,
+            reason=reason,
+            context=context
+        )
+
+        # Thread-safe добавление в историю
+        with self._api_lock:
+            self.parameter_history.append(change)
+
+            # Ограничиваем размер истории (последние 1000 изменений)
+            if len(self.parameter_history) > 1000:
+                self.parameter_history = self.parameter_history[-1000:]
+
     def _log_change(self, field_name: str, old_value, new_value) -> None:
         """
-        Логирование изменения поля в append-only лог.
+        Логирование изменения поля в append-only лог и историю параметров.
         Поддерживает батчинг и фильтрацию по критичности.
         """
         if not self._logging_enabled:
@@ -324,6 +401,9 @@ class SelfState:
             return
 
         try:
+            # Записываем в parameter_history для анализа эволюции
+            self._record_parameter_change(field_name, old_value, new_value, "field_update")
+
             log_entry = {
                 "timestamp": time.time(),
                 "life_id": self.life_id,
@@ -562,6 +642,8 @@ class SelfState:
     adaptation_history: list = field(
         default_factory=list
     )  # История адаптаций для обратимости (Этап 15)
+    learning_params_history: list = field(default_factory=list)  # История изменений learning_params для анализа эволюции
+    adaptation_params_history: list = field(default_factory=list)  # История изменений adaptation_params для анализа эволюции
 
     # === Subjective time aliases ===
     @property
@@ -650,6 +732,9 @@ class SelfState:
         self.last_significance = 0.0
         self.energy_history = []
         self.stability_history = []
+        self.parameter_history = []
+        self.learning_params_history = []
+        self.adaptation_params_history = []
         self.planning = {}
         self.intelligence = {}
         # Память не сбрасываем, так как это история жизни
@@ -680,6 +765,14 @@ class SelfState:
                         # Логируем изменение вручную, так как обошли __setattr__
                         if self._initialized and current != clamped_value:
                             self._log_change(key, current, clamped_value)
+                            # Записываем изменение в parameter_history для анализа эволюции
+                            self._record_parameter_change(
+                                key,
+                                current,
+                                clamped_value,
+                                "delta_application",
+                                context={"delta_value": delta, "clamped": clamped_value != new_value}
+                            )
                     else:
                         # Для нечисловых полей операция сложения не поддерживается
                         raise TypeError(
@@ -825,6 +918,9 @@ class SelfState:
         - energy_history
         - stability_history
         - adaptation_history
+        - parameter_history (по умолчанию не включается)
+        - learning_params_history (по умолчанию не включается)
+        - adaptation_params_history (по умолчанию не включается)
 
         Args:
             include_optional: Если True, включает опциональные поля (life_id, birth_timestamp,
@@ -836,6 +932,9 @@ class SelfState:
                     - energy_history_limit: количество значений истории энергии
                     - stability_history_limit: количество значений истории стабильности
                     - adaptation_history_limit: количество значений истории адаптации
+                    - parameter_history_limit: количество значений истории параметров (по умолчанию не включается)
+                    - learning_params_history_limit: количество значений истории learning параметров (по умолчанию не включается)
+                    - adaptation_params_history_limit: количество значений истории adaptation параметров (по умолчанию не включается)
 
         Returns:
             dict: Безопасный словарь состояния для публичного API
@@ -1574,6 +1673,260 @@ def save_snapshot(state: SelfState, compress_large: bool = True):
         # Восстанавливаем логирование
         if logging_was_enabled:
             state.enable_logging()
+
+    def get_parameter_evolution(self, parameter_name: str, time_range: tuple = None) -> list[ParameterChange]:
+        """
+        Получить эволюцию конкретного параметра за заданный период времени.
+
+        Args:
+            parameter_name: Имя параметра для анализа
+            time_range: Кортеж (start_time, end_time) или None для всех записей
+
+        Returns:
+            Список изменений параметра в хронологическом порядке
+        """
+        with self._api_lock:
+            changes = [change for change in self.parameter_history if change.parameter_name == parameter_name]
+
+            if time_range:
+                start_time, end_time = time_range
+                changes = [change for change in changes if start_time <= change.timestamp <= end_time]
+
+            return sorted(changes, key=lambda x: x.timestamp)
+
+    def get_evolution_trends(self, time_window: float = 3600.0) -> dict:
+        """
+        Анализировать тренды эволюции параметров за заданное временное окно.
+
+        Args:
+            time_window: Временное окно в секундах для анализа трендов
+
+        Returns:
+            Словарь с трендами по параметрам
+        """
+        current_time = time.time()
+        window_start = current_time - time_window
+
+        with self._api_lock:
+            # Фильтруем изменения за временное окно
+            recent_changes = [change for change in self.parameter_history if change.timestamp >= window_start]
+
+            trends = {}
+            for change in recent_changes:
+                param = change.parameter_name
+                if param not in trends:
+                    trends[param] = {
+                        "changes_count": 0,
+                        "first_value": None,
+                        "last_value": None,
+                        "avg_change_rate": 0.0,
+                        "trend_direction": "stable"
+                    }
+
+                trends[param]["changes_count"] += 1
+
+                if trends[param]["first_value"] is None:
+                    trends[param]["first_value"] = change.old_value
+                trends[param]["last_value"] = change.new_value
+
+            # Вычисляем тренды
+            for param, data in trends.items():
+                if data["changes_count"] > 1 and data["first_value"] is not None and data["last_value"] is not None:
+                    try:
+                        # Простая оценка направления тренда
+                        if isinstance(data["first_value"], (int, float)) and isinstance(data["last_value"], (int, float)):
+                            delta = data["last_value"] - data["first_value"]
+                            if delta > 0.01:
+                                data["trend_direction"] = "increasing"
+                            elif delta < -0.01:
+                                data["trend_direction"] = "decreasing"
+                            else:
+                                data["trend_direction"] = "stable"
+                    except (TypeError, ValueError):
+                        data["trend_direction"] = "complex"
+
+        return trends
+
+    def get_parameter_correlations(self, param1: str, param2: str, time_window: float = 3600.0) -> dict:
+        """
+        Анализировать корреляции между изменениями двух параметров.
+
+        Args:
+            param1: Первый параметр
+            param2: Второй параметр
+            time_window: Временное окно для анализа
+
+        Returns:
+            Статистика корреляций между параметрами
+        """
+        current_time = time.time()
+        window_start = current_time - time_window
+
+        with self._api_lock:
+            changes1 = [c for c in self.parameter_history if c.parameter_name == param1 and c.timestamp >= window_start]
+            changes2 = [c for c in self.parameter_history if c.parameter_name == param2 and c.timestamp >= window_start]
+
+            if not changes1 or not changes2:
+                return {"correlation": 0.0, "sample_size": 0}
+
+            # Простой анализ совместных изменений
+            joint_changes = 0
+            total_pairs = min(len(changes1), len(changes2))
+
+            for i in range(total_pairs):
+                # Проверяем, происходили ли изменения в близкие моменты времени
+                time_diff = abs(changes1[i].timestamp - changes2[i].timestamp)
+                if time_diff < 1.0:  # В пределах 1 секунды
+                    joint_changes += 1
+
+            correlation = joint_changes / max(total_pairs, 1)
+
+            return {
+                "correlation": correlation,
+                "sample_size": total_pairs,
+                "joint_changes": joint_changes
+            }
+
+    def get_vital_parameters_trends(self, time_window: float = 3600.0) -> dict:
+        """
+        Анализировать тренды жизненноважных параметров (energy, integrity, stability)
+        за заданное временное окно.
+
+        Args:
+            time_window: Временное окно в секундах для анализа трендов
+
+        Returns:
+            Словарь с трендами жизненноважных параметров
+        """
+        current_time = time.time()
+        window_start = current_time - time_window
+
+        with self._api_lock:
+            vital_params = ["energy", "integrity", "stability"]
+            trends = {}
+
+            for param in vital_params:
+                changes = [c for c in self.parameter_history
+                          if c.parameter_name == param and c.timestamp >= window_start]
+
+                if not changes:
+                    trends[param] = {
+                        "current_value": getattr(self, param, None),
+                        "changes_count": 0,
+                        "trend": "no_data",
+                        "avg_change_rate": 0.0,
+                        "min_value": getattr(self, param, None),
+                        "max_value": getattr(self, param, None)
+                    }
+                    continue
+
+                # Сортируем по времени
+                changes.sort(key=lambda x: x.timestamp)
+
+                # Вычисляем статистику
+                first_value = changes[0].old_value if changes[0].old_value is not None else changes[0].new_value
+                last_value = changes[-1].new_value
+                min_value = min(c.new_value for c in changes)
+                max_value = max(c.new_value for c in changes)
+
+                # Вычисляем среднюю скорость изменения
+                time_span = changes[-1].timestamp - changes[0].timestamp
+                if time_span > 0:
+                    avg_change_rate = (last_value - first_value) / time_span
+                else:
+                    avg_change_rate = 0.0
+
+                # Определяем тренд
+                if abs(last_value - first_value) < 0.01:
+                    trend = "stable"
+                elif last_value > first_value:
+                    trend = "increasing"
+                else:
+                    trend = "decreasing"
+
+                trends[param] = {
+                    "current_value": getattr(self, param),
+                    "changes_count": len(changes),
+                    "trend": trend,
+                    "avg_change_rate": avg_change_rate,
+                    "min_value": min_value,
+                    "max_value": max_value,
+                    "first_value": first_value,
+                    "last_value": last_value
+                }
+
+        return trends
+
+    def get_internal_dynamics_trends(self, time_window: float = 3600.0) -> dict:
+        """
+        Анализировать тренды внутренних динамических параметров (fatigue, tension)
+        за заданное временное окно.
+
+        Args:
+            time_window: Временное окно в секундах для анализа трендов
+
+        Returns:
+            Словарь с трендами внутренних параметров
+        """
+        current_time = time.time()
+        window_start = current_time - time_window
+
+        with self._api_lock:
+            internal_params = ["fatigue", "tension"]
+            trends = {}
+
+            for param in internal_params:
+                changes = [c for c in self.parameter_history
+                          if c.parameter_name == param and c.timestamp >= window_start]
+
+                if not changes:
+                    trends[param] = {
+                        "current_value": getattr(self, param, None),
+                        "changes_count": 0,
+                        "trend": "no_data",
+                        "volatility": 0.0,
+                        "avg_value": getattr(self, param, None)
+                    }
+                    continue
+
+                # Сортируем по времени
+                changes.sort(key=lambda x: x.timestamp)
+
+                values = [c.new_value for c in changes]
+                current_value = getattr(self, param)
+
+                # Вычисляем волатильность (стандартное отклонение)
+                if len(values) > 1:
+                    mean = sum(values) / len(values)
+                    volatility = (sum((v - mean) ** 2 for v in values) / len(values)) ** 0.5
+                else:
+                    volatility = 0.0
+                    mean = values[0] if values else current_value
+
+                # Определяем тренд на основе волатильности и направления
+                if volatility > 0.1:
+                    trend = "volatile"
+                elif len(changes) >= 2:
+                    first_val = changes[0].new_value
+                    last_val = changes[-1].new_value
+                    if abs(last_val - first_val) < 0.01:
+                        trend = "stable"
+                    elif last_val > first_val:
+                        trend = "increasing"
+                    else:
+                        trend = "decreasing"
+                else:
+                    trend = "stable"
+
+                trends[param] = {
+                    "current_value": current_value,
+                    "changes_count": len(changes),
+                    "trend": trend,
+                    "volatility": volatility,
+                    "avg_value": mean
+                }
+
+        return trends
 
 
 def load_snapshot(tick: int) -> SelfState:

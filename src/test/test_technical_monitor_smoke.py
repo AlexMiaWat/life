@@ -1,359 +1,411 @@
 """
-Дымовые тесты для TechnicalBehaviorMonitor
+Дымовые тесты для технического монитора поведения.
 
-Проверяем:
-- Базовую работоспособность без падений
-- Создание экземпляров классов
-- Вызов основных методов с минимальными данными
-- Обработку пустых/минимальных входных данных
-- Граничные значения параметров
+Проверяют базовую функциональность и отсутствие критических ошибок.
 """
 
-import sys
-import time
 import tempfile
-from pathlib import Path
+import time
 from unittest.mock import Mock
 
 import pytest
 
-project_root = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(project_root / "src"))
-
 from src.technical_monitor import (
-    TechnicalBehaviorMonitor,
     TechnicalSnapshot,
-    TechnicalReport
+    TechnicalReport,
+    TechnicalBehaviorMonitor,
 )
 
 
-@pytest.mark.smoke
 class TestTechnicalMonitorSmoke:
-    """Дымовые тесты для TechnicalBehaviorMonitor"""
+    """Дымовые тесты для технического монитора."""
 
-    def setup_method(self):
-        """Настройка перед каждым тестом"""
-        self.monitor = TechnicalBehaviorMonitor()
+    def test_module_import(self):
+        """Тест успешного импорта модуля."""
+        try:
+            from src import technical_monitor
+            assert technical_monitor is not None
+        except ImportError as e:
+            pytest.fail(f"Не удалось импортировать модуль technical_monitor: {e}")
 
-    def test_technical_monitor_instantiation(self):
-        """Тест создания экземпляра TechnicalBehaviorMonitor"""
-        assert self.monitor is not None
-        assert isinstance(self.monitor, TechnicalBehaviorMonitor)
-        assert hasattr(self.monitor, "report_history")
-        assert isinstance(self.monitor.report_history, list)
+    def test_technical_snapshot_creation(self):
+        """Тест создания TechnicalSnapshot."""
+        snapshot = TechnicalSnapshot()
 
-    def test_capture_snapshot_minimal_data(self):
-        """Дымовой тест capture_system_snapshot с минимальными данными"""
-        # Создаем mock объекты с минимальными данными
-        mock_self_state = Mock()
-        mock_self_state.__dict__.update({
-            'life_id': 'test', 'age': 0.0, 'ticks': 0,
-            'energy': 0.0, 'stability': 0.0, 'integrity': 0.0,
-            'adaptation_level': 0.0
-        })
+        assert snapshot is not None
+        assert isinstance(snapshot.timestamp, float)
+        assert isinstance(snapshot.self_state, dict)
+        assert isinstance(snapshot.memory_stats, dict)
+        assert isinstance(snapshot.learning_params, dict)
+        assert isinstance(snapshot.adaptation_params, dict)
+        assert isinstance(snapshot.decision_history, list)
+        assert isinstance(snapshot.performance_metrics, dict)
 
-        mock_memory = Mock()
-        mock_memory.get_statistics.return_value = {}
+    def test_technical_report_creation(self):
+        """Тест создания TechnicalReport."""
+        snapshot = TechnicalSnapshot()
+        report = TechnicalReport(snapshot=snapshot)
 
-        mock_learning = Mock()
-        mock_learning.get_parameters.return_value = {}
+        assert report is not None
+        assert isinstance(report.timestamp, float)
+        assert report.snapshot is snapshot
+        assert isinstance(report.performance, dict)
+        assert isinstance(report.stability, dict)
+        assert isinstance(report.adaptability, dict)
+        assert isinstance(report.integrity, dict)
+        assert isinstance(report.overall_assessment, dict)
 
-        mock_adaptation = Mock()
-        mock_adaptation.get_parameters.return_value = {}
+    def test_monitor_initialization(self):
+        """Тест инициализации TechnicalBehaviorMonitor."""
+        monitor = TechnicalBehaviorMonitor()
 
-        mock_decision = Mock()
-        mock_decision.get_recent_decisions.return_value = []
-        mock_decision.get_statistics.return_value = {}
+        assert monitor is not None
+        assert isinstance(monitor.report_history, list)
+        assert len(monitor.report_history) == 0
+        assert monitor.max_history_size == 100
 
-        # Должен выполниться без исключений
-        snapshot = self.monitor.capture_system_snapshot(
-            mock_self_state, mock_memory, mock_learning, mock_adaptation, mock_decision
+    def test_capture_system_snapshot_basic(self):
+        """Тест базового захвата снимка системы."""
+        monitor = TechnicalBehaviorMonitor()
+
+        # Создаем mock объекты для всех компонентов
+        self_state = Mock()
+        memory = Mock()
+        learning_engine = Mock()
+        adaptation_manager = Mock()
+        decision_engine = Mock()
+
+        # Настраиваем mock методы
+        memory.get_statistics.return_value = {"total_entries": 100}
+        learning_engine.get_parameters.return_value = {"learning_rate": 0.1}
+        adaptation_manager.get_parameters.return_value = {"adaptation_rate": 0.2}
+        decision_engine.get_recent_decisions.return_value = [{"type": "test"}]
+
+        # Захват должен пройти без исключений
+        snapshot = monitor.capture_system_snapshot(
+            self_state, memory, learning_engine, adaptation_manager, decision_engine
         )
 
         assert snapshot is not None
         assert isinstance(snapshot, TechnicalSnapshot)
 
-    def test_analyze_snapshot_empty_data(self):
-        """Дымовой тест analyze_snapshot с пустыми данными"""
-        # Создаем пустой snapshot
-        snapshot = TechnicalSnapshot()
+    def test_capture_system_snapshot_with_errors(self):
+        """Тест захвата снимка при ошибках в компонентах."""
+        monitor = TechnicalBehaviorMonitor()
 
-        # Должен выполниться без исключений
-        report = self.monitor.analyze_snapshot(snapshot)
+        # Создаем mock объекты, которые вызывают исключения
+        self_state = Mock()
+        memory = Mock()
+        learning_engine = Mock()
+        adaptation_manager = Mock()
+        decision_engine = Mock()
+
+        # Настраиваем методы на вызов исключений
+        memory.get_statistics.side_effect = Exception("Memory error")
+        learning_engine.get_parameters.side_effect = Exception("Learning error")
+        adaptation_manager.get_parameters.side_effect = Exception("Adaptation error")
+        decision_engine.get_recent_decisions.side_effect = Exception("Decision error")
+
+        # Захват должен пройти без исключений даже при ошибках компонентов
+        snapshot = monitor.capture_system_snapshot(
+            self_state, memory, learning_engine, adaptation_manager, decision_engine
+        )
+
+        assert snapshot is not None
+        assert isinstance(snapshot, TechnicalSnapshot)
+        # Данные должны содержать информацию об ошибках
+        assert "error" in snapshot.memory_stats
+        assert "error" in snapshot.learning_params
+        assert "error" in snapshot.adaptation_params
+        assert snapshot.decision_history == []
+
+    def test_analyze_snapshot_basic(self):
+        """Тест базового анализа снимка."""
+        monitor = TechnicalBehaviorMonitor()
+
+        snapshot = TechnicalSnapshot()
+        # Заполняем минимальные данные для анализа
+        snapshot.self_state = {"energy_level": 0.8, "adaptation_level": 0.7}
+        snapshot.memory_stats = {"total_entries": 100, "efficiency": 0.85}
+        snapshot.learning_params = {"learning_rate": 0.2, "progress": 0.6}
+        snapshot.adaptation_params = {"adaptation_rate": 0.3, "stability": 0.8}
+        snapshot.decision_history = [{"type": "decision1"}, {"type": "decision2"}]
+        snapshot.performance_metrics = {
+            "memory_usage": 100,
+            "memory_efficiency": 0.85,
+            "learning_rate": 0.2,
+            "adaptation_rate": 0.3,
+            "decision_speed": 0.05,
+            "decision_accuracy": 0.9,
+        }
+
+        # Анализ должен пройти без исключений
+        report = monitor.analyze_snapshot(snapshot)
 
         assert report is not None
         assert isinstance(report, TechnicalReport)
+        assert report.snapshot is snapshot
+        assert isinstance(report.performance, dict)
+        assert isinstance(report.stability, dict)
+        assert isinstance(report.adaptability, dict)
+        assert isinstance(report.integrity, dict)
         assert isinstance(report.overall_assessment, dict)
-        assert "overall_score" in report.overall_assessment
 
-    def test_save_report_basic(self):
-        """Дымовой тест save_report с базовым отчетом"""
-        # Создаем минимальный отчет
+    def test_analyze_snapshot_empty_data(self):
+        """Тест анализа снимка с пустыми данными."""
+        monitor = TechnicalBehaviorMonitor()
+
+        snapshot = TechnicalSnapshot()  # Все поля пустые
+
+        # Анализ должен пройти без исключений даже с пустыми данными
+        report = monitor.analyze_snapshot(snapshot)
+
+        assert report is not None
+        assert isinstance(report, TechnicalReport)
+
+    def test_extract_self_state_data_basic(self):
+        """Тест извлечения данных self_state."""
+        monitor = TechnicalBehaviorMonitor()
+
+        self_state = Mock()
+        self_state.cycle_count = 42
+        self_state.current_phase = "active"
+        self_state.energy_level = 0.85
+        self_state.adaptation_level = 0.75
+        self_state.behavior_stats = {"actions": 100}
+
+        data = monitor._extract_self_state_data(self_state)
+
+        assert isinstance(data, dict)
+        assert data["cycle_count"] == 42
+        assert data["current_phase"] == "active"
+        assert data["energy_level"] == 0.85
+        assert data["adaptation_level"] == 0.75
+        assert data["behavior_stats"] == {"actions": 100}
+
+    def test_extract_self_state_data_missing_attrs(self):
+        """Тест извлечения данных при отсутствии атрибутов."""
+        monitor = TechnicalBehaviorMonitor()
+
+        self_state = Mock()
+        # Не устанавливаем атрибуты
+
+        data = monitor._extract_self_state_data(self_state)
+
+        assert isinstance(data, dict)
+        # Должны быть значения по умолчанию
+        assert data["cycle_count"] == 0
+        assert data["current_phase"] == "unknown"
+        assert data["energy_level"] == 0.0
+        assert data["adaptation_level"] == 0.0
+        assert data["behavior_stats"] == {}
+
+    def test_collect_performance_metrics_basic(self):
+        """Тест сбора метрик производительности."""
+        monitor = TechnicalBehaviorMonitor()
+
+        self_state = Mock()
+        memory = Mock()
+        learning_engine = Mock()
+        adaptation_manager = Mock()
+        decision_engine = Mock()
+
+        # Настраиваем успешные ответы
+        memory.get_statistics.return_value = {"total_entries": 200, "efficiency": 0.9}
+        learning_engine.get_parameters.return_value = {"learning_rate": 0.15}
+        adaptation_manager.get_parameters.return_value = {"adaptation_rate": 0.25}
+        decision_engine.get_statistics.return_value = {"average_time": 0.03, "accuracy": 0.95}
+
+        metrics = monitor._collect_performance_metrics(
+            self_state, memory, learning_engine, adaptation_manager, decision_engine
+        )
+
+        assert isinstance(metrics, dict)
+        assert "memory_usage" in metrics
+        assert "memory_efficiency" in metrics
+        assert "learning_rate" in metrics
+        assert "adaptation_rate" in metrics
+        assert "decision_speed" in metrics
+        assert "decision_accuracy" in metrics
+
+    def test_collect_performance_metrics_with_missing_methods(self):
+        """Тест сбора метрик при отсутствии методов."""
+        monitor = TechnicalBehaviorMonitor()
+
+        self_state = Mock()
+        memory = Mock()
+        learning_engine = Mock()
+        adaptation_manager = Mock()
+        decision_engine = Mock()
+
+        # Компоненты без нужных методов
+        metrics = monitor._collect_performance_metrics(
+            self_state, memory, learning_engine, adaptation_manager, decision_engine
+        )
+
+        assert isinstance(metrics, dict)
+        # Все метрики должны иметь значения по умолчанию
+        assert metrics["memory_usage"] == 0
+        assert metrics["memory_efficiency"] == 0.0
+        assert metrics["learning_rate"] == 0.0
+        assert metrics["adaptation_rate"] == 0.0
+        assert metrics["decision_speed"] == 0.0
+        assert metrics["decision_accuracy"] == 0.0
+
+    def test_save_and_load_report(self):
+        """Тест сохранения и загрузки отчета."""
+        monitor = TechnicalBehaviorMonitor()
+
         snapshot = TechnicalSnapshot()
         report = TechnicalReport(snapshot=snapshot)
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix='.json') as f:
             temp_path = f.name
 
         try:
-            # Должен выполниться без исключений
-            result = self.monitor.save_report(report, temp_path)
-            assert result is not None
+            # Сохранение должно пройти без исключений
+            monitor.save_report(report, temp_path)
 
-            # Проверяем что файл создан
-            assert Path(temp_path).exists()
-
-        finally:
-            Path(temp_path).unlink(missing_ok=True)
-
-    def test_load_report_basic(self):
-        """Дымовой тест load_report с существующим файлом"""
-        # Сначала сохраняем отчет
-        snapshot = TechnicalSnapshot()
-        original_report = TechnicalReport(snapshot=snapshot)
-
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
-            temp_path = f.name
-
-        try:
-            self.monitor.save_report(original_report, temp_path)
-
-            # Теперь загружаем
-            loaded_report = self.monitor.load_report(temp_path)
+            # Загрузка должна пройти без исключений
+            loaded_report = monitor.load_report(temp_path)
 
             assert loaded_report is not None
             assert isinstance(loaded_report, TechnicalReport)
 
         finally:
-            Path(temp_path).unlink(missing_ok=True)
+            import os
+            os.unlink(temp_path)
 
-    def test_get_trends_empty_history(self):
-        """Дымовой тест get_trends с пустой историей"""
-        # Должен выполниться без исключений
-        trends = self.monitor.get_trends(hours=1)
+    def test_get_trends_basic(self):
+        """Тест получения трендов."""
+        monitor = TechnicalBehaviorMonitor()
 
-        assert trends is not None
-        assert isinstance(trends, dict)
-
-    def test_get_trends_with_data(self):
-        """Дымовой тест get_trends с данными в истории"""
-        # Добавляем отчеты в историю
-        for i in range(3):
-            snapshot = TechnicalSnapshot()
-            report = TechnicalReport(snapshot=snapshot)
-            report.timestamp = time.time() - (i * 3600)  # Разные timestamp'ы
-            self.monitor.report_history.append(report)
-
-        # Должен выполниться без исключений
-        trends = self.monitor.get_trends(hours=2)
-
-        assert trends is not None
-        assert isinstance(trends, dict)
-
-    def test_capture_snapshot_with_realistic_data(self):
-        """Дымовой тест capture_system_snapshot с реалистичными данными"""
-        # Создаем mock объекты с реалистичными данными
-        mock_self_state = Mock()
-        mock_self_state.__dict__.update({
-            'life_id': 'test_life', 'age': 100.0, 'ticks': 1000,
-            'energy': 0.8, 'stability': 0.9, 'integrity': 0.85,
-            'adaptation_level': 0.7, 'behavior_stats': {'test_metric': 0.5}
-        })
-
-        mock_memory = Mock()
-        mock_memory.get_statistics.return_value = {
-            'total_entries': 50,
-            'efficiency': 0.85,
-            'avg_significance': 0.6
-        }
-
-        mock_learning = Mock()
-        mock_learning.get_parameters.return_value = {
-            'learning_rate': 0.7,
-            'progress': 0.8,
-            'iterations': 1000
-        }
-
-        mock_adaptation = Mock()
-        mock_adaptation.get_parameters.return_value = {
-            'adaptation_rate': 0.6,
-            'stability': 0.9,
-            'threshold': 0.5
-        }
-
-        mock_decision = Mock()
-        mock_decision.get_recent_decisions.return_value = [
-            {'timestamp': time.time(), 'type': 'adaptation', 'data': {}}
-        ]
-        mock_decision.get_statistics.return_value = {
-            'total_decisions': 1,
-            'average_time': 0.01,
-            'accuracy': 0.8
-        }
-
-        # Должен выполниться без исключений
-        snapshot = self.monitor.capture_system_snapshot(
-            mock_self_state, mock_memory, mock_learning, mock_adaptation, mock_decision
-        )
-
-        assert snapshot is not None
-        assert snapshot.self_state['life_id'] == 'test_life'
-        assert snapshot.memory_stats['total_entries'] == 50
-        assert len(snapshot.decision_history) == 1
-
-    def test_analyze_snapshot_with_realistic_data(self):
-        """Дымовой тест analyze_snapshot с реалистичными данными"""
-        # Создаем snapshot с реалистичными данными
-        snapshot = TechnicalSnapshot()
-        snapshot.self_state = {
-            'energy_level': 0.8,
-            'adaptation_level': 0.7,
-            'stability': 0.9,
-            'integrity': 0.85
-        }
-        snapshot.memory_stats = {
-            'total_entries': 100,
-            'efficiency': 0.85
-        }
-        snapshot.learning_params = {
-            'learning_rate': 0.7,
-            'progress': 0.8
-        }
-        snapshot.adaptation_params = {
-            'adaptation_rate': 0.6,
-            'stability': 0.9
-        }
-        snapshot.decision_history = [
-            {'timestamp': time.time(), 'type': 'learning'},
-            {'timestamp': time.time(), 'type': 'adaptation'}
-        ]
-
-        # Должен выполниться без исключений
-        report = self.monitor.analyze_snapshot(snapshot)
-
-        assert report is not None
-        assert 'overall_score' in report.overall_assessment
-        assert 'status' in report.overall_assessment
-
-        # Проверяем диапазоны значений
-        overall_score = report.overall_assessment['overall_score']
-        assert 0.0 <= overall_score <= 1.0
-
-    def test_multiple_reports_workflow(self):
-        """Дымовой тест workflow с множественными отчетами"""
-        # Создаем несколько отчетов
+        # Добавляем несколько отчетов в историю
         for i in range(5):
-            snapshot = TechnicalSnapshot()
-            snapshot.self_state = {'energy_level': 0.5 + i * 0.1}  # Разные значения энергии
+            report = TechnicalReport(snapshot=TechnicalSnapshot())
+            report.performance = {"overall_performance": 0.5 + i * 0.1}
+            report.stability = {"overall_stability": 0.6 + i * 0.08}
+            report.adaptability = {"overall_adaptability": 0.7 + i * 0.06}
+            report.integrity = {"overall_integrity": 0.8 + i * 0.04}
+            report.overall_assessment = {"overall_score": 0.65 + i * 0.07}
+            # Имитируем время
+            report.timestamp = time.time() + i * 3600
+            monitor._add_to_history(report)
 
-            report = self.monitor.analyze_snapshot(snapshot)
-            self.monitor.report_history.append(report)
+        trends = monitor.get_trends(hours=24)
 
-        # Проверяем что история сохранилась
-        assert len(self.monitor.report_history) == 5
+        assert isinstance(trends, dict)
+        assert "performance_trend" in trends
+        assert "stability_trend" in trends
+        assert "adaptability_trend" in trends
+        assert "integrity_trend" in trends
+        assert "overall_trend" in trends
 
-        # Проверяем trends
-        trends = self.monitor.get_trends(hours=1)
-        assert trends is not None
+    def test_get_trends_insufficient_data(self):
+        """Тест получения трендов с недостаточными данными."""
+        monitor = TechnicalBehaviorMonitor()
 
-        # Проверяем сохранение всех отчетов
-        with tempfile.TemporaryDirectory() as temp_dir:
-            for i, report in enumerate(self.monitor.report_history):
-                report_path = Path(temp_dir) / f"report_{i}.json"
-                self.monitor.save_report(report, report_path)
-                assert report_path.exists()
+        # Добавляем только один отчет
+        report = TechnicalReport(snapshot=TechnicalSnapshot())
+        monitor._add_to_history(report)
 
-    def test_error_handling_in_capture(self):
-        """Дымовой тест обработки ошибок в capture_system_snapshot"""
-        # Создаем mock'и которые вызывают исключения
-        mock_self_state = Mock()
-        mock_self_state.__dict__.update({'life_id': 'test'})
+        trends = monitor.get_trends(hours=24)
 
-        class FailingMemory:
-            def get_statistics(self):
-                raise RuntimeError("Memory failure")
+        assert isinstance(trends, dict)
+        assert "error" in trends
 
-        class FailingLearning:
-            def get_parameters(self):
-                raise ValueError("Learning failure")
+    def test_add_to_history(self):
+        """Тест добавления отчетов в историю."""
+        monitor = TechnicalBehaviorMonitor()
 
-        mock_adaptation = Mock()
-        mock_adaptation.get_parameters.return_value = {}
+        # Добавляем отчеты
+        for i in range(5):
+            report = TechnicalReport(snapshot=TechnicalSnapshot())
+            monitor._add_to_history(report)
 
-        mock_decision = Mock()
-        mock_decision.get_recent_decisions.return_value = []
-        mock_decision.get_statistics.return_value = {}
+        assert len(monitor.report_history) == 5
 
-        # Должен обработать ошибки gracefully
-        snapshot = self.monitor.capture_system_snapshot(
-            mock_self_state, FailingMemory(), FailingLearning(),
-            mock_adaptation, mock_decision
+    def test_calculate_trend_basic(self):
+        """Тест расчета тренда."""
+        monitor = TechnicalBehaviorMonitor()
+
+        values = [0.5, 0.6, 0.7, 0.8, 0.9]
+
+        trend = monitor._calculate_trend(values)
+
+        assert isinstance(trend, dict)
+        assert "direction" in trend
+        assert "magnitude" in trend
+        assert "slope" in trend
+
+    def test_calculate_overall_assessment(self):
+        """Тест расчета общей оценки."""
+        monitor = TechnicalBehaviorMonitor()
+
+        report = TechnicalReport(snapshot=TechnicalSnapshot())
+        report.performance = {"overall_performance": 0.8}
+        report.stability = {"overall_stability": 0.7}
+        report.adaptability = {"overall_adaptability": 0.9}
+        report.integrity = {"overall_integrity": 0.6}
+
+        assessment = monitor._calculate_overall_assessment(report)
+
+        assert isinstance(assessment, dict)
+        assert "performance_score" in assessment
+        assert "stability_score" in assessment
+        assert "adaptability_score" in assessment
+        assert "integrity_score" in assessment
+        assert "overall_score" in assessment
+        assert "status" in assessment
+
+    def test_realistic_usage_scenario(self):
+        """Тест реалистичного сценария использования."""
+        monitor = TechnicalBehaviorMonitor()
+
+        # Имитация типичного использования в runtime loop
+        self_state = Mock()
+        self_state.energy = 0.8
+        self_state.stability = 0.75
+        self_state.ticks = 100
+
+        memory = Mock()
+        memory.get_statistics.return_value = {"total_entries": 150, "efficiency": 0.85}
+
+        learning_engine = Mock()
+        learning_engine.get_parameters.return_value = {"learning_rate": 0.12, "progress": 0.65}
+
+        adaptation_manager = Mock()
+        adaptation_manager.get_parameters.return_value = {"adaptation_rate": 0.18, "stability": 0.82}
+
+        decision_engine = Mock()
+        decision_engine.get_recent_decisions.return_value = [
+            {"type": "decision", "timestamp": time.time()},
+            {"type": "action", "timestamp": time.time()},
+        ]
+        decision_engine.get_statistics.return_value = {"average_time": 0.04, "accuracy": 0.88}
+
+        # Полный цикл мониторинга должен пройти без исключений
+        snapshot = monitor.capture_system_snapshot(
+            self_state, memory, learning_engine, adaptation_manager, decision_engine
         )
+        report = monitor.analyze_snapshot(snapshot)
 
-        assert snapshot is not None
-        # Проверяем что ошибки были записаны
-        assert 'error' in snapshot.memory_stats
-        assert 'error' in snapshot.learning_params
+        # Сохранение отчета
+        with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix='.json') as f:
+            temp_path = f.name
 
-    def test_snapshot_timestamps(self):
-        """Дымовой тест работы с timestamp'ами"""
-        # Создаем snapshot и проверяем timestamp
-        before = time.time()
-        snapshot = TechnicalSnapshot()
-        after = time.time()
+        try:
+            monitor.save_report(report, temp_path)
+            loaded_report = monitor.load_report(temp_path)
 
-        assert before <= snapshot.timestamp <= after
+            assert loaded_report is not None
 
-        # Создаем report и проверяем timestamp
-        report = TechnicalReport(snapshot=snapshot)
-        assert before <= report.timestamp <= after
+            # Проверка трендов
+            monitor._add_to_history(report)
+            trends = monitor.get_trends(hours=1)
 
-    def test_empty_collections_handling(self):
-        """Дымовой тест обработки пустых коллекций"""
-        # Snapshot с пустыми коллекциями
-        snapshot = TechnicalSnapshot()
-        snapshot.decision_history = []
-        snapshot.performance_metrics = {}
+            assert isinstance(trends, dict)
 
-        # Должен обработать без ошибок
-        report = self.monitor.analyze_snapshot(snapshot)
-
-        assert report is not None
-        assert isinstance(report.performance, dict)
-        assert isinstance(report.adaptability, dict)
-
-    def test_extreme_values_handling(self):
-        """Дымовой тест обработки экстремальных значений"""
-        # Создаем snapshot с экстремальными значениями
-        snapshot = TechnicalSnapshot()
-        snapshot.self_state = {
-            'energy_level': 1.0,  # Максимум
-            'adaptation_level': 0.0,  # Минимум
-            'stability': 1.0,
-            'integrity': 0.0
-        }
-
-        # Должен обработать без ошибок
-        report = self.monitor.analyze_snapshot(snapshot)
-
-        assert report is not None
-        # Проверяем что оценки в допустимых диапазонах
-        assert 0.0 <= report.overall_assessment['overall_score'] <= 1.0
-
-    def test_monitor_state_persistence(self):
-        """Дымовой тест сохранения состояния monitor'а"""
-        # Запоминаем начальное состояние
-        initial_history_length = len(self.monitor.report_history)
-
-        # Выполняем операции
-        snapshot = TechnicalSnapshot()
-        report = self.monitor.analyze_snapshot(snapshot)
-        self.monitor.report_history.append(report)
-
-        # Проверяем что состояние изменилось
-        assert len(self.monitor.report_history) == initial_history_length + 1
-
-        # Проверяем что новые операции не влияют на старые
-        new_report = self.monitor.analyze_snapshot(snapshot)
-        assert new_report != report  # Разные объекты
-        assert new_report.timestamp != report.timestamp  # Разные timestamp'ы
+        finally:
+            import os
+            os.unlink(temp_path)

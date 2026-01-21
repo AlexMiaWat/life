@@ -16,6 +16,7 @@ Learning только медленно изменяет внутренние п�
 import copy
 import logging
 import threading
+import time
 from typing import TYPE_CHECKING, Dict, List
 
 from src.memory.memory import MemoryEntry
@@ -574,8 +575,53 @@ class LearningEngine:
                     for param_name, new_value in new_value_dict.items():
                         updated_params[key][param_name] = new_value
 
+            # Записываем изменения в историю перед обновлением
+            self._record_learning_params_change(self_state, current_params, updated_params)
+
             # Атомарно заменяем все параметры одной операцией
             self_state.learning_params = updated_params
 
-        # ВАЖНО: Не сохраняем историю изменений, не интерпретируем, не оцениваем
-        # Просто обновляем параметры
+        # ВАЖНО: Не интерпретируем, не оцениваем - просто обновляем параметры
+
+    def _record_learning_params_change(self, self_state: "SelfState", old_params: Dict, new_params: Dict) -> None:
+        """
+        Записывает изменения learning_params в историю для анализа эволюции.
+
+        Args:
+            self_state: Экземпляр SelfState для записи истории
+            old_params: Параметры до изменения
+            new_params: Параметры после изменения
+        """
+        # Определяем, какие параметры изменились
+        changes = {}
+        for key in set(old_params.keys()) | set(new_params.keys()):
+            old_value = old_params.get(key)
+            new_value = new_params.get(key)
+            if old_value != new_value:
+                changes[key] = {
+                    "old_value": old_value,
+                    "new_value": new_value
+                }
+
+        if not changes:
+            return  # Нет изменений
+
+        # Создаем запись истории
+        history_entry = {
+            "timestamp": time.time(),
+            "tick": getattr(self_state, "ticks", 0),
+            "old_params": old_params.copy(),
+            "new_params": new_params.copy(),
+            "changes": changes,
+            "statistics_snapshot": {}  # Можно добавить позже, если понадобится
+        }
+
+        # Thread-safe добавление в историю
+        if not hasattr(self_state, "learning_params_history"):
+            self_state.learning_params_history = []
+
+        self_state.learning_params_history.append(history_entry)
+
+        # Ограничиваем размер истории (последние 100 записей)
+        if len(self_state.learning_params_history) > 100:
+            self_state.learning_params_history = self_state.learning_params_history[-100:]
