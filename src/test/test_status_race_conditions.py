@@ -74,16 +74,19 @@ class TestStatusRaceConditions:
                 run_loop(
                     state,
                     lambda s: None,
-                    0.01,
-                    5,
+                    0.01,  # tick_interval
+                    5,     # snapshot_period
                     stop_event,
                     event_queue,
-                    False,
-                    False,
-                    False,
-                    False,
-                    10,
-                    False,
+                    False, # disable_weakness_penalty
+                    False, # disable_structured_logging
+                    False, # disable_learning
+                    False, # disable_adaptation
+                    True,  # disable_philosophical_analysis
+                    False, # disable_philosophical_reports
+                    True,  # disable_clarity_moments
+                    10,    # log_flush_period_ticks
+                    False, # enable_profiling
                 )
             except Exception:
                 pass  # Игнорируем для теста

@@ -29,8 +29,8 @@ logger = logging.getLogger(__name__)
 # Константы для интервалов вызова компонентов (в тиков)
 LEARNING_INTERVAL = 75  # Вызов Learning раз в 75 тиков (между 50-100)
 ADAPTATION_INTERVAL = 100  # Вызов Adaptation раз в 100 тиков (реже чем Learning)
-PHILOSOPHICAL_ANALYSIS_INTERVAL = 75  # Вызов философского анализа раз в 75 тиков
-PHILOSOPHICAL_REPORT_INTERVAL = 500  # Генерация отчетов раз в 500 тиков (реже анализа)
+# PHILOSOPHICAL_ANALYSIS_INTERVAL = 75  # REMOVED: external tool only
+# PHILOSOPHICAL_REPORT_INTERVAL = 500  # REMOVED: external tool only
 ARCHIVE_INTERVAL = 50  # Вызов архивации раз в 50 тиков
 DECAY_INTERVAL = 10  # Вызов затухания весов раз в 10 тиков
 
@@ -201,8 +201,8 @@ def run_loop(
     disable_structured_logging=False,
     disable_learning=False,
     disable_adaptation=False,
-    disable_philosophical_analysis=True,  # Отключено по умолчанию - нарушает архитектурные принципы
-    disable_philosophical_reports=False,
+    # disable_philosophical_analysis=True,  # REMOVED: external tool only
+    # disable_philosophical_reports=False,  # REMOVED: external tool only
     disable_clarity_moments=True,  # Отключено по умолчанию до стабилизации
     log_flush_period_ticks=10,
     enable_profiling=False,
@@ -221,8 +221,8 @@ def run_loop(
         disable_structured_logging: Отключить структурированное логирование
         disable_learning: Отключить модуль Learning
         disable_adaptation: Отключить модуль Adaptation
-        disable_philosophical_analysis: Отключить философский анализ
-        disable_philosophical_reports: Отключить генерацию философских отчетов
+        # disable_philosophical_analysis: REMOVED - external tool only
+        # disable_philosophical_reports: REMOVED - external tool only
         disable_clarity_moments: Отключить систему моментов ясности
         log_flush_period_ticks: Период сброса логов в тиках
         enable_profiling: Включить профилирование runtime loop с cProfile
@@ -233,8 +233,8 @@ def run_loop(
     engine = MeaningEngine()
     learning_engine = LearningEngine()  # Learning Engine (Этап 14)
     adaptation_manager = AdaptationManager()  # Adaptation Manager (Этап 15)
-    philosophical_analyzer = PhilosophicalAnalyzer()  # Philosophical Analysis (Этап 16)
-    philosophical_visualizer = PhilosophicalVisualizer()  # Philosophical Visualization
+    # philosophical_analyzer = PhilosophicalAnalyzer()  # Philosophical Analysis (Этап 16) - REMOVED: violates architecture
+    # philosophical_visualizer = PhilosophicalVisualizer()  # Philosophical Visualization - REMOVED
     # clarity_moments = (
     #     ClarityMoments(logger=structured_logger) if not disable_clarity_moments else None
     # )  # Clarity Moments System
@@ -264,7 +264,7 @@ def run_loop(
     # Счетчики ошибок для отслеживания проблем
     learning_errors = 0
     adaptation_errors = 0
-    philosophical_errors = 0
+    # philosophical_errors = 0  # REMOVED: no longer needed
     max_errors_before_warning = 10  # Порог для предупреждения о частых ошибках
 
     # Счетчики для внутренних событий
@@ -272,7 +272,7 @@ def run_loop(
 
     def run_main_loop():
         """Основной цикл runtime loop - выделен для профилирования"""
-        nonlocal learning_errors, adaptation_errors, philosophical_errors, ticks_since_last_memory_echo
+        nonlocal learning_errors, adaptation_errors, ticks_since_last_memory_echo
         last_time = time.time()  # Инициализация last_time в начале цикла
         while stop_event is None or not stop_event.is_set():
             try:
@@ -408,8 +408,8 @@ def run_loop(
                             )
 
                         if meaning.significance > 0:
-                            # Активация памяти для события
-                            activated = activate_memory(event.type, self_state.memory)
+                            # Активация памяти для события с учетом субъективного времени
+                            activated = activate_memory(event.type, self_state.memory, self_state=self_state)
                             self_state.activated_memory = activated
                             logger.debug(
                                 f"[LOOP] Activated {len(activated)} memories for type '{event.type}'"
@@ -800,75 +800,10 @@ def run_loop(
                         # но продолжаем выполнение остальных частей итерации
                         pass
 
-                # Philosophical Analysis (Этап 16) - анализ философских аспектов поведения
-                # ОТКЛЮЧЕНО: нарушает архитектурные принципы Intelligence.md и Core-concepts.md
-                # Система Life не должна анализировать себя "философски"
-                if (
-                    not disable_philosophical_analysis
-                    and self_state.ticks > 0
-                    and self_state.ticks % PHILOSOPHICAL_ANALYSIS_INTERVAL == 0
-                ):
-                    try:
-                        # Импортируем DecisionEngine для анализа (если доступен)
-                        from src.decision.decision import DecisionEngine
+                # Philosophical Analysis REMOVED: violates architecture principles
+                # Философский анализ теперь является внешним инструментом наблюдения
 
-                        # Создаем временный экземпляр DecisionEngine для анализа
-                        # (в будущем может быть интегрирован как постоянный компонент)
-                        decision_engine = DecisionEngine()
-
-                        # Проводим философский анализ
-                        philosophical_metrics = philosophical_analyzer.analyze_behavior(
-                            self_state=self_state,
-                            memory=self_state.memory,
-                            learning_engine=learning_engine,
-                            adaptation_manager=adaptation_manager,
-                            decision_engine=decision_engine,
-                        )
-
-                        # Сохраняем результаты анализа в SelfState для возможного использования
-                        self_state.last_philosophical_analysis = philosophical_metrics
-                        self_state.last_philosophical_analysis_timestamp = time.time()
-
-                        logger.debug(
-                            f"[PHILOSOPHICAL] Анализ завершен: "
-                            f"self_awareness={philosophical_metrics.self_awareness.overall_self_awareness:.3f}, "
-                            f"life_vitality={philosophical_metrics.life_vitality.overall_vitality:.3f}"
-                        )
-
-                    except Exception as e:
-                        philosophical_errors += 1
-                        logger.error(
-                            f"Ошибка в Philosophical Analysis: {e}", exc_info=True
-                        )
-                        # При ошибках в анализе продолжаем выполнение остальных частей итерации
-                        if philosophical_errors >= max_errors_before_warning:
-                            logger.warning(
-                                f"Обнаружено {philosophical_errors} ошибок в Philosophical Analysis. "
-                                "Возможна деградация аналитической функциональности."
-                            )
-
-                # Генерация философских отчетов (Этап 16+) - реже чем анализ
-                # Вызывается раз в PHILOSOPHICAL_REPORT_INTERVAL тиков, после анализа
-                if (
-                    not disable_philosophical_reports
-                    and self_state.ticks > 0
-                    and self_state.ticks % PHILOSOPHICAL_REPORT_INTERVAL == 0
-                ):
-                    try:
-                        # Создаем комплексный визуальный отчет
-                        report_dir = 'philosophical_reports'
-                        philosophical_visualizer.create_comprehensive_report(
-                            philosophical_analyzer, output_dir=report_dir
-                        )
-
-                        logger.info(
-                            f"[PHILOSOPHICAL] Автоматический отчет создан в директории: {report_dir}"
-                        )
-
-                    except Exception as e:
-                        logger.error(
-                            f"Ошибка при генерации философского отчета: {e}", exc_info=True
-                        )
+                # Philosophical Reports REMOVED: external tool only
 
                 # Логика слабости: когда параметры низкие, добавляем штрафы за немощность
                 if not disable_weakness_penalty and life_policy.is_weak(self_state):

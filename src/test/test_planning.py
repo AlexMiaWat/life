@@ -138,6 +138,77 @@ class TestRecordPotentialSequences:
         assert sequence == ["noise", "recovery"]
         assert "shock" not in sequence  # Только последние 2
 
+    def test_record_potential_sequences_subjective_time_accelerated(self, base_state):
+        """Тест фиксации последовательностей при ускоренном восприятии времени"""
+        base_state.recent_events = ["e1", "e2", "e3", "e4"]
+        base_state.energy_history = [50.0, 49.0, 48.0]
+        base_state.stability_history = [0.7, 0.6, 0.5]
+        base_state.subjective_time = 2.2  # Ускоренное восприятие (ratio >= 1.1)
+        base_state.age = 2.0
+
+        record_potential_sequences(base_state)
+
+        # При ускоренном восприятии - более длинные последовательности (min_length=3, max_sequences=2)
+        sequences = base_state.planning["potential_sequences"]
+        assert len(sequences) == 2  # Максимум 2 последовательности
+        assert sequences[0] == ["e2", "e3", "e4"]  # Последние 3 события
+        assert sequences[1] == ["e1", "e2", "e3", "e4"]  # Все 4 события
+
+    def test_record_potential_sequences_subjective_time_slowed(self, base_state):
+        """Тест фиксации последовательностей при замедленном восприятии времени"""
+        base_state.recent_events = ["e1", "e2", "e3", "e4"]
+        base_state.energy_history = [50.0, 49.0, 48.0]
+        base_state.stability_history = [0.7, 0.6, 0.5]
+        base_state.subjective_time = 0.8  # Замедленное восприятие (ratio <= 0.9)
+        base_state.age = 2.0
+
+        record_potential_sequences(base_state)
+
+        # При замедленном восприятии - короткие последовательности (min_length=2, max_sequences=1)
+        sequences = base_state.planning["potential_sequences"]
+        assert len(sequences) == 1  # Только 1 последовательность
+        assert sequences[0] == ["e3", "e4"]  # Только последние 2 события
+
+    def test_record_potential_sequences_subjective_time_normal(self, base_state):
+        """Тест фиксации последовательностей при нормальном восприятии времени"""
+        base_state.recent_events = ["e1", "e2", "e3", "e4"]
+        base_state.energy_history = [50.0, 49.0, 48.0]
+        base_state.stability_history = [0.7, 0.6, 0.5]
+        base_state.subjective_time = 1.0  # Нормальное восприятие (0.9 < ratio < 1.1)
+        base_state.age = 1.0
+
+        record_potential_sequences(base_state)
+
+        # При нормальном восприятии - стандартные параметры (min_length=2, max_sequences=1)
+        sequences = base_state.planning["potential_sequences"]
+        assert len(sequences) == 1
+        assert sequences[0] == ["e3", "e4"]  # Последние 2 события
+
+    def test_record_potential_sequences_subjective_time_insufficient_events(self, base_state):
+        """Тест при недостаточном количестве событий для разных режимов восприятия"""
+        # Для ускоренного восприятия нужно минимум 3 события
+        base_state.recent_events = ["e1", "e2"]  # Только 2 события
+        base_state.subjective_time = 2.2
+        base_state.age = 2.0
+
+        record_potential_sequences(base_state)
+
+        # Несмотря на ускоренное восприятие, последовательностей не создано
+        assert base_state.planning["potential_sequences"] == []
+
+    def test_record_potential_sequences_subjective_time_zero_age(self, base_state):
+        """Тест фиксации последовательностей при нулевом возрасте"""
+        base_state.recent_events = ["e1", "e2", "e3"]
+        base_state.subjective_time = 1.0
+        base_state.age = 0.0  # Нулевой возраст
+
+        record_potential_sequences(base_state)
+
+        # При нулевом возрасте должен быть нормальный режим (ratio = 1.0)
+        sequences = base_state.planning["potential_sequences"]
+        assert len(sequences) == 1
+        assert sequences[0] == ["e2", "e3"]
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

@@ -14,6 +14,7 @@ import pytest
 
 from src.activation.activation import activate_memory
 from src.memory.memory import MemoryEntry
+from src.state.self_state import SelfState
 
 
 @pytest.mark.unit
@@ -193,6 +194,91 @@ class TestActivateMemory:
         # При одинаковой significance порядок может быть любым, но все должны быть включены
         assert len(activated) == 3
         assert all(e.meaning_significance == 0.5 for e in activated)
+
+    def test_activate_memory_subjective_time_accelerated(self):
+        """Тест активации памяти при ускоренном восприятии времени (больше воспоминаний)"""
+        memory = [
+            MemoryEntry("event", 0.9, time.time()),
+            MemoryEntry("event", 0.8, time.time()),
+            MemoryEntry("event", 0.7, time.time()),
+            MemoryEntry("event", 0.6, time.time()),
+            MemoryEntry("event", 0.5, time.time()),
+            MemoryEntry("event", 0.4, time.time()),
+        ]
+
+        # Создаем состояние с ускоренным восприятием времени
+        state = SelfState()
+        state.subjective_time = 2.2  # Ускоренное восприятие (ratio > 1.1)
+        state.age = 2.0
+
+        activated = activate_memory("event", memory, self_state=state)
+        assert len(activated) == 5  # При ускоренном восприятии лимит = 5
+
+    def test_activate_memory_subjective_time_slowed(self):
+        """Тест активации памяти при замедленном восприятии времени (меньше воспоминаний)"""
+        memory = [
+            MemoryEntry("event", 0.9, time.time()),
+            MemoryEntry("event", 0.8, time.time()),
+            MemoryEntry("event", 0.7, time.time()),
+            MemoryEntry("event", 0.6, time.time()),
+        ]
+
+        # Создаем состояние с замедленным восприятием времени
+        state = SelfState()
+        state.subjective_time = 0.8  # Замедленное восприятие (ratio < 0.9)
+        state.age = 2.0
+
+        activated = activate_memory("event", memory, self_state=state)
+        assert len(activated) == 2  # При замедленном восприятии лимит = 2
+
+    def test_activate_memory_subjective_time_normal(self):
+        """Тест активации памяти при нормальном восприятии времени (стандартный лимит)"""
+        memory = [
+            MemoryEntry("event", 0.9, time.time()),
+            MemoryEntry("event", 0.8, time.time()),
+            MemoryEntry("event", 0.7, time.time()),
+            MemoryEntry("event", 0.6, time.time()),
+        ]
+
+        # Создаем состояние с нормальным восприятием времени
+        state = SelfState()
+        state.subjective_time = 1.0  # Нормальное восприятие (0.9 < ratio <= 1.1)
+        state.age = 1.0
+
+        activated = activate_memory("event", memory, self_state=state)
+        assert len(activated) == 3  # Стандартный лимит = 3
+
+    def test_activate_memory_subjective_time_zero_age(self):
+        """Тест активации памяти при нулевом возрасте (fallback к нормальному)"""
+        memory = [
+            MemoryEntry("event", 0.9, time.time()),
+            MemoryEntry("event", 0.8, time.time()),
+        ]
+
+        # Создаем состояние с нулевым возрастом
+        state = SelfState()
+        state.subjective_time = 1.0
+        state.age = 0.0  # Нулевой возраст
+
+        activated = activate_memory("event", memory, self_state=state)
+        assert len(activated) == 2  # Fallback к стандартному поведению
+
+    def test_activate_memory_explicit_limit_overrides_subjective_time(self):
+        """Тест что явный лимит переопределяет логику субъективного времени"""
+        memory = [
+            MemoryEntry("event", 0.9, time.time()),
+            MemoryEntry("event", 0.8, time.time()),
+            MemoryEntry("event", 0.7, time.time()),
+        ]
+
+        # Создаем состояние с ускоренным восприятием времени
+        state = SelfState()
+        state.subjective_time = 2.0
+        state.age = 1.0
+
+        # Явно указываем лимит = 1, несмотря на ускоренное восприятие
+        activated = activate_memory("event", memory, limit=1, self_state=state)
+        assert len(activated) == 1  # Должен использоваться явный лимит
 
 
 if __name__ == "__main__":

@@ -1,11 +1,12 @@
 # 10.1_ACTIVATION_Memory.md — Активация памяти
 
 ## Текущий статус
-✅ **Реализован** (v1.0)
+✅ **Реализован** (v1.1)
 *   Файл: [`src/activation/activation.py`](../../src/activation/activation.py)
 *   Интегрирован в [`src/state/self_state.py`](../../src/state/self_state.py)
 *   Интегрирован в [`src/runtime/loop.py`](../../src/runtime/loop.py)
 *   Мониторинг в [`src/monitor/console.py`](../../src/monitor/console.py)
+*   **ИНТЕГРАЦИЯ:** Поддержка субъективного времени для динамического лимита активации
 
 ### Описание реализации
 Активация памяти происходит после обработки событий в runtime loop. Функция `activate_memory` фильтрует память по совпадению `event_type` и возвращает топ-3 по `meaning_significance`. Результат сохраняется в transient поле `activated_memory` SelfState, которое не сохраняется в snapshot.
@@ -16,7 +17,6 @@ activated_memory: list[MemoryEntry]  # Transient поле, очищается п
 ```
 
 #### Принципы
-- Только read-only: Активация не изменяет память, только извлекает релевантные записи.
 - Минимальное сходство: Совпадение по `event_type`, сортировка по `meaning_significance`.
 - Transient: Активированные воспоминания не сохраняются между сессиями.
 - Ограничение: Топ-3 воспоминания для предотвращения перегрузки.
@@ -34,9 +34,23 @@ activated_memory: list[MemoryEntry]  # Transient поле, очищается п
 ## Текущая реализация
 
 ### Функция activate_memory
-Функция [`activate_memory`](../../src/activation/activation.py) реализует минимальную логику активации:
-*   Вход: `current_event_type: str`, `memory: List[MemoryEntry]`, `limit: int = 3`
-*   Выход: `List[MemoryEntry]` — топ воспоминаний по значимости
+Функция [`activate_memory`](../../src/activation/activation.py) реализует логику активации с учетом субъективного времени:
+*   Вход: `current_event_type: str`, `memory: List[MemoryEntry]`, `limit: Optional[int] = None`, `self_state: Optional[SelfState] = None`
+*   Выход: `List[MemoryEntry]` — топ воспоминаний по значимости с динамическим лимитом
+
+#### Интеграция субъективного времени (v1.1)
+
+Функция анализирует восприятие времени системой и динамически регулирует количество активируемых воспоминаний:
+
+**Логика динамического лимита:**
+- **Ускоренное восприятие времени** (`time_ratio >= 1.1`): лимит = `min(5, len(matching))` - система более внимательна, активирует до 5 воспоминаний
+- **Замедленное восприятие времени** (`time_ratio <= 0.9`): лимит = `min(2, len(matching))` - система менее внимательна, активирует максимум 2 воспоминания
+- **Нормальное восприятие времени** (`0.9 < time_ratio < 1.1`): лимит = `min(3, len(matching))` - стандартный режим
+
+**Расчет time_ratio:**
+```python
+time_ratio = self_state.subjective_time / self_state.age if self_state.age > 0 else 1.0
+```
 
 ### Интеграция в SelfState
 Поле `activated_memory` добавлено в [`SelfState`](../../src/state/self_state.py) как transient поле:
@@ -113,3 +127,4 @@ print(f"Топ значимость: {activated[0].meaning_significance}")  # 0.
 *   **Memory:** Предоставляет данные для активации (см. [`src/memory/`](../../src/memory/)).
 *   **Decision:** Использует activated_memory как input для выбора паттерна реакции (см. [`src/decision/`](../../src/decision/)).
 *   **Monitor:** Отображает статус активации (см. [`src/monitor/`](../../src/monitor/)).
+*   **Subjective Time:** Влияет на количество активируемых воспоминаний через `self_state.subjective_time` (см. [`src/runtime/subjective_time.py`](../../src/runtime/subjective_time.py)).

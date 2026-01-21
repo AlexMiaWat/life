@@ -178,20 +178,21 @@ class EthicalBehaviorAnalyzer:
             awareness_score += 0.05
             factors_count += 1
 
-        # Фактор 2: Способность к планированию (предвидение последствий)
+        # Фактор 2: Анализ истории решений (предвидение последствий)
         try:
-            # Проверяем сложность планирования как индикатор предвидения
-            planning_complexity = 0
-            if hasattr(decision_engine, '_planning_engine'):
-                planning_engine = getattr(decision_engine, '_planning_engine', None)
-                if planning_engine:
-                    # Предполагаем, что сложность планирования коррелирует с осознанием
-                    planning_complexity = 0.2
+            # Используем историю решений из DecisionEngine
+            decision_history = getattr(decision_engine, 'decision_history', [])
+            history_length = len(decision_history)
 
-            if planning_complexity > 0:
+            if history_length > 50:
+                awareness_score += 0.4  # Богатый опыт принятия решений
+            elif history_length > 20:
                 awareness_score += 0.3
+            elif history_length > 5:
+                awareness_score += 0.2
             else:
-                awareness_score += 0.1
+                awareness_score += 0.1  # Минимальный опыт
+
             factors_count += 1
 
         except Exception:
@@ -401,15 +402,18 @@ class EthicalBehaviorAnalyzer:
 
         # Фактор 1: Способность к балансировке конкурирующих целей
         try:
-            # Анализируем сложность принимаемых решений
-            decision_complexity = 0
+            # Анализируем разнообразие принимаемых решений
+            decision_history = getattr(decision_engine, 'decision_history', [])
+            unique_decisions = len(set(decision_history)) if decision_history else 0
+            total_decisions = len(decision_history)
 
-            # Проверяем использование различных факторов в решениях
-            if hasattr(decision_engine, '_decision_factors'):
-                factors = getattr(decision_engine, '_decision_factors', {})
-                decision_complexity = min(len(factors) / 10, 1.0)  # Нормализуем
+            if total_decisions > 0:
+                # Чем больше уникальных решений, тем лучше способность к разрешению дилемм
+                diversity_ratio = min(unique_decisions / total_decisions, 1.0)
+                dilemma_score += 0.4 * diversity_ratio
+            else:
+                dilemma_score += 0.1  # Нет опыта принятия решений
 
-            dilemma_score += 0.3 * decision_complexity
             factors_count += 1
 
         except Exception:

@@ -76,7 +76,7 @@ class TestStructuredLoggerStatic:
         assert "event" in sig.parameters
         assert "meaning" in sig.parameters
         assert "correlation_id" in sig.parameters
-        assert sig.return_annotation is type(None)
+        assert sig.return_annotation is None
 
         # log_decision
         sig = inspect.signature(logger.log_decision)
@@ -86,7 +86,7 @@ class TestStructuredLoggerStatic:
         assert "pattern" in sig.parameters
         assert "correlation_id" in sig.parameters
         assert "additional_data" in sig.parameters
-        assert sig.return_annotation is type(None)
+        assert sig.return_annotation is None
 
         # log_action
         sig = inspect.signature(logger.log_action)
@@ -97,21 +97,21 @@ class TestStructuredLoggerStatic:
         assert "pattern" in sig.parameters
         assert "correlation_id" in sig.parameters
         assert "state_before" in sig.parameters
-        assert sig.return_annotation is type(None)
+        assert sig.return_annotation is None
 
         # log_feedback
         sig = inspect.signature(logger.log_feedback)
         assert len(sig.parameters) == 2  # feedback + correlation_id (self не считается)
         assert "feedback" in sig.parameters
         assert "correlation_id" in sig.parameters
-        assert sig.return_annotation is type(None)
+        assert sig.return_annotation is None
 
         # log_tick_start
         sig = inspect.signature(logger.log_tick_start)
         assert len(sig.parameters) == 2  # tick_number + queue_size (self не считается)
         assert "tick_number" in sig.parameters
         assert "queue_size" in sig.parameters
-        assert sig.return_annotation is type(None)
+        assert sig.return_annotation is None
 
         # log_tick_end
         sig = inspect.signature(logger.log_tick_end)
@@ -121,7 +121,7 @@ class TestStructuredLoggerStatic:
         assert "tick_number" in sig.parameters
         assert "duration_ms" in sig.parameters
         assert "events_processed" in sig.parameters
-        assert sig.return_annotation is type(None)
+        assert sig.return_annotation is None
 
         # log_error
         sig = inspect.signature(logger.log_error)
@@ -131,7 +131,7 @@ class TestStructuredLoggerStatic:
         assert "stage" in sig.parameters
         assert "error" in sig.parameters
         assert "correlation_id" in sig.parameters
-        assert sig.return_annotation is type(None)
+        assert sig.return_annotation is None
 
     def test_structured_logger_private_methods(self):
         """Проверка приватных методов StructuredLogger"""
@@ -146,7 +146,7 @@ class TestStructuredLoggerStatic:
         sig = inspect.signature(logger._write_log_entry)
         assert len(sig.parameters) == 1  # entry (self не считается)
         assert "entry" in sig.parameters
-        assert sig.return_annotation is type(None)
+        assert sig.return_annotation is None
 
     def test_structured_logger_attributes(self):
         """Проверка атрибутов StructuredLogger"""

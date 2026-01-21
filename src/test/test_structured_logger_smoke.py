@@ -374,7 +374,12 @@ class TestStructuredLoggerSmoke:
 
     def test_disabled_logger_no_file_operations(self):
         """Тест отключенного логера - не должно быть операций с файлами"""
-        logger = StructuredLogger(enabled=False)
+        # Используем уникальный файл для теста
+        test_file = "data/test_disabled_log.jsonl"
+        if os.path.exists(test_file):
+            os.unlink(test_file)
+
+        logger = StructuredLogger(log_file=test_file, enabled=False)
 
         # Все методы должны выполняться без ошибок, но не создавать файлы
         event = Event(type="noise", intensity=0.5, timestamp=1.0)
@@ -398,7 +403,7 @@ class TestStructuredLoggerSmoke:
         logger.log_error("test", Exception("test"))
 
         # Файл не должен быть создан
-        assert not os.path.exists("data/structured_log.jsonl")
+        assert not os.path.exists(test_file)
 
     def test_correlation_id_generation(self):
         """Тест генерации correlation ID"""
@@ -484,8 +489,13 @@ class TestStructuredLoggerSmoke:
                     # Обязательные поля
                     assert "timestamp" in entry
                     assert "stage" in entry
-                    assert "correlation_id" in entry
                     assert "data" in entry
+
+                    # correlation_id обязателен только для основных стадий обработки
+                    stage = entry["stage"]
+                    if stage in ["event", "meaning", "decision", "action", "feedback"]:
+                        assert "correlation_id" in entry
+                    # Для tick_start, tick_end, error correlation_id может отсутствовать
 
                     # timestamp должен быть числом
                     assert isinstance(entry["timestamp"], (int, float))

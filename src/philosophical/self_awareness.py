@@ -208,12 +208,26 @@ class SelfAwarenessAnalyzer:
         if hasattr(self_state, 'last_event_intensity') and self_state.last_event_intensity is not None:
             feedback_score += 0.2
         # Проверяем наличие истории обратной связи
-        if hasattr(self_state, 'memory') and len(self_state.memory) > 0:
-            # Ищем feedback записи в памяти
-            feedback_entries = [entry for entry in self_state.memory
-                              if hasattr(entry, 'event_type') and entry.event_type == 'feedback']
-            if len(feedback_entries) > 0:
-                feedback_score += 0.2
+        if hasattr(self_state, 'memory') and self_state.memory is not None:
+            try:
+                # Пытаемся получить размер памяти
+                memory_size = len(self_state.memory) if hasattr(self_state.memory, '__len__') else 0
+                if memory_size > 0:
+                    # Ищем feedback записи в памяти (если доступно)
+                    try:
+                        if hasattr(self_state.memory, '__iter__'):
+                            feedback_entries = [entry for entry in self_state.memory
+                                              if hasattr(entry, 'event_type') and getattr(entry, 'event_type', None) == 'feedback']
+                            if len(feedback_entries) > 0:
+                                feedback_score += 0.2
+                        else:
+                            feedback_score += 0.1  # Память существует, но не итерируема
+                    except (TypeError, AttributeError):
+                        feedback_score += 0.1  # Не можем итерировать, но память существует
+                else:
+                    feedback_score += 0.05  # Память пуста
+            except (TypeError, AttributeError):
+                feedback_score += 0.05  # Не можем получить размер памяти
 
         reflection_score += feedback_score
         factors_count += 1

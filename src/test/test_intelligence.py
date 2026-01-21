@@ -170,6 +170,98 @@ class TestProcessInformation:
         # Должно обработаться без ошибок
         assert processed["planning_proxy_size"] == 0
 
+    def test_process_information_subjective_time_accelerated(self, base_state):
+        """Тест обработки информации при ускоренном восприятии времени"""
+        base_state.recent_events = ["event1", "event2"]
+        base_state.energy = 50.0
+        base_state.stability = 0.7
+        base_state.planning = {"potential_sequences": [["e1", "e2"]]}
+        base_state.subjective_time = 2.2  # Ускоренное восприятие
+        base_state.age = 2.0
+        base_state.last_event_intensity = 0.8
+
+        process_information(base_state)
+
+        processed = base_state.intelligence["processed_sources"]
+        # При ускоренном восприятии должны быть все источники + расширенные метрики
+        assert processed["memory_proxy_size"] == 2
+        assert processed["adaptation_proxy"] == 50.0
+        assert processed["learning_proxy"] == 0.7
+        assert processed["planning_proxy_size"] == 1
+        assert "subjective_time_metrics" in processed
+        metrics = processed["subjective_time_metrics"]
+        assert metrics["time_perception"] == "accelerated"
+        assert metrics["time_ratio"] == 1.1
+        assert metrics["current_subjective_time"] == 2.2
+        assert metrics["intensity_smoothed"] == 0.8
+
+    def test_process_information_subjective_time_slowed(self, base_state):
+        """Тест обработки информации при замедленном восприятии времени"""
+        base_state.recent_events = ["event1", "event2"]
+        base_state.energy = 50.0
+        base_state.stability = 0.7
+        base_state.planning = {"potential_sequences": [["e1", "e2"]]}
+        base_state.subjective_time = 0.8  # Замедленное восприятие
+        base_state.age = 2.0
+
+        process_information(base_state)
+
+        processed = base_state.intelligence["processed_sources"]
+        # При замедленном восприятии - только базовые источники + минимальные метрики
+        assert processed["memory_proxy_size"] == 2
+        assert processed["adaptation_proxy"] == 50.0
+        assert "learning_proxy" not in processed  # Не должно быть
+        assert "planning_proxy_size" not in processed  # Не должно быть
+        assert "subjective_time_metrics" in processed
+        metrics = processed["subjective_time_metrics"]
+        assert metrics["time_perception"] == "slowed"
+        assert metrics["time_ratio"] == 0.4
+        assert "current_subjective_time" not in metrics  # Не должно быть в минимальном наборе
+
+    def test_process_information_subjective_time_normal(self, base_state):
+        """Тест обработки информации при нормальном восприятии времени"""
+        base_state.recent_events = ["event1", "event2"]
+        base_state.energy = 50.0
+        base_state.stability = 0.7
+        base_state.planning = {"potential_sequences": [["e1", "e2"]]}
+        base_state.subjective_time = 1.0  # Нормальное восприятие
+        base_state.age = 1.0
+
+        process_information(base_state)
+
+        processed = base_state.intelligence["processed_sources"]
+        # При нормальном восприятии - все источники + базовые метрики времени
+        assert processed["memory_proxy_size"] == 2
+        assert processed["adaptation_proxy"] == 50.0
+        assert processed["learning_proxy"] == 0.7
+        assert processed["planning_proxy_size"] == 1
+        assert "subjective_time_metrics" in processed
+        metrics = processed["subjective_time_metrics"]
+        assert metrics["time_perception"] == "normal"
+        assert metrics["current_subjective_time"] == 1.0
+        assert "time_ratio" not in metrics  # Не должно быть в базовом наборе
+
+    def test_process_information_subjective_time_zero_age(self, base_state):
+        """Тест обработки информации при нулевом возрасте"""
+        base_state.recent_events = ["event1"]
+        base_state.energy = 50.0
+        base_state.stability = 0.7
+        base_state.planning = {}
+        base_state.subjective_time = 1.0
+        base_state.age = 0.0  # Нулевой возраст
+
+        process_information(base_state)
+
+        processed = base_state.intelligence["processed_sources"]
+        # При нулевом возрасте должен быть нормальный режим (ratio = 1.0)
+        assert processed["memory_proxy_size"] == 1
+        assert processed["adaptation_proxy"] == 50.0
+        assert processed["learning_proxy"] == 0.7
+        assert processed["planning_proxy_size"] == 0
+        assert "subjective_time_metrics" in processed
+        metrics = processed["subjective_time_metrics"]
+        assert metrics["time_perception"] == "normal"
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
