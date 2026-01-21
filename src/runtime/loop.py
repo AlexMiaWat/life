@@ -238,7 +238,8 @@ def run_loop(
     enable_memory_hierarchy=True,  # Включение многоуровневой системы памяти (краткосрочная/долгосрочная/архивная)
     enable_silence_detection=True,  # Включение системы осознания тишины
     log_flush_period_ticks=10,
-    enable_profiling=False
+    enable_profiling=False,
+    structured_logger=None  # StructuredLogger для активного логирования ключевых этапов
 ):
     """
     Runtime Loop с интеграцией Environment (этап 07)
@@ -262,7 +263,13 @@ def run_loop(
         log_flush_period_ticks: Период сброса логов в тиках
         enable_profiling: Включить профилирование runtime loop с cProfile
     """
-    # Observability полностью вынесена из runtime согласно ADR 001
+    # Активное структурированное логирование для понимания поведения системы
+    # (Признаем, что система Life требует активного мониторинга для корректной работы)
+
+    # Инициализация structured logger
+    if structured_logger is None:
+        from src.observability.structured_logger import StructuredLogger
+        structured_logger = StructuredLogger()
 
     engine = MeaningEngine()
     learning_engine = LearningEngine()  # Learning Engine (Этап 14)
@@ -554,16 +561,7 @@ def run_loop(
 
                             # Log decision
                             if correlation_id:
-                                structured_logger.log_decision(
-                                    pattern,
-                                    correlation_id,
-                                    {
-                                        "significance": meaning.significance,
-                                        "original_impact": (
-                                            meaning.impact.copy() if meaning.impact else {}
-                                        ),
-                                    },
-                                )
+                                structured_logger.log_decision(correlation_id)
 
                             if pattern == "ignore":
                                 continue  # skip apply_delta
@@ -598,9 +596,7 @@ def run_loop(
                                 action_id = (
                                     f"action_{self_state.ticks}_{pattern}_{int(time.time()*1000)}"
                                 )
-                                structured_logger.log_action(
-                                    action_id, pattern, correlation_id, state_before
-                                )
+                                structured_logger.log_action(action_id, correlation_id)
 
                             # Регистрируем для Feedback (после выполнения)
                             # Action не знает о Feedback - регистрация происходит в Loop

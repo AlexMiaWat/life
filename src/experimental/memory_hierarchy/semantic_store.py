@@ -14,9 +14,9 @@ from collections import defaultdict
 from src.observability.structured_logger import StructuredLogger
 import sys
 # Import interfaces through sys.modules to ensure we get the same object
-_memory_interface_module = sys.modules.get('memory.memory_interface')
+_memory_interface_module = sys.modules.get('src.memory.memory_interface')
 if _memory_interface_module is None:
-    import memory.memory_interface as _memory_interface_module
+    from src.memory import memory_interface as _memory_interface_module
 SemanticMemoryInterface = _memory_interface_module.SemanticMemoryInterface
 MemoryStatistics = _memory_interface_module.MemoryStatistics
 

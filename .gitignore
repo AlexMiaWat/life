@@ -161,6 +161,13 @@ test_output.txt
 test_report.json
 *.jsonl
 
+# Test artifacts for current task
+test_full_task_*.xml
+test_full_task_*.log
+test_full_task_*.json
+benchmark_*.json
+performance_*.json
+
 # Hypothesis
 .hypothesis/
 

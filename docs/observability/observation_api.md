@@ -42,9 +42,88 @@ data_access.export_raw_data(hours=24, output_path="raw_data_export.json")
 
 ### Новые компоненты
 - ✅ `PassiveDataSink` - истинно пассивный сборщик данных
+- ✅ `AsyncDataSink` - асинхронная версия с очередью и фоновой обработкой
+- ✅ `AsyncObservationAPI` - единая точка входа для async операций
+- ✅ `UnifiedObservationAPI` с async методами для высокопроизводительных сценариев
 - ✅ `RawDataAccess` - доступ к raw данным без интерпретации
 - ✅ `RawSystemCounters` - только сырые счетчики
 - ✅ Внешняя интеграция без влияния на runtime
+
+### Асинхронная архитектура (2026-01-21)
+
+**AsyncDataSink** - асинхронная версия PassiveDataSink для высокопроизводительных сценариев:
+
+```python
+from src.observability import AsyncDataSink
+
+# Создание асинхронного sink
+async_sink = AsyncDataSink(
+    data_directory="data",
+    enabled=True,
+    queue_size=1000  # Размер внутренней очереди
+)
+
+# Асинхронный прием данных (не блокируется)
+await async_sink.accept_data_point_async({
+    "timestamp": time.time(),
+    "type": "high_priority_event",
+    "data": {"value": 42}
+}, priority=2)  # priority: 0=normal, 1=high, 2=critical
+
+# Запуск фоновой обработки
+await async_sink.start()
+
+# Остановка с graceful shutdown
+await async_sink.stop()
+```
+
+**AsyncObservationAPI** - единая точка входа для асинхронных операций:
+
+```python
+from src.observability import AsyncObservationAPI
+
+# Создание async API
+async_api = AsyncObservationAPI()
+
+# Async context manager для автоматического управления жизненным циклом
+async with async_api:
+    # Асинхронное логирование события
+    correlation_id = await async_api.log_event_async(event_object)
+
+    # Асинхронный сбор данных
+    success = await async_api.accept_data_point_async(data, priority=1)
+
+    # Пакетная обработка
+    accepted_count = await async_api.accept_batch_async(data_points, priority=0)
+```
+
+**UnifiedObservationAPI с async поддержкой:**
+
+```python
+from src.observability import UnifiedObservationAPI
+
+# Создание unified API
+api = UnifiedObservationAPI()
+
+# Включение async поддержки
+api.enable_async_support()
+
+# Async context manager для управления жизненным циклом
+async with api:
+    # Async методы доступны параллельно с sync
+    await api.accept_data_point_async(data, priority=1)
+    await api.log_event_async(event)
+
+    # Получение статуса включая async метрики
+    status = await api.get_async_status()
+```
+
+#### Принципы асинхронной архитектуры:
+1. **Не-блокирующий прием**: Операции никогда не блокируются на I/O
+2. **Фоновая обработка**: I/O операции выполняются в фоне с батчингом
+3. **Приоритизация**: Важные данные обрабатываются первыми (normal/high/critical)
+4. **Graceful degradation**: Fallback на sync при проблемах
+5. **Изоляция**: Async компоненты не влияют на sync операции
 
 ## Запуск сервера
 

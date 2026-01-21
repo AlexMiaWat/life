@@ -16,7 +16,7 @@ import sys
 # Import interfaces through sys.modules to ensure we get the same object
 _memory_interface_module = sys.modules.get('memory.memory_interface')
 if _memory_interface_module is None:
-    import memory.memory_interface as _memory_interface_module
+    from src.memory import memory_interface as _memory_interface_module
 ProceduralMemoryInterface = _memory_interface_module.ProceduralMemoryInterface
 MemoryStatistics = _memory_interface_module.MemoryStatistics
 

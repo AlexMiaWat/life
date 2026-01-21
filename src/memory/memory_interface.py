@@ -23,6 +23,45 @@ class MemoryStatistics:
     oldest_timestamp: Optional[float] = None
     newest_timestamp: Optional[float] = None
     memory_type: str = "unknown"
+    event_types: Dict[str, int] = None
+    avg_significance: float = None  # backward compatibility
+
+    def __post_init__(self):
+        """Инициализация после создания объекта."""
+        if self.event_types is None:
+            self.event_types = {}
+        if self.avg_significance is None:
+            self.avg_significance = self.average_significance
+
+    def __getitem__(self, key):
+        """Поддержка доступа по индексу и по имени поля."""
+        if isinstance(key, int):
+            # Доступ по индексу
+            fields = [
+                self.total_entries,
+                self.active_entries,
+                self.archived_entries,
+                self.average_significance,
+                self.oldest_timestamp,
+                self.newest_timestamp,
+                self.memory_type,
+            ]
+            if 0 <= key < len(fields):
+                return fields[key]
+            raise IndexError("Index out of range")
+        elif isinstance(key, str):
+            # Доступ по имени поля с поддержкой совместимости
+            if key == "archive_entries":  # backward compatibility
+                return self.archived_entries
+            if hasattr(self, key):
+                return getattr(self, key)
+            raise KeyError(f"Field '{key}' not found")
+        else:
+            raise TypeError("Key must be int or str")
+
+    def __len__(self):
+        """Возвращает количество полей в статистике."""
+        return 7  # количество полей в dataclass
 
 
 class MemoryInterface(ABC):

@@ -42,6 +42,7 @@ import time
 
 from src.environment import EventGenerator, EventQueue
 from src.runtime.loop import run_loop
+from src.observability.structured_logger import StructuredLogger
 
 try:
     self_state = SelfState().load_latest_snapshot()
@@ -51,6 +52,9 @@ except FileNotFoundError:
 if __name__ == "__main__":
     event_queue = EventQueue()
     stop_event = threading.Event()
+
+    # Инициализация структурированного логгера для активного мониторинга
+    structured_logger = StructuredLogger()
 
     def background_event_generation(queue, generator, stop_event):
         while not stop_event.is_set():
@@ -72,13 +76,13 @@ if __name__ == "__main__":
         event_queue=event_queue,
         stop_event=stop_event,
         disable_weakness_penalty=False,
-        disable_structured_logging=False,
         disable_learning=False,
         disable_adaptation=False,
         enable_memory_hierarchy=False,  # Экспериментальная многоуровневая память отключена по умолчанию
-        enable_consciousness=False,  # Экспериментальная система сознания отключена по умолчанию
+        enable_silence_detection=False,  # Экспериментальная система осознания тишины отключена по умолчанию
         log_flush_period_ticks=10,
         enable_profiling=False,
+        structured_logger=structured_logger,
     )
     print("Жизнь завершена. Финальное состояние:")
     print(self_state)

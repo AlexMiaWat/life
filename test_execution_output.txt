@@ -1,8 +1,408 @@
 STDOUT:
+============================= test session starts ==============================
+platform linux -- Python 3.10.12, pytest-9.0.2, pluggy-1.6.0 -- /usr/bin/python3
+cachedir: .pytest_cache
+hypothesis profile 'default'
+rootdir: /workspace
+configfile: pytest.ini
+plugins: cov-7.0.0, order-1.3.0, asyncio-1.3.0, anyio-4.12.1, hypothesis-6.150.2
+asyncio: mode=auto, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 2154 items / 38 errors
+
+==================================== ERRORS ====================================
+____________ ERROR collecting src/test/test_api_auth_integration.py ____________
+ImportError while importing test module '/workspace/src/test/test_api_auth_integration.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+src/test/test_api_auth_integration.py:23: in <module>
+    from api import app
+E   ModuleNotFoundError: No module named 'api'
+_______________ ERROR collecting src/test/test_api_auth_smoke.py _______________
+ImportError while importing test module '/workspace/src/test/test_api_auth_smoke.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+d:\Space\life\src\test\test_api_auth_smoke.py:21: in <module>
+    ???
+E   ModuleNotFoundError: No module named 'api'
+______________ ERROR collecting src/test/test_api_concurrency.py _______________
+ImportError while importing test module '/workspace/src/test/test_api_concurrency.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+d:\Space\life\src\test\test_api_concurrency.py:23: in <module>
+    ???
+E   ModuleNotFoundError: No module named 'api'
+__________________ ERROR collecting src/test/test_api_new.py ___________________
+ImportError while importing test module '/workspace/src/test/test_api_new.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+src/test/test_api_new.py:14: in <module>
+    from api import app
+E   ModuleNotFoundError: No module named 'api'
+_________________ ERROR collecting src/test/test_api_static.py _________________
+ImportError while importing test module '/workspace/src/test/test_api_static.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+src/test/test_api_static.py:19: in <module>
+    from api import (
+E   ModuleNotFoundError: No module named 'api'
+______________ ERROR collecting src/test/test_async_data_sink.py _______________
+ImportError while importing test module '/workspace/src/test/test_async_data_sink.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+src/test/test_async_data_sink.py:12: in <module>
+    from src.observability.async_data_sink import AsyncDataSink, create_async_data_sink
+E   ModuleNotFoundError: No module named 'src.observability.async_data_sink'
+___________ ERROR collecting src/test/test_async_observation_api.py ____________
+ImportError while importing test module '/workspace/src/test/test_async_observation_api.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+src/test/test_async_observation_api.py:11: in <module>
+    from src.observability.async_observation_api import AsyncObservationAPI, create_async_observation_api
+E   ModuleNotFoundError: No module named 'src.observability.async_observation_api'
+__________ ERROR collecting src/test/test_component_monitor_smoke.py ___________
+ImportError while importing test module '/workspace/src/test/test_component_monitor_smoke.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+d:\Space\life\src\test\test_component_monitor_smoke.py:15: in <module>
+    ???
+E   ModuleNotFoundError: No module named 'src.observability.component_monitor'
+__________ ERROR collecting src/test/test_component_monitor_static.py __________
+ImportError while importing test module '/workspace/src/test/test_component_monitor_static.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+d:\Space\life\src\test\test_component_monitor_static.py:19: in <module>
+    ???
+E   ModuleNotFoundError: No module named 'src.observability.component_monitor'
+____________ ERROR collecting src/test/test_data_collector_smoke.py ____________
+ImportError while importing test module '/workspace/src/test/test_data_collector_smoke.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+src/test/test_data_collector_smoke.py:22: in <module>
+    from src.observability.data_collector import (
+E   ModuleNotFoundError: No module named 'src.observability.data_collector'
+___________ ERROR collecting src/test/test_data_collector_static.py ____________
+ImportError while importing test module '/workspace/src/test/test_data_collector_static.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+src/test/test_data_collector_static.py:23: in <module>
+    from src.observability.data_collector import (
+E   ModuleNotFoundError: No module named 'src.observability.data_collector'
+_____________ ERROR collecting src/test/test_external_observer.py ______________
+ImportError while importing test module '/workspace/src/test/test_external_observer.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+D:\Space\life\src\test\test_external_observer.py:13: in <module>
+    ???
+E   ModuleNotFoundError: No module named 'src.observability.external_observer'
+_____ ERROR collecting src/test/test_external_observer_integration_new.py ______
+ImportError while importing test module '/workspace/src/test/test_external_observer_integration_new.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+D:\Space\life\src\test\test_external_observer_integration_new.py:19: in <module>
+    ???
+E   ModuleNotFoundError: No module named 'src.observability.external_observer'
+__________ ERROR collecting src/test/test_external_observer_smoke.py ___________
+ImportError while importing test module '/workspace/src/test/test_external_observer_smoke.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+src/test/test_external_observer_smoke.py:23: in <module>
+    from src.observability.external_observer import (
+E   ModuleNotFoundError: No module named 'src.observability.external_observer'
+__________ ERROR collecting src/test/test_external_observer_static.py __________
+ImportError while importing test module '/workspace/src/test/test_external_observer_static.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+src/test/test_external_observer_static.py:23: in <module>
+    from src.observability.external_observer import (
+E   ModuleNotFoundError: No module named 'src.observability.external_observer'
+_________ ERROR collecting src/test/test_integration_observability.py __________
+ImportError while importing test module '/workspace/src/test/test_integration_observability.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+src/test/test_integration_observability.py:19: in <module>
+    from src.observability.unified_observation_api import UnifiedObservationAPI
+E   ModuleNotFoundError: No module named 'src.observability.unified_observation_api'
+______________ ERROR collecting src/test/test_mcp_index_engine.py ______________
+ImportError while importing test module '/workspace/src/test/test_mcp_index_engine.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+src/test/test_mcp_index_engine.py:17: in <module>
+    from mcp_index_engine import MAX_FILE_SIZE, IndexEngine
+E   ModuleNotFoundError: No module named 'mcp_index_engine'
+_________ ERROR collecting src/test/test_mcp_index_engine_fallback.py __________
+ImportError while importing test module '/workspace/src/test/test_mcp_index_engine_fallback.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+src/test/test_mcp_index_engine_fallback.py:16: in <module>
+    from mcp_index_engine import IndexEngine
+E   ModuleNotFoundError: No module named 'mcp_index_engine'
+______________ ERROR collecting src/test/test_mcp_interactive.py _______________
+ImportError while importing test module '/workspace/src/test/test_mcp_interactive.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+src/test/test_mcp_interactive.py:6: in <module>
+    from mcp_index import (
+E   ModuleNotFoundError: No module named 'mcp_index'
+_____________ ERROR collecting src/test/test_mcp_refresh_index.py ______________
+ImportError while importing test module '/workspace/src/test/test_mcp_refresh_index.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+src/test/test_mcp_refresh_index.py:17: in <module>
+    from mcp_index import refresh_index
+E   ModuleNotFoundError: No module named 'mcp_index'
+_________________ ERROR collecting src/test/test_mcp_server.py _________________
+ImportError while importing test module '/workspace/src/test/test_mcp_server.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+src/test/test_mcp_server.py:19: in <module>
+    from mcp_index import (
+E   ModuleNotFoundError: No module named 'mcp_index'
+_________ ERROR collecting src/test/test_observability_architecture.py _________
+ImportError while importing test module '/workspace/src/test/test_observability_architecture.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+src/test/test_observability_architecture.py:14: in <module>
+    from src.observability.external_observer import RawDataCollector, RawSystemCounters
+E   ModuleNotFoundError: No module named 'src.observability.external_observer'
+_________ ERROR collecting src/test/test_observability_integration.py __________
+ImportError while importing test module '/workspace/src/test/test_observability_integration.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+src/test/test_observability_integration.py:20: in <module>
+    from src.observability.external_observer import RawDataCollector
+E   ModuleNotFoundError: No module named 'src.observability.external_observer'
+_____ ERROR collecting src/test/test_observability_runtime_integration.py ______
+ImportError while importing test module '/workspace/src/test/test_observability_runtime_integration.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+src/test/test_observability_runtime_integration.py:23: in <module>
+    from src.observability.async_passive_observer import AsyncPassiveObserver
+E   ModuleNotFoundError: No module named 'src.observability.async_passive_observer'
+__________ ERROR collecting src/test/test_observability_simplified.py __________
+ImportError while importing test module '/workspace/src/test/test_observability_simplified.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+src/test/test_observability_simplified.py:18: in <module>
+    from src.observability.external_observer import (
+E   ModuleNotFoundError: No module named 'src.observability.external_observer'
+____________ ERROR collecting src/test/test_observability_smoke.py _____________
+ImportError while importing test module '/workspace/src/test/test_observability_smoke.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+src/test/test_observability_smoke.py:18: in <module>
+    from src.observability.external_observer import RawDataCollector, RawSystemCounters
+E   ModuleNotFoundError: No module named 'src.observability.external_observer'
+____________ ERROR collecting src/test/test_observability_static.py ____________
+ImportError while importing test module '/workspace/src/test/test_observability_static.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+src/test/test_observability_static.py:18: in <module>
+    from src.observability.external_observer import (
+E   ModuleNotFoundError: No module named 'src.observability.external_observer'
+___________ ERROR collecting src/test/test_observation_api_smoke.py ____________
+ImportError while importing test module '/workspace/src/test/test_observation_api_smoke.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+src/test/test_observation_api_smoke.py:21: in <module>
+    from src.observability.observation_api import (
+E   ModuleNotFoundError: No module named 'src.observability.observation_api'
+___________ ERROR collecting src/test/test_observation_api_static.py ___________
+ImportError while importing test module '/workspace/src/test/test_observation_api_static.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+D:\Space\life\src\test\test_observation_api_static.py:23: in <module>
+    ???
+E   ModuleNotFoundError: No module named 'src.observability.observation_api'
+_____ ERROR collecting src/test/test_passive_observability_integration.py ______
+ImportError while importing test module '/workspace/src/test/test_passive_observability_integration.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+src/test/test_passive_observability_integration.py:16: in <module>
+    from src.observability import UnifiedObservationAPI, PassiveDataSink, RawDataAccess
+E   ImportError: cannot import name 'UnifiedObservationAPI' from 'src.observability' (/workspace/src/observability/__init__.py)
+________ ERROR collecting src/test/test_passive_observability_smoke.py _________
+ImportError while importing test module '/workspace/src/test/test_passive_observability_smoke.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+src/test/test_passive_observability_smoke.py:21: in <module>
+    from src.observability import UnifiedObservationAPI, PassiveDataSink, RawDataAccess
+E   ImportError: cannot import name 'UnifiedObservationAPI' from 'src.observability' (/workspace/src/observability/__init__.py)
+________ ERROR collecting src/test/test_passive_observability_static.py ________
+ImportError while importing test module '/workspace/src/test/test_passive_observability_static.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+src/test/test_passive_observability_static.py:22: in <module>
+    from src.observability import UnifiedObservationAPI, PassiveDataSink, RawDataAccess
+E   ImportError: cannot import name 'UnifiedObservationAPI' from 'src.observability' (/workspace/src/observability/__init__.py)
+____________ ERROR collecting src/test/test_passive_observation.py _____________
+ImportError while importing test module '/workspace/src/test/test_passive_observation.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+src/test/test_passive_observation.py:22: in <module>
+    from src.observability import (
+E   ImportError: cannot import name 'StateTracker' from 'src.observability' (/workspace/src/observability/__init__.py)
+__ ERROR collecting src/test/test_passive_observation_runtime_integration.py ___
+ImportError while importing test module '/workspace/src/test/test_passive_observation_runtime_integration.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+D:\Space\life\src\test\test_passive_observation_runtime_integration.py:21: in <module>
+    ???
+E   ImportError: cannot import name 'ObservationExporter' from 'src.observability' (/workspace/src/observability/__init__.py)
+_________________ ERROR collecting src/test/test_reporting.py __________________
+ImportError while importing test module '/workspace/src/test/test_reporting.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+src/test/test_reporting.py:13: in <module>
+    from src.observability.external_observer import (
+E   ModuleNotFoundError: No module named 'src.observability.external_observer'
+____________ ERROR collecting src/test/test_state_tracker_smoke.py _____________
+ImportError while importing test module '/workspace/src/test/test_state_tracker_smoke.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+src/test/test_state_tracker_smoke.py:20: in <module>
+    from src.observability.state_tracker import (
+E   ModuleNotFoundError: No module named 'src.observability.state_tracker'
+____________ ERROR collecting src/test/test_state_tracker_static.py ____________
+ImportError while importing test module '/workspace/src/test/test_state_tracker_static.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+src/test/test_state_tracker_static.py:23: in <module>
+    from src.observability.state_tracker import (
+E   ModuleNotFoundError: No module named 'src.observability.state_tracker'
+___________ ERROR collecting src/test/test_status_race_conditions.py ___________
+ImportError while importing test module '/workspace/src/test/test_status_race_conditions.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+src/test/test_status_race_conditions.py:22: in <module>
+    from api import app
+E   ModuleNotFoundError: No module named 'api'
+=============================== warnings summary ===============================
+src/test/test_profiling_system.py:30
+  /workspace/src/test/test_profiling_system.py:30: PytestUnknownMarkWarning: Unknown pytest.mark.profiling - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.profiling
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+--------------- generated xml file: /workspace/test_results.xml ----------------
+=========================== short test summary info ============================
+ERROR src/test/test_api_auth_integration.py
+ERROR src/test/test_api_auth_smoke.py
+ERROR src/test/test_api_concurrency.py
+ERROR src/test/test_api_new.py
+ERROR src/test/test_api_static.py
+ERROR src/test/test_async_data_sink.py
+ERROR src/test/test_async_observation_api.py
+ERROR src/test/test_component_monitor_smoke.py
+ERROR src/test/test_component_monitor_static.py
+ERROR src/test/test_data_collector_smoke.py
+ERROR src/test/test_data_collector_static.py
+ERROR src/test/test_external_observer.py
+ERROR src/test/test_external_observer_integration_new.py
+ERROR src/test/test_external_observer_smoke.py
+ERROR src/test/test_external_observer_static.py
+ERROR src/test/test_integration_observability.py
+ERROR src/test/test_mcp_index_engine.py
+ERROR src/test/test_mcp_index_engine_fallback.py
+ERROR src/test/test_mcp_interactive.py
+ERROR src/test/test_mcp_refresh_index.py
+ERROR src/test/test_mcp_server.py
+ERROR src/test/test_observability_architecture.py
+ERROR src/test/test_observability_integration.py
+ERROR src/test/test_observability_runtime_integration.py
+ERROR src/test/test_observability_simplified.py
+ERROR src/test/test_observability_smoke.py
+ERROR src/test/test_observability_static.py
+ERROR src/test/test_observation_api_smoke.py
+ERROR src/test/test_observation_api_static.py
+ERROR src/test/test_passive_observability_integration.py
+ERROR src/test/test_passive_observability_smoke.py
+ERROR src/test/test_passive_observability_static.py
+ERROR src/test/test_passive_observation.py
+ERROR src/test/test_passive_observation_runtime_integration.py
+ERROR src/test/test_reporting.py
+ERROR src/test/test_state_tracker_smoke.py
+ERROR src/test/test_state_tracker_static.py
+ERROR src/test/test_status_race_conditions.py
+!!!!!!!!!!!!!!!!!!! Interrupted: 38 errors during collection !!!!!!!!!!!!!!!!!!!
+======================== 1 warning, 38 errors in 7.73s =========================
 
 
 STDERR:
-/usr/bin/python3: No module named pytest
 
 
-Return code: 1
+Return code: 2

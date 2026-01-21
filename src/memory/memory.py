@@ -126,7 +126,6 @@ class ArchiveMemory(EpisodicMemoryInterface):
         """
         return self._index_engine.search(query)
 
-    @property
     def size(self) -> int:
         """Возвращает количество записей в архиве."""
         return len(self._entries)
@@ -437,25 +436,25 @@ class Memory(list, EpisodicMemoryInterface):
 
             self._invalidate_cache()  # Инвалидируем кэш перед изменениями
 
-        for entry in self:
-            # Базовое затухание
-            entry.weight *= decay_factor
+            for entry in self:
+                # Базовое затухание
+                entry.weight *= decay_factor
 
-            # Учитываем возраст записи (старые записи забываются быстрее)
-            age = current_time - entry.timestamp
-            age_factor = 1.0 / (
-                1.0 + age / 86400.0
-            )  # Дополнительное затухание для записей старше дня
-            entry.weight *= age_factor
+                # Учитываем возраст записи (старые записи забываются быстрее)
+                age = current_time - entry.timestamp
+                age_factor = 1.0 / (
+                    1.0 + age / 86400.0
+                )  # Дополнительное затухание для записей старше дня
+                entry.weight *= age_factor
 
-            # Учитываем значимость (более значимые записи забываются медленнее)
-            significance_factor = 0.5 + 0.5 * entry.meaning_significance  # От 0.5 до 1.0
-            entry.weight *= significance_factor
+                # Учитываем значимость (более значимые записи забываются медленнее)
+                significance_factor = 0.5 + 0.5 * entry.meaning_significance  # От 0.5 до 1.0
+                entry.weight *= significance_factor
 
-            # Ограничиваем минимальным весом
-            if entry.weight < min_weight:
-                entry.weight = min_weight
-                min_weight_count += 1
+                # Ограничиваем минимальным весом
+                if entry.weight < min_weight:
+                    entry.weight = min_weight
+                    min_weight_count += 1
 
             return min_weight_count
 
@@ -466,29 +465,42 @@ class Memory(list, EpisodicMemoryInterface):
         Returns:
             MemoryStatistics: Статистика памяти
         """
+        # Оптимизация: кэшируем часто используемые значения
+        active_entries_count = len(self)
+        archive_size = self.archive.size() if hasattr(self.archive, 'size') else 0
+
         if not self:
             return MemoryStatistics(
-                total_entries=self.archive.size if hasattr(self.archive, 'size') else 0,
+                total_entries=archive_size,
                 active_entries=0,
-                archived_entries=self.archive.size if hasattr(self.archive, 'size') else 0,
+                archived_entries=archive_size,
                 memory_type="episodic"
             )
 
+        # Оптимизация: один проход для подсчета статистики
         total_significance = 0.0
-        timestamps = []
+        event_types = {}
+        oldest_timestamp = float('inf')
+        newest_timestamp = float('-inf')
 
         for entry in self:
             total_significance += entry.meaning_significance
-            timestamps.append(entry.timestamp)
+            event_types[entry.event_type] = event_types.get(entry.event_type, 0) + 1
+            # Оптимизация: находим min/max за один проход
+            oldest_timestamp = min(oldest_timestamp, entry.timestamp)
+            newest_timestamp = max(newest_timestamp, entry.timestamp)
 
+        avg_significance = total_significance / active_entries_count
         return MemoryStatistics(
-            total_entries=len(self) + (self.archive.size if hasattr(self.archive, 'size') else 0),
-            active_entries=len(self),
-            archived_entries=self.archive.size if hasattr(self.archive, 'size') else 0,
-            average_significance=total_significance / len(self) if self else 0.0,
-            oldest_timestamp=min(timestamps) if timestamps else None,
-            newest_timestamp=max(timestamps) if timestamps else None,
-            memory_type="episodic"
+            total_entries=active_entries_count + archive_size,
+            active_entries=active_entries_count,
+            archived_entries=archive_size,
+            average_significance=avg_significance,
+            oldest_timestamp=oldest_timestamp if oldest_timestamp != float('inf') else None,
+            newest_timestamp=newest_timestamp if newest_timestamp != float('-inf') else None,
+            memory_type="episodic",
+            event_types=event_types,
+            avg_significance=avg_significance
         )
 
     def validate_integrity(self) -> bool:
@@ -529,4 +541,4 @@ class Memory(list, EpisodicMemoryInterface):
         Returns:
             bool: True если память полностью пуста
         """
-        return len(self) == 0 and (not hasattr(self.archive, 'size') or self.archive.size == 0)
+        return len(self) == 0 and (not hasattr(self.archive, 'size') or self.archive.size() == 0)

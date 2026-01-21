@@ -546,6 +546,7 @@ class LearningEngine:
                 self_state.learning_params = {}
 
             # Создаем глубокую копию текущих параметров для безопасного обновления
+            current_params = copy.deepcopy(self_state.learning_params)
             updated_params = copy.deepcopy(self_state.learning_params)
 
             # Объединяем старые и новые параметры
