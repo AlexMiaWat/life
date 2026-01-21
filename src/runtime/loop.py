@@ -249,6 +249,7 @@ def run_loop(
     disable_clarity_moments=True,  # Отключено по умолчанию до стабилизации
     enable_memory_hierarchy=True,  # Включение многоуровневой системы памяти (краткосрочная/долгосрочная/архивная)
     enable_consciousness=False,  # Включение экспериментальной системы сознания
+    enable_parallel_consciousness=False,  # Включение многопоточной модели сознания
     enable_silence_detection=True,  # Включение системы осознания тишины
     log_flush_period_ticks=10,
     enable_profiling=False,
@@ -272,6 +273,7 @@ def run_loop(
         disable_clarity_moments: Отключить систему моментов ясности
         enable_memory_hierarchy: Включить многоуровневую систему памяти (краткосрочная/долгосрочная/архивная)
         enable_consciousness: Включить экспериментальную систему сознания
+        enable_parallel_consciousness: Включить многопоточную модель сознания (экспериментально)
         enable_silence_detection: Включить систему осознания тишины
         log_flush_period_ticks: Период сброса логов в тиках
         enable_profiling: Включить профилирование runtime loop с cProfile
@@ -300,7 +302,26 @@ def run_loop(
         # Подключение эпизодической памяти к иерархии
         memory_hierarchy.set_episodic_memory(self_state.memory)
 
-    if enable_consciousness:
+    if enable_parallel_consciousness:
+        from src.experimental.consciousness import ParallelConsciousnessEngine
+        consciousness_engine = ParallelConsciousnessEngine(
+            self_state_provider=lambda: self_state,
+            decision_history_provider=lambda: getattr(self_state, 'decision_history', []),
+            behavior_patterns_provider=lambda: getattr(self_state, 'behavior_patterns', []),
+            cognitive_processes_provider=lambda: getattr(self_state, 'cognitive_processes', []),
+            optimization_history_provider=lambda: getattr(self_state, 'optimization_history', []),
+            logger=structured_logger
+        )
+        # Сохранить в глобальную переменную для доступа из API
+        import src.main_server_api
+        src.main_server_api.global_consciousness_engine = consciousness_engine
+        # Запустить параллельные процессы
+        consciousness_engine.start()
+        structured_logger.log_event({
+            "event_type": "parallel_consciousness_engine_started",
+            "process_count": len(consciousness_engine.processes)
+        })
+    elif enable_consciousness:
         from src.experimental.consciousness import ConsciousnessEngine
         consciousness_engine = ConsciousnessEngine(logger=structured_logger)
 
@@ -633,16 +654,30 @@ def run_loop(
                                 self_state.procedural_patterns_count = len(memory_hierarchy.procedural_store._patterns) if memory_hierarchy.procedural_store else 0
 
                             if consciousness_engine:
-                                # Расчет уровня сознания
-                                consciousness_level = consciousness_engine.calculate_consciousness_level(self_state, events)
-                                self_state.consciousness_level = consciousness_level
-                                # Определение состояния сознания
-                                consciousness_state = consciousness_engine.determine_consciousness_state({
-                                    'consciousness_level': consciousness_level,
-                                    'energy': self_state.energy,
-                                    'stability': self_state.stability
-                                })
-                                self_state.current_consciousness_state = consciousness_state
+                                if hasattr(consciousness_engine, 'update_external_metrics'):
+                                    # Многопоточная версия: обновляем внешние метрики
+                                    consciousness_engine.update_external_metrics(
+                                        energy=self_state.energy,
+                                        stability=self_state.stability,
+                                        cognitive_load=getattr(self_state, 'cognitive_load', 0.3)
+                                    )
+                                    # Считываем текущее состояние сознания
+                                    snapshot = consciousness_engine.get_consciousness_snapshot()
+                                    self_state.consciousness_level = snapshot['metrics']['consciousness_level']
+                                    self_state.self_reflection_score = snapshot['metrics']['self_reflection_score']
+                                    self_state.meta_cognition_depth = snapshot['metrics']['meta_cognition_depth']
+                                    self_state.current_consciousness_state = snapshot['metrics']['current_state']
+                                else:
+                                    # Последовательная версия: рассчитываем каждый тик
+                                    consciousness_level = consciousness_engine.calculate_consciousness_level(self_state, events)
+                                    self_state.consciousness_level = consciousness_level
+                                    # Определение состояния сознания
+                                    consciousness_state = consciousness_engine.determine_consciousness_state({
+                                        'consciousness_level': consciousness_level,
+                                        'energy': self_state.energy,
+                                        'stability': self_state.stability
+                                    })
+                                    self_state.current_consciousness_state = consciousness_state
 
                         logger.debug(
                             f"[LOOP] After interpret: energy={self_state.energy:.2f}, stability={self_state.stability:.4f}"
@@ -1029,6 +1064,13 @@ def run_loop(
                 log_manager.maybe_flush(self_state, phase="exception")
 
             finally:
+                # Остановка многопоточной системы сознания
+                if enable_parallel_consciousness and consciousness_engine:
+                    consciousness_engine.stop()
+                    structured_logger.log_event({
+                        "event_type": "parallel_consciousness_engine_stopped"
+                    })
+
                 # Flush логов при завершении (обязательно)
                 log_manager.maybe_flush(self_state, phase="shutdown")
 

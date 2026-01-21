@@ -31,6 +31,10 @@ logger = get_logger(__name__)
 HOST = "localhost"
 PORT = 8000
 
+# Глобальная переменная для хранения consciousness_engine
+# Используется для доступа из API endpoints
+global_consciousness_engine = None
+
 
 class StoppableHTTPServer(HTTPServer):
     def __init__(self, *args, **kwargs):
@@ -271,6 +275,123 @@ class LifeHandler(BaseHTTPRequestHandler):
                 self.send_response(500)
                 self.end_headers()
                 self.wfile.write(json.dumps({"error": str(e)}).encode())
+
+        elif self.path == "/consciousness/status":
+            # GET /consciousness/status — статус многопоточной системы сознания
+            try:
+                # Получаем глобальный экземпляр consciousness_engine
+                consciousness_engine = global_consciousness_engine
+
+                if consciousness_engine and hasattr(consciousness_engine, 'get_consciousness_snapshot'):
+                    # Многопоточная версия
+                    snapshot = consciousness_engine.get_consciousness_snapshot()
+
+                    self.send_response(200)
+                    self.send_header("Content-type", "application/json")
+                    self.end_headers()
+                    self.wfile.write(json.dumps(snapshot).encode())
+                else:
+                    self.send_response(404)
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"error": "Parallel consciousness not enabled"}).encode())
+
+            except Exception as e:
+                logger.error(f"Error getting consciousness status: {e}")
+                self.send_response(500)
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode())
+
+        elif self.path == "/consciousness/processes":
+            # GET /consciousness/processes — метрики процессов сознания
+            try:
+                consciousness_engine = global_consciousness_engine
+
+                if consciousness_engine and hasattr(consciousness_engine, 'get_process_metrics'):
+                    # Многопоточная версия
+                    process_metrics = consciousness_engine.get_process_metrics()
+
+                    self.send_response(200)
+                    self.send_header("Content-type", "application/json")
+                    self.end_headers()
+                    self.wfile.write(json.dumps(process_metrics).encode())
+                else:
+                    self.send_response(404)
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"error": "Parallel consciousness not enabled"}).encode())
+
+            except Exception as e:
+                logger.error(f"Error getting consciousness processes: {e}")
+                self.send_response(500)
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode())
+
+        elif self.path.startswith("/consciousness/process/"):
+            # GET /consciousness/process/{name} — детальная информация о конкретном процессе
+            try:
+                process_name = self.path.split("/consciousness/process/")[1]
+                consciousness_engine = global_consciousness_engine
+
+                if consciousness_engine and hasattr(consciousness_engine, 'get_process_metrics'):
+                    process_metrics = consciousness_engine.get_process_metrics()
+
+                    if process_name in process_metrics:
+                        self.send_response(200)
+                        self.send_header("Content-type", "application/json")
+                        self.end_headers()
+                        self.wfile.write(json.dumps({
+                            "process_name": process_name,
+                            "metrics": process_metrics[process_name]
+                        }).encode())
+                    else:
+                        self.send_response(404)
+                        self.end_headers()
+                        self.wfile.write(json.dumps({"error": f"Process '{process_name}' not found"}).encode())
+                else:
+                    self.send_response(404)
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"error": "Parallel consciousness not enabled"}).encode())
+
+            except Exception as e:
+                logger.error(f"Error getting process info: {e}")
+                self.send_response(500)
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode())
+
+        elif self.path == "/consciousness/config":
+            # GET /consciousness/config — конфигурация системы сознания
+            try:
+                consciousness_engine = global_consciousness_engine
+
+                if consciousness_engine:
+                    config_info = {
+                        "type": "parallel" if hasattr(consciousness_engine, 'processes') else "sequential",
+                        "is_running": getattr(consciousness_engine, 'is_running', False),
+                        "process_count": len(getattr(consciousness_engine, 'processes', [])),
+                        "processes": [
+                            {
+                                "name": p.process_name,
+                                "update_interval": p.update_interval,
+                                "is_alive": p.is_alive()
+                            }
+                            for p in getattr(consciousness_engine, 'processes', [])
+                        ] if hasattr(consciousness_engine, 'processes') else []
+                    }
+
+                    self.send_response(200)
+                    self.send_header("Content-type", "application/json")
+                    self.end_headers()
+                    self.wfile.write(json.dumps(config_info).encode())
+                else:
+                    self.send_response(404)
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"error": "Consciousness system not enabled"}).encode())
+
+            except Exception as e:
+                logger.error(f"Error getting consciousness config: {e}")
+                self.send_response(500)
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode())
+
         else:
             self.send_response(404)
             self.end_headers()
@@ -1131,6 +1252,10 @@ if __name__ == "__main__":  # pragma: no cover
             False,  # disable_learning
             False,  # disable_adaptation
             False,  # disable_clarity_moments
+            True,  # enable_memory_hierarchy
+            False,  # enable_consciousness
+            False,  # enable_parallel_consciousness
+            True,  # enable_silence_detection
             10,  # log_flush_period_ticks
             config["enable_profiling"],
         ),

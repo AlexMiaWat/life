@@ -6,60 +6,330 @@ on:
   pull_request:
     branches: [ main, develop ]
 
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.10", "3.11", "3.12"]
+env:
+  PYTHON_VERSION: "3.11"
 
+jobs:
+  # Качество кода (линтинг, типизация)
+  quality:
+    runs-on: ubuntu-latest
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Set up Python ${{ matrix.python-version }}
+    - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Cache pip dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt', '**/pyproject.toml') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
 
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install pytest pytest-cov pytest-order black ruff isort mypy
+        pip install black ruff isort mypy
 
     - name: Lint with ruff
       run: |
-        ruff check src/ || true
-        echo "Ruff проверка завершена (продолжаем даже при предупреждениях)"
+        echo "🔍 Проверка кода с помощью ruff..."
+        ruff check src/ --output-format=github || true
 
     - name: Format check with black
       run: |
+        echo "🎨 Проверка форматирования с помощью black..."
         black --check src/ || true
-        echo "Black проверка завершена (продолжаем даже при предупреждениях)"
 
     - name: Import sorting check with isort
       run: |
+        echo "📦 Проверка сортировки импортов с помощью isort..."
         isort --check-only --profile black src/ || true
-        echo "isort проверка завершена (продолжаем даже при предупреждениях)"
 
     - name: Type check with mypy
       run: |
+        echo "🔍 Проверка типов с помощью mypy..."
         mypy src/ || true
-        echo "MyPy проверка типов завершена (продолжаем даже при предупреждениях)"
 
-    - name: Test with pytest
+  # Матрица тестов по категориям
+  test-matrix:
+    runs-on: ubuntu-latest
+    needs: quality
+    if: |
+      github.event_name == 'push' ||
+      (github.event_name == 'pull_request' &&
+       (matrix.test-category.run_on_pr == true || contains(github.event.pull_request.labels.*.name, 'full-test-suite')))
+    strategy:
+      fail-fast: false
+      matrix:
+        test-category:
+          - name: "unit"
+            marker: "unit"
+            description: "Unit тесты (быстрые, изолированные)"
+            timeout: 10
+            run_on_pr: true
+          - name: "static"
+            marker: "static"
+            description: "Static analysis тесты (структура, типы)"
+            timeout: 5
+            run_on_pr: true
+          - name: "smoke"
+            marker: "smoke"
+            description: "Smoke тесты (базовая функциональность)"
+            timeout: 15
+            run_on_pr: true
+          - name: "integration"
+            marker: "integration"
+            description: "Integration тесты (взаимодействие компонентов)"
+            timeout: 20
+            run_on_pr: false
+          - name: "performance"
+            marker: "performance"
+            description: "Performance тесты с проверкой регрессий"
+            timeout: 30
+            run_on_pr: false
+          - name: "concurrency"
+            marker: "concurrency"
+            description: "Concurrency тесты (многопоточность, race conditions)"
+            timeout: 25
+            run_on_pr: false
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Cache pip dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt', '**/pyproject.toml') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install dependencies
       run: |
-        pytest src/test/ -v --cov=src --cov-report=xml --cov-report=html --cov-report=term
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-cov pytest-order pytest-xdist hypothesis
 
-    - name: Upload coverage reports
+    - name: Run ${{ matrix.test-category.description }}
+      timeout-minutes: ${{ matrix.test-category.timeout }}
+      run: |
+        echo "🧪 Запуск ${{ matrix.test-category.description }}..."
+
+        # Определяем дополнительные опции для разных типов тестов
+        EXTRA_OPTS=""
+        if [ "${{ matrix.test-category.name }}" = "performance" ]; then
+          EXTRA_OPTS="--tb=short -x"
+        elif [ "${{ matrix.test-category.name }}" = "concurrency" ]; then
+          EXTRA_OPTS="--tb=short -n auto"
+        else
+          EXTRA_OPTS="--tb=short -v"
+        fi
+
+        # Запускаем тесты с соответствующими маркерами
+        pytest src/test/ -m "${{ matrix.test-category.marker }}" $EXTRA_OPTS \
+          --junitxml=test-results-${{ matrix.test-category.name }}.xml \
+          --cov=src --cov-report=xml --cov-report=term-missing \
+          --cov-append --cov-branch
+
+    - name: Upload test results
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: coverage-report
+        name: test-results-${{ matrix.test-category.name }}
+        path: test-results-${{ matrix.test-category.name }}.xml
+        retention-days: 30
+
+    - name: Upload coverage data
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: coverage-data-${{ matrix.test-category.name }}
+        path: .coverage*
+        retention-days: 30
+
+  # Проверка регрессий производительности (только для основных веток)
+  performance-regression:
+    runs-on: ubuntu-latest
+    needs: test-matrix
+    if: |
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop') ||
+      contains(github.event.pull_request.labels.*.name, 'performance-check')
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Cache pip dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt', '**/pyproject.toml') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Download baseline
+      uses: actions/download-artifact@v4
+      with:
+        name: performance-baseline
+        path: data/
+      continue-on-error: true
+
+    - name: Initialize baseline if needed
+      run: |
+        if [ ! -f "data/performance_baseline.json" ]; then
+          echo "📊 Инициализация baseline значений производительности..."
+          python init_performance_baseline.py
+        else
+          echo "✅ Baseline файл найден"
+        fi
+
+    - name: Run performance regression check
+      run: |
+        echo "📊 Проверка регрессий производительности..."
+        python run_performance_tests.py
+
+    - name: Upload performance report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: performance-regression-report
+        path: docs/results/performance_regression_report.md
+        retention-days: 30
+
+    - name: Update performance baseline
+      if: github.ref == 'refs/heads/main'
+      run: |
+        echo "💾 Обновление baseline значений производительности..."
+        python run_performance_tests.py --update-baseline
+
+    - name: Upload updated baseline
+      if: github.ref == 'refs/heads/main'
+      uses: actions/upload-artifact@v4
+      with:
+        name: performance-baseline
+        path: data/performance_baseline.json
+        retention-days: 365
+
+  # Генерация сводных отчетов
+  reports:
+    runs-on: ubuntu-latest
+    needs: [quality, test-matrix, performance-regression]
+    if: always()
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Cache pip dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt', '**/pyproject.toml') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Download all test results
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts/
+
+    - name: Download coverage data
+      uses: actions/download-artifact@v4
+      with:
+        pattern: coverage-data-*
+        path: coverage-data/
+        merge-multiple: true
+
+    - name: Generate coverage report
+      run: |
+        echo "📊 Генерация сводного отчета о покрытии..."
+        pip install coverage
+        coverage combine coverage-data/
+        coverage html --title="Life Project Coverage Report"
+        coverage xml
+
+    - name: Generate test summary report
+      run: |
+        echo "📋 Генерация сводного отчета о тестировании..."
+        python analyze_test_results.py --results-dir artifacts --output docs/results/ci_test_summary_$(date +%Y%m%d_%H%M%S).md
+
+    - name: Upload coverage HTML report
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report-html
         path: htmlcov/
         retention-days: 30
 
-    - name: Coverage summary
+    - name: Upload coverage XML
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report-xml
+        path: coverage.xml
+        retention-days: 30
+
+    - name: Upload test summary
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-summary-report
+        path: docs/results/
+        retention-days: 30
+
+  # Финальная проверка статуса
+  summary:
+    runs-on: ubuntu-latest
+    needs: [quality, test-matrix, performance-regression, reports]
+    if: always()
+    steps:
+    - name: CI Pipeline Summary
       run: |
-        echo "Покрытие тестами проверено. Отчет сохранен в артефактах."
+        echo "🎯 CI Pipeline завершен!"
+        echo ""
+        echo "📊 Результаты выполнения:"
+        echo "✅ Качество кода: ${{ needs.quality.result }}"
+        echo "✅ Матрица тестов: ${{ needs.test-matrix.result }}"
+        echo "✅ Регрессии производительности: ${{ needs.performance-regression.result }}"
+        echo "✅ Отчеты: ${{ needs.reports.result }}"
+        echo ""
+
+        # Проверяем общий статус
+        if [ "${{ needs.quality.result }}" = "success" ] && \
+           [ "${{ needs.test-matrix.result }}" = "success" ] && \
+           [ "${{ needs.performance-regression.result }}" != "failure" ] && \
+           [ "${{ needs.reports.result }}" = "success" ]; then
+          echo "🎉 Все проверки пройдены успешно!"
+          exit 0
+        else
+          echo "❌ Обнаружены проблемы в pipeline"
+          echo "📋 Проверьте логи и артефакты для деталей"
+          exit 1
+        fi
