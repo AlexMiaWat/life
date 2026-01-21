@@ -6,10 +6,13 @@
 восприимчивость к событиям.
 """
 
+import logging
 import time
 from typing import Any, Dict, Optional
 
 from src.observability.structured_logger import StructuredLogger
+
+logger = logging.getLogger(__name__)
 
 
 class ClarityMoments:
@@ -118,9 +121,9 @@ class ClarityMoments:
         # Устанавливаем модификатор значимости
         self_state.clarity_modifier = self.CLARITY_SIGNIFICANCE_BOOST
 
-        self.logger.info(
+        logger.info(
             "Clarity moment state activated",
-            {
+            extra={
                 "duration": self.CLARITY_DURATION_TICKS,
                 "significance_boost": self.CLARITY_SIGNIFICANCE_BOOST,
             },
@@ -163,9 +166,9 @@ class ClarityMoments:
             self_state.clarity_duration = 0
             self_state.clarity_modifier = 1.0  # Сбрасываем модификатор
 
-            self.logger.info(
+            logger.info(
                 "Clarity moment deactivated",
-                {"total_clarity_events": self._clarity_events_count},
+                extra={"total_clarity_events": self._clarity_events_count},
             )
 
     def get_clarity_modifier(self, self_state) -> float:

@@ -1,25 +1,14 @@
 import json
-from dataclasses import asdict, dataclass
+from dataclasses import asdict
 from pathlib import Path
 from typing import Dict, List, Optional
+
+from .index_engine import MemoryIndexEngine, MemoryQuery
+from .types import MemoryEntry
 
 # Папка для архивов
 ARCHIVE_DIR = Path("data/archive")
 ARCHIVE_DIR.mkdir(parents=True, exist_ok=True)
-
-
-@dataclass
-class MemoryEntry:
-    event_type: str
-    meaning_significance: float
-    timestamp: float
-    weight: float = 1.0  # Вес записи для механизма забывания
-    feedback_data: Optional[
-        Dict
-    ] = None  # Для Feedback записей (сериализованный FeedbackRecord)
-    subjective_timestamp: Optional[
-        float
-    ] = None  # Субъективное время в момент создания записи
 
 
 class ArchiveMemory:
@@ -46,6 +35,7 @@ class ArchiveMemory:
             archive_file = ARCHIVE_DIR / "memory_archive.json"
         self.archive_file = archive_file
         self._entries: List[MemoryEntry] = []
+        self._index_engine = MemoryIndexEngine()  # Индекс для архивных записей
         if load_existing and not ignore_existing_file:
             self._load_archive()
 
@@ -58,6 +48,9 @@ class ArchiveMemory:
                     self._entries = [
                         MemoryEntry(**entry) for entry in data.get("entries", [])
                     ]
+                    # Индексируем загруженные записи
+                    for entry in self._entries:
+                        self._index_engine.add_entry(entry)
             except (json.JSONDecodeError, KeyError, TypeError):
                 # Если файл поврежден, начинаем с пустого архива
                 self._entries = []
@@ -70,6 +63,7 @@ class ArchiveMemory:
             entry: Запись памяти для архивации
         """
         self._entries.append(entry)
+        self._index_engine.add_entry(entry)
 
     def add_entries(self, entries: List[MemoryEntry]):
         """
@@ -79,6 +73,8 @@ class ArchiveMemory:
             entries: Список записей памяти для архивации
         """
         self._entries.extend(entries)
+        for entry in entries:
+            self._index_engine.add_entry(entry)
 
     def get_entries(
         self,
@@ -99,25 +95,30 @@ class ArchiveMemory:
         Returns:
             Список отфильтрованных записей
         """
-        result = self._entries
-
-        if event_type:
-            result = [e for e in result if e.event_type == event_type]
-
-        if min_significance is not None:
-            result = [e for e in result if e.meaning_significance >= min_significance]
-
-        if start_timestamp is not None:
-            result = [e for e in result if e.timestamp >= start_timestamp]
-
-        if end_timestamp is not None:
-            result = [e for e in result if e.timestamp <= end_timestamp]
-
-        return result
+        # Используем оптимизированный поиск через индексы
+        query = MemoryQuery(
+            event_type=event_type,
+            min_significance=min_significance,
+            start_timestamp=start_timestamp,
+            end_timestamp=end_timestamp
+        )
+        return self._index_engine.search(query)
 
     def get_all_entries(self) -> List[MemoryEntry]:
         """Возвращает все записи из архива."""
         return self._entries.copy()
+
+    def search_entries(self, query: MemoryQuery) -> List[MemoryEntry]:
+        """
+        Поиск записей в архивной памяти с использованием индексов.
+
+        Args:
+            query: Запрос для поиска
+
+        Returns:
+            Список найденных записей, отсортированный по запросу
+        """
+        return self._index_engine.search(query)
 
     def size(self) -> int:
         """Возвращает количество записей в архиве."""
@@ -132,6 +133,7 @@ class ArchiveMemory:
     def clear(self):
         """Очищает архив (используется с осторожностью)."""
         self._entries = []
+        self._index_engine = MemoryIndexEngine()  # Создаем новый индекс
 
 
 class Memory(list):
@@ -166,9 +168,13 @@ class Memory(list):
             None  # Кэш сериализованных записей для оптимизации snapshot
         )
 
+        # Индексный движок для быстрого поиска
+        self._index_engine = MemoryIndexEngine()
+
     def append(self, item):
         super().append(item)
         self._invalidate_cache()
+        self._index_engine.add_entry(item)
         self.clamp_size()
 
     def _invalidate_cache(self):
@@ -204,6 +210,18 @@ class Memory(list):
         """
         return self.archive.get_all_entries()
 
+    def search_entries(self, query: MemoryQuery) -> List[MemoryEntry]:
+        """
+        Поиск записей в активной памяти с использованием индексов.
+
+        Args:
+            query: Запрос для поиска
+
+        Returns:
+            Список найденных записей, отсортированный по запросу
+        """
+        return self._index_engine.search(query)
+
     def clamp_size(self):
         """Ограничивает размер памяти, удаляя записи с наименьшим весом и ниже порога."""
         self._invalidate_cache()  # Инвалидируем кэш перед изменениями
@@ -217,6 +235,10 @@ class Memory(list):
         if len(self) > self._max_size:
             # Оптимизация: сортируем один раз вместо поиска минимума на каждой итерации
             self.sort(key=lambda x: x.weight)
+            # Удаляем записи с наименьшими весами из индекса
+            entries_to_remove = self[: len(self) - self._max_size]
+            for entry in entries_to_remove:
+                self._index_engine.remove_entry(entry)
             # Удаляем записи с наименьшими весами
             del self[: len(self) - self._max_size]
 
@@ -295,6 +317,7 @@ class Memory(list):
             # Оптимизация: удаляем все записи за один проход
             for entry in entries_to_archive:
                 self.remove(entry)
+                self._index_engine.remove_entry(entry)
 
             # Добавляем записи в архив
             if entries_to_archive:

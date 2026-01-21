@@ -16,6 +16,7 @@ from pathlib import Path
 import pytest
 
 from src.memory.memory import ArchiveMemory, Memory, MemoryEntry
+from src.memory.index_engine import MemoryQuery
 
 
 @pytest.mark.unit
@@ -837,6 +838,171 @@ class TestMemoryStatistics:
         )
         assert stats["oldest_timestamp"] is not None
         assert stats["newest_timestamp"] is not None
+
+
+@pytest.mark.unit
+class TestMemoryIndexing:
+    """Тесты для индексации памяти"""
+
+    def test_memory_search_by_event_type(self):
+        """Тест поиска в Memory по типу события"""
+        memory = Memory()
+
+        # Добавляем тестовые записи
+        entries = [
+            MemoryEntry("decay", 0.5, 1000.0),
+            MemoryEntry("recovery", 0.7, 1001.0),
+            MemoryEntry("decay", 0.9, 1002.0),
+        ]
+
+        for entry in entries:
+            memory.append(entry)
+
+        # Ищем по event_type
+        query = MemoryQuery(event_type="decay")
+        results = memory.search_entries(query)
+
+        assert len(results) == 2
+        assert all(e.event_type == "decay" for e in results)
+
+    def test_memory_search_by_timestamp_range(self):
+        """Тест поиска в Memory по диапазону timestamp"""
+        memory = Memory()
+
+        entries = [
+            MemoryEntry("event", 0.5, 1000.0),
+            MemoryEntry("event", 0.7, 1001.0),
+            MemoryEntry("event", 0.9, 1002.0),
+            MemoryEntry("event", 0.6, 1003.0),
+        ]
+
+        for entry in entries:
+            memory.append(entry)
+
+        # Ищем в диапазоне 1001-1002
+        query = MemoryQuery(start_timestamp=1001.0, end_timestamp=1002.0)
+        results = memory.search_entries(query)
+
+        assert len(results) == 2
+        assert all(1001.0 <= e.timestamp <= 1002.0 for e in results)
+
+    def test_memory_search_complex_query(self):
+        """Тест сложного поиска в Memory"""
+        memory = Memory()
+
+        entries = [
+            MemoryEntry("decay", 0.8, 1000.0),
+            MemoryEntry("recovery", 0.6, 1001.0),
+            MemoryEntry("decay", 0.9, 1002.0),
+            MemoryEntry("decay", 0.3, 1003.0),  # низкая significance
+        ]
+
+        for entry in entries:
+            memory.append(entry)
+
+        # Ищем decay события с significance > 0.5
+        query = MemoryQuery(
+            event_type="decay",
+            min_significance=0.5
+        )
+        results = memory.search_entries(query)
+
+        assert len(results) == 2
+        assert all(e.event_type == "decay" and e.meaning_significance >= 0.5 for e in results)
+
+    def test_archive_memory_search_by_event_type(self):
+        """Тест поиска в ArchiveMemory по типу события"""
+        archive = ArchiveMemory()
+
+        # Добавляем тестовые записи
+        entries = [
+            MemoryEntry("decay", 0.5, 1000.0),
+            MemoryEntry("recovery", 0.7, 1001.0),
+            MemoryEntry("decay", 0.9, 1002.0),
+        ]
+
+        archive.add_entries(entries)
+
+        # Ищем по event_type
+        query = MemoryQuery(event_type="decay")
+        results = archive.search_entries(query)
+
+        assert len(results) == 2
+        assert all(e.event_type == "decay" for e in results)
+
+    def test_archive_memory_get_entries_backward_compatibility(self):
+        """Тест обратной совместимости get_entries в ArchiveMemory"""
+        archive = ArchiveMemory()
+
+        entries = [
+            MemoryEntry("decay", 0.8, 1000.0),
+            MemoryEntry("recovery", 0.6, 1001.0),
+            MemoryEntry("decay", 0.9, 1002.0),
+        ]
+
+        archive.add_entries(entries)
+
+        # Используем старый API (теперь работает через индексы)
+        results = archive.get_entries(event_type="decay", min_significance=0.7)
+
+        assert len(results) == 2  # Две записи decay с significance >= 0.7
+        assert all(r.event_type == "decay" for r in results)
+        assert all(r.meaning_significance >= 0.7 for r in results)
+
+    def test_memory_clamp_size_updates_indexes(self):
+        """Тест что clamp_size правильно обновляет индексы"""
+        memory = Memory()
+        memory._max_size = 3  # Уменьшаем для теста
+
+        # Добавляем 5 записей (больше лимита)
+        entries = [
+            MemoryEntry("event", 0.1, 1000.0, weight=0.1),  # Самый легкий
+            MemoryEntry("event", 0.2, 1001.0, weight=0.2),
+            MemoryEntry("event", 0.3, 1002.0, weight=0.3),
+            MemoryEntry("event", 0.4, 1003.0, weight=0.4),
+            MemoryEntry("event", 0.5, 1004.0, weight=0.5),  # Самый тяжелый
+        ]
+
+        for entry in entries:
+            memory.append(entry)
+
+        # После clamp_size должно остаться 3 записи с наибольшими весами
+        assert len(memory) == 3
+        assert all(e.weight >= 0.3 for e in memory)
+
+        # Проверяем что индексы корректны
+        query = MemoryQuery()
+        results = memory.search_entries(query)
+        assert len(results) == 3
+
+    def test_memory_archive_updates_indexes(self):
+        """Тест что архивация правильно обновляет индексы"""
+        memory = Memory()
+
+        # Создаем записи для архивации (старые и с низким весом)
+        old_entry = MemoryEntry("old_event", 0.5, 1000.0, weight=0.1)
+        new_entry = MemoryEntry("new_event", 0.8, time.time(), weight=1.0)
+
+        memory.append(old_entry)
+        memory.append(new_entry)
+
+        initial_active = len(memory)
+        initial_archive = memory.archive.size()
+
+        # Архивируем старые записи
+        archived = memory.archive_old_entries(max_age=time.time() - 1000, min_weight=0.5)
+
+        assert archived == 1
+        assert len(memory) == initial_active - 1  # Одна запись удалена из активной памяти
+        assert memory.archive.size() == initial_archive + 1  # Одна запись добавлена в архив
+
+        # Проверяем индексы
+        query = MemoryQuery(event_type="old_event")
+        active_results = memory.search_entries(query)
+        archive_results = memory.archive.search_entries(query)
+
+        assert len(active_results) == 0  # Нет в активной памяти
+        assert len(archive_results) == 1  # Есть в архиве
 
 
 if __name__ == "__main__":

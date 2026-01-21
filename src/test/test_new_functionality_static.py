@@ -1336,3 +1336,339 @@ class TestNewFunctionalityStatic:
         assert LogManager.__bases__ == (object,)
         assert FlushPolicy.__bases__ == (object,)
         assert LifePolicy.__bases__ == (object,)
+
+    # ============================================================================
+    # ClarityMoments Static Tests
+    # ============================================================================
+
+    def test_clarity_moments_module_structure(self):
+        """Проверка структуры модуля ClarityMoments"""
+        from src.experimental import clarity_moments as cm_module
+
+        # Проверяем наличие основного класса
+        assert hasattr(cm_module, "ClarityMoments")
+        assert inspect.isclass(cm_module.ClarityMoments)
+
+        # Проверяем экспорт
+        assert cm_module.ClarityMoments is not None
+
+    def test_clarity_moments_class_structure(self):
+        """Проверка структуры класса ClarityMoments"""
+        from src.experimental.clarity_moments import ClarityMoments
+
+        # Проверяем наличие основных методов
+        required_methods = [
+            "__init__",
+            "check_clarity_conditions",
+            "activate_clarity_moment",
+            "update_clarity_state",
+            "deactivate_clarity_moment",
+            "get_clarity_modifier",
+            "is_clarity_active",
+            "get_clarity_status",
+        ]
+
+        for method in required_methods:
+            assert hasattr(ClarityMoments, method), f"Missing method: {method}"
+            assert callable(getattr(ClarityMoments, method)), f"Method {method} is not callable"
+
+        # Проверяем константы
+        required_constants = [
+            "CLARITY_STABILITY_THRESHOLD",
+            "CLARITY_ENERGY_THRESHOLD",
+            "CLARITY_DURATION_TICKS",
+            "CLARITY_CHECK_INTERVAL",
+            "CLARITY_SIGNIFICANCE_BOOST",
+        ]
+
+        for const in required_constants:
+            assert hasattr(ClarityMoments, const), f"Missing constant: {const}"
+
+        # Проверяем что константы являются числами
+        for const in required_constants:
+            value = getattr(ClarityMoments, const)
+            assert isinstance(value, (int, float)), f"Constant {const} is not a number: {type(value)}"
+
+    def test_clarity_moments_constants_values(self):
+        """Проверка значений констант ClarityMoments"""
+        from src.experimental.clarity_moments import ClarityMoments
+
+        # Проверяем диапазоны значений
+        assert 0.0 < ClarityMoments.CLARITY_STABILITY_THRESHOLD <= 1.0
+        assert 0.0 < ClarityMoments.CLARITY_ENERGY_THRESHOLD <= 1.0
+        assert ClarityMoments.CLARITY_DURATION_TICKS > 0
+        assert ClarityMoments.CLARITY_CHECK_INTERVAL > 0
+        assert ClarityMoments.CLARITY_SIGNIFICANCE_BOOST >= 1.0
+
+        # Проверяем логические соотношения
+        assert ClarityMoments.CLARITY_SIGNIFICANCE_BOOST > 1.0  # Должен усиливать
+        assert ClarityMoments.CLARITY_DURATION_TICKS >= ClarityMoments.CLARITY_CHECK_INTERVAL  # Длительность >= интервала проверки
+
+    def test_clarity_moments_method_signatures(self):
+        """Проверка сигнатур методов ClarityMoments"""
+        from src.experimental.clarity_moments import ClarityMoments
+
+        # check_clarity_conditions
+        sig = inspect.signature(ClarityMoments.check_clarity_conditions)
+        params = list(sig.parameters.keys())
+        assert "self" in params
+        assert "self_state" in params
+        assert len(params) == 2  # self + self_state
+
+        # activate_clarity_moment
+        sig = inspect.signature(ClarityMoments.activate_clarity_moment)
+        params = list(sig.parameters.keys())
+        assert "self" in params
+        assert "self_state" in params
+        assert len(params) == 2
+
+        # update_clarity_state
+        sig = inspect.signature(ClarityMoments.update_clarity_state)
+        params = list(sig.parameters.keys())
+        assert "self" in params
+        assert "self_state" in params
+        assert len(params) == 2
+
+        # deactivate_clarity_moment
+        sig = inspect.signature(ClarityMoments.deactivate_clarity_moment)
+        params = list(sig.parameters.keys())
+        assert "self" in params
+        assert "self_state" in params
+        assert len(params) == 2
+
+        # get_clarity_modifier
+        sig = inspect.signature(ClarityMoments.get_clarity_modifier)
+        params = list(sig.parameters.keys())
+        assert "self" in params
+        assert "self_state" in params
+        assert len(params) == 2
+
+        # is_clarity_active
+        sig = inspect.signature(ClarityMoments.is_clarity_active)
+        params = list(sig.parameters.keys())
+        assert "self" in params
+        assert "self_state" in params
+        assert len(params) == 2
+
+        # get_clarity_status
+        sig = inspect.signature(ClarityMoments.get_clarity_status)
+        params = list(sig.parameters.keys())
+        assert "self" in params
+        assert "self_state" in params
+        assert len(params) == 2
+
+    def test_clarity_moments_return_types(self):
+        """Проверка типов возвращаемых значений ClarityMoments"""
+        from src.experimental.clarity_moments import ClarityMoments
+        from unittest.mock import Mock
+
+        clarity_moments = ClarityMoments(logger=Mock())
+        state = SelfState()
+
+        # check_clarity_conditions - возвращает dict или None
+        result = clarity_moments.check_clarity_conditions(state)
+        assert result is None or isinstance(result, dict)
+
+        # activate_clarity_moment - ничего не возвращает (None)
+        result = clarity_moments.activate_clarity_moment(state)
+        assert result is None
+
+        # update_clarity_state - возвращает bool
+        result = clarity_moments.update_clarity_state(state)
+        assert isinstance(result, bool)
+
+        # deactivate_clarity_moment - ничего не возвращает
+        result = clarity_moments.deactivate_clarity_moment(state)
+        assert result is None
+
+        # get_clarity_modifier - возвращает float
+        result = clarity_moments.get_clarity_modifier(state)
+        assert isinstance(result, float)
+
+        # is_clarity_active - возвращает bool
+        result = clarity_moments.is_clarity_active(state)
+        assert isinstance(result, bool)
+
+        # get_clarity_status - возвращает dict
+        result = clarity_moments.get_clarity_status(state)
+        assert isinstance(result, dict)
+
+    def test_clarity_moments_docstrings(self):
+        """Проверка наличия docstrings в ClarityMoments"""
+        from src.experimental.clarity_moments import ClarityMoments
+
+        # Проверяем docstring класса
+        assert ClarityMoments.__doc__ is not None
+        assert len(ClarityMoments.__doc__.strip()) > 50  # Достаточно подробный
+
+        # Проверяем docstrings основных методов
+        methods_with_docs = [
+            "check_clarity_conditions",
+            "activate_clarity_moment",
+            "update_clarity_state",
+            "deactivate_clarity_moment",
+            "get_clarity_modifier",
+            "is_clarity_active",
+            "get_clarity_status",
+        ]
+
+        for method_name in methods_with_docs:
+            method = getattr(ClarityMoments, method_name)
+            assert method.__doc__ is not None, f"Missing docstring for {method_name}"
+            assert len(method.__doc__.strip()) > 20, f"Docstring too short for {method_name}"
+
+    def test_clarity_moments_inheritance(self):
+        """Проверка наследования ClarityMoments"""
+        from src.experimental.clarity_moments import ClarityMoments
+
+        # ClarityMoments должен наследоваться только от object
+        assert ClarityMoments.__bases__ == (object,)
+
+    def test_clarity_moments_no_forbidden_patterns(self):
+        """Проверка отсутствия запрещенных паттернов в ClarityMoments"""
+        from src.experimental.clarity_moments import ClarityMoments
+
+        source_code = inspect.getsource(ClarityMoments)
+
+        # Запрещенные паттерны
+        forbidden_patterns = [
+            "print(",      # Не используем print
+            "import os",   # Не используем os напрямую
+            "import sys",  # Не используем sys напрямую
+            "eval(",       # Не используем eval
+            "exec(",       # Не используем exec
+        ]
+
+        for pattern in forbidden_patterns:
+            assert pattern not in source_code, f"Forbidden pattern '{pattern}' found in ClarityMoments"
+
+    def test_clarity_moments_event_structure(self):
+        """Проверка структуры события clarity_moment"""
+        from src.experimental.clarity_moments import ClarityMoments
+        from unittest.mock import Mock
+
+        clarity_moments = ClarityMoments(logger=Mock())
+        state = SelfState()
+
+        # Устанавливаем условия для активации
+        state.stability = 0.9
+        state.energy = 0.8
+        state.ticks = 15
+        state.subjective_time = 10.0
+
+        event = clarity_moments.check_clarity_conditions(state)
+
+        assert event is not None
+        assert "type" in event
+        assert "data" in event
+        assert "timestamp" in event
+        assert "subjective_timestamp" in event
+
+        # Проверяем структуру data
+        data = event["data"]
+        assert "clarity_id" in data
+        assert "trigger_conditions" in data
+        assert "duration_ticks" in data
+        assert "significance_boost" in data
+
+        # Проверяем trigger_conditions
+        trigger = data["trigger_conditions"]
+        assert "stability" in trigger
+        assert "energy" in trigger
+        assert "tick" in trigger
+
+    def test_clarity_moments_logger_dependency(self):
+        """Проверка зависимости ClarityMoments от логгера"""
+        from src.experimental.clarity_moments import ClarityMoments
+        from unittest.mock import Mock
+
+        # Создаем с явным логгером
+        logger = Mock()
+        clarity_moments = ClarityMoments(logger=logger)
+        assert clarity_moments.logger == logger
+
+        # Создаем без логгера (должен создать StructuredLogger)
+        clarity_moments_no_logger = ClarityMoments()
+        assert clarity_moments_no_logger.logger is not None
+        # Проверяем что это StructuredLogger
+        assert hasattr(clarity_moments_no_logger.logger, "log_event")
+
+    def test_clarity_moments_module_imports(self):
+        """Проверка импортов модуля clarity_moments"""
+        import src.experimental.clarity_moments as cm_module
+
+        # Проверяем что модуль импортирует необходимые зависимости
+        assert hasattr(cm_module, "time")  # Использует time
+        assert hasattr(cm_module, "StructuredLogger")  # Импортирует StructuredLogger
+
+        # Проверяем что не импортирует лишнего
+        forbidden_imports = ["os", "sys", "json", "pickle"]
+        source = inspect.getsource(cm_module)
+
+        for forbidden in forbidden_imports:
+            assert f"import {forbidden}" not in source, f"Forbidden import '{forbidden}' in clarity_moments"
+            assert f"from {forbidden}" not in source, f"Forbidden import 'from {forbidden}' in clarity_moments"
+
+    def test_clarity_moments_constants_immutability(self):
+        """Проверка неизменности констант ClarityMoments"""
+        from src.experimental.clarity_moments import ClarityMoments
+
+        # Проверяем что константы не изменяются при работе
+        original_values = {
+            "CLARITY_STABILITY_THRESHOLD": ClarityMoments.CLARITY_STABILITY_THRESHOLD,
+            "CLARITY_ENERGY_THRESHOLD": ClarityMoments.CLARITY_ENERGY_THRESHOLD,
+            "CLARITY_DURATION_TICKS": ClarityMoments.CLARITY_DURATION_TICKS,
+            "CLARITY_CHECK_INTERVAL": ClarityMoments.CLARITY_CHECK_INTERVAL,
+            "CLARITY_SIGNIFICANCE_BOOST": ClarityMoments.CLARITY_SIGNIFICANCE_BOOST,
+        }
+
+        # Создаем экземпляр и выполняем операции
+        clarity_moments = ClarityMoments()
+        state = SelfState()
+
+        # Выполняем различные операции (без логирования)
+        clarity_moments.check_clarity_conditions(state)
+        # Имитируем активацию без логирования
+        state.clarity_state = True
+        state.clarity_duration = clarity_moments.CLARITY_DURATION_TICKS
+        state.clarity_modifier = clarity_moments.CLARITY_SIGNIFICANCE_BOOST
+        for _ in range(10):
+            clarity_moments.update_clarity_state(state)
+        # Имитируем деактивацию без логирования
+        state.clarity_state = False
+        state.clarity_duration = 0
+        state.clarity_modifier = 1.0
+
+        # Проверяем что константы не изменились
+        for name, original_value in original_values.items():
+            current_value = getattr(ClarityMoments, name)
+            assert current_value == original_value, f"Constant {name} changed: {original_value} -> {current_value}"
+
+    def test_clarity_moments_state_fields_consistency(self):
+        """Проверка一致ности полей состояния clarity в SelfState"""
+        from src.experimental.clarity_moments import ClarityMoments
+        from unittest.mock import Mock
+
+        clarity_moments = ClarityMoments(logger=Mock())
+        state = SelfState()
+
+        # Проверяем что после активации добавляются нужные поля
+        required_fields = ["clarity_state", "clarity_duration", "clarity_modifier"]
+
+        # Активируем clarity
+        clarity_moments.activate_clarity_moment(state)
+
+        for field in required_fields:
+            assert hasattr(state, field), f"Missing state field: {field}"
+
+        # Проверяем типы полей
+        assert isinstance(getattr(state, "clarity_state"), bool)
+        assert isinstance(getattr(state, "clarity_duration"), int)
+        assert isinstance(getattr(state, "clarity_modifier"), float)
+
+        # Деактивируем и проверяем сброс
+        clarity_moments.deactivate_clarity_moment(state)
+
+        assert getattr(state, "clarity_state") is False
+        assert getattr(state, "clarity_duration") == 0
+        assert getattr(state, "clarity_modifier") == 1.0

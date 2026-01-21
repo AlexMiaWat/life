@@ -1609,3 +1609,320 @@ class TestNewFunctionalitySmoke:
 
         state.energy = 0.6  # Выше порога
         assert policy.is_weak(state) is False
+
+    # ============================================================================
+    # ClarityMoments Smoke Tests
+    # ============================================================================
+
+    def test_clarity_moments_instantiation_smoke(self):
+        """Дымовой тест создания экземпляра ClarityMoments"""
+        from unittest.mock import Mock
+        from src.experimental.clarity_moments import ClarityMoments
+
+        logger = Mock()
+        clarity_moments = ClarityMoments(logger=logger)
+
+        assert clarity_moments is not None
+        assert isinstance(clarity_moments, ClarityMoments)
+        assert clarity_moments._clarity_events_count == 0
+        assert clarity_moments.CLARITY_STABILITY_THRESHOLD == 0.8
+        assert clarity_moments.CLARITY_ENERGY_THRESHOLD == 0.7
+        assert clarity_moments.CLARITY_DURATION_TICKS == 50
+        assert clarity_moments.CLARITY_SIGNIFICANCE_BOOST == 1.5
+
+    def test_clarity_moments_check_conditions_smoke(self):
+        """Дымовой тест проверки условий ClarityMoments"""
+        from unittest.mock import Mock
+        from src.experimental.clarity_moments import ClarityMoments
+
+        logger = Mock()
+        clarity_moments = ClarityMoments(logger=logger)
+        state = SelfState()
+
+        # Условия не выполнены
+        state.stability = 0.5
+        state.energy = 0.5
+        state.ticks = 15
+
+        result = clarity_moments.check_clarity_conditions(state)
+        assert result is None
+
+        # Условия выполнены
+        state.stability = 0.9
+        state.energy = 0.8
+        state.ticks = 25
+
+        result = clarity_moments.check_clarity_conditions(state)
+        assert result is not None
+        assert result["type"] == "clarity_moment"
+        assert result["data"]["clarity_id"] == 1
+
+    def test_clarity_moments_activation_smoke(self):
+        """Дымовой тест активации ClarityMoments"""
+        from unittest.mock import Mock
+        from src.experimental.clarity_moments import ClarityMoments
+
+        logger = Mock()
+        clarity_moments = ClarityMoments(logger=logger)
+        state = SelfState()
+
+        # Проверяем начальное состояние
+        assert not hasattr(state, "clarity_state") or not getattr(state, "clarity_state", False)
+
+        # Активируем clarity
+        clarity_moments.activate_clarity_moment(state)
+
+        assert getattr(state, "clarity_state", False) is True
+        assert getattr(state, "clarity_duration", 0) == 50
+        assert getattr(state, "clarity_modifier", 1.0) == 1.5
+
+    def test_clarity_moments_update_state_smoke(self):
+        """Дымовой тест обновления состояния ClarityMoments"""
+        from unittest.mock import Mock
+        from src.experimental.clarity_moments import ClarityMoments
+
+        logger = Mock()
+        clarity_moments = ClarityMoments(logger=logger)
+        state = SelfState()
+
+        # Активируем clarity
+        clarity_moments.activate_clarity_moment(state)
+        initial_duration = getattr(state, "clarity_duration", 0)
+
+        # Обновляем состояние
+        result = clarity_moments.update_clarity_state(state)
+        assert result is True
+        assert getattr(state, "clarity_duration", 0) == initial_duration - 1
+
+    def test_clarity_moments_deactivation_smoke(self):
+        """Дымовой тест деактивации ClarityMoments"""
+        from unittest.mock import Mock
+        from src.experimental.clarity_moments import ClarityMoments
+
+        logger = Mock()
+        clarity_moments = ClarityMoments(logger=logger)
+        state = SelfState()
+
+        # Активируем clarity
+        clarity_moments.activate_clarity_moment(state)
+        assert getattr(state, "clarity_state", False) is True
+
+        # Деактивируем
+        clarity_moments.deactivate_clarity_moment(state)
+
+        assert getattr(state, "clarity_state", False) is False
+        assert getattr(state, "clarity_duration", 0) == 0
+        assert getattr(state, "clarity_modifier", 1.0) == 1.0
+
+    def test_clarity_moments_get_modifier_smoke(self):
+        """Дымовой тест получения модификатора ClarityMoments"""
+        from unittest.mock import Mock
+        from src.experimental.clarity_moments import ClarityMoments
+
+        logger = Mock()
+        clarity_moments = ClarityMoments(logger=logger)
+        state = SelfState()
+
+        # Без clarity
+        modifier = clarity_moments.get_clarity_modifier(state)
+        assert modifier == 1.0
+
+        # С clarity
+        clarity_moments.activate_clarity_moment(state)
+        modifier = clarity_moments.get_clarity_modifier(state)
+        assert modifier == 1.5
+
+    def test_clarity_moments_is_active_smoke(self):
+        """Дымовой тест проверки активности ClarityMoments"""
+        from unittest.mock import Mock
+        from src.experimental.clarity_moments import ClarityMoments
+
+        logger = Mock()
+        clarity_moments = ClarityMoments(logger=logger)
+        state = SelfState()
+
+        # Не активен
+        assert clarity_moments.is_clarity_active(state) is False
+
+        # Активен
+        clarity_moments.activate_clarity_moment(state)
+        assert clarity_moments.is_clarity_active(state) is True
+
+    def test_clarity_moments_get_status_smoke(self):
+        """Дымовой тест получения статуса ClarityMoments"""
+        from unittest.mock import Mock
+        from src.experimental.clarity_moments import ClarityMoments
+
+        logger = Mock()
+        clarity_moments = ClarityMoments(logger=logger)
+        state = SelfState()
+
+        # Без clarity
+        status = clarity_moments.get_clarity_status(state)
+        assert status["active"] is False
+        assert status["duration_remaining"] == 0
+        assert status["total_events"] == 0
+        assert status["modifier"] == 1.0
+
+        # С clarity
+        clarity_moments.activate_clarity_moment(state)
+        setattr(state, "clarity_duration", 25)
+
+        status = clarity_moments.get_clarity_status(state)
+        assert status["active"] is True
+        assert status["duration_remaining"] == 25
+        assert status["modifier"] == 1.5
+
+    def test_clarity_moments_multiple_events_smoke(self):
+        """Дымовой тест множественных событий ClarityMoments"""
+        from unittest.mock import Mock
+        from src.experimental.clarity_moments import ClarityMoments
+
+        logger = Mock()
+        clarity_moments = ClarityMoments(logger=logger)
+        state = SelfState()
+
+        # Первое событие
+        state.stability = 0.9
+        state.energy = 0.8
+        state.ticks = 15
+
+        result1 = clarity_moments.check_clarity_conditions(state)
+        assert result1 is not None
+        assert result1["data"]["clarity_id"] == 1
+
+        # Деактивируем и создаем второе событие
+        clarity_moments.deactivate_clarity_moment(state)
+        state.ticks = 35
+
+        result2 = clarity_moments.check_clarity_conditions(state)
+        assert result2 is not None
+        assert result2["data"]["clarity_id"] == 2
+
+        assert clarity_moments._clarity_events_count == 2
+
+    def test_clarity_moments_boundary_values_smoke(self):
+        """Дымовой тест граничных значений ClarityMoments"""
+        from unittest.mock import Mock
+        from src.experimental.clarity_moments import ClarityMoments
+
+        # Граничные значения порогов
+        test_cases = [
+            (0.8, 0.7, True),   # Точные пороги
+            (0.79, 0.7, False), # Ниже stability
+            (0.8, 0.69, False), # Ниже energy
+            (0.9, 0.9, True),   # Выше порогов
+        ]
+
+        for i, (stability, energy, should_activate) in enumerate(test_cases):
+            # Создаем новый экземпляр для каждого тестового случая
+            logger = Mock()
+            clarity_moments = ClarityMoments(logger=logger)
+            state = SelfState()
+
+            state.stability = stability
+            state.energy = energy
+            state.ticks = 10 + (i * 20)  # Гарантируем разные тики для каждого случая
+
+            result = clarity_moments.check_clarity_conditions(state)
+            if should_activate:
+                assert result is not None, f"Expected activation for stability={stability}, energy={energy}"
+            else:
+                assert result is None, f"Unexpected activation for stability={stability}, energy={energy}"
+
+    def test_clarity_moments_full_lifecycle_smoke(self):
+        """Дымовой тест полного жизненного цикла ClarityMoments"""
+        from unittest.mock import Mock
+        from src.experimental.clarity_moments import ClarityMoments
+
+        logger = Mock()
+        clarity_moments = ClarityMoments(logger=logger)
+        state = SelfState()
+
+        # 1. Проверка условий
+        state.stability = 0.9
+        state.energy = 0.8
+        state.ticks = 15
+
+        event = clarity_moments.check_clarity_conditions(state)
+        assert event is not None
+
+        # 2. Активация
+        clarity_moments.activate_clarity_moment(state)
+        assert clarity_moments.is_clarity_active(state)
+        assert clarity_moments.get_clarity_modifier(state) == 1.5
+
+        # 3. Обновление состояния в течение нескольких тиков
+        for i in range(10):
+            clarity_moments.update_clarity_state(state)
+
+        # Проверяем, что clarity все еще активен
+        assert clarity_moments.is_clarity_active(state)
+
+        # 4. Деактивация по истечении времени
+        # Устанавливаем duration близко к 0
+        state.clarity_duration = 1
+        clarity_moments.update_clarity_state(state)
+
+        # Теперь должен деактивироваться
+        assert not clarity_moments.is_clarity_active(state)
+        assert clarity_moments.get_clarity_modifier(state) == 1.0
+
+    def test_clarity_moments_integration_with_meaning_engine_smoke(self):
+        """Дымовой тест интеграции ClarityMoments с MeaningEngine"""
+        from unittest.mock import Mock
+        from src.experimental.clarity_moments import ClarityMoments
+        from src.meaning.engine import MeaningEngine
+        from src.environment.event import Event
+
+        logger = Mock()
+        clarity_moments = ClarityMoments(logger=logger)
+        meaning_engine = MeaningEngine()
+        state = SelfState()
+
+        # Создаем событие
+        event = Event(type="noise", intensity=0.5, timestamp=1.0)
+
+        # Получаем значимость без clarity
+        state.clarity_state = False
+        significance_without = meaning_engine.appraisal(event, state.__dict__)
+
+        # Активируем clarity и получаем значимость с ним
+        clarity_moments.activate_clarity_moment(state)
+        significance_with = meaning_engine.appraisal(event, state.__dict__)
+
+        # Значимость с clarity должна быть выше
+        assert significance_with > significance_without
+        assert 1.4 <= significance_with / significance_without <= 1.6  # Примерно 1.5x
+
+    def test_clarity_moments_with_runtime_state_smoke(self):
+        """Дымовой тест ClarityMoments с реальным состоянием runtime"""
+        from unittest.mock import Mock
+        from src.experimental.clarity_moments import ClarityMoments
+
+        logger = Mock()
+        clarity_moments = ClarityMoments(logger=logger)
+        state = SelfState()
+
+        # Устанавливаем реалистичное состояние
+        state.energy = 85.0
+        state.stability = 0.95
+        state.integrity = 0.98
+        state.ticks = 100
+        state.subjective_time = 50.0
+
+        # Проверяем условия - должны активироваться
+        event = clarity_moments.check_clarity_conditions(state)
+        assert event is not None
+        assert event["data"]["trigger_conditions"]["stability"] == 0.95
+        assert event["data"]["trigger_conditions"]["energy"] == 85.0
+        assert event["data"]["trigger_conditions"]["tick"] == 100
+        assert event["subjective_timestamp"] == 50.0
+
+        # Активируем и проверяем состояние
+        clarity_moments.activate_clarity_moment(state)
+
+        status = clarity_moments.get_clarity_status(state)
+        assert status["active"] is True
+        assert status["duration_remaining"] == 50
+        assert status["modifier"] == 1.5

@@ -2521,3 +2521,392 @@ class TestNewFunctionalityIntegration:
 
         finally:
             os.unlink(temp_file)
+
+    # ============================================================================
+    # ClarityMoments Integration Tests
+    # ============================================================================
+
+    def test_clarity_moments_full_integration_with_runtime_loop(self):
+        """Интеграционный тест ClarityMoments с полным runtime loop"""
+        from unittest.mock import Mock
+        from src.experimental.clarity_moments import ClarityMoments
+
+        self_state = SelfState()
+        event_queue = EventQueue()
+        monitor = Mock()
+        stop_event = threading.Event()
+        stop_event.set()  # Останавливаем сразу
+
+        # Устанавливаем состояние выше порогов для активации clarity
+        self_state.stability = 0.9
+        self_state.energy = 0.8
+
+        # Запускаем runtime loop с clarity moments
+        try:
+            run_loop(
+                self_state=self_state,
+                monitor=monitor,
+                tick_interval=0.001,  # Быстрый тик
+                snapshot_period=1000,
+                stop_event=stop_event,
+                event_queue=event_queue,
+                disable_weakness_penalty=True,
+                disable_structured_logging=True,
+                disable_learning=True,
+                disable_adaptation=True,
+                disable_clarity_moments=False,  # Включаем clarity moments
+                log_flush_period_ticks=1000,
+                enable_profiling=False,
+            )
+        except Exception:
+            pass  # Игнорируем исключения - нас интересует инициализация
+
+        # Проверяем что clarity moments интегрированы
+        assert hasattr(self_state, "clarity_state")
+        assert hasattr(self_state, "clarity_duration")
+        assert hasattr(self_state, "clarity_modifier")
+
+    def test_clarity_moments_event_generation_integration(self):
+        """Интеграционный тест генерации событий clarity_moment"""
+        from src.experimental.clarity_moments import ClarityMoments
+        from unittest.mock import Mock
+
+        clarity_moments = ClarityMoments(logger=Mock())
+        self_state = SelfState()
+        event_queue = EventQueue()
+
+        # Устанавливаем условия для активации
+        self_state.stability = 0.9
+        self_state.energy = 0.8
+        self_state.ticks = 15
+        self_state.subjective_time = 10.0
+
+        # Генерируем событие
+        clarity_event = clarity_moments.check_clarity_conditions(self_state)
+        assert clarity_event is not None
+
+        # Преобразуем в Event объект и добавляем в очередь
+        event = Event(
+            type="clarity_moment",
+            intensity=0.8,
+            timestamp=clarity_event["timestamp"],
+            metadata=clarity_event["data"]
+        )
+        event_queue.push(event)
+
+        # Проверяем что событие в очереди
+        assert not event_queue.is_empty()
+        popped_events = event_queue.pop_all()
+        assert len(popped_events) == 1
+
+        popped_event = popped_events[0]
+        assert popped_event.type == "clarity_moment"
+        assert popped_event.metadata["clarity_id"] == 1
+        assert popped_event.metadata["trigger_conditions"]["stability"] == 0.9
+
+    def test_clarity_moments_with_meaning_engine_integration(self):
+        """Интеграционный тест ClarityMoments с MeaningEngine"""
+        from src.experimental.clarity_moments import ClarityMoments
+        from src.meaning.engine import MeaningEngine
+        from src.environment.event import Event
+        from unittest.mock import Mock
+
+        clarity_moments = ClarityMoments(logger=Mock())
+        meaning_engine = MeaningEngine()
+
+        self_state = SelfState()
+        self_state.stability = 0.9
+        self_state.energy = 0.8
+
+        # Создаем тестовое событие
+        event = Event(type="noise", intensity=0.6, timestamp=1.0)
+
+        # Получаем значимость без clarity
+        self_state.clarity_state = False
+        meaning_without_clarity = meaning_engine.process(event, self_state.__dict__)
+
+        # Активируем clarity и получаем значимость с ним
+        clarity_moments.activate_clarity_moment(self_state)
+        meaning_with_clarity = meaning_engine.process(event, self_state.__dict__)
+
+        # Значимость с clarity должна быть выше
+        assert meaning_with_clarity.significance > meaning_without_clarity.significance
+
+        # Проверяем коэффициент усиления (примерно 1.5x)
+        ratio = meaning_with_clarity.significance / meaning_without_clarity.significance
+        assert 1.4 <= ratio <= 1.6
+
+    def test_clarity_moments_runtime_state_persistence_integration(self):
+        """Интеграционный тест сохранения состояния clarity в runtime"""
+        from src.experimental.clarity_moments import ClarityMoments
+        from unittest.mock import Mock
+
+        clarity_moments = ClarityMoments(logger=Mock())
+        self_state = SelfState()
+
+        # Активируем clarity
+        clarity_moments.activate_clarity_moment(self_state)
+        initial_duration = getattr(self_state, "clarity_duration", 0)
+
+        # Имитируем несколько тиков runtime loop
+        for tick in range(10):
+            # Обновляем clarity состояние
+            clarity_moments.update_clarity_state(self_state)
+
+            # Имитируем другие операции runtime loop
+            self_state.ticks += 1
+            self_state.energy = max(0, self_state.energy - 0.1)  # Имитируем расход энергии
+
+            # Проверяем что clarity состояние сохраняется
+            if tick < initial_duration - 1:
+                assert clarity_moments.is_clarity_active(self_state)
+            else:
+                # После истечения времени clarity должен деактивироваться
+                if tick >= initial_duration - 1:
+                    assert not clarity_moments.is_clarity_active(self_state)
+                    break
+
+    def test_clarity_moments_memory_integration(self):
+        """Интеграционный тест ClarityMoments с Memory"""
+        from src.experimental.clarity_moments import ClarityMoments
+        from src.memory.memory import MemoryEntry
+        from unittest.mock import Mock
+
+        clarity_moments = ClarityMoments(logger=Mock())
+        self_state = SelfState()
+
+        # Активируем clarity
+        clarity_moments.activate_clarity_moment(self_state)
+
+        # Имитируем создание записи памяти во время clarity
+        clarity_event = {
+            "type": "clarity_moment",
+            "data": {"clarity_id": 1},
+            "timestamp": time.time(),
+            "subjective_timestamp": self_state.subjective_time
+        }
+
+        memory_entry = MemoryEntry(
+            event_type=clarity_event["type"],
+            meaning_significance=0.9,  # Высокая значимость
+            timestamp=clarity_event["timestamp"],
+            subjective_timestamp=clarity_event["subjective_timestamp"]
+        )
+
+        # Сохраняем в память
+        self_state.memory.append(memory_entry)
+
+        # Проверяем что запись сохранена корректно
+        assert len(self_state.memory) == 1
+        entry = self_state.memory[0]
+        assert entry.event_type == "clarity_moment"
+        assert entry.subjective_timestamp == clarity_event["subjective_timestamp"]
+        assert entry.meaning_significance == 0.9
+
+    def test_clarity_moments_multiple_cycles_integration(self):
+        """Интеграционный тест множественных циклов clarity"""
+        from src.experimental.clarity_moments import ClarityMoments
+        from unittest.mock import Mock
+
+        clarity_moments = ClarityMoments(logger=Mock())
+        self_state = SelfState()
+
+        cycle_count = 3
+
+        for cycle in range(cycle_count):
+            # Устанавливаем условия для активации
+            self_state.stability = 0.9
+            self_state.energy = 0.8
+            self_state.ticks = (cycle + 1) * 30  # Разные тики для каждого цикла
+
+            # Генерируем событие
+            clarity_event = clarity_moments.check_clarity_conditions(self_state)
+            assert clarity_event is not None
+            assert clarity_event["data"]["clarity_id"] == cycle + 1
+
+            # Активируем clarity
+            clarity_moments.activate_clarity_moment(self_state)
+            assert clarity_moments.is_clarity_active(self_state)
+
+            # Имитируем работу clarity в течение половины длительности
+            for _ in range(25):  # Половина от 50 тиков
+                clarity_moments.update_clarity_state(self_state)
+
+            # Проверяем что clarity еще активен
+            assert clarity_moments.is_clarity_active(self_state)
+            assert getattr(self_state, "clarity_duration", 0) == 25
+
+            # Деактивируем вручную для следующего цикла
+            clarity_moments.deactivate_clarity_moment(self_state)
+            assert not clarity_moments.is_clarity_active(self_state)
+
+        # Проверяем общее количество событий
+        assert clarity_moments._clarity_events_count == cycle_count
+
+    def test_clarity_moments_with_environment_integration(self):
+        """Интеграционный тест ClarityMoments с Environment компонентами"""
+        from src.experimental.clarity_moments import ClarityMoments
+        from src.environment.event import Event
+        from src.environment.event_queue import EventQueue
+        from unittest.mock import Mock
+
+        clarity_moments = ClarityMoments(logger=Mock())
+        event_queue = EventQueue()
+        self_state = SelfState()
+
+        # Устанавливаем хорошее состояние для clarity
+        self_state.stability = 0.95
+        self_state.energy = 0.85
+        self_state.ticks = 20
+
+        # Генерируем clarity событие
+        clarity_event = clarity_moments.check_clarity_conditions(self_state)
+        assert clarity_event is not None
+
+        # Создаем Event объект
+        event = Event(
+            type=clarity_event["type"],
+            intensity=0.8,
+            timestamp=clarity_event["timestamp"],
+            metadata=clarity_event["data"]
+        )
+
+        # Добавляем в очередь событий
+        event_queue.push(event)
+
+        # Добавляем обычные события для сравнения
+        for i in range(3):
+            noise_event = Event(
+                type="noise",
+                intensity=0.3 + i * 0.1,
+                timestamp=time.time() + i
+            )
+            event_queue.push(noise_event)
+
+        # Проверяем что все события в очереди
+        assert event_queue.size() == 4
+
+        # Извлекаем все события
+        events = event_queue.pop_all()
+        assert len(events) == 4
+
+        # Проверяем что clarity событие среди них
+        clarity_events = [e for e in events if e.type == "clarity_moment"]
+        assert len(clarity_events) == 1
+        assert clarity_events[0].metadata["clarity_id"] == 1
+
+    def test_clarity_moments_state_recovery_integration(self):
+        """Интеграционный тест восстановления состояния clarity"""
+        import json
+        import tempfile
+        import os
+        from src.experimental.clarity_moments import ClarityMoments
+        from unittest.mock import Mock
+
+        clarity_moments = ClarityMoments(logger=Mock())
+        self_state = SelfState()
+
+        # Создаем событие clarity (это увеличивает счетчик)
+        self_state.ticks = 15
+        clarity_event = clarity_moments.check_clarity_conditions(self_state)
+
+        # Активируем clarity и устанавливаем состояние
+        clarity_moments.activate_clarity_moment(self_state)
+        self_state.clarity_duration = 30  # Изменяем длительность
+
+        # Сохраняем состояние (имитируем сериализацию)
+        clarity_state = {
+            "clarity_state": self_state.clarity_state,
+            "clarity_duration": self_state.clarity_duration,
+            "clarity_modifier": self_state.clarity_modifier,
+            "clarity_events_count": clarity_moments._clarity_events_count
+        }
+
+        # Сохраняем в файл
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".json") as f:
+            json.dump(clarity_state, f)
+            temp_file = f.name
+
+        try:
+            # Имитируем перезапуск - восстанавливаем состояние
+            with open(temp_file, "r") as f:
+                loaded_state = json.load(f)
+
+            # Создаем новый экземпляр
+            new_clarity_moments = ClarityMoments(logger=Mock())
+            new_self_state = SelfState()
+
+            # Восстанавливаем состояние
+            new_self_state.clarity_state = loaded_state["clarity_state"]
+            new_self_state.clarity_duration = loaded_state["clarity_duration"]
+            new_self_state.clarity_modifier = loaded_state["clarity_modifier"]
+            # Восстанавливаем счетчик событий
+            new_clarity_moments._clarity_events_count = loaded_state.get("clarity_events_count", 0)
+
+            # Проверяем, что состояние восстановлено корректно
+            assert new_clarity_moments.is_clarity_active(new_self_state)
+            assert new_self_state.clarity_duration == 30
+            assert new_self_state.clarity_modifier == ClarityMoments.CLARITY_SIGNIFICANCE_BOOST
+            assert new_clarity_moments._clarity_events_count == 1
+
+            # Проверяем что функциональность работает после восстановления
+            status = new_clarity_moments.get_clarity_status(new_self_state)
+            assert status["active"] is True
+            assert status["duration_remaining"] == 30
+            assert status["modifier"] == ClarityMoments.CLARITY_SIGNIFICANCE_BOOST
+
+            # Проверяем что состояние восстановлено корректно
+            assert new_clarity_moments.is_clarity_active(new_self_state)
+            assert new_self_state.clarity_duration == 30
+            assert new_self_state.clarity_modifier == ClarityMoments.CLARITY_SIGNIFICANCE_BOOST
+            assert new_clarity_moments._clarity_events_count == 1
+
+            # Проверяем что функциональность работает после восстановления
+            status = new_clarity_moments.get_clarity_status(new_self_state)
+            assert status["active"] is True
+            assert status["duration_remaining"] == 30
+            assert status["modifier"] == ClarityMoments.CLARITY_SIGNIFICANCE_BOOST
+
+        finally:
+            os.unlink(temp_file)
+
+    def test_clarity_moments_performance_integration(self):
+        """Интеграционный тест производительности ClarityMoments"""
+        from src.experimental.clarity_moments import ClarityMoments
+        from unittest.mock import Mock
+        import time
+
+        clarity_moments = ClarityMoments(logger=Mock())
+        self_state = SelfState()
+
+        # Тест производительности check_clarity_conditions
+        iterations = 1000
+
+        start_time = time.time()
+        for i in range(iterations):
+            self_state.ticks = i * 10  # Разные тики
+            self_state.stability = 0.9
+            self_state.energy = 0.8
+            clarity_moments.check_clarity_conditions(self_state)
+        check_time = time.time() - start_time
+
+        # Тест производительности update_clarity_state
+        clarity_moments.activate_clarity_moment(self_state)
+
+        start_time = time.time()
+        for _ in range(iterations):
+            clarity_moments.update_clarity_state(self_state)
+        update_time = time.time() - start_time
+
+        # Проверяем что операции выполняются достаточно быстро
+        # check_clarity_conditions должен выполняться менее 1ms в среднем
+        avg_check_time = check_time / iterations
+        assert avg_check_time < 0.001, f"check_clarity_conditions too slow: {avg_check_time:.6f}s per call"
+
+        # update_clarity_state должен выполняться менее 0.1ms в среднем
+        avg_update_time = update_time / iterations
+        assert avg_update_time < 0.0001, f"update_clarity_state too slow: {avg_update_time:.6f}s per call"
+
+        # Общее время выполнения всех операций должно быть разумным
+        total_time = check_time + update_time
+        assert total_time < 1.0, f"Total time too high: {total_time:.3f}s for {iterations*2} operations"
