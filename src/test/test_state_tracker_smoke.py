@@ -95,11 +95,10 @@ class TestStateTrackerSmoke:
     def test_collect_state_data_with_missing_attrs(self):
         """Проверка сбора данных при отсутствии некоторых атрибутов"""
         tracker = StateTracker()
-        mock_state = Mock()
+        mock_state = Mock(spec=['energy'])  # Только energy существует
 
         # Настраиваем mock только с некоторыми атрибутами
         mock_state.energy = 0.8
-        # Другие атрибуты отсутствуют
 
         # Метод должен работать без исключений
         result = tracker.collect_state_data(mock_state)

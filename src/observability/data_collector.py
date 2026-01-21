@@ -147,11 +147,13 @@ class DataCollector:
                                 break
 
             # Include buffer data
-            for observation in self._buffer[-limit:]:
+            for observation in self._buffer:
                 if data_type is None or observation.data_type == data_type:
                     data.append(observation)
 
-            return data[-limit:]  # Return most recent
+            # Sort by timestamp (most recent first) and return limited results
+            data.sort(key=lambda x: x.timestamp, reverse=True)
+            return data[:limit]
 
         except Exception as e:
             logger.warning(f"Failed to read observation data: {e}")

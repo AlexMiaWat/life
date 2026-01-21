@@ -50,11 +50,330 @@
 3. **Semantic Memory** (Семантическая память) - ✅ Реализовано
 4. **Procedural Memory** (Процедурная память) - ✅ Реализовано
 
-## Clarity Moments - Система моментов ясности
+## Unified Clarity and Consciousness System - Унифицированная система моментов ясности и состояний сознания
+
+### Назначение
+
+**Унифицированная система моментов ясности и состояний сознания** - комплексная экспериментальная реализация расширенных когнитивных состояний системы Life. Интегрирует ClarityMoments, ParallelConsciousnessEngine и MemoryHierarchyManager для создания комплексной системы управления когнитивными состояниями с множественными типами моментов ясности и расширенными состояниями сознания.
+
+### Архитектурные принципы
+
+1. **Унификация**: Единый API для управления всеми аспектами ясности и сознания
+2. **Расширенная типизация**: Множественные типы моментов ясности и состояний сознания
+3. **Интеграция компонентов**: ClarityMoments ↔ ParallelConsciousnessEngine ↔ MemoryHierarchyManager
+4. **Опциональность**: Полностью отключаемая система с гранулярным контролем
+5. **Наблюдаемость**: Детальное логирование и метрики для анализа
+6. **Эволюционная совместимость**: Не нарушает существующие интерфейсы
+
+### Типы моментов ясности
+
+#### ClarityType Enum
+```python
+class ClarityType(Enum):
+    BASIC = "basic"          # Базовая ясность - повышение восприимчивости
+    COGNITIVE = "cognitive"  # Когнитивная ясность - улучшение обработки
+    EMOTIONAL = "emotional"  # Эмоциональная ясность - усиление эмпатии
+    EXISTENTIAL = "existential"  # Экзистенциальная ясность - глубокие инсайты
+```
+
+#### Особенности типов
+- **Basic**: Увеличивает восприимчивость к событиям (модификатор 1.5x)
+- **Cognitive**: Улучшает обработку информации и принятие решений
+- **Emotional**: Усиливает эмоциональный интеллект и эмпатию
+- **Existential**: Предоставляет глубокие инсайты и понимание
+
+### Расширенные состояния сознания
+
+#### ConsciousnessState Enum
+```python
+class ConsciousnessState(Enum):
+    # Базовые состояния
+    UNCONSCIOUS = "unconscious"
+    DREAMING = "dreaming"
+    AWAKE = "awake"
+    REFLECTIVE = "reflective"
+
+    # Расширенные состояния
+    FLOW = "flow"              # Оптимальная производительность
+    DEEP_REFLECTION = "deep_reflection"  # Глубокий самоанализ
+    META_AWARENESS = "meta_awareness"    # Осознание процессов
+    ENLIGHTENMENT = "enlightenment"      # Пиковые состояния
+```
+
+#### Характеристики состояний
+- **Flow**: Повышенная эффективность, требует стабильности >0.8 и энергии >0.7
+- **Deep Reflection**: Самоанализ паттернов, требует self_reflection_score >0.6
+- **Meta Awareness**: Осознание когнитивных процессов, требует meta_cognition_depth >0.7
+- **Enlightenment**: Пиковые состояния, требует высокой стабильности (>0.9) и метакогниции (>0.8)
+
+### Компоненты системы
+
+#### UnifiedClarityConsciousnessSystem класс
+Расположение: `src/experimental/unified_clarity_consciousness.py`
+
+**Центральный компонент системы**:
+- Интегрирует все подсистемы (ClarityMoments, ParallelConsciousnessEngine, Memory)
+- Управляет переходами между состояниями
+- Координирует детекцию моментов ясности
+- Предоставляет унифицированный API
+
+**Основные методы**:
+- `check_clarity_conditions()` - расширенная проверка условий ясности
+- `determine_consciousness_state()` - определение состояния сознания
+- `activate_clarity_event()` - активация момента ясности с типом
+- `transition_consciousness_state()` - переход между состояниями
+- `get_unified_status()` - получение полного статуса системы
+
+#### ClarityConsciousnessManager класс
+Расположение: `src/experimental/clarity_consciousness_manager.py`
+
+**Высокоуровневый менеджер**:
+- Предоставляет единый API управления
+- Управляет конфигурацией системы
+- Координирует все компоненты
+- Обеспечивает мониторинг и метрики
+
+**Основные возможности**:
+- Адаптивные пороги детекции
+- Управление состоянием системы
+- Интеграция с памятью
+- Мониторинг производительности
+
+#### ClarityConsciousnessMonitor класс
+Расположение: `src/experimental/clarity_consciousness_monitor.py`
+
+**Система мониторинга**:
+- Отслеживание метрик ясности и сознания
+- Детекция аномалий и паттернов
+- Генерация отчетов о состоянии
+- Предупреждения о проблемах
+
+#### ClarityMoments класс (расширенный)
+Расположение: `src/experimental/clarity_moments.py`
+
+**Улучшенная система моментов ясности**:
+- Поддержка множественных типов ясности
+- Адаптивные условия активации
+- Интеграция с состояниями сознания
+- История моментов ясности
+
+### Новые поля SelfState
+
+```python
+# Расширенные поля ясности
+clarity_type: Optional[str] = None         # Тип текущего момента ясности
+clarity_intensity: float = 0.0            # Интенсивность [0.0-1.0]
+clarity_history: List[Dict] = []           # История моментов ясности
+
+# Расширенные поля сознания
+consciousness_state_type: str = "awake"   # Расширенный тип состояния
+consciousness_state_intensity: float = 0.0  # Интенсивность состояния [0.0-1.0]
+state_transition_history: List[Dict] = []  # История переходов
+
+# Дополнительные метрики
+neural_activity: float = 0.0              # Нейронная активность [0.0-1.0]
+cognitive_load: float = 0.3               # Когнитивная нагрузка [0.0-1.0]
+```
+
+### Механизм работы
+
+#### Детекция моментов ясности
+1. **Мониторинг условий**: Проверка stability, energy, consciousness_level
+2. **Оценка контекста**: Учет текущего состояния сознания и когнитивной нагрузки
+3. **Определение типа**: Выбор подходящего типа ясности на основе условий
+4. **Активация**: Создание ClarityEvent с соответствующими параметрами
+5. **Эффекты**: Применение модификаторов к различным компонентам
+
+#### Переходы состояний сознания
+1. **Оценка метрик**: Анализ consciousness_level, stability, energy
+2. **Приоритет состояний**: Enlightenment → Meta Awareness → Flow → Deep Reflection
+3. **Проверка условий**: Дополнительные требования для расширенных состояний
+4. **Плавный переход**: Предотвращение резких изменений состояния
+5. **Влияние на компоненты**: Адаптация поведения системы к состоянию
+
+#### Интеграция с памятью
+- **Flow/Meta состояния**: Усиление консолидации памяти
+- **Moments ясности**: Создание специальных MemoryEntry с повышенной значимостью
+- **История состояний**: Сохранение паттернов для анализа
+
+### Конфигурация
+
+#### ClarityConsciousnessConfig
+```python
+@dataclass
+class ClarityConsciousnessConfig:
+    # Настройки детекции ясности
+    clarity_stability_threshold: float = 0.8
+    clarity_energy_threshold: float = 0.7
+    clarity_consciousness_threshold: float = 0.6
+    clarity_cognitive_load_max: float = 0.7
+
+    # Настройки состояний сознания
+    enable_flow_state: bool = True
+    enable_deep_reflection: bool = True
+    enable_meta_awareness: bool = True
+    enable_enlightenment: bool = True
+
+    # Настройки производительности
+    clarity_check_interval: float = 1.0
+    state_transition_cooldown: float = 5.0
+    max_clarity_history_size: int = 100
+    max_transition_history_size: int = 50
+```
+
+#### Включение/отключение
+```python
+run_loop(
+    # ...
+    enable_unified_clarity_system=True,     # Включение унифицированной системы
+    clarity_consciousness_config=config,     # Конфигурация системы
+    # ...
+)
+```
+
+### Интеграция с компонентами
+
+#### Runtime Loop
+- UnifiedClarityConsciousnessSystem интегрирован в основной цикл
+- Проверка условий происходит в каждом тике
+- Координация с ParallelConsciousnessEngine
+
+#### MeaningEngine
+- Учет типа и интенсивности моментов ясности
+- Различные модификаторы для разных типов clarity
+- Влияние состояний сознания на оценку значимости
+
+#### MemoryHierarchyManager
+- Усиленная консолидация в состояниях flow/meta
+- Специальные MemoryEntry для моментов ясности
+- Интеграция с сенсорным буфером
+
+#### ParallelConsciousnessEngine
+- Синхронизация состояний сознания
+- Совместное управление переходами
+- Обмен метриками и сигналами
+
+### Логирование и метрики
+
+#### ClarityConsciousnessMetrics
+```python
+@dataclass
+class ClarityConsciousnessMetrics:
+    clarity_events_total: int = 0
+    clarity_events_by_type: Dict[str, int] = field(default_factory=dict)
+    state_transitions_total: int = 0
+    state_transitions_by_type: Dict[str, int] = field(default_factory=dict)
+    average_clarity_intensity: float = 0.0
+    average_consciousness_level: float = 0.0
+    memory_consolidation_boosts: int = 0
+```
+
+#### StructuredLogger интеграция
+- Детальное логирование активаций моментов ясности
+- Отслеживание переходов состояний сознания
+- Метрики производительности системы
+- Предупреждения о потенциальных проблемах
+
+### Тестирование
+
+#### Unit тесты
+- `src/test/test_unified_clarity_consciousness.py` - базовая функциональность
+- `src/test/test_clarity_consciousness_manager.py` - менеджер системы
+- `src/test/test_clarity_types.py` - типы данных и перечисления
+- Проверка условий активации различных типов ясности
+- Тестирование переходов между состояниями сознания
+
+#### Integration тесты
+- `src/test/test_clarity_consciousness_integration.py` - полная интеграция
+- Тестирование с MemoryHierarchyManager
+- Проверка влияния на MeaningEngine и принятие решений
+- Валидация сохранения состояния в SelfState
+
+#### Smoke тесты
+- `src/test/test_smoke_clarity_consciousness.py` - быстрая проверка
+- Проверка базовой работоспособности
+- Тестирование конфигурационных опций
+
+### Примеры использования
+
+#### Базовое использование
+```python
+from src.experimental.unified_clarity_consciousness import UnifiedClarityConsciousnessSystem
+from src.experimental.clarity_consciousness_manager import ClarityConsciousnessManager
+
+# Создание системы
+config = ClarityConsciousnessConfig()
+manager = ClarityConsciousnessManager(config)
+system = UnifiedClarityConsciousnessSystem(manager=manager)
+
+# Проверка условий в runtime loop
+status = system.check_clarity_conditions(self_state)
+if status['should_activate']:
+    system.activate_clarity_event(
+        clarity_type=ClarityType.COGNITIVE,
+        intensity=0.8,
+        self_state=self_state
+    )
+```
+
+#### Мониторинг состояния
+```python
+# Получение полного статуса системы
+status = manager.get_unified_status()
+print(f"Текущий тип ясности: {status['current_clarity_type']}")
+print(f"Состояние сознания: {status['consciousness_state']}")
+print(f"Интенсивность: {status['clarity_intensity']:.2f}")
+
+# Метрики производительности
+metrics = manager.get_metrics()
+print(f"Всего моментов ясности: {metrics.clarity_events_total}")
+print(f"Переходов состояний: {metrics.state_transitions_total}")
+```
+
+#### Ручное тестирование
+```bash
+# Запуск с унифицированной системой ясности
+python -c "
+from src.runtime.loop import run_loop
+from src.state.self_state import SelfState
+from src.experimental.clarity_consciousness_manager import ClarityConsciousnessManager
+import threading
+
+state = SelfState()
+state.stability = 0.9
+state.energy = 0.8
+state.consciousness_level = 0.7
+
+manager = ClarityConsciousnessManager()
+stop_event = threading.Event()
+
+run_loop(
+    state,
+    lambda: None,
+    stop_event=stop_event,
+    enable_unified_clarity_system=True,
+    clarity_consciousness_manager=manager
+)
+"
+```
+
+### Будущие улучшения
+
+1. **Адаптивные алгоритмы**: Машинное обучение для оптимизации условий активации
+2. **Дополнительные типы ясности**: Нейронная, социальная, творческая ясность
+3. **Расширенные состояния**: Медитация, творческий поток, эмпатическое резонанс
+4. **Интеграция с обучением**: Моменты ясности влияют на адаптацию системы
+5. **Внешние триггеры**: Возможность активации извне через API
+6. **Анализ паттернов**: Статистический анализ эффективности состояний
+7. **Персонализация**: Адаптация под индивидуальные паттерны поведения
+
+## Clarity Moments - Система моментов ясности (Legacy)
 
 ### Назначение
 
 **Моменты ясности** - это особые состояния системы Life, которые возникают при определенных условиях (высокая стабильность и энергия) и временно повышают восприимчивость к событиям внешнего мира.
+
+*Примечание: Это устаревшая реализация. Рекомендуется использовать UnifiedClarityConsciousnessSystem для новых проектов.*
 
 ### Архитектурные принципы
 

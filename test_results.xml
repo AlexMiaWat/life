@@ -1,7 +1,38 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="1" failures="0" skipped="0" tests="1" time="10.671" timestamp="2026-01-21T16:59:59.841917+00:00" hostname="53047a212e1d"><testcase classname="" name="src.test.test_reporting" time="0.000"><error message="collection failure">src/test/test_reporting.py:19: in &lt;module&gt;
-    from src.observability.reporting import ReportGenerator
-src/observability/reporting.py:36: in &lt;module&gt;
-    class ReportGenerator:
-src/observability/reporting.py:512: in ReportGenerator
-    def _fig_to_base64(self, fig: plt.Figure) -&gt; str:
-E   AttributeError: 'NoneType' object has no attribute 'Figure'</error></testcase></testsuite></testsuites>
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="5" failures="0" skipped="0" tests="5" time="10.754" timestamp="2026-01-21T18:39:06.796666+00:00" hostname="e9e1e5980140"><testcase classname="" name="src.test.test_executor_agent_integration" time="0.000"><error message="collection failure">ImportError while importing test module '/workspace/src/test/test_executor_agent_integration.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+d:\Space\life\src\test\test_executor_agent_integration.py:10: in &lt;module&gt;
+    ???
+E   ModuleNotFoundError: No module named 'yaml'</error></testcase><testcase classname="" name="src.test.test_new_runtime_integration" time="0.000"><error message="collection failure">ImportError while importing test module '/workspace/src/test/test_new_runtime_integration.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+src/test/test_new_runtime_integration.py:15: in &lt;module&gt;
+    from src.experimental.clarity_moments import ClarityMoments
+E   ModuleNotFoundError: No module named 'src.experimental.clarity_moments'</error></testcase><testcase classname="" name="src.test.test_smoke" time="0.000"><error message="collection failure">ImportError while importing test module '/workspace/src/test/test_smoke.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+src/test/test_smoke.py:18: in &lt;module&gt;
+    from src.experimental.clarity_moments import ClarityMoments
+E   ModuleNotFoundError: No module named 'src.experimental.clarity_moments'</error></testcase><testcase classname="" name="src.test.test_todo_manager_integration" time="0.000"><error message="collection failure">ImportError while importing test module '/workspace/src/test/test_todo_manager_integration.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+d:\Space\life\src\test\test_todo_manager_integration.py:7: in &lt;module&gt;
+    ???
+src/todo_manager.py:7: in &lt;module&gt;
+    import yaml
+E   ModuleNotFoundError: No module named 'yaml'</error></testcase><testcase classname="" name="src.test.test_todo_manager_static" time="0.000"><error message="collection failure">ImportError while importing test module '/workspace/src/test/test_todo_manager_static.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+d:\Space\life\src\test\test_todo_manager_static.py:9: in &lt;module&gt;
+    ???
+E   ModuleNotFoundError: No module named 'yaml'</error></testcase></testsuite></testsuites>

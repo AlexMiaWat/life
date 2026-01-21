@@ -57,8 +57,8 @@ class TestObservabilityIntegration:
         # Шаг 1: Сбор данных состояния
         state_snapshot = state_tracker.collect_state_data(mock_state)
         assert isinstance(state_snapshot, StateSnapshot)
-        assert state_snapshot.energy == 0.8
-        assert state_snapshot.memory_size == 150
+        assert state_snapshot.energy == 0.6  # Используем значение из mock_state
+        assert state_snapshot.memory_size == 150  # Используем значение из episodic_memory
 
         # Шаг 2: Сбор данных компонентов
         component_stats = component_monitor.collect_component_stats(mock_state)
@@ -80,7 +80,7 @@ class TestObservabilityIntegration:
         assert len(state_data) == 1
         assert len(component_data) == 1
 
-        assert state_data[0].data['energy'] == 0.8
+        assert state_data[0].data['energy'] == 0.6
         assert component_data[0].data['memory_episodic_size'] == 150
 
     def test_observation_with_disabled_collection(self):
@@ -288,7 +288,7 @@ class TestObservabilityIntegration:
 
         # Память
         mock_memory = Mock()
-        mock_memory.episodic_memory = [1, 2, 3, 4, 5]
+        mock_memory.episodic_memory = list(range(150))  # 150 элементов для теста
         mock_memory.recent_events = ['a', 'b', 'c']
         mock_state.memory = mock_memory
 

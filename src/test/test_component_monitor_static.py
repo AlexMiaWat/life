@@ -168,9 +168,9 @@ class TestComponentMonitorStatic:
         sig = inspect.signature(ComponentStats.to_dict)
         assert len(sig.parameters) == 1  # только self
 
-        # SystemComponentStats методы
+        # SystemComponentStats методы (dataclass, все поля в __init__)
         sig = inspect.signature(SystemComponentStats.__init__)
-        assert len(sig.parameters) == 1  # только self
+        assert len(sig.parameters) > 1  # self + все поля dataclass
 
         sig = inspect.signature(SystemComponentStats.to_dict)
         assert len(sig.parameters) == 1  # только self

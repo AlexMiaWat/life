@@ -9,7 +9,7 @@ from src.adaptation.adaptation import AdaptationManager
 from src.decision.decision import decide_response
 from src.environment.internal_generator import InternalEventGenerator
 
-# from src.experimental.clarity_moments import ClarityMoments  # Отключено до стабилизации системы
+from src.experimental import AdaptiveProcessingManager, AdaptiveProcessingConfig
 from src.feedback import observe_consequences, register_action
 from src.intelligence.intelligence import process_information
 from src.learning.learning import LearningEngine
@@ -239,10 +239,8 @@ def run_loop(
     disable_adaptation=False,
     # disable_philosophical_analysis=True,  # REMOVED: external tool only
     # disable_philosophical_reports=False,  # REMOVED: external tool only
-    disable_clarity_moments=True,  # Отключено по умолчанию до стабилизации
+    disable_adaptive_processing=False,  # Включено по умолчанию для оптимизации обработки
     enable_memory_hierarchy=True,  # Включение многоуровневой системы памяти (краткосрочная/долгосрочная/архивная)
-    enable_consciousness=False,  # Включение экспериментальной системы сознания
-    enable_parallel_consciousness=False,  # Включение многопоточной модели сознания
     enable_silence_detection=True,  # Включение системы осознания тишины
     enable_passive_observation=False,  # Включение пассивного наблюдения за поведением системы
     observation_collection_interval=10,  # Интервал сбора данных наблюдения (в тиках)
@@ -265,17 +263,15 @@ def run_loop(
         disable_adaptation: Отключить модуль Adaptation
         # disable_philosophical_analysis: REMOVED - external tool only
         # disable_philosophical_reports: REMOVED - external tool only
-        disable_clarity_moments: Отключить систему моментов ясности
+        disable_adaptive_processing: Отключить адаптивную систему обработки
         enable_memory_hierarchy: Включить многоуровневую систему памяти (краткосрочная/долгосрочная/архивная)
-        enable_consciousness: Включить экспериментальную систему сознания
-        enable_parallel_consciousness: Включить многопоточную модель сознания (экспериментально)
         enable_silence_detection: Включить систему осознания тишины
         enable_passive_observation: Включить пассивное наблюдение за поведением системы
         observation_collection_interval: Интервал сбора данных наблюдения (в тиках)
         log_flush_period_ticks: Период сброса логов в тиках
         enable_profiling: Включить профилирование runtime loop с cProfile
     """
-    # Structured logger for observability (инициализируем раньше для ClarityMoments)
+    # Structured logger for observability (инициализируем раньше для AdaptiveProcessingManager)
     structured_logger = StructuredLogger(enabled=not disable_structured_logging)
 
     # Passive observation components (пассивное наблюдение без интерпретации)
@@ -300,15 +296,19 @@ def run_loop(
     engine = MeaningEngine()
     learning_engine = LearningEngine()  # Learning Engine (Этап 14)
     adaptation_manager = AdaptationManager()  # Adaptation Manager (Этап 15)
-    # clarity_moments = (
-    #     ClarityMoments(logger=structured_logger) if not disable_clarity_moments else None
-    # )  # Clarity Moments System
+    # Инициализация адаптивной системы обработки
+    adaptive_processing_manager = (
+        AdaptiveProcessingManager(
+            self_state_provider=lambda: self_state,
+            config=AdaptiveProcessingConfig(),
+            logger=structured_logger
+        ) if not disable_adaptive_processing else None
+    )  # Clarity Moments System
     internal_generator = InternalEventGenerator()  # Internal Event Generator (Memory Echoes)
     pending_actions = []  # Список ожидающих Feedback действий
 
     # Экспериментальные компоненты (опционально)
     memory_hierarchy = None
-    consciousness_engine = None
 
     if enable_memory_hierarchy:
         from src.experimental.memory_hierarchy import MemoryHierarchyManager
@@ -316,34 +316,6 @@ def run_loop(
         memory_hierarchy = MemoryHierarchyManager(logger=structured_logger)
         # Подключение эпизодической памяти к иерархии
         memory_hierarchy.set_episodic_memory(self_state.memory)
-
-    if enable_parallel_consciousness:
-        from src.experimental.consciousness import ParallelConsciousnessEngine
-
-        consciousness_engine = ParallelConsciousnessEngine(
-            self_state_provider=lambda: self_state,
-            decision_history_provider=lambda: getattr(self_state, "decision_history", []),
-            behavior_patterns_provider=lambda: getattr(self_state, "behavior_patterns", []),
-            cognitive_processes_provider=lambda: getattr(self_state, "cognitive_processes", []),
-            optimization_history_provider=lambda: getattr(self_state, "optimization_history", []),
-            logger=structured_logger,
-        )
-        # Сохранить в глобальную переменную для доступа из API
-        import src.main_server_api
-
-        src.main_server_api.global_consciousness_engine = consciousness_engine
-        # Запустить параллельные процессы
-        consciousness_engine.start()
-        structured_logger.log_event(
-            {
-                "event_type": "parallel_consciousness_engine_started",
-                "process_count": len(consciousness_engine.processes),
-            }
-        )
-    elif enable_consciousness:
-        from src.experimental.consciousness import ConsciousnessEngine
-
-        consciousness_engine = ConsciousnessEngine(logger=structured_logger)
 
     # Технический монитор поведения системы
     technical_monitor = TechnicalBehaviorMonitor()
@@ -512,26 +484,44 @@ def run_loop(
                     except Exception as e:
                         logger.warning(f"Failed to collect observation data: {e}")
 
-                # Clarity Moments: Отключено до стабилизации системы
-                # if clarity_moments:
-                #     # Проверяем условия для активации момента ясности
-                #     clarity_event = clarity_moments.check_clarity_conditions(self_state)
-                #     if clarity_event:
-                #         # Создаем событие clarity_moment
-                #         from src.environment.event import Event
-                #         event_obj = Event(
-                #             type="clarity_moment",
-                #             intensity=0.8,  # Высокая интенсивность для clarity
-                #             timestamp=clarity_event['timestamp'],
-                #             metadata=clarity_event['data']
-                #         )
-                #         if event_queue:
-                #             event_queue.push(event_obj)
-                #         # Активируем состояние clarity
-                #         clarity_moments.activate_clarity_moment(self_state)
-                #
-                #     # Обновляем состояние clarity (уменьшаем длительность)
-                #     clarity_moments.update_clarity_state(self_state)
+                # Адаптивная система обработки
+                if adaptive_processing_manager:
+                    try:
+                        # Запускаем менеджер если он еще не запущен
+                        if not getattr(adaptive_processing_manager, '_is_active', False):
+                            adaptive_processing_manager.start()
+
+                        # Обновляем состояние адаптивной обработки
+                        processing_results = adaptive_processing_manager.update(self_state)
+
+                        # Создаем события для значимых режимов обработки
+                        if processing_results.get("processing_events"):
+                            from src.environment.event import Event
+                            for event_data in processing_results["processing_events"]:
+                                if event_data["intensity"] > 0.5:  # Только значимые события
+                                    event_obj = Event(
+                                        type="processing_mode_activated",
+                                        intensity=event_data["intensity"],
+                                        timestamp=time.time(),
+                                        metadata={
+                                            "processing_mode": event_data["mode"],
+                                            "duration": event_data["duration"],
+                                        }
+                                    )
+                                    if event_queue:
+                                        event_queue.push(event_obj)
+
+                        # Логируем переходы состояний
+                        if processing_results.get("state_transitions"):
+                            for transition in processing_results["state_transitions"]:
+                                logger.info(
+                                    f"Adaptive state transition: {transition.get('from_state', 'unknown')} -> {transition.get('to_state', 'unknown')}",
+                                    extra={"transition": transition}
+                                )
+
+                    except Exception as e:
+                        logger.warning(f"Adaptive processing update failed: {e}")
+                        # Продолжаем работу даже при ошибке в экспериментальном компоненте
 
                 # Наблюдаем последствия прошлых действий (Feedback)
                 feedback_records = observe_consequences(self_state, pending_actions, event_queue)
@@ -714,47 +704,6 @@ def run_loop(
                                     else 0
                                 )
 
-                            if consciousness_engine:
-                                if hasattr(consciousness_engine, "update_external_metrics"):
-                                    # Многопоточная версия: обновляем внешние метрики
-                                    consciousness_engine.update_external_metrics(
-                                        energy=self_state.energy,
-                                        stability=self_state.stability,
-                                        cognitive_load=getattr(self_state, "cognitive_load", 0.3),
-                                    )
-                                    # Считываем текущее состояние сознания
-                                    snapshot = consciousness_engine.get_consciousness_snapshot()
-                                    self_state.consciousness_level = snapshot["metrics"][
-                                        "consciousness_level"
-                                    ]
-                                    self_state.self_reflection_score = snapshot["metrics"][
-                                        "self_reflection_score"
-                                    ]
-                                    self_state.meta_cognition_depth = snapshot["metrics"][
-                                        "meta_cognition_depth"
-                                    ]
-                                    self_state.current_consciousness_state = snapshot["metrics"][
-                                        "current_state"
-                                    ]
-                                else:
-                                    # Последовательная версия: рассчитываем каждый тик
-                                    consciousness_level = (
-                                        consciousness_engine.calculate_consciousness_level(
-                                            self_state, events
-                                        )
-                                    )
-                                    self_state.consciousness_level = consciousness_level
-                                    # Определение состояния сознания
-                                    consciousness_state = (
-                                        consciousness_engine.determine_consciousness_state(
-                                            {
-                                                "consciousness_level": consciousness_level,
-                                                "energy": self_state.energy,
-                                                "stability": self_state.stability,
-                                            }
-                                        )
-                                    )
-                                    self_state.current_consciousness_state = consciousness_state
 
                         logger.debug(
                             f"[LOOP] After interpret: energy={self_state.energy:.2f}, stability={self_state.stability:.4f}"
@@ -1104,11 +1053,11 @@ def run_loop(
                 log_manager.maybe_flush(self_state, phase="exception")
 
             finally:
-                # Остановка многопоточной системы сознания
-                if enable_parallel_consciousness and consciousness_engine:
-                    consciousness_engine.stop()
+                # Остановка адаптивной системы обработки
+                if adaptive_processing_manager:
+                    adaptive_processing_manager.stop()
                     structured_logger.log_event(
-                        {"event_type": "parallel_consciousness_engine_stopped"}
+                        {"event_type": "adaptive_processing_manager_stopped"}
                     )
 
                 # Flush логов при завершении (обязательно)

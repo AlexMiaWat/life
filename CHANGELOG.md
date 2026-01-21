@@ -32,6 +32,13 @@
 - **Система сознания:** Экспериментальная модель сознания с уровнями осознанности и количественными метриками
 - **Расширенное SelfState (v2.10):** Новые поля для многоуровневой памяти и сознания (sensory_buffer_size, consciousness_level, etc.)
 - **Расширенное тестирование:** Новые тесты для parameter_history, clarity_moments, subjective_time, new_runtime_integration, memory_hierarchy
+- **Унифицированная система моментов ясности и состояний сознания:** Комплексная интеграция ClarityMoments, ParallelConsciousnessEngine и MemoryHierarchyManager
+- **Множественные типы моментов ясности:** Basic, Cognitive, Emotional, Existential с различными эффектами
+- **Расширенные состояния сознания:** Flow, Deep Reflection, Meta Awareness, Enlightenment с дополнительными требованиями
+- **ClarityConsciousnessManager:** Высокоуровневый менеджер с унифицированным API и адаптивными порогами
+- **ClarityConsciousnessMonitor:** Система мониторинга метрик ясности и состояний сознания
+- **Новые поля SelfState (v2.11):** clarity_type, clarity_intensity, clarity_history, consciousness_state_intensity, state_transition_history
+- **Расширенная система типов:** ClarityType и ConsciousnessState enum с подробными характеристиками
 
 ### Изменено
 - **План task_1768964984:** Переработан план с фокусом на пассивное наблюдение вместо философского анализа

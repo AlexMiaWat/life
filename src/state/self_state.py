@@ -4,7 +4,7 @@ import time
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional, Any, Dict
+from typing import Optional, Any, Dict, List
 
 from src.memory.memory import ArchiveMemory, Memory
 from src.memory.memory_types import MemoryEntry
@@ -113,21 +113,10 @@ class SelfState:
     echo_count: int = 0  # Количество эхо-всплываний
     last_echo_time: float = 0.0  # Время последнего эхо в секундах жизни
 
-    # === Clarity moments parameters ===
-    clarity_state: bool = False  # Флаг активности момента ясности
-    clarity_duration: int = 0  # Оставшаяся длительность момента ясности в тиках
-    clarity_modifier: float = 1.0  # Текущий модификатор значимости для моментов ясности
-
     # === Multi-level memory parameters ===
     sensory_buffer_size: int = 0  # Текущий размер сенсорного буфера
     semantic_concepts_count: int = 0  # Количество семантических концепций
     procedural_patterns_count: int = 0  # Количество процедурных паттернов
-
-    # === Consciousness parameters ===
-    consciousness_level: float = 0.0  # Уровень сознания [0.0-1.0]
-    current_consciousness_state: str = "awake"  # Текущее состояние сознания
-    self_reflection_score: float = 0.0  # Оценка саморефлексии [0.0-1.0]
-    meta_cognition_depth: float = 0.0  # Глубина метакогниции [0.0-1.0]
 
     # Last perceived event intensity (signal for subjective time), in [0..1].
     last_event_intensity: float = 0.0
@@ -136,6 +125,8 @@ class SelfState:
         """Инициализация memory с архивом после создания объекта"""
         if self.memory is None:
             self.memory = Memory(archive=self.archive_memory)
+
+        # Автоматическая миграция устаревших полей для обратной совместимости
         # Помечаем объект как инициализированный после __post_init__
         object.__setattr__(self, "_initialized", True)
 
@@ -213,9 +204,6 @@ class SelfState:
             # Experimental
             "echo_count",
             "last_echo_time",
-            "clarity_state",
-            "clarity_duration",
-            "clarity_modifier",
             # Control
             "active",
             "last_significance",
