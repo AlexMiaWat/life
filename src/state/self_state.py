@@ -111,6 +111,17 @@ class SelfState:
     clarity_duration: int = 0  # Оставшаяся длительность момента ясности в тиках
     clarity_modifier: float = 1.0  # Текущий модификатор значимости для моментов ясности
 
+    # === Multi-level memory parameters ===
+    sensory_buffer_size: int = 0  # Текущий размер сенсорного буфера
+    semantic_concepts_count: int = 0  # Количество семантических концепций
+    procedural_patterns_count: int = 0  # Количество процедурных паттернов
+
+    # === Consciousness parameters ===
+    consciousness_level: float = 0.0  # Уровень сознания [0.0-1.0]
+    current_consciousness_state: str = "awake"  # Текущее состояние сознания
+    self_reflection_score: float = 0.0  # Оценка саморефлексии [0.0-1.0]
+    meta_cognition_depth: float = 0.0  # Глубина метакогниции [0.0-1.0]
+
     # Last perceived event intensity (signal for subjective time), in [0..1].
     last_event_intensity: float = 0.0
 

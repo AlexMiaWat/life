@@ -79,6 +79,8 @@ if __name__ == "__main__":
         disable_structured_logging=False,
         disable_learning=False,
         disable_adaptation=False,
+        enable_memory_hierarchy=False,  # Экспериментальная многоуровневая память отключена по умолчанию
+        enable_consciousness=False,  # Экспериментальная система сознания отключена по умолчанию
         log_flush_period_ticks=10,
         enable_profiling=False,
     )

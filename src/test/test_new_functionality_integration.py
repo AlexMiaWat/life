@@ -2555,6 +2555,8 @@ class TestNewFunctionalityIntegration:
                 disable_learning=True,
                 disable_adaptation=True,
                 disable_clarity_moments=False,  # Включаем clarity moments
+                enable_memory_hierarchy=False,  # Экспериментальная память отключена в тестах
+                enable_consciousness=False,  # Экспериментальная система сознания отключена в тестах
                 log_flush_period_ticks=1000,
                 enable_profiling=False,
             )

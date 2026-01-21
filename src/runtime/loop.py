@@ -31,6 +31,7 @@ ADAPTATION_INTERVAL = 100  # Вызов Adaptation раз в 100 тиков (р�
 ARCHIVE_INTERVAL = 50  # Вызов архивации раз в 50 тиков
 DECAY_INTERVAL = 10  # Вызов затухания весов раз в 10 тиков
 METRICS_COLLECTION_INTERVAL = 100  # Сбор технических метрик раз в 100 тиков
+MEMORY_CONSOLIDATION_INTERVAL = 25  # Консолидация экспериментальной памяти раз в 25 тиков
 
 # Константы для работы с памятью
 MEMORY_DECAY_FACTOR = 0.99  # Фактор затухания весов памяти
@@ -246,6 +247,8 @@ def run_loop(
     # disable_philosophical_analysis=True,  # REMOVED: external tool only
     # disable_philosophical_reports=False,  # REMOVED: external tool only
     disable_clarity_moments=True,  # Отключено по умолчанию до стабилизации
+    enable_memory_hierarchy=False,  # Включение экспериментальной системы памяти
+    enable_consciousness=False,  # Включение экспериментальной системы сознания
     log_flush_period_ticks=10,
     enable_profiling=False,
 ):
@@ -266,6 +269,8 @@ def run_loop(
         # disable_philosophical_analysis: REMOVED - external tool only
         # disable_philosophical_reports: REMOVED - external tool only
         disable_clarity_moments: Отключить систему моментов ясности
+        enable_memory_hierarchy: Включить экспериментальную многоуровневую систему памяти
+        enable_consciousness: Включить экспериментальную систему сознания
         log_flush_period_ticks: Период сброса логов в тиках
         enable_profiling: Включить профилирование runtime loop с cProfile
     """
@@ -282,6 +287,18 @@ def run_loop(
         InternalEventGenerator()
     )  # Internal Event Generator (Memory Echoes)
     pending_actions = []  # Список ожидающих Feedback действий
+
+    # Экспериментальные компоненты (опционально)
+    memory_hierarchy = None
+    consciousness_engine = None
+
+    if enable_memory_hierarchy:
+        from src.experimental.memory_hierarchy import MemoryHierarchyManager
+        memory_hierarchy = MemoryHierarchyManager(logger=structured_logger)
+
+    if enable_consciousness:
+        from src.experimental.consciousness import ConsciousnessEngine
+        consciousness_engine = ConsciousnessEngine(logger=structured_logger)
 
     # Технический монитор поведения системы
     technical_monitor = TechnicalBehaviorMonitor()
@@ -470,6 +487,11 @@ def run_loop(
                     events = event_queue.pop_all()
                     logger.debug(f"[LOOP] POPPED {len(events)} events")
 
+                    # Хук: Добавить события в сенсорный буфер (экспериментальная память)
+                    if memory_hierarchy and events:
+                        for event in events:
+                            memory_hierarchy.add_sensory_event(event)
+
                     # Log events
                     correlation_ids = []
                     for event in events:
@@ -596,6 +618,28 @@ def run_loop(
                                     subjective_timestamp=self_state.subjective_time,
                                 )
                             )
+
+                            # Хук: Обновление экспериментальных метрик SelfState
+                            if memory_hierarchy:
+                                # Обновление размера сенсорного буфера
+                                self_state.sensory_buffer_size = memory_hierarchy.sensory_buffer.buffer_size
+                                # Обновление количества концепций
+                                self_state.semantic_concepts_count = len(memory_hierarchy.semantic_store._concepts) if memory_hierarchy.semantic_store else 0
+                                # Обновление количества паттернов
+                                self_state.procedural_patterns_count = len(memory_hierarchy.procedural_store._patterns) if memory_hierarchy.procedural_store else 0
+
+                            if consciousness_engine:
+                                # Расчет уровня сознания
+                                consciousness_level = consciousness_engine.calculate_consciousness_level(self_state, events)
+                                self_state.consciousness_level = consciousness_level
+                                # Определение состояния сознания
+                                consciousness_state = consciousness_engine.determine_consciousness_state({
+                                    'consciousness_level': consciousness_level,
+                                    'energy': self_state.energy,
+                                    'stability': self_state.stability
+                                })
+                                self_state.current_consciousness_state = consciousness_state
+
                         logger.debug(
                             f"[LOOP] After interpret: energy={self_state.energy:.2f}, stability={self_state.stability:.4f}"
                         )
@@ -760,6 +804,23 @@ def run_loop(
                     except Exception as e:
                         logger.error(
                             f"Ошибка в archive_old_entries: {e}", exc_info=True
+                        )
+
+                # Консолидация экспериментальной памяти
+                # Вызывается раз в MEMORY_CONSOLIDATION_INTERVAL тиков
+                if (memory_hierarchy and
+                    self_state.ticks > 0 and
+                    self_state.ticks % MEMORY_CONSOLIDATION_INTERVAL == 0):
+                    try:
+                        consolidation_stats = memory_hierarchy.consolidate_memory(self_state)
+                        if consolidation_stats['sensory_to_episodic_transfers'] > 0 or consolidation_stats['episodic_to_semantic_transfers'] > 0:
+                            logger.info(
+                                f"[LOOP] Консолидация памяти: sensory→episodic={consolidation_stats['sensory_to_episodic_transfers']}, "
+                                f"episodic→semantic={consolidation_stats['episodic_to_semantic_transfers']}"
+                            )
+                    except Exception as e:
+                        logger.error(
+                            f"Ошибка в консолидации экспериментальной памяти: {e}", exc_info=True
                         )
 
                 # Adaptation (Этап 15) - медленная перестройка поведения на основе статистики Learning

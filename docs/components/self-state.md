@@ -19,7 +19,7 @@ SelfState обеспечивает **потокобезопасность** ме
 - `apply_delta()` - применение относительных изменений
 
 ## Текущий статус
-✅ **Реализован** (v2.7)
+✅ **Реализован** (v2.10)
 *   Файл: [`src/state/self_state.py`](../../src/state/self_state.py)
 *   Реализованы базовые параметры (Vital Parameters).
 *   **v2.0:** Добавлена поддержка архивной памяти (ArchiveMemory), параметры Learning и Adaptation.
@@ -32,6 +32,7 @@ SelfState обеспечивает **потокобезопасность** ме
 *   **v2.7:** Добавлены оптимизации производительности - кэширование сериализации памяти, метрики производительности для save_snapshot, оптимизированная работа с Memory.
 *   **v2.8:** Добавлена система кэширования API сериализации (_api_cache, _api_cache_timestamp), методы get_serialization_metrics(), _create_base_state_dict(), _apply_limits_to_state_dict(), автоматическая инвалидация кэша при изменениях состояния.
 *   **v2.9:** Добавлена система истории изменений параметров (parameter_history, learning_params_history, adaptation_params_history) и методы анализа эволюции (get_parameter_evolution, get_evolution_trends, get_parameter_correlations).
+*   **v2.10:** Добавлены экспериментальные поля для многоуровневой системы памяти (sensory_buffer_size, semantic_concepts_count, procedural_patterns_count) и системы сознания (consciousness_level, current_consciousness_state, self_reflection_score, meta_cognition_depth).
 
 ## Структура состояния
 
@@ -122,6 +123,19 @@ SelfState обеспечивает **потокобезопасность** ме
 #### Memory Echo (Эхо памяти)
 *   `echo_count` (int): Количество эхо-всплываний (по умолчанию 0).
 *   `last_echo_time` (float): Время последнего эхо в секундах жизни (по умолчанию 0.0).
+
+#### Multi-level Memory (Многоуровневая память)
+Параметры для экспериментальной системы многоуровневой памяти по аналогии с когнитивной психологией:
+*   `sensory_buffer_size` (int): Текущий размер сенсорного буфера (по умолчанию 0).
+*   `semantic_concepts_count` (int): Количество семантических концепций (по умолчанию 0).
+*   `procedural_patterns_count` (int): Количество процедурных паттернов (по умолчанию 0).
+
+#### Consciousness (Сознание)
+Параметры для экспериментальной системы сознания с уровнями осознанности:
+*   `consciousness_level` (float): Уровень сознания [0.0-1.0] (по умолчанию 0.0).
+*   `current_consciousness_state` (str): Текущее состояние сознания (по умолчанию "awake").
+*   `self_reflection_score` (float): Оценка саморефлексии [0.0-1.0] (по умолчанию 0.0).
+*   `meta_cognition_depth` (float): Глубина метакогниции [0.0-1.0] (по умолчанию 0.0).
 
 ## Инварианты
 
