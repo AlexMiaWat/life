@@ -37,10 +37,11 @@ class StructuredLogger:
         enable_detailed_logging: bool = False,  # Отключить детальное логирование для производительности
         buffer_size: int = 10000,  # Размер буфера в памяти
         batch_size: int = 50,  # Размер пакета для batch-записи
-        flush_interval: float = 1.0  # Увеличен до 1s для лучшей производительности (был 0.1)
+        flush_interval: float = 1.0,  # Увеличен до 1s для лучшей производительности (был 0.1)
+        async_queue=None  # Для совместимости с тестами
     ):
         """
-        Initialize structured logger with AsyncLogWriter.
+        Initialize structured logger with AsyncLogWriter or external AsyncDataQueue.
 
         Args:
             log_file: Path to JSONL log file (uses config if None)
@@ -51,6 +52,7 @@ class StructuredLogger:
             buffer_size: Размер буфера в памяти для AsyncLogWriter
             batch_size: Размер пакета для batch-записи
             flush_interval: Интервал сброса буфера (секунды)
+            async_queue: Внешняя асинхронная очередь (для тестов)
         """
         if config is None:
             config = get_observability_config()
@@ -65,14 +67,23 @@ class StructuredLogger:
         self._correlation_counter = 0
         self._tick_counter = 0  # Счетчик тиков для интервального логирования
 
-        # AsyncLogWriter для буферизации и batch-записи (<1% overhead)
-        self._async_writer = AsyncLogWriter(
-            log_file=self.log_file,
-            enabled=self.enabled,
-            buffer_size=buffer_size,
-            batch_size=batch_size,
-            flush_interval=flush_interval
-        )
+        # Используем внешнюю очередь если предоставлена, иначе AsyncLogWriter
+        if async_queue is not None:
+            self._async_queue = async_queue
+            self._async_writer = None
+            # Буфер для накопления записей перед отправкой в очередь
+            self._entry_buffer = []
+            self._buffer_flush_interval = flush_interval
+            self._last_buffer_flush = time.time()
+        else:
+            self._async_queue = None
+            self._async_writer = AsyncLogWriter(
+                log_file=self.log_file,
+                enabled=self.enabled,
+                buffer_size=buffer_size,
+                batch_size=batch_size,
+                flush_interval=flush_interval
+            )
 
     def _get_next_correlation_id(self) -> str:
         """Get next correlation ID for tracing chains."""
@@ -84,17 +95,68 @@ class StructuredLogger:
             return f"chain_{self._correlation_counter}"
 
     def _write_log_entry(self, entry: Dict[str, Any]) -> None:
-        """Write a single log entry via AsyncLogWriter (ultra-fast in-memory buffering)."""
+        """Write a single log entry via AsyncLogWriter or external queue."""
         if not self.enabled:
             return
 
-        # Быстрая запись в буфер памяти (0.001ms) - <1% overhead
-        self._async_writer.write_entry(
-            stage=entry.get("stage", "unknown"),
-            correlation_id=entry.get("correlation_id"),
-            event_id=entry.get("event_id"),
-            data=entry.get("data", {})
-        )
+        if self._async_writer is not None:
+            # Быстрая запись в буфер памяти (0.001ms) - <1% overhead
+            self._async_writer.write_entry(
+                stage=entry.get("stage", "unknown"),
+                correlation_id=entry.get("correlation_id"),
+                event_id=entry.get("event_id"),
+                data=entry.get("data", {})
+            )
+        elif self._async_queue is not None:
+            # Накопление записей в буфер для пакетной отправки в очередь
+            self._entry_buffer.append(entry)
+
+            # Проверяем нужно ли сбросить буфер
+            current_time = time.time()
+            if (len(self._entry_buffer) >= 50 or  # batch_size по умолчанию
+                current_time - self._last_buffer_flush >= self._buffer_flush_interval):
+
+                self._flush_buffer_to_queue()
+                self._last_buffer_flush = current_time
+        else:
+            logger.error("No logging backend available")
+
+    def _flush_buffer_to_queue(self) -> None:
+        """Flush accumulated entries to AsyncDataQueue."""
+        if not self._entry_buffer or self._async_queue is None:
+            return
+
+        try:
+            # Преобразовать буфер в JSONL контент
+            json_lines = []
+            for entry in self._entry_buffer:
+                json_line = json.dumps(entry, ensure_ascii=False, default=str) + "\n"
+                json_lines.append(json_line)
+
+            content = "".join(json_lines)
+
+            # Создать операцию записи файла
+            from src.runtime.async_data_queue import DataOperation, DataOperationType
+
+            operation = DataOperation(
+                operation_type=DataOperationType.WRITE_FILE,
+                data={
+                    "filepath": self.log_file,
+                    "content": content,
+                    "mode": "a"  # append mode
+                },
+                priority=5
+            )
+
+            # Поставить в очередь
+            success = self._async_queue.put_nowait(operation)
+            if success:
+                self._entry_buffer.clear()
+            else:
+                logger.warning("Failed to queue log write operation - buffer not cleared")
+
+        except Exception as e:
+            logger.error(f"Failed to flush buffer to queue: {e}")
 
     def log_event(self, event: Any, correlation_id: Optional[str] = None) -> str:
         """
@@ -317,14 +379,23 @@ class StructuredLogger:
     def shutdown(self) -> None:
         """Shutdown the structured logger and cleanup resources."""
         logger.info("Shutting down StructuredLogger...")
-        if hasattr(self, '_async_writer') and self._async_writer:
+        if self._async_writer:
             self._async_writer.shutdown()
+        elif self._async_queue:
+            # Внешняя очередь управляется вызывающим кодом
+            pass
         logger.info("StructuredLogger shutdown complete")
 
     def flush(self) -> None:
         """Force flush all buffered log entries to disk."""
-        if hasattr(self, '_async_writer') and self._async_writer:
+        if self._async_writer:
             self._async_writer.flush()
+        elif self._async_queue:
+            # Сбросить буфер в очередь
+            self._flush_buffer_to_queue()
+            # Внешняя очередь может иметь свой метод flush
+            if hasattr(self._async_queue, 'flush'):
+                self._async_queue.flush()
 
     def get_stats(self) -> Dict[str, Any]:
         """
@@ -333,8 +404,19 @@ class StructuredLogger:
         Returns:
             Dictionary with logging statistics
         """
-        if hasattr(self, '_async_writer') and self._async_writer:
+        if self._async_writer:
             return self._async_writer.get_stats()
+        elif self._async_queue:
+            # Внешняя очередь может иметь свою статистику
+            if hasattr(self._async_queue, 'get_stats'):
+                return self._async_queue.get_stats()
+            else:
+                return {
+                    "enabled": self.enabled,
+                    "correlation_counter": self._correlation_counter,
+                    "tick_counter": self._tick_counter,
+                    "external_queue": True
+                }
         else:
             return {
                 "enabled": self.enabled,

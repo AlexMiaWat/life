@@ -9,7 +9,7 @@ import time
 import logging
 from collections import deque
 from dataclasses import dataclass
-from typing import Deque, List, Optional
+from typing import Deque, List, Optional, Dict, Any
 
 from src.environment.event import Event
 from src.observability.structured_logger import StructuredLogger
@@ -282,3 +282,72 @@ class SensoryBuffer:
         """Получить текущее количество записей в буфере."""
         self._cleanup_expired_entries()
         return len(self._buffer)
+
+    def get_events_by_type(self, event_type: str) -> List[Event]:
+        """
+        Получить события определенного типа из буфера.
+
+        Args:
+            event_type: Тип события для фильтрации
+
+        Returns:
+            Список событий указанного типа
+        """
+        # Очистка перед поиском
+        self._cleanup_expired_entries()
+
+        events = []
+        for entry in self._buffer:
+            if entry.event.type == event_type:
+                events.append(entry.event)
+
+        return events
+
+    def get_buffer_statistics(self) -> Dict[str, Any]:
+        """
+        Получить подробную статистику буфера.
+
+        Returns:
+            Dict со статистикой буфера
+        """
+        current_time = time.time()
+        self._cleanup_expired_entries()  # Обновляем статус перед возвратом
+
+        # Вычисляем статистику
+        event_types = {}
+        intensities = []
+        ages = []
+
+        for entry in self._buffer:
+            # Подсчет типов событий
+            event_type = entry.event.type
+            event_types[event_type] = event_types.get(event_type, 0) + 1
+
+            # Сбор интенсивностей
+            intensities.append(abs(entry.event.intensity))
+
+            # Сбор возрастов записей
+            age = current_time - entry.entry_timestamp
+            ages.append(age)
+
+        # Вычисляем средние значения
+        avg_intensity = sum(intensities) / len(intensities) if intensities else 0.0
+        avg_age = sum(ages) / len(ages) if ages else 0.0
+        max_age = max(ages) if ages else 0.0
+        min_age = min(ages) if ages else 0.0
+
+        return {
+            "total_events": len(self._buffer),
+            "buffer_capacity": self.buffer_size,
+            "utilization_percent": (len(self._buffer) / self.buffer_size) * 100,
+            "event_types_distribution": event_types,
+            "avg_event_intensity": avg_intensity,
+            "avg_event_age": avg_age,
+            "max_event_age": max_age,
+            "min_event_age": min_age,
+            "total_added": self._total_entries_added,
+            "total_processed": self._total_entries_processed,
+            "total_expired": self._total_entries_expired,
+            "current_ttl": self.default_ttl,
+            "is_empty": len(self._buffer) == 0
+        }

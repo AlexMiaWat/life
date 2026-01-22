@@ -1,68 +1,107 @@
 """
-Passive Data Sink - истинно пассивный компонент для сбора данных наблюдений.
+Passive Data Sink - Пассивный приемник данных наблюдений.
 
-Не имеет фоновых потоков, очередей или активного поведения.
-Просто принимает данные при явных вызовах и хранит их в памяти.
+Предоставляет интерфейс для пассивного сбора данных без активной обработки.
+Обеспечивает хранение сырых данных наблюдений в JSONL формате.
 """
 
+import json
 import logging
 import time
+from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Dict, List, Optional
-from threading import Lock
+from uuid import uuid4
 
 logger = logging.getLogger(__name__)
 
 
+@dataclass
 class ObservationData:
     """
-    Структура данных для хранения одного наблюдения.
+    Структура данных наблюдения для пассивного хранения.
     """
+    timestamp: float
+    event_type: str
+    data: Any
+    source: str
+    metadata: Dict[str, Any] = field(default_factory=dict)
 
-    def __init__(
-        self,
-        event_type: str,
-        data: Dict[str, Any],
-        source: str = "unknown",
-        metadata: Optional[Dict[str, Any]] = None
-    ):
-        self.event_type = event_type
-        self.data = data
-        self.source = source
-        self.metadata = metadata or {}
-        self.timestamp = time.time()
+    def to_json_line(self) -> str:
+        """Преобразовать в JSONL строку."""
+        entry = {
+            "timestamp": self.timestamp,
+            "event_type": self.event_type,
+            "data": self.data,
+            "source": self.source,
+            "metadata": self.metadata
+        }
+        return json.dumps(entry, ensure_ascii=False, default=str) + "\n"
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'ObservationData':
+        """Создать объект из словаря."""
+        return cls(
+            timestamp=data.get("timestamp", time.time()),
+            event_type=data.get("event_type", "unknown"),
+            data=data.get("data", {}),
+            source=data.get("source", "unknown"),
+            metadata=data.get("metadata", {})
+        )
 
 
 class PassiveDataSink:
     """
-    Истинно пассивный компонент для сбора данных наблюдений.
+    Пассивный приемник данных наблюдений.
 
-    - Не имеет фоновых потоков
-    - Не имеет очередей
-    - Только принимает данные при явных вызовах
-    - Хранит данные в памяти до явного запроса
-    - Полностью синхронный
+    Обеспечивает:
+    - Хранение сырых данных без обработки
+    - JSONL формат для эффективного хранения
+    - Автоматическое управление размером файлов
+    - Простой интерфейс для добавления данных
     """
 
-    def __init__(self, max_entries: int = 1000):
+    def __init__(
+        self,
+        data_directory: str = "data",
+        observations_file: str = "passive_observations.jsonl",
+        max_file_age_days: int = 30,
+        max_entries: Optional[int] = None,
+        enabled: bool = True
+    ):
         """
-        Инициализация пассивного data sink.
+        Инициализировать пассивный приемник данных.
 
         Args:
-            max_entries: Максимальное количество записей в памяти
+            data_directory: Директория для хранения данных
+            observations_file: Имя файла для наблюдений
+            max_file_age_days: Максимальный возраст файла (дни)
+            max_entries: Максимальное количество записей в памяти (для совместимости с тестами)
+            enabled: Включено ли логирование
         """
+        self.data_directory = Path(data_directory)
+        self.observations_file = observations_file
+        self.max_file_age_days = max_file_age_days
         self.max_entries = max_entries
-        self._entries: List[ObservationData] = []
-        self._lock = Lock()
+        self.enabled = enabled
 
-        logger.info(f"PassiveDataSink initialized with max_entries={max_entries}")
+        # Создать директорию если не существует
+        self.data_directory.mkdir(parents=True, exist_ok=True)
 
-    def receive_data(self, event_type: str, data: Dict[str, Any], source: str = "unknown",
-                    metadata: Optional[Dict[str, Any]] = None) -> None:
+        # Полный путь к файлу наблюдений
+        self.observations_path = self.data_directory / observations_file
+
+        logger.info(f"PassiveDataSink initialized: {self.observations_path}")
+
+    def add_observation(
+        self,
+        event_type: str,
+        data: Any,
+        source: str = "unknown",
+        metadata: Optional[Dict[str, Any]] = None
+    ) -> None:
         """
-        Принять данные наблюдения.
-
-        Этот метод должен вызываться явно внешними компонентами.
-        PassiveDataSink не инициирует сбор данных самостоятельно.
+        Добавить наблюдение в пассивный sink.
 
         Args:
             event_type: Тип события
@@ -70,125 +109,173 @@ class PassiveDataSink:
             source: Источник данных
             metadata: Дополнительные метаданные
         """
-        entry = ObservationData(event_type, data, source, metadata)
+        if not self.enabled:
+            return
 
-        with self._lock:
-            self._entries.append(entry)
+        observation = ObservationData(
+            timestamp=time.time(),
+            event_type=event_type,
+            data=data,
+            source=source,
+            metadata=metadata or {}
+        )
 
-            # Ограничение размера - удаляем старые записи
-            if len(self._entries) > self.max_entries:
-                removed_count = len(self._entries) - self.max_entries
-                self._entries = self._entries[removed_count:]
-                logger.debug(f"PassiveDataSink: removed {removed_count} old entries")
+        try:
+            with open(self.observations_path, "a", encoding="utf-8") as f:
+                f.write(observation.to_json_line())
+        except Exception as e:
+            logger.error(f"Failed to write observation: {e}")
 
-        logger.debug(f"PassiveDataSink: received {event_type} from {source}")
-
-    def get_entries(self, limit: Optional[int] = None, source_filter: Optional[str] = None,
-                   event_type_filter: Optional[str] = None) -> List[ObservationData]:
+    def receive_data(
+        self,
+        event_type: str,
+        data: Any,
+        source: str = "unknown",
+        metadata: Optional[Dict[str, Any]] = None
+    ) -> None:
         """
-        Получить записи наблюдений.
+        Принять данные (алиас для add_observation для совместимости с тестами).
 
         Args:
-            limit: Максимальное количество записей (None для всех)
-            source_filter: Фильтр по источнику
-            event_type_filter: Фильтр по типу события
+            event_type: Тип события
+            data: Данные наблюдения
+            source: Источник данных
+            metadata: Дополнительные метаданные
+        """
+        self.add_observation(event_type, data, source, metadata)
+
+    def get_recent_data(self, limit: Optional[int] = None) -> List[ObservationData]:
+        """
+        Получить недавние данные наблюдений.
+
+        Args:
+            limit: Максимальное количество записей (None - все)
 
         Returns:
-            Список записей наблюдений
+            Список наблюдений
         """
-        with self._lock:
-            entries = self._entries.copy()
+        if not self.observations_path.exists():
+            return []
 
-        # Применяем фильтры
-        if source_filter:
-            entries = [e for e in entries if e.source == source_filter]
-        if event_type_filter:
-            entries = [e for e in entries if e.event_type == event_type_filter]
+        observations = []
+        try:
+            with open(self.observations_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    if line.strip():
+                        try:
+                            data = json.loads(line.strip())
+                            observations.append(ObservationData.from_dict(data))
+                        except json.JSONDecodeError:
+                            logger.warning(f"Invalid JSON line: {line.strip()}")
 
-        # Применяем лимит
-        if limit:
-            entries = entries[-limit:]  # Берем последние записи
+            # Сортировать по времени (новые первыми)
+            observations.sort(key=lambda x: x.timestamp, reverse=True)
 
-        return entries
+            if limit:
+                observations = observations[:limit]
 
-    def clear_entries(self) -> int:
+        except Exception as e:
+            logger.error(f"Failed to read observations: {e}")
+            observations = []
+
+        return observations
+
+    def get_entries(self) -> List[ObservationData]:
         """
-        Очистить все записи.
+        Получить все записи наблюдений.
 
         Returns:
-            Количество удаленных записей
+            Список всех наблюдений
         """
-        with self._lock:
-            count = len(self._entries)
-            self._entries.clear()
+        return self.get_recent_data(limit=None)
 
-        logger.info(f"PassiveDataSink: cleared {count} entries")
-        return count
+    def clear_old_data(self) -> None:
+        """Очистить старые данные на основе max_file_age_days."""
+        if not self.observations_path.exists():
+            return
+
+        try:
+            # Проверить возраст файла
+            stat = self.observations_path.stat()
+            file_age_days = (time.time() - stat.st_mtime) / (24 * 3600)
+
+            if file_age_days > self.max_file_age_days:
+                # Создать backup и очистить файл
+                backup_name = f"{self.observations_file}.{int(time.time())}.backup"
+                backup_path = self.data_directory / backup_name
+
+                self.observations_path.rename(backup_path)
+                logger.info(f"Archived old observations to {backup_path}")
+
+        except Exception as e:
+            logger.error(f"Failed to clear old data: {e}")
 
     def get_stats(self) -> Dict[str, Any]:
         """
-        Получить статистику по хранимым данным.
+        Получить статистику приемника данных.
 
         Returns:
-            Статистика использования
+            Словарь со статистикой
         """
-        with self._lock:
+        if not self.observations_path.exists():
             return {
-                "total_entries": len(self._entries),
-                "max_entries": self.max_entries,
-                "usage_percent": (len(self._entries) / self.max_entries) * 100,
-                "sources": list(set(e.source for e in self._entries)),
-                "event_types": list(set(e.event_type for e in self._entries)),
-                "oldest_timestamp": min((e.timestamp for e in self._entries), default=None),
-                "newest_timestamp": max((e.timestamp for e in self._entries), default=None),
+                "enabled": self.enabled,
+                "file_exists": False,
+                "total_entries": 0,
+                "file_size_bytes": 0
             }
 
-    # Методы для обратной совместимости с тестами
-    def get_recent_data(self, limit: int = 10) -> List[ObservationData]:
-        """
-        Получить недавние данные (для обратной совместимости).
+        try:
+            stat = self.observations_path.stat()
+            entries = self.get_entries()
 
-        Args:
-            limit: Максимальное количество записей
+            return {
+                "enabled": self.enabled,
+                "file_exists": True,
+                "total_entries": len(entries),
+                "file_size_bytes": stat.st_size,
+                "file_age_seconds": time.time() - stat.st_mtime
+            }
 
-        Returns:
-            Список недавних записей
-        """
-        return self.get_entries(limit=limit)
+        except Exception as e:
+            logger.error(f"Failed to get stats: {e}")
+            return {
+                "enabled": self.enabled,
+                "error": str(e)
+            }
 
     def get_statistics(self) -> Dict[str, Any]:
         """
-        Получить статистику (для обратной совместимости).
+        Получить статистику (алиас для get_stats для совместимости с тестами).
 
         Returns:
-            Статистика использования
+            Словарь со статистикой
         """
-        stats = self.get_stats()
-        # Добавляем поля для совместимости с тестами
-        stats["total_received"] = stats["total_entries"]
-        stats["current_entries"] = stats["total_entries"]
-        return stats
+        return self.get_stats()
 
-    def get_data_by_type(self, event_type: str) -> List[ObservationData]:
-        """
-        Получить данные по типу события (для обратной совместимости).
 
-        Args:
-            event_type: Тип события для фильтрации
+# Глобальный экземпляр для совместимости
+_default_passive_sink: Optional[PassiveDataSink] = None
 
-        Returns:
-            Список записей указанного типа
-        """
-        return self.get_entries(event_type_filter=event_type)
 
-    def get_data_by_source(self, source: str) -> List[ObservationData]:
-        """
-        Получить данные по источнику (для обратной совместимости).
+def get_passive_data_sink() -> PassiveDataSink:
+    """
+    Получить глобальный экземпляр пассивного приемника данных.
 
-        Args:
-            source: Источник данных для фильтрации
+    Returns:
+        PassiveDataSink instance
+    """
+    global _default_passive_sink
 
-        Returns:
-            Список записей от указанного источника
-        """
-        return self.get_entries(source_filter=source)
+    if _default_passive_sink is None:
+        from src.config.observability_config import get_observability_config
+        config = get_observability_config()
+
+        _default_passive_sink = PassiveDataSink(
+            data_directory=config.passive_data_sink.data_directory,
+            observations_file=config.passive_data_sink.observations_file,
+            max_file_age_days=config.passive_data_sink.max_file_age_days,
+            enabled=config.passive_data_sink.enabled
+        )
+
+    return _default_passive_sink

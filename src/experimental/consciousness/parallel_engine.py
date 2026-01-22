@@ -325,3 +325,45 @@ class ParallelConsciousnessEngine:
                 "adaptive_state": self.adaptive_manager.get_current_state().value,
                 "processing_stats": self.adaptive_manager.get_processing_statistics()
             }
+
+    def analyze_consciousness_conditions(self) -> Dict[str, Any]:
+        """
+        Анализировать условия сознания на основе текущих метрик и состояния.
+
+        Returns:
+            Dict с анализом условий сознания
+        """
+        with self._lock:
+            # Анализируем текущие метрики для определения условий
+            analysis = {
+                "current_state": self.current_state.name,
+                "level_assessment": "low" if self.metrics.level < 0.3 else "medium" if self.metrics.level < 0.7 else "high",
+                "reflection_capability": "limited" if self.metrics.self_reflection_score < 0.4 else "developing" if self.metrics.self_reflection_score < 0.7 else "advanced",
+                "meta_cognition_depth": "shallow" if self.metrics.meta_cognition_depth < 0.3 else "moderate" if self.metrics.meta_cognition_depth < 0.7 else "deep",
+                "stability_indicators": {
+                    "state_duration_ok": self.metrics.state_duration > 10,
+                    "transitions_reasonable": self.metrics.transitions_count < 100,
+                    "recent_transition_recent": time.time() - (self.metrics.last_transition_time or 0) < 300  # 5 minutes
+                },
+                "recommendations": []
+            }
+
+            # Формируем рекомендации на основе анализа
+            if self.metrics.level < 0.3:
+                analysis["recommendations"].append("Increase consciousness level through focused activities")
+            if self.metrics.self_reflection_score < 0.4:
+                analysis["recommendations"].append("Enhance self-reflection through journaling or meditation")
+            if self.metrics.meta_cognition_depth < 0.3:
+                analysis["recommendations"].append("Deepen meta-cognition through analytical thinking exercises")
+
+            return analysis
+
+    def get_current_state(self) -> ConsciousnessState:
+        """
+        Получить текущее состояние сознания.
+
+        Returns:
+            Текущее состояние сознания
+        """
+        with self._lock:
+            return self.current_state

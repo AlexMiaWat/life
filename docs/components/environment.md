@@ -22,7 +22,10 @@ Thread-safe очередь, куда попадают события из вне
 Runtime Loop забирает все события из очереди в начале каждого такта.
 
 ### 3. EventGenerator (Генератор)
-Инструмент для симуляции внешнего мира. Генерирует случайные события с заданными вероятностями.
+Инструмент для симуляции внешнего мира. Генерирует случайные события с заданными вероятностями и поддерживает систему зависимостей между событиями для создания естественных паттернов.
+
+#### Интеграция с EventDependencyManager
+EventGenerator интегрирован с [`EventDependencyManager`](event_dependency_manager.md) для создания естественных цепочек событий. Система зависимостей анализирует недавнюю историю и модифицирует вероятности генерации новых событий.
 
 ### 4. MemoryEchoSelector (Селектор эхо-памяти)
 Интеллектуальный компонент для выбора воспоминаний из архивной памяти для создания эффекта "эхо-памяти" - спонтанного всплытия старых воспоминаний.
@@ -221,6 +224,34 @@ total = sum(event_counts.values())
 for event_type, count in sorted(event_counts.items()):
     percentage = (count / total) * 100
     print(f"  {event_type}: {count} ({percentage:.1f}%)")
+
+# Работа с системой зависимостей событий
+print("\nСистема зависимостей событий:")
+
+# Получение статистики зависимостей
+dependency_stats = generator.get_dependency_stats()
+print(f"Статистика зависимостей: {dependency_stats}")
+
+# Сброс статистики зависимостей
+generator.reset_dependency_stats()
+print("Статистика зависимостей сброшена")
+
+# Демонстрация влияния зависимостей
+print("\nДемонстрация работы зависимостей:")
+
+# Генерация последовательности событий для создания истории
+for _ in range(5):
+    event = generator.generate()
+    print(f"Сгенерировано: {event.type} (intensity={event.intensity:.2f})")
+
+# Получение модификаторов вероятностей после накопления истории
+modifiers = generator.dependency_manager.get_probability_modifiers()
+if modifiers:
+    print("Текущие модификаторы вероятностей:")
+    for event_type, modifier in sorted(modifiers.items()):
+        print(f"  {event_type}: {modifier:.2f}x")
+else:
+    print("История пуста - модификаторы отсутствуют")
 ```
 
 ### Интеграция с InternalEventGenerator

@@ -54,7 +54,7 @@ class MemoryHierarchyManager:
         self.sensory_buffer = sensory_buffer or SensoryBuffer()
 
         # Интеграция с эпизодической памятью
-        self.episodic_memory = None  # Будет установлено при вызове set_episodic_memory
+        self._episodic_memory = None  # Будет установлено при вызове set_episodic_memory
         self.semantic_store = SemanticMemoryStore(logger=self.logger)  # SemanticMemoryStore
         self.procedural_store = ProceduralMemoryStore(logger=self.logger)  # ProceduralMemoryStore
 
@@ -83,7 +83,7 @@ class MemoryHierarchyManager:
         Args:
             memory: Экземпляр Memory (эпизодическая память)
         """
-        self.episodic_memory = memory
+        self._episodic_memory = memory
         self.logger.log_event(
             {
                 "event_type": "episodic_memory_integrated",
@@ -139,7 +139,7 @@ class MemoryHierarchyManager:
         consolidation_stats["sensory_to_episodic_transfers"] = sensory_transfers
 
         # Консолидация episodic → semantic (пока заглушка)
-        if self.episodic_memory and self.semantic_store:
+        if self._episodic_memory and self.semantic_store:
             semantic_transfers = self._consolidate_episodic_to_semantic(self_state)
             consolidation_stats["episodic_to_semantic_transfers"] = semantic_transfers
 
@@ -182,7 +182,7 @@ class MemoryHierarchyManager:
                 {
                     "event_type": "debug_sensory_consolidation",
                     "events_count": len(sensory_events),
-                    "episodic_memory_available": self.episodic_memory is not None,
+                    "episodic_memory_available": self._episodic_memory is not None,
                 }
             )
 
@@ -213,7 +213,7 @@ class MemoryHierarchyManager:
                     "processing_count": processing_count,
                     "threshold": self.SENSORY_TO_EPISODIC_THRESHOLD,
                     "should_transfer": should_transfer,
-                    "episodic_memory_available": self.episodic_memory is not None,
+                    "episodic_memory_available": self._episodic_memory is not None,
                 }
             )
 
@@ -227,11 +227,11 @@ class MemoryHierarchyManager:
                 )
 
                 # Добавляем в эпизодическую память (если доступна)
-                if self.episodic_memory is not None:
-                    if hasattr(self.episodic_memory, 'append'):
-                        self.episodic_memory.append(memory_entry)
-                    elif hasattr(self.episodic_memory, 'add_entry'):
-                        self.episodic_memory.add_entry(memory_entry)
+                if self._episodic_memory is not None:
+                    if hasattr(self._episodic_memory, 'append'):
+                        self._episodic_memory.append(memory_entry)
+                    elif hasattr(self._episodic_memory, 'add_entry'):
+                        self._episodic_memory.add_entry(memory_entry)
                     transfers_count += 1
                     self._transfer_stats["sensory_to_episodic"] += 1
 
@@ -339,8 +339,8 @@ class MemoryHierarchyManager:
                 "available": self.sensory_buffer is not None,
             },
             "episodic_memory": {
-                "available": self.episodic_memory is not None,
-                "status": "integrated" if self.episodic_memory is not None else "not_integrated",
+                "available": self._episodic_memory is not None,
+                "status": "integrated" if self._episodic_memory is not None else "not_integrated",
             },
             "semantic_store": {
                 "available": self.semantic_store is not None,
@@ -372,7 +372,7 @@ class MemoryHierarchyManager:
         if level == "sensory":
             return self.sensory_buffer.peek_events(query_params.get("max_events"))
         elif level == "episodic":
-            if self.episodic_memory:
+            if self._episodic_memory:
                 # TODO: Реализовать запрос к эпизодической памяти
                 return []
             else:
@@ -405,3 +405,30 @@ class MemoryHierarchyManager:
         }
 
         self.logger.log_event({"event_type": "memory_hierarchy_reset"})
+
+    @property
+    def episodic_memory(self):
+        """
+        Получить эпизодическую память.
+
+        Returns:
+            Экземпляр эпизодической памяти или None
+        """
+        return self._episodic_memory
+
+    @episodic_memory.setter
+    def episodic_memory(self, memory):
+        """
+        Установить эпизодическую память.
+
+        Args:
+            memory: Экземпляр эпизодической памяти
+        """
+        self._episodic_memory = memory
+        if memory is not None:
+            self.logger.log_event(
+                {
+                    "event_type": "episodic_memory_integrated_via_property",
+                    "memory_entries_count": len(memory) if hasattr(memory, '__len__') else 0,
+                }
+            )

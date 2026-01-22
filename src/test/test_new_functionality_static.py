@@ -16,9 +16,9 @@ from unittest.mock import Mock, patch
 from pathlib import Path
 
 # Импорты observability компонентов
-from src.observability.passive_data_sink import PassiveDataSink
+from src.observability.passive_data_sink import PassiveDataSink, ObservationData
 from src.observability.async_data_sink import AsyncDataSink
-# from src.observability.raw_data_access import RawDataAccess  # Module not found
+from src.observability.raw_data_access import RawDataAccess
 
 # Импорты experimental компонентов
 from src.experimental.clarity_moments import ClarityMoments, ClarityMoment, ClarityMomentsTracker
@@ -307,11 +307,16 @@ class TestRawDataAccess:
         mock_sink = Mock()
         current_time = time.time()
 
-        mock_data = [
-            ObservationData(current_time - 1, "event_a", {"id": 1}, "source_1"),
-            ObservationData(current_time - 2, "event_b", {"id": 2}, "source_1"),
-            ObservationData(current_time - 3, "event_a", {"id": 3}, "source_2"),
-        ]
+        # Создаем mock данные вручную
+        mock_data = []
+        for i, (offset, event_type, data, source) in enumerate([
+            (1, "event_a", {"id": 1}, "source_1"),
+            (2, "event_b", {"id": 2}, "source_1"),
+            (3, "event_a", {"id": 3}, "source_2"),
+        ]):
+            entry = ObservationData(event_type, data, source)
+            entry.timestamp = current_time - offset  # Перезаписываем timestamp
+            mock_data.append(entry)
         mock_sink.get_recent_data.return_value = mock_data
 
         access.add_data_source(mock_sink)
@@ -338,11 +343,16 @@ class TestRawDataAccess:
         current_time = time.time()
         mock_sink = Mock()
 
-        mock_data = [
-            ObservationData(current_time - 10, "event", {"id": 1}, "source"),  # Старое
-            ObservationData(current_time - 5, "event", {"id": 2}, "source"),   # В интервале
-            ObservationData(current_time - 1, "event", {"id": 3}, "source"),   # В интервале
-        ]
+        # Создаем mock данные
+        mock_data = []
+        for offset, event_type, data, source in [
+            (10, "event", {"id": 1}, "source"),  # Старое
+            (5, "event", {"id": 2}, "source"),   # В интервале
+            (1, "event", {"id": 3}, "source"),   # В интервале
+        ]:
+            entry = ObservationData(event_type, data, source)
+            entry.timestamp = current_time - offset
+            mock_data.append(entry)
         mock_sink.get_recent_data.return_value = mock_data
 
         access.add_data_source(mock_sink)
@@ -357,9 +367,7 @@ class TestRawDataAccess:
 
         # Создаем mock данные
         mock_sink = Mock()
-        mock_data = [
-            ObservationData(time.time(), "test_event", {"key": "value"}, "test_source")
-        ]
+        mock_data = [ObservationData("test_event", {"key": "value"}, "test_source")]
         mock_sink.get_recent_data.return_value = mock_data
         access.add_data_source(mock_sink)
 
@@ -369,12 +377,12 @@ class TestRawDataAccess:
         assert '"event_type": "test_event"' in json_data
 
         # Экспорт в JSONL
-        jsonl_data = access.export_data(format='jsonl')
+        jsonl_data = access.export_data(format_type='jsonl')
         assert isinstance(jsonl_data, str)
         assert '"event_type": "test_event"' in jsonl_data
 
         # Экспорт в CSV
-        csv_data = access.export_data(format='csv')
+        csv_data = access.export_data(format_type='csv')
         assert isinstance(csv_data, str)
         assert 'test_event' in csv_data
 
@@ -383,7 +391,7 @@ class TestRawDataAccess:
         access = RawDataAccess()
 
         with pytest.raises(ValueError, match="Unsupported format"):
-            access.export_data(format='invalid')
+            access.export_data(format_type='invalid')
 
     def test_get_event_type_distribution(self):
         """Тест получения распределения типов событий."""
@@ -391,9 +399,9 @@ class TestRawDataAccess:
 
         mock_sink = Mock()
         mock_data = [
-            ObservationData(time.time(), "event_a", {}, "source"),
-            ObservationData(time.time(), "event_a", {}, "source"),
-            ObservationData(time.time(), "event_b", {}, "source"),
+            ObservationData("event_a", {}, "source"),
+            ObservationData("event_a", {}, "source"),
+            ObservationData("event_b", {}, "source"),
         ]
         mock_sink.get_recent_data.return_value = mock_data
         access.add_data_source(mock_sink)
@@ -407,7 +415,7 @@ class TestRawDataAccess:
         access = RawDataAccess()
 
         mock_sink = Mock()
-        mock_data = [ObservationData(time.time(), f"event_{i}", {}, "source") for i in range(10)]
+        mock_data = [ObservationData(f"event_{i}", {}, "source") for i in range(10)]
         mock_sink.get_recent_data.return_value = mock_data
         access.add_data_source(mock_sink)
 

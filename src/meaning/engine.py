@@ -198,12 +198,12 @@ class MeaningEngine:
 
         # Контекстуальная модификация на основе состояния
         # Если integrity низкая — даже малые события становятся важнее
-        integrity = getattr(self_state, "integrity", 1.0)
+        integrity = self_state.get("integrity", 1.0) if isinstance(self_state, dict) else getattr(self_state, "integrity", 1.0)
         if integrity < self.LOW_INTEGRITY_THRESHOLD:
             significance *= self.LOW_INTEGRITY_SIGNIFICANCE_MULTIPLIER
 
         # Если stability низкая — события ощущаются сильнее
-        stability = getattr(self_state, "stability", 1.0)
+        stability = self_state.get("stability", 1.0) if isinstance(self_state, dict) else getattr(self_state, "stability", 1.0)
         if stability < 0.5:
             significance *= 1.2
 
@@ -218,13 +218,11 @@ class MeaningEngine:
 
         # ИНТЕГРАЦИЯ: Модификация на основе моментов ясности
         # Если активен момент ясности, усиливаем значимость событий
-        clarity_state = getattr(self_state, "clarity_state", False)
+        clarity_state = self_state.get("clarity_state", False) if isinstance(self_state, dict) else getattr(self_state, "clarity_state", False)
         if clarity_state:
             # Коэффициент усиления из ClarityMoments
             clarity_modifier = (
-                getattr(self_state, "clarity_modifier", 1.5)
-                if isinstance(self_state, SelfState)
-                else 1.5
+                self_state.get("clarity_modifier", 1.5) if isinstance(self_state, dict) else getattr(self_state, "clarity_modifier", 1.5)
             )
             significance *= clarity_modifier
 
@@ -381,7 +379,7 @@ class MeaningEngine:
             return "ignore"
 
         # При высокой стабильности — ослабление эффектов
-        stability = getattr(self_state, "stability", 1.0)
+        stability = self_state.get("stability", 1.0) if isinstance(self_state, dict) else getattr(self_state, "stability", 1.0)
         if stability > 0.8:
             return "dampen"
 
@@ -528,9 +526,9 @@ class MeaningEngine:
             energy = self_state.get("energy", 100.0)
             fatigue = self_state.get("fatigue", 0.0)
         else:
-            stability = self_state.stability
-            energy = self_state.energy
-            fatigue = self_state.fatigue
+            stability = getattr(self_state, "stability", 1.0)
+            energy = getattr(self_state, "energy", 100.0)
+            fatigue = getattr(self_state, "fatigue", 0.0)
 
         # Модификация на основе стабильности
         if stability < 0.3:

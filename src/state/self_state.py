@@ -74,6 +74,7 @@ class SelfState:
         default_factory=lambda: ArchiveMemory(load_existing=False, ignore_existing_file=True),
         init=False,
     )  # Архивная память (не сериализуется в snapshot напрямую)
+    memory_entries_by_type: dict = field(default_factory=dict)  # Статистика записей памяти по типам
 
     # Внутренние флаги для контроля инициализации и логирования
     _initialized: bool = field(default=False, init=False, repr=False)

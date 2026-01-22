@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Any
 from pathlib import Path
 
-from logging_config import get_logger
+from src.logging_config import get_logger
 
 logger = get_logger(__name__)
 
@@ -155,6 +155,43 @@ class EnvironmentConfig:
             ),
             "acceptance": EventTypeConfig(
                 weight=0.007, intensity_min=0.0, intensity_max=0.5, description="Принятие состояния"
+            ),
+            # Новые эмоциональные события
+            "joy": EventTypeConfig(
+                weight=0.007, intensity_min=0.0, intensity_max=0.8, description="Радость, положительное эмоциональное состояние"
+            ),
+            "sadness": EventTypeConfig(
+                weight=0.007, intensity_min=-0.7, intensity_max=0.0, description="Грусть, печаль"
+            ),
+            "fear": EventTypeConfig(
+                weight=0.007, intensity_min=-0.8, intensity_max=0.0, description="Страх, тревога"
+            ),
+            "calm": EventTypeConfig(
+                weight=0.007, intensity_min=0.0, intensity_max=0.6, description="Спокойствие, умиротворение"
+            ),
+            # Новые физические события
+            "discomfort": EventTypeConfig(
+                weight=0.007, intensity_min=-0.6, intensity_max=0.0, description="Физический дискомфорт"
+            ),
+            "comfort": EventTypeConfig(
+                weight=0.007, intensity_min=0.0, intensity_max=0.7, description="Физический комфорт"
+            ),
+            "fatigue": EventTypeConfig(
+                weight=0.007, intensity_min=-0.5, intensity_max=0.0, description="Усталость, истощение"
+            ),
+            # Новые временные события
+            "anticipation": EventTypeConfig(
+                weight=0.007, intensity_min=-0.3, intensity_max=0.5, description="Ожидание - может быть положительным или отрицательным"
+            ),
+            "boredom": EventTypeConfig(
+                weight=0.007, intensity_min=-0.4, intensity_max=0.0, description="Скука, отсутствие стимуляции"
+            ),
+            # Новые креативные события
+            "inspiration": EventTypeConfig(
+                weight=0.007, intensity_min=0.0, intensity_max=0.9, description="Вдохновение, творческий подъем"
+            ),
+            "creative_dissonance": EventTypeConfig(
+                weight=0.007, intensity_min=-0.5, intensity_max=0.0, description="Творческий тупик, отсутствие идей"
             ),
         }
 

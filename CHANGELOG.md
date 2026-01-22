@@ -18,7 +18,7 @@
 - **CLI инструменты анализа:** Скрипты `scripts/analyze_logs.py`, `scripts/analyze_large_logs.py`, `scripts/monitor_logs.py`, `scripts/run_analysis_api.py` для командной строки
 - **Оптимизированный анализ больших файлов:** Параллельная обработка с кэшированием и поддержкой экспорта отфильтрованных данных
 - **REST API для анализа:** Сервер анализа на порту 8001 с эндпоинтами `/stats`, `/performance`, `/chains`, `/export`
-- **Активные компоненты observability:** PassiveDataSink для пассивного сбора данных, AsyncDataSink для асинхронного сбора с очередью, RuntimeAnalysisEngine для анализа в реальном времени
+- **Активные компоненты observability:** StructuredLogger для структурированного логирования в runtime, RuntimeAnalysisEngine для синхронного анализа по расписанию
 - **Архитектурные тесты:** Обновлены архитектурные тесты для проверки активной архитектуры observability с четкими границами
 - **Комплексные статические тесты:** Добавлены обширные тесты для компонентов SensoryBuffer, ConsciousnessMetrics, ParallelConsciousnessEngine, MemoryHierarchyManager
 - **Новые тестовые файлы:** `test_architectural_passivity.py`, `test_new_functionality_static.py`, `test_new_functionality_integration.py`, `test_new_functionality_smoke.py`
@@ -28,7 +28,7 @@
 - **Честная документация:** Убраны заявления о "пассивности" - система активно логирует 8+ операций на каждом тике с асинхронной обработкой
 
 ### Изменено
-- **Пассивные компоненты observability:** PassiveDataSink для пассивного сбора данных, AsyncDataSink для асинхронного сбора с буферизацией
+- **Компоненты observability:** Удалены мертвые компоненты PassiveDataSink и AsyncDataSink, которые собирали данные без анализа
 - **Изоляция инструментов анализа:** Инструменты анализа работают постфактум без влияния на runtime loop
 - **Доступ к данным:** RawDataAccess предоставляет низкоуровневый доступ к логам для анализа
 - **API канал среды v2.0:** Полноценный канал для внешних воздействий с пакетными операциями, управлением сценариями, анализом воздействий и конфигурацией среды

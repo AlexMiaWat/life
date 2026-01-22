@@ -58,11 +58,11 @@ class MemoryEchoSelector:
         self.max_age_days = 365.0  # Максимальный возраст для учета (1 год)
 
         # Весовые коэффициенты для разных факторов
-        self.age_weight = 0.25
-        self.significance_weight = 0.35
+        self.age_weight = 0.3
+        self.significance_weight = 0.4
         self.emotional_weight = 0.2
         self.contextual_weight = 0.1
-        self.subjective_time_weight = 0.1  # Новый вес для субъективного времени
+        self.subjective_time_weight = 0.0  # Новый вес для субъективного времени
 
         # Параметры кэширования для оптимизации производительности
         self._candidates_cache: Optional[List[EchoCandidate]] = None

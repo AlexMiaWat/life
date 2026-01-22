@@ -279,6 +279,8 @@ if search_time:
 - `get_events_for_processing()` - получить события для обработки
 - `peek_events()` - просмотреть события без удаления
 - `get_buffer_status()` - получить статистику буфера
+- `get_events_by_type(event_type)` - получить события определенного типа
+- `get_buffer_statistics()` - получить подробную статистику буфера
 
 #### MemoryHierarchyManager класс
 Расположение: `src/experimental/memory_hierarchy/hierarchy_manager.py`
@@ -297,6 +299,7 @@ if search_time:
 - `consolidate_memory(self_state)` - выполнить консолидацию между уровнями
 - `get_hierarchy_status()` - получить статус всей иерархии
 - `query_memory(level, **params)` - запрос к конкретному уровню памяти
+- `episodic_memory` (property) - получить/установить эпизодическую память
 
 ### Уровни памяти
 

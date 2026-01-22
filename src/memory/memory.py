@@ -54,15 +54,41 @@ class ArchiveMemory(EpisodicMemoryInterface):
                 # Если файл поврежден, начинаем с пустого архива
                 self._entries = []
 
-    def add_entry(self, entry: MemoryEntry):
+    def add_entry(self, entry: Optional[MemoryEntry] = None, event_type: Optional[str] = None,
+                  meaning_significance: Optional[float] = None, timestamp: Optional[float] = None,
+                  weight: Optional[float] = None, feedback_data: Optional[Dict] = None,
+                  subjective_timestamp: Optional[float] = None):
         """
         Добавляет запись в архив.
 
         Args:
-            entry: Запись памяти для архивации
+            entry: Запись памяти для архивации (опционально)
+            event_type: Тип события (если entry не передан)
+            meaning_significance: Значимость смысла (если entry не передан)
+            timestamp: Временная метка (если entry не передан)
+            weight: Вес записи (если entry не передан)
+            feedback_data: Данные обратной связи (если entry не передан)
+            subjective_timestamp: Субъективная временная метка (если entry не передан)
         """
-        self._entries.append(entry)
-        self._index_engine.add_entry(entry)
+        if entry is not None:
+            # Используем переданную запись
+            self._entries.append(entry)
+            self._index_engine.add_entry(entry)
+        elif event_type is not None and meaning_significance is not None and timestamp is not None:
+            # Создаем новую запись из параметров
+            from src.memory.memory_types import MemoryEntry
+            new_entry = MemoryEntry(
+                event_type=event_type,
+                meaning_significance=meaning_significance,
+                timestamp=timestamp,
+                weight=weight if weight is not None else 1.0,
+                feedback_data=feedback_data,
+                subjective_timestamp=subjective_timestamp
+            )
+            self._entries.append(new_entry)
+            self._index_engine.add_entry(new_entry)
+        else:
+            raise ValueError("Either entry or (event_type, meaning_significance, timestamp) must be provided")
 
     def add_entries(self, entries: List[MemoryEntry]):
         """

@@ -66,6 +66,7 @@ life/
 │   │   ├── event.py           # [`Event`](src/environment/event.py) - структура события
 │   │   ├── event_queue.py    # [`EventQueue`](src/environment/event_queue.py) - очередь событий (max 100)
 │   │   ├── generator.py      # [`EventGenerator`](src/environment/generator.py) - генератор событий
+│   │   ├── event_dependency_manager.py # [`EventDependencyManager`](src/environment/event_dependency_manager.py) - менеджер зависимостей событий
 │   │   └── generator_cli.py # CLI для отправки событий на API
 │   ├── meaning/
 │   │   ├── meaning.py         # Структура интерпретации (Meaning)
@@ -338,10 +339,11 @@ StructuredLogger интегрирован в [`src/runtime/loop.py`](src/runtime
 **Файл:** [`src/observability/raw_data_access.py`](src/observability/raw_data_access.py)
 
 **Особенности:**
-- Прямой доступ к данным в различных форматах
+- Унифицированный доступ к raw данным из множественных источников
 - Фильтрация и поиск по критериям (источник, тип события, время)
 - Экспорт данных (JSON, JSONL, CSV)
-- Агрегация без модификации оригинальных данных
+- Агрегация и анализ распределения без модификации оригинальных данных
+- Поддержка mock объектов для тестирования
 
 **Методы:**
 - `get_raw_data()` - получение данных с фильтрами

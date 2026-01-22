@@ -45,6 +45,7 @@
 - [**Monitor**](components/monitor.md) — система наблюдения
 - [**API Server**](components/api-server.md) — API для управления
 - [**Environment**](components/environment.md) — внешняя среда
+  - [**EventDependencyManager**](components/event_dependency_manager.md) — менеджер зависимостей событий
 - [**Meaning Engine**](components/meaning-engine.md) — интерпретация событий
 - [**Memory**](components/memory.md) — память (реализовано v2.0)
 - [**Activation**](components/activation.md) — активация памяти (реализовано v1.0)
@@ -56,6 +57,15 @@
 - [**Planning**](components/planning.md) — планирование (реализовано v1.0)
 - [**Intelligence**](components/intelligence.md) — интеллект (реализовано v1.0)
 - [**Comparison System**](components/comparison-system.md) — система сравнения жизней (реализовано v1.0)
+
+### 📊 Observability (Наблюдаемость)
+Компоненты системы наблюдаемости:
+- [**RawDataAccess**](observability/raw_data_access.md) — доступ к raw данным наблюдений
+- [**AsyncDataSink**](observability/async_data_sink.md) — асинхронный сборщик данных (legacy)
+- [**StructuredLogger**](observability/structured_logger.md) — структурированное логирование
+- [**Reporting**](observability/reporting.md) — система отчетов
+- [**Performance Profiling**](observability/performance_profiling.md) — профилирование производительности
+- [**Analysis Tools**](observability/analysis_tools.md) — инструменты анализа
 
 ### 💡 Concepts (Концепции)
 Проектирование следующих этапов:

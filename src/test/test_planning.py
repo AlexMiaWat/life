@@ -3,6 +3,7 @@
 """
 
 import sys
+import math
 from pathlib import Path
 
 project_root = Path(__file__).parent.parent.parent
@@ -145,6 +146,7 @@ class TestRecordPotentialSequences:
         base_state.stability_history = [0.7, 0.6, 0.5]
         base_state.subjective_time = 2.2  # Ускоренное восприятие (ratio >= 1.1)
         base_state.age = 2.0
+        base_state.circadian_phase = math.pi / 2  # "day" phase
 
         record_potential_sequences(base_state)
 
@@ -161,6 +163,7 @@ class TestRecordPotentialSequences:
         base_state.stability_history = [0.7, 0.6, 0.5]
         base_state.subjective_time = 0.8  # Замедленное восприятие (ratio <= 0.9)
         base_state.age = 2.0
+        base_state.circadian_phase = math.pi / 2  # "day" phase
 
         record_potential_sequences(base_state)
 

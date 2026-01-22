@@ -306,6 +306,7 @@ class InternalEventGenerator:
             metadata.update({
                 "memory_active_count": memory_stats.get("active_entries", 0),
                 "memory_archive_count": memory_stats.get("archive_entries", 0),
+                "memory_event_types": memory_stats.get("event_types", []),
             })
 
         return Event(

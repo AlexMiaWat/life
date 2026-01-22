@@ -12,10 +12,17 @@ class Event:
     intensity: float  # Интенсивность: [-1.0, 1.0]
     timestamp: float  # time.time()
     metadata: Optional[Dict[str, Any]] = None  # Опционально: дополнительные данные
+    event_type: Optional[str] = None  # Алиас для type для обратной совместимости
 
     def __post_init__(self):
         if self.metadata is None:
             self.metadata = {}
+        # Обеспечиваем обратную совместимость между type и event_type
+        if self.event_type is None:
+            self.event_type = self.type
+        elif self.type != self.event_type:
+            # Если передан event_type, синхронизируем type
+            self.type = self.event_type
 
     @property
     def data(self) -> Optional[Dict[str, Any]]:

@@ -10,7 +10,7 @@ import statistics
 from pathlib import Path
 
 # Add src to path
-sys.path.insert(0, str(Path(__file__).parent / "src"))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.state.self_state import SelfState
 from src.observability.structured_logger import StructuredLogger
@@ -23,7 +23,7 @@ def create_mock_event(intensity=0.5, event_type="test_event"):
         type=event_type,
         intensity=intensity,
         timestamp=time.time(),
-        data={"test": True}
+        metadata={"test": True}
     )
 
 
@@ -39,7 +39,7 @@ def simulate_runtime_tick(self_state, structured_logger, enable_logging=True):
     queue_size = 5
 
     # Log tick start (every 10th tick simulation)
-    if hasattr(self_state, '_tick_counter'):
+    if structured_logger and hasattr(self_state, '_tick_counter'):
         self_state._tick_counter = getattr(self_state, '_tick_counter', 0) + 1
         if self_state._tick_counter % 10 == 0:
             structured_logger.log_tick_start(self_state.ticks, queue_size)
@@ -48,17 +48,21 @@ def simulate_runtime_tick(self_state, structured_logger, enable_logging=True):
     events = [create_mock_event() for _ in range(3)]
 
     for event in events:
-        correlation_id = structured_logger.log_event(event)
+        if structured_logger:
+            correlation_id = structured_logger.log_event(event)
 
-        # Simulate decision making
-        structured_logger.log_decision(correlation_id)
+            # Simulate decision making
+            structured_logger.log_decision(correlation_id)
 
-        # Simulate action
-        action_id = f"action_{self_state.ticks}_{correlation_id}"
-        structured_logger.log_action(action_id, correlation_id)
+            # Simulate action
+            action_id = f"action_{self_state.ticks}_{correlation_id}"
+            structured_logger.log_action(action_id, correlation_id)
+        else:
+            correlation_id = f"mock_{self_state.ticks}"
 
     # Log tick end (every tick)
-    structured_logger.log_tick_end(self_state.ticks)
+    if structured_logger:
+        structured_logger.log_tick_end(self_state.ticks)
 
     # End timing
     tick_end = time.perf_counter()

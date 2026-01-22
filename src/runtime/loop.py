@@ -285,15 +285,7 @@ def run_loop(
         )
 
     # Инициализация компонентов наблюдения
-    from src.observability.passive_data_sink import PassiveDataSink
-    from src.observability.async_data_sink import AsyncDataSink
     from src.observability.runtime_analysis_engine import RuntimeAnalysisEngine
-
-    passive_sink = PassiveDataSink(max_entries=1000)
-    async_sink = AsyncDataSink(
-        data_directory="data/async_observations",
-        async_queue=async_data_queue  # Используем общую очередь
-    )
 
     # Функция обработки результатов анализа для real-time алертов
     def handle_analysis_results(analysis_type: str, result_data: Dict[str, Any]) -> None:
@@ -328,7 +320,7 @@ def run_loop(
 
     # Добавляем callback для real-time алертов
     analysis_engine.add_result_callback(handle_analysis_results)
-    analysis_engine.start()
+    # Убираем автоматический запуск - анализ будет вызываться по запросу
 
     engine = MeaningEngine()
     learning_engine = LearningEngine()  # Learning Engine (Этап 14)
@@ -484,21 +476,13 @@ def run_loop(
                         else:
                             logger.warning("Failed to queue technical metrics collection")
 
-                        # Дополнительно записываем runtime метрики в AsyncDataSink
-                        async_sink.accept_data_point_async(
-                            event_type="runtime_metrics",
-                            data={
-                                "tick": self_state.ticks,
-                                "energy": self_state.energy,
-                                "stability": self_state.stability,
-                                "integrity": self_state.integrity,
-                                "memory_size": len(self_state.memory),
-                                "event_queue_size": event_queue.size() if event_queue else 0,
-                                "pending_actions": len(pending_actions),
-                            },
-                            source="runtime_loop",
-                            metadata={"metrics_collection_interval": METRICS_COLLECTION_INTERVAL}
-                        )
+                        # Запускаем анализ логов для получения рекомендаций
+                        try:
+                            analysis_results = analysis_engine.trigger_immediate_analysis()
+                            if analysis_results:
+                                logger.debug(f"Runtime analysis completed: {list(analysis_results.keys())}")
+                        except Exception as e:
+                            logger.warning(f"Failed to run runtime analysis: {e}")
 
                     except Exception as e:
                         logger.warning(f"Failed to queue technical metrics collection: {e}")
@@ -697,26 +681,6 @@ def run_loop(
                                 )
                             )
 
-                            # Записываем в PassiveDataSink для внешнего наблюдения
-                            passive_sink.receive_data(
-                                event_type="action_executed",
-                                data={
-                                    "action_id": action_id,
-                                    "pattern": pattern,
-                                    "event_type": event.type,
-                                    "significance": meaning.significance,
-                                    "state_change": {
-                                        "energy_delta": self_state.energy - state_before["energy"],
-                                        "stability_delta": self_state.stability - state_before["stability"],
-                                        "integrity_delta": self_state.integrity - state_before["integrity"],
-                                    }
-                                },
-                                source="runtime_loop",
-                                metadata={
-                                    "tick": self_state.ticks,
-                                    "correlation_id": correlation_id
-                                }
-                            )
 
                             # Хук: Обновление экспериментальных метрик SelfState
                             if memory_hierarchy:
@@ -1109,8 +1073,6 @@ def run_loop(
                         {"event_type": "adaptive_processing_manager_stopped"}
                     )
 
-                # Остановка движка анализа
-                analysis_engine.stop()
 
                 # Flush логов при завершении (обязательно)
                 log_manager.maybe_flush(self_state, phase="shutdown")

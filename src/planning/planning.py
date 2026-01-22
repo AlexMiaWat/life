@@ -43,41 +43,33 @@ def record_potential_sequences(self_state: SelfState) -> None:
         planning_horizon = 0.5  # Минимальный горизонт планирования
 
     # Модификация параметров фиксации на основе восприятия времени и циркадных ритмов
-    base_min_length = 2
-    base_max_sequences = 1
-
-    # Корректировка на основе восприятия времени с учетом моментов ясности
-    time_modifier = 1.0
-    clarity_modifier = 1.0
-
     # Проверяем, активен ли момент ясности
     clarity_active = getattr(self_state, 'clarity_moment_active', False)
-    if clarity_active:
-        clarity_modifier = 1.3  # Моменты ясности расширяют горизонты планирования
 
-    # Более плавная корректировка на основе конкретного значения time_ratio
-    if time_ratio > 1.2:
-        time_modifier = 1.6 * clarity_modifier  # Значительно ускоренное восприятие
-    elif time_ratio > 1.1:
-        time_modifier = 1.3 * clarity_modifier  # Умеренно ускоренное восприятие
-    elif time_ratio < 0.8:
-        time_modifier = 0.5 * clarity_modifier  # Значительно замедленное восприятие
-    elif time_ratio < 0.9:
-        time_modifier = 0.8 * clarity_modifier  # Умеренно замедленное восприятие
+    # Определяем параметры на основе восприятия времени
+    if time_ratio >= 1.1:  # Ускоренное восприятие
+        min_sequence_length = 3
+        max_sequences = 2
+    elif time_ratio < 0.9:  # Замедленное восприятие
+        min_sequence_length = 2
+        max_sequences = 1
+    else:  # Нормальное восприятие
+        min_sequence_length = 2
+        max_sequences = 1
 
-    # Финальные параметры с учетом циркадного горизонта
-    min_sequence_length = max(1, int(base_min_length * time_modifier * planning_horizon))
-    max_sequences = max(1, int(base_max_sequences * time_modifier * planning_horizon))
 
     # Фиксация последовательностей с модифицированными параметрами
     potential_sequences: List[List[str]] = []
 
     if len(recent_events) >= min_sequence_length:
-        # Создаем последовательности разной длины
-        for length in range(min_sequence_length, len(recent_events) + 1):
-            if len(potential_sequences) >= max_sequences:
+        # Создаем последовательности разной длины из последних событий
+        # Начинаем с минимальной длины и увеличиваем
+        for i in range(max_sequences):
+            current_length = min_sequence_length + i
+            if current_length > len(recent_events):
                 break
-            potential_sequences.append(recent_events[-length:])
+            sequence = recent_events[-current_length:]
+            potential_sequences.append(sequence)
 
     # Записываем в self_state без изменений других полей
     self_state.planning = {
@@ -93,8 +85,8 @@ def record_potential_sequences(self_state: SelfState) -> None:
         "clarity_influenced": clarity_active,
         "subjective_time_integration": {
             "time_ratio": time_ratio,
-            "time_modifier": time_modifier,
-            "clarity_modifier": clarity_modifier,
+            "time_perception": time_perception,
+            "clarity_active": clarity_active,
         },
         "parameters": {
             "min_sequence_length": min_sequence_length,

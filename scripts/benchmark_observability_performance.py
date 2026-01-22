@@ -17,7 +17,6 @@ from unittest.mock import Mock
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root / "src"))
 
-from src.observability.async_data_sink import AsyncDataSink, RawObservationData
 from src.observability.async_log_writer import AsyncLogWriter
 
 
@@ -32,67 +31,12 @@ class PerformanceBenchmark:
         print("🚀 Starting Observability Performance Benchmarks")
         print("=" * 55)
 
-        self.benchmark_data_sink_throughput()
         self.benchmark_log_writer_performance()
         self.benchmark_memory_usage()
-        self.benchmark_disabled_impact()
 
         self.print_summary()
         return self.results
 
-    def benchmark_data_sink_throughput(self):
-        """Benchmark AsyncDataSink throughput."""
-        print("📊 Benchmarking AsyncDataSink throughput...")
-
-        import tempfile
-        with tempfile.TemporaryDirectory() as temp_dir:
-            sink = AsyncDataSink(
-                storage_path=f"{temp_dir}/benchmark_data.jsonl",
-                max_queue_size=10000,
-                enabled=True
-            )
-
-            # Test different batch sizes
-            batch_sizes = [1, 10, 100, 1000]
-            results = {}
-
-            for batch_size in batch_sizes:
-                times = []
-                total_operations = 10000
-
-                for _ in range(total_operations // batch_size):
-                    start_time = time.perf_counter()
-
-                    # Send batch of data
-                    for i in range(batch_size):
-                        data = RawObservationData(
-                            timestamp=time.time(),
-                            data_type="benchmark",
-                            data={"value": i, "batch_size": batch_size}
-                        )
-                        sink.collect_data(data)
-
-                    end_time = time.perf_counter()
-                    times.append(end_time - start_time)
-
-                # Calculate metrics
-                avg_time_per_batch = statistics.mean(times)
-                avg_time_per_operation = avg_time_per_batch / batch_size
-                throughput = batch_size / avg_time_per_batch  # operations per second
-
-                results[batch_size] = {
-                    "avg_time_per_operation_ms": avg_time_per_operation * 1000,
-                    "throughput_ops_per_sec": throughput,
-                    "total_operations": total_operations
-                }
-
-            sink.shutdown()
-            self.results["data_sink_throughput"] = results
-
-            # Print results
-            for batch_size, metrics in results.items():
-                print(f"  Batch {batch_size}: {metrics['avg_time_per_operation_ms']:.3f}ms/op, "
-                      f"{metrics['throughput_ops_per_sec']:.0f} ops/sec")
 
     def benchmark_log_writer_performance(self):
         """Benchmark AsyncLogWriter performance for <1% overhead."""
@@ -218,43 +162,6 @@ class PerformanceBenchmark:
             print(f"  Memory overhead: {results['memory_overhead_mb']:.1f} MB")
             print(f"  Memory leak: {results['memory_leak_mb']:.1f} MB")
 
-    def benchmark_disabled_impact(self):
-        """Benchmark that disabled observability has zero impact."""
-        print("🚫 Benchmarking disabled observability impact...")
-
-        # Test that disabled components don't start threads or consume resources
-        sink_disabled = AsyncDataSink(enabled=False)
-        observer_disabled = AsyncPassiveObserver(enabled=False)
-
-        # Quick operations should succeed instantly
-        start_time = time.perf_counter()
-
-        for i in range(1000):
-            data = RawObservationData(
-                timestamp=time.time(),
-                data_type="disabled_test",
-                data={"value": i}
-            )
-            sink_disabled.collect_data(data)
-
-        end_time = time.perf_counter()
-        disabled_time = end_time - start_time
-
-        # Cleanup
-        sink_disabled.shutdown()
-        observer_disabled.shutdown()
-
-        results = {
-            "disabled_operations_time_ms": disabled_time * 1000,
-            "avg_time_per_disabled_operation_us": (disabled_time / 1000) * 1000000,
-            "observer_thread_started": observer_disabled._observer_thread is not None
-        }
-
-        self.results["disabled_impact"] = results
-
-        print(f"  Disabled operations time: {results['disabled_operations_time_ms']:.3f} ms")
-        print(f"  Avg time per operation: {results['avg_time_per_disabled_operation_us']:.1f} μs")
-        print(f"  Observer thread started: {results['observer_thread_started']}")
 
     def print_summary(self):
         """Print benchmark summary."""
