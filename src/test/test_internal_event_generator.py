@@ -47,8 +47,8 @@ class TestInternalEventGenerator:
         assert event.timestamp > 0
         assert event.metadata is not None
         assert event.metadata.get("internal") is True
-        assert event.metadata.get("source") == "spontaneous_recall"
-        assert event.metadata.get("echo_type") == "random_memory"
+        assert event.metadata.get("source") == "basic_fallback"  # Без context_state используется fallback
+        assert event.metadata.get("echo_type") == "abstract_memory"
 
     def test_generate_memory_echo_with_stats(self):
         """Тест генерации с статистикой памяти"""
@@ -59,7 +59,7 @@ class TestInternalEventGenerator:
             "event_types": ["decay", "recovery", "shock"],
         }
 
-        event = generator.generate_memory_echo(memory_stats)
+        event = generator.generate_memory_echo(memory_stats=memory_stats)
 
         assert event is not None
         assert event.metadata.get("memory_active_count") == 25
@@ -140,5 +140,5 @@ class TestInternalEventGenerator:
         # Все события должны иметь одинаковую базовую структуру metadata
         for event in events:
             assert event.metadata["internal"] is True
-            assert event.metadata["source"] == "spontaneous_recall"
-            assert event.metadata["echo_type"] == "random_memory"
+            assert event.metadata["source"] == "basic_fallback"  # Без context_state используется fallback
+            assert event.metadata["echo_type"] == "abstract_memory"

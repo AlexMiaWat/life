@@ -43,7 +43,7 @@ class TestEventGenerator:
             event = generator.generate()
             event_types.add(event.type)
 
-        # Должны быть все базовые типы + новые социальные, когнитивные, экзистенциальные
+        # Должны быть все базовые типы + новые социальные, когнитивные, экзистенциальные, эмоциональные
         # memory_echo имеет вес 0.0, поэтому генерируется только внутренне
         expected_types = {
             "noise",
@@ -69,6 +69,17 @@ class TestEventGenerator:
             "meaning_found",
             "void",
             "acceptance",
+            "joy",
+            "sadness",
+            "fear",
+            "calm",
+            "discomfort",
+            "comfort",
+            "fatigue",
+            "anticipation",
+            "boredom",
+            "inspiration",
+            "creative_dissonance",
         }
         assert event_types == expected_types
 
@@ -136,17 +147,15 @@ class TestEventGenerator:
     def test_generate_event_distribution(self, generator):
         """Тест распределения типов событий (статистический)"""
         event_counts = {}
-        total = 1000
+        total = 5000  # Увеличиваем для покрытия редких типов
 
         for _ in range(total):
             event = generator.generate()
             event_counts[event.type] = event_counts.get(event.type, 0) + 1
 
-        # Проверяем, что все 23 типа генерируются (5 базовых + 10 старых новых + 8 новых)
+        # Проверяем, что большинство типов генерируются (34 типа с ненулевым весом)
         # memory_echo имеет вес 0.0, поэтому не генерируется обычным генератором
-        assert len(event_counts) == 23
-
-        # Проверяем наличие всех ожидаемых типов
+        # Для редких типов (вес < 0.01) проверяем, что они появляются хотя бы раз
         expected_types = {
             "noise",
             "decay",
@@ -171,8 +180,27 @@ class TestEventGenerator:
             "meaning_found",
             "void",
             "acceptance",
+            "joy",
+            "sadness",
+            "fear",
+            "calm",
+            "discomfort",
+            "comfort",
+            "fatigue",
+            "anticipation",
+            "boredom",
+            "inspiration",
+            "creative_dissonance",
         }
-        assert set(event_counts.keys()) == expected_types
+
+        # Проверяем, что все ожидаемые типы появляются хотя бы раз
+        generated_types = set(event_counts.keys())
+        missing_types = expected_types - generated_types
+        assert len(missing_types) == 0, f"Missing event types: {missing_types}"
+
+        # Проверяем, что не генерируются неожиданные типы (кроме memory_echo)
+        unexpected_types = generated_types - expected_types - {"memory_echo"}
+        assert len(unexpected_types) == 0, f"Unexpected event types: {unexpected_types}"
 
         # Проверяем ожидаемое распределение (noise должен быть чаще)
         assert event_counts.get("noise", 0) > event_counts.get("shock", 0)
