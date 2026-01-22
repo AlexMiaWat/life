@@ -9,6 +9,12 @@ from typing import Optional, Any, Dict, List
 from src.memory.memory import ArchiveMemory, Memory
 from src.memory.memory_types import MemoryEntry
 from src.validation.field_validator import FieldValidator
+from .components.identity_state import IdentityState
+from .components.physical_state import PhysicalState
+from .components.time_state import TimeState
+from .components.memory_state import MemoryState
+from .components.cognitive_state import CognitiveState
+from .components.event_state import EventState
 
 # Папка для снимков
 SNAPSHOT_DIR = Path("data/snapshots")
@@ -47,34 +53,41 @@ class SelfState:
     # Thread-safety lock для API доступа
     _api_lock: threading.RLock = field(default_factory=threading.RLock, init=False, repr=False)
 
-    life_id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    birth_timestamp: float = field(default_factory=time.time)
-    age: float = 0.0
-    # Subjective time ("internal lived time"), seconds on internal scale.
-    # Must be monotonic (non-decreasing) and computed deterministically from state + signals.
-    subjective_time: float = 0.0
-    ticks: int = 0
-    energy: float = 100.0
-    integrity: float = 1.0
-    stability: float = 1.0
-    fatigue: float = 0.0
-    tension: float = 0.0
-    _active: bool = True  # Внутреннее поле для active
-    recent_events: list = field(default_factory=list)
-    last_significance: float = 0.0
-    energy_history: list = field(default_factory=list)
-    stability_history: list = field(default_factory=list)
+    # Композиция состояния через специализированные компоненты
+    identity: IdentityState = field(default_factory=IdentityState)
+    physical: PhysicalState = field(default_factory=PhysicalState)
+    time: TimeState = field(default_factory=TimeState)
+    memory_state: MemoryState = field(default_factory=MemoryState)
+    cognitive: CognitiveState = field(default_factory=CognitiveState)
+    events: EventState = field(default_factory=EventState)
+
+    # История изменений параметров (для обратной совместимости и анализа эволюции)
     parameter_history: list[ParameterChange] = field(
         default_factory=list
-    )  # История изменений всех параметров для анализа эволюции
-    planning: Dict[str, Any] = field(default_factory=dict)
-    intelligence: Dict[str, Any] = field(default_factory=dict)
-    memory: Optional[Memory] = field(default=None)  # Активная память с поддержкой архивации
-    archive_memory: ArchiveMemory = field(
-        default_factory=lambda: ArchiveMemory(load_existing=False, ignore_existing_file=True),
-        init=False,
-    )  # Архивная память (не сериализуется в snapshot напрямую)
-    memory_entries_by_type: dict = field(default_factory=dict)  # Статистика записей памяти по типам
+    )
+
+    # === Устаревшие поля для обратной совместимости ===
+    # Эти поля будут автоматически синхронизироваться с компонентами
+    life_id: str = field(init=False)
+    birth_timestamp: float = field(init=False)
+    age: float = field(init=False)
+    subjective_time: float = field(init=False)
+    ticks: int = field(init=False)
+    energy: float = field(init=False)
+    integrity: float = field(init=False)
+    stability: float = field(init=False)
+    fatigue: float = field(init=False)
+    tension: float = field(init=False)
+    _active: bool = field(init=False)
+    recent_events: list = field(init=False)
+    last_significance: float = field(init=False)
+    energy_history: list = field(init=False)
+    stability_history: list = field(init=False)
+    planning: Dict[str, Any] = field(init=False)
+    intelligence: Dict[str, Any] = field(init=False)
+    memory: Optional[Memory] = field(init=False)
+    archive_memory: ArchiveMemory = field(init=False)
+    memory_entries_by_type: dict = field(init=False)
 
     # Внутренние флаги для контроля инициализации и логирования
     _initialized: bool = field(default=False, init=False, repr=False)
@@ -128,13 +141,50 @@ class SelfState:
     last_event_intensity: float = 0.0
 
     def __post_init__(self):
-        """Инициализация memory с архивом после создания объекта"""
-        if self.memory is None:
-            self.memory = Memory(archive=self.archive_memory)
+        """Инициализация компонентов и синхронизация устаревших полей для обратной совместимости"""
+        # Инициализация компонентов
+        if self.memory_state.memory is None:
+            self.memory_state.memory = Memory(archive=self.memory_state.archive_memory)
 
-        # Автоматическая миграция устаревших полей для обратной совместимости
+        # Синхронизация устаревших полей с компонентами (для обратной совместимости)
+        self._sync_legacy_fields()
+
         # Помечаем объект как инициализированный после __post_init__
         object.__setattr__(self, "_initialized", True)
+
+    def _sync_legacy_fields(self) -> None:
+        """Синхронизирует устаревшие поля с компонентами состояния."""
+        # Identity
+        object.__setattr__(self, "life_id", self.identity.life_id)
+        object.__setattr__(self, "birth_timestamp", self.identity.birth_timestamp)
+        object.__setattr__(self, "age", self.identity.age)
+        object.__setattr__(self, "ticks", self.identity.ticks)
+        object.__setattr__(self, "_active", self.identity.active)
+
+        # Physical
+        object.__setattr__(self, "energy", self.physical.energy)
+        object.__setattr__(self, "integrity", self.physical.integrity)
+        object.__setattr__(self, "stability", self.physical.stability)
+        object.__setattr__(self, "fatigue", self.physical.fatigue)
+        object.__setattr__(self, "tension", self.physical.tension)
+        object.__setattr__(self, "energy_history", self.physical.energy_history)
+        object.__setattr__(self, "stability_history", self.physical.stability_history)
+
+        # Time
+        object.__setattr__(self, "subjective_time", self.time.subjective_time)
+
+        # Memory
+        object.__setattr__(self, "memory", self.memory_state.memory)
+        object.__setattr__(self, "archive_memory", self.memory_state.archive_memory)
+        object.__setattr__(self, "memory_entries_by_type", self.memory_state.entries_by_type)
+
+        # Cognitive
+        object.__setattr__(self, "planning", self.cognitive.planning)
+        object.__setattr__(self, "intelligence", self.cognitive.intelligence)
+
+        # Events
+        object.__setattr__(self, "recent_events", self.events.recent_events)
+        object.__setattr__(self, "last_significance", self.events.last_significance)
 
     def _invalidate_api_cache(self) -> None:
         """Инвалидирует кэш API сериализации"""

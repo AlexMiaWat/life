@@ -192,7 +192,8 @@ class TestAsyncDataSink:
         with tempfile.TemporaryDirectory() as temp_dir:
             sink = AsyncDataSink(data_directory=temp_dir, enabled=True)
 
-            # AsyncDataSink запускается автоматически в конструкторе если enabled=True
+            # Запуск AsyncDataSink
+            await sink.start()
             assert hasattr(sink, '_processing_thread')
             assert sink._processing_thread and sink._processing_thread.is_alive()
 
@@ -881,7 +882,9 @@ class TestMemoryHierarchyComponents:
 
     def test_memory_hierarchy_manager_initialization(self):
         """Тест инициализации MemoryHierarchyManager."""
-        manager = MemoryHierarchyManager()
+        # Создаем с явным SensoryBuffer для тестирования
+        sensory_buffer = SensoryBuffer(buffer_size=64)
+        manager = MemoryHierarchyManager(sensory_buffer=sensory_buffer)
 
         assert hasattr(manager, 'sensory_buffer')
         assert hasattr(manager, 'episodic_memory')

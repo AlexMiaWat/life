@@ -32,7 +32,7 @@ class FeatureFlags:
     def is_enabled(self, component_name: str) -> bool:
         """
         Проверить, включен ли экспериментальный компонент.
-        Оптимизированная версия с TTL кэшированием.
+        Оптимизированная версия с TTL кэшированием и логированием.
 
         Args:
             component_name: Название компонента
@@ -41,13 +41,17 @@ class FeatureFlags:
             True если компонент включен, False иначе
         """
         import time
+        import logging
 
+        logger = logging.getLogger(__name__)
         current_time = time.time()
 
         # Проверяем кэш с TTL
         if (component_name in self._cache and
             current_time - self._cache_timestamp < self._cache_ttl):
-            return self._cache[component_name]
+            cached_value = self._cache[component_name]
+            logger.debug(f"Feature flag '{component_name}' from cache: {cached_value}")
+            return cached_value
 
         try:
             config = self.config_loader.load_config()
@@ -55,13 +59,18 @@ class FeatureFlags:
             experimental_config = features_config.get('experimental', {})
 
             enabled = experimental_config.get(component_name, False)
+
+            # Логируем проверку feature flag для transparency
+            logger.info(f"Feature flag '{component_name}' checked: {enabled}")
+
             self._cache[component_name] = enabled
             self._cache_timestamp = current_time
             return enabled
 
-        except Exception:
+        except Exception as e:
             # В случае ошибки конфигурации, отключаем экспериментальные компоненты
             # Кэшируем False на короткое время для предотвращения частых ошибок
+            logger.warning(f"Error checking feature flag '{component_name}': {e}. Defaulting to False.")
             self._cache[component_name] = False
             self._cache_timestamp = current_time
             return False
@@ -77,6 +86,14 @@ class FeatureFlags:
     def is_sensory_buffer_enabled(self) -> bool:
         """Проверить, включен ли SensoryBuffer."""
         return self.is_enabled('sensory_buffer')
+
+    def is_clarity_moments_enabled(self) -> bool:
+        """Проверить, включены ли Clarity Moments."""
+        return self.is_enabled('clarity_moments')
+
+    def is_parallel_consciousness_enabled(self) -> bool:
+        """Проверить, включен ли Parallel Consciousness Engine."""
+        return self.is_enabled('parallel_consciousness_engine')
 
     def get_all_flags(self) -> Dict[str, Any]:
         """

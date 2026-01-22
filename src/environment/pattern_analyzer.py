@@ -1,215 +1,213 @@
-import time
-from typing import Any, Dict, List, Optional
+"""
+Pattern Analyzer - независимый компонент для анализа паттернов событий.
 
-from .event import Event
-from .event_dependency_manager import EventDependencyManager
+Отвечает за:
+- Анализ повторяющихся паттернов в событиях
+- Вычисление модификаторов на основе паттернов
+- Обнаружение аномалий в последовательностях
+
+Архитектурный контракт:
+- Вход: event_type (str), recent_events (List[str])
+- Выход: модификатор паттерна (float) в диапазоне [0.5, 2.0]
+- Гарантии: детерминированный анализ, thread-safe
+"""
+
+from typing import List, Dict
+from dataclasses import dataclass
+from collections import Counter
+
+
+@dataclass
+class PatternContract:
+    """Контракт для анализа паттернов событий."""
+
+    # Диапазоны входных значений
+    input_ranges = {
+        'recent_events_count': (0, 100),  # Максимум 100 последних событий
+        'analysis_window': (5, 50),       # Окно анализа 5-50 событий
+    }
+
+    # Гарантии выходных значений
+    output_guarantees = {
+        'pattern_modifier': (0.5, 2.0),  # Диапазон модификатора
+        'confidence': (0.0, 1.0),        # Уверенность в анализе
+    }
 
 
 class PatternAnalyzer:
     """
-    Анализатор паттернов событий для предиктивной адаптации интенсивности.
+    Анализатор паттернов событий.
 
-    Отвечает за:
-    - обнаружение паттернов в последовательностях событий
-    - вычисление модификаторов интенсивности на основе паттернов
-    - интеграцию с системой зависимостей событий
+    Обнаруживает:
+    - Повторяющиеся последовательности
+    - Циклические паттерны
+    - Аномалии в частотах
+    - Тренды изменения интенсивности
     """
 
-    def __init__(self, dependency_manager: EventDependencyManager):
+    def __init__(self):
+        self.contract = PatternContract()
+        self.frequency_analyzer = FrequencyAnalyzer()
+        self.sequence_analyzer = SequenceAnalyzer()
+        self.trend_analyzer = TrendAnalyzer()
+
+    def analyze(self, event_type: str, recent_events: List[str]) -> Dict[str, float]:
         """
-        Инициализация анализатора паттернов.
+        Полный анализ паттернов для типа события.
 
         Args:
-            dependency_manager: Менеджер зависимостей событий
-        """
-        self.dependency_manager = dependency_manager
-
-    def analyze_pattern_modifier(self, event_type: str, recent_events: List) -> float:
-        """
-        Анализирует паттерны событий и возвращает модификатор интенсивности.
-        Оптимизированная версия с кэшированием.
-
-        Args:
-            event_type: Тип события для анализа
+            event_type: Тип анализируемого события
             recent_events: Список последних событий
 
         Returns:
-            Модификатор интенсивности на основе паттернов (0.5-2.0)
+            Словарь с результатами анализа:
+            - pattern_modifier: модификатор интенсивности
+            - confidence: уверенность анализа
+            - frequency_factor: фактор частоты
+            - sequence_factor: фактор последовательности
+        """
+        if not recent_events:
+            return {
+                'pattern_modifier': 1.0,
+                'confidence': 0.0,
+                'frequency_factor': 1.0,
+                'sequence_factor': 1.0
+            }
+
+        # Валидация входных данных
+        self._validate_inputs(recent_events)
+
+        try:
+            # Анализ частоты
+            frequency_result = self.frequency_analyzer.analyze(event_type, recent_events)
+
+            # Анализ последовательностей
+            sequence_result = self.sequence_analyzer.analyze(event_type, recent_events)
+
+            # Комбинированный модификатор
+            pattern_modifier = (
+                frequency_result['modifier'] * 0.6 +
+                sequence_result['modifier'] * 0.4
+            )
+
+            # Ограничиваем диапазон
+            min_mod, max_mod = self.contract.output_guarantees['pattern_modifier']
+            pattern_modifier = max(min_mod, min(max_mod, pattern_modifier))
+
+            # Общая уверенность
+            confidence = (frequency_result['confidence'] + sequence_result['confidence']) / 2.0
+
+            return {
+                'pattern_modifier': round(pattern_modifier, 3),
+                'confidence': round(confidence, 3),
+                'frequency_factor': round(frequency_result['modifier'], 3),
+                'sequence_factor': round(sequence_result['modifier'], 3)
+            }
+
+        except Exception as e:
+            print(f"Pattern analysis error for {event_type}: {e}")
+            return {
+                'pattern_modifier': 1.0,
+                'confidence': 0.0,
+                'frequency_factor': 1.0,
+                'sequence_factor': 1.0
+            }
+
+    def _validate_inputs(self, recent_events: List[str]):
+        """Валидация входных данных."""
+        if len(recent_events) > self.contract.input_ranges['recent_events_count'][1]:
+            raise ValueError(f"Too many recent events: {len(recent_events)}")
+
+
+class FrequencyAnalyzer:
+    """Анализатор частоты событий."""
+
+    def analyze(self, event_type: str, recent_events: List[str]) -> Dict[str, float]:
+        """
+        Анализ частоты события в последних событиях.
+
+        Args:
+            event_type: Тип события
+            recent_events: Список последних событий
+
+        Returns:
+            Результат анализа частоты
+        """
+        if not recent_events:
+            return {'modifier': 1.0, 'confidence': 0.0}
+
+        # Подсчет частоты
+        total_events = len(recent_events)
+        event_count = recent_events.count(event_type)
+        frequency = event_count / total_events
+
+        # Базовая частота для сравнения (ожидаемая)
+        expected_frequency = 1.0 / len(set(recent_events)) if recent_events else 0.1
+
+        # Модификатор: редкие события усиливаются, частые - ослабляются
+        if frequency < expected_frequency:
+            modifier = 1.0 + (expected_frequency - frequency) * 2.0  # Усиление редких
+        else:
+            modifier = 1.0 - (frequency - expected_frequency) * 1.5  # Ослабление частых
+
+        # Уверенность растет с количеством событий
+        confidence = min(1.0, total_events / 20.0)
+
+        return {
+            'modifier': modifier,
+            'confidence': confidence
+        }
+
+
+class SequenceAnalyzer:
+    """Анализатор последовательностей событий."""
+
+    def analyze(self, event_type: str, recent_events: List[str]) -> Dict[str, float]:
+        """
+        Анализ последовательностей событий.
+
+        Args:
+            event_type: Тип события
+            recent_events: Список последних событий
+
+        Returns:
+            Результат анализа последовательности
         """
         if len(recent_events) < 3:
-            return 1.0
+            return {'modifier': 1.0, 'confidence': 0.0}
 
-        # Создаем быстрый хэш последних событий для кэширования
-        # Используем только типы событий для хэша (достаточно для паттерн анализа)
-        recent_types = tuple(event.type for event in recent_events[-10:])
-        cache_key = (event_type, recent_types)
+        # Ищем повторяющиеся паттерны
+        pattern_score = 0.0
+        window_size = min(5, len(recent_events))
 
-        # Проверяем кэш паттернов
-        if not hasattr(self, '_pattern_cache'):
-            self._pattern_cache = {}
+        for i in range(len(recent_events) - window_size + 1):
+            window = recent_events[i:i + window_size]
+            if event_type in window:
+                # Проверяем, является ли это повторяющимся паттерном
+                pattern_repeats = 0
+                for j in range(i + window_size, len(recent_events) - window_size + 1, window_size):
+                    next_window = recent_events[j:j + window_size]
+                    if next_window == window:
+                        pattern_repeats += 1
 
-        if cache_key in self._pattern_cache:
-            return self._pattern_cache[cache_key]
+                if pattern_repeats > 0:
+                    pattern_score += 0.2 * pattern_repeats
 
-        # Определяем паттерн (только если не в кэше)
-        pattern = self.dependency_manager.detect_pattern(recent_events[-10:])
+        # Модификатор на основе паттернов
+        modifier = 1.0 + pattern_score
 
-        modifier = 1.0
-        if pattern:
-            # Предварительно вычисленная таблица модификаторов для быстрого доступа
-            pattern_modifiers = self._get_pattern_modifiers_table()
+        # Уверенность
+        confidence = min(1.0, len(recent_events) / 30.0)
 
-            if pattern in pattern_modifiers and event_type in pattern_modifiers[pattern]:
-                modifier = pattern_modifiers[pattern][event_type]
-
-        # Кэшируем результат
-        self._pattern_cache[cache_key] = modifier
-
-        # Ограничиваем размер кэша
-        if len(self._pattern_cache) > 100:
-            # Удаляем случайные 20% записей для предотвращения переполнения
-            import random
-            keys_to_remove = random.sample(list(self._pattern_cache.keys()),
-                                        k=int(len(self._pattern_cache) * 0.2))
-            for key in keys_to_remove:
-                del self._pattern_cache[key]
-
-        return modifier
-
-    def _get_pattern_modifiers_table(self) -> dict:
-        """Возвращает предварительно вычисленную таблицу модификаторов паттернов."""
         return {
-            "confusion_to_insight": {
-                "insight": 1.5,      # Усиливаем озарение в паттерне путаница->озарение
-                "confusion": 0.8,    # Ослабляем путаницу
-                "curiosity": 1.2,    # Усиливаем любопытство
-            },
-            "isolation_to_connection": {
-                "connection": 1.6,   # Усиливаем связь в паттерне изоляция->связь
-                "isolation": 0.7,    # Ослабляем изоляцию
-                "joy": 1.3,          # Усиливаем радость
-            },
-            "void_to_meaning": {
-                "meaning_found": 1.7, # Усиливаем нахождение смысла
-                "void": 0.6,         # Ослабляем пустоту
-                "acceptance": 1.4,   # Усиливаем принятие
-            },
-            "learning_cycle": {
-                "insight": 1.4,      # Усиливаем озарения в цикле обучения
-                "curiosity": 1.3,    # Усиливаем любопытство
-                "confusion": 0.9,    # Ослабляем путаницу
-            },
-            "social_cycle": {
-                "connection": 1.5,   # Усиливаем связи в социальном цикле
-                "acceptance": 1.3,   # Усиливаем принятие
-                "isolation": 0.8,    # Ослабляем изоляцию
-            },
-            "existential_crisis": {
-                "meaning_found": 1.8, # Усиливаем нахождение смысла в кризисе
-                "confusion": 0.8,    # Ослабляем путаницу
-                "void": 0.7,         # Ослабляем пустоту
-            },
+            'modifier': modifier,
+            'confidence': confidence
         }
 
-    def detect_emotional_patterns(self, recent_events: List) -> Optional[str]:
-        """
-        Обнаруживает эмоциональные паттерны в последовательности событий.
 
-        Args:
-            recent_events: Список последних событий
+class TrendAnalyzer:
+    """Анализатор трендов (резерв для будущих расширений)."""
 
-        Returns:
-            Название обнаруженного паттерна или None
-        """
-        if len(recent_events) < 5:
-            return None
-
-        # Получаем типы последних событий
-        recent_types = [event.type for event in recent_events[-10:]]
-
-        # Паттерны эмоциональных циклов
-        patterns = {
-            "stress_recovery": ["fear", "anxiety", "calm", "recovery"],
-            "creative_flow": ["boredom", "curiosity", "inspiration", "insight"],
-            "social_engagement": ["isolation", "curiosity", "connection", "joy"],
-            "existential_search": ["void", "confusion", "curiosity", "meaning_found"],
-        }
-
-        for pattern_name, pattern_sequence in patterns.items():
-            if self._matches_sequence(recent_types, pattern_sequence):
-                return pattern_name
-
-        return None
-
-    def detect_behavioral_patterns(self, recent_events: List) -> Optional[str]:
-        """
-        Обнаруживает поведенческие паттерны.
-
-        Args:
-            recent_events: Список последних событий
-
-        Returns:
-            Название обнаруженного паттерна или None
-        """
-        if len(recent_events) < 7:
-            return None
-
-        recent_types = [event.type for event in recent_events[-15:]]
-
-        # Поведенческие паттерны
-        patterns = {
-            "exploration_cycle": ["curiosity", "insight", "curiosity", "confusion", "insight"],
-            "avoidance_pattern": ["fear", "isolation", "silence", "fear"],
-            "engagement_burst": ["connection", "joy", "connection", "social_harmony"],
-            "rumination_loop": ["confusion", "void", "confusion", "existential_void"],
-        }
-
-        for pattern_name, pattern_sequence in patterns.items():
-            if self._matches_sequence(recent_types, pattern_sequence):
-                return pattern_name
-
-        return None
-
-    def get_pattern_statistics(self) -> Dict[str, Any]:
-        """
-        Возвращает статистику обнаруженных паттернов.
-
-        Returns:
-            Статистика паттернов
-        """
-        return {
-            "dependency_patterns": self.dependency_manager.get_dependency_stats(),
-            "supported_patterns": [
-                "confusion_to_insight",
-                "isolation_to_connection",
-                "void_to_meaning",
-                "learning_cycle",
-                "social_cycle",
-                "existential_crisis"
-            ]
-        }
-
-    def _matches_sequence(self, event_sequence: List[str], pattern: List[str]) -> bool:
-        """
-        Проверяет, соответствует ли последовательность событий паттерну.
-
-        Args:
-            event_sequence: Последовательность типов событий
-            pattern: Шаблон паттерна
-
-        Returns:
-            True если последовательность соответствует паттерну
-        """
-        if len(event_sequence) < len(pattern):
-            return False
-
-        # Ищем паттерн в конце последовательности
-        sequence_end = event_sequence[-len(pattern):]
-
-        # Проверяем соответствие с учетом возможных пропусков
-        pattern_index = 0
-        for event_type in sequence_end:
-            if pattern_index < len(pattern) and event_type == pattern[pattern_index]:
-                pattern_index += 1
-
-        return pattern_index == len(pattern)
+    def analyze(self, event_type: str, recent_events: List[str]) -> Dict[str, float]:
+        """Анализ трендов (пока заглушка)."""
+        return {'modifier': 1.0, 'confidence': 0.0}

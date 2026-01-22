@@ -272,24 +272,37 @@ def run_loop(
     # Активный мониторинг: система Life требует активного вмешательства в runtime для observability
     # Это НЕ пассивное наблюдение, а активный мониторинг с интеграцией в каждый тик
 
+    # Проверка корректности feature flags перед инициализацией экспериментальных компонентов
+    def _validate_experimental_components_safety():
+        """Проверяет, что экспериментальные компоненты корректно изолированы."""
+        experimental_flags = [
+            'memory_hierarchy_manager',
+            'adaptive_processing_manager',
+            'clarity_moments',
+            'sensory_buffer',
+            'parallel_consciousness_engine'
+        ]
+
+        enabled_experimental = []
+        for flag in experimental_flags:
+            if feature_flags.is_enabled(flag):
+                enabled_experimental.append(flag)
+
+        if enabled_experimental:
+            logger.warning(f"EXPERIMENTAL COMPONENTS ENABLED: {', '.join(enabled_experimental)}")
+            logger.warning("Experimental components may impact system stability and performance")
+        else:
+            logger.info("All experimental components are disabled - system running in stable mode")
+
+        return enabled_experimental
+
+    # Выполняем проверку безопасности экспериментальных компонентов
+    enabled_experimental = _validate_experimental_components_safety()
+
     # Инициализация асинхронной очереди для операций наблюдения
     from src.runtime.async_data_queue import AsyncDataQueue
     async_data_queue = AsyncDataQueue(max_size=10000, flush_interval=1.0)  # Быстрое сброс каждую секунду
     async_data_queue.start()
-
-    # Инициализация structured logger с AsyncLogWriter для <1% overhead
-    # Оптимизация производительности: логируем каждый 10-й тик, отключаем детальное логирование
-    from src.observability.structured_logger import StructuredLogger
-    if not isinstance(structured_logger, StructuredLogger):
-        structured_logger = StructuredLogger(
-            log_tick_interval=10,  # Логировать каждый 10-й тик
-            enable_detailed_logging=False,  # Отключить детальное логирование для производительности
-            buffer_size=10000,  # Буфер на 10000 записей в памяти
-            batch_size=50,  # Batch-запись по 50 записей
-            flush_interval=0.1,  # Сброс каждые 100ms
-            passive_data_sink=passive_data_sink,  # Передача компонентов для интеграции
-            async_data_sink=async_data_sink
-        )
 
     # Инициализация PassiveDataSink для пассивного сбора данных
     from src.observability.passive_data_sink import PassiveDataSink
@@ -311,6 +324,20 @@ def run_loop(
         max_queue_size=10000,
         flush_interval=0.5  # Более частый сброс для асинхронной обработки
     )
+
+    # Инициализация structured logger с AsyncLogWriter для <1% overhead
+    # Оптимизация производительности: логируем каждый 10-й тик, отключаем детальное логирование
+    from src.observability.structured_logger import StructuredLogger
+    if not isinstance(structured_logger, StructuredLogger):
+        structured_logger = StructuredLogger(
+            log_tick_interval=10,  # Логировать каждый 10-й тик
+            enable_detailed_logging=False,  # Отключить детальное логирование для производительности
+            buffer_size=10000,  # Буфер на 10000 записей в памяти
+            batch_size=50,  # Batch-запись по 50 записей
+            flush_interval=0.1,  # Сброс каждые 100ms
+            passive_data_sink=passive_data_sink,  # Передача компонентов для интеграции
+            async_data_sink=async_data_sink
+        )
 
     # Запуск AsyncDataSink
     import asyncio
@@ -359,25 +386,43 @@ def run_loop(
     # Инициализация адаптивной системы обработки
     # Проверяем feature flag, если adaptive processing не отключен явно
     enable_adaptive_processing = not disable_adaptive_processing and feature_flags.is_adaptive_processing_enabled()
-    adaptive_processing_manager = (
-        AdaptiveProcessingManager(
-            self_state_provider=lambda: self_state,
-            config=AdaptiveProcessingConfig(),
-            logger=structured_logger
-        ) if enable_adaptive_processing else None
-    )  # Clarity Moments System
+    adaptive_processing_manager = None
+    if enable_adaptive_processing:
+        try:
+            logger.info("Initializing AdaptiveProcessingManager (experimental component)")
+            from src.experimental import AdaptiveProcessingManager, AdaptiveProcessingConfig
+            adaptive_processing_manager = AdaptiveProcessingManager(
+                self_state_provider=lambda: self_state,
+                config=AdaptiveProcessingConfig(),
+                logger=structured_logger
+            )
+            logger.info("AdaptiveProcessingManager initialized successfully")
+        except ImportError as e:
+            logger.warning(f"AdaptiveProcessingManager not available: {e}")
+        except Exception as e:
+            logger.error(f"Failed to initialize AdaptiveProcessingManager: {e}")
+            adaptive_processing_manager = None  # Гарантируем None при ошибке
+    else:
+        logger.info("AdaptiveProcessingManager disabled by feature flag")
 
     # Инициализация Clarity Moments с реальным состоянием системы (если включено)
     clarity_moments = None
     if feature_flags.is_enabled('clarity_moments'):
         try:
+            logger.info("Initializing ClarityMoments (experimental component)")
             from src.experimental.clarity_moments import ClarityMoments
             clarity_moments = ClarityMoments(
                 logger=structured_logger,
                 self_state_provider=lambda: self_state
             )
-        except ImportError:
-            structured_logger.warning("ClarityMoments not available, skipping initialization")
+            logger.info("ClarityMoments initialized successfully")
+        except ImportError as e:
+            logger.warning(f"ClarityMoments not available: {e}")
+        except Exception as e:
+            logger.error(f"Failed to initialize ClarityMoments: {e}")
+            clarity_moments = None  # Гарантируем None при ошибке
+    else:
+        logger.info("ClarityMoments disabled by feature flag")
 
     internal_generator = InternalEventGenerator()  # Internal Event Generator (Memory Echoes)
     # Настройка доступа к памяти для генерации конкретных эхо-воспоминаний
@@ -393,11 +438,22 @@ def run_loop(
         enable_memory_hierarchy = feature_flags.is_memory_hierarchy_enabled()
 
     if enable_memory_hierarchy:
-        from src.experimental.memory_hierarchy import MemoryHierarchyManager
+        try:
+            logger.info("Initializing MemoryHierarchyManager (experimental component)")
+            from src.experimental.memory_hierarchy import MemoryHierarchyManager
 
-        memory_hierarchy = MemoryHierarchyManager(logger=structured_logger)
-        # Подключение эпизодической памяти к иерархии
-        memory_hierarchy.set_episodic_memory(self_state.memory)
+            memory_hierarchy = MemoryHierarchyManager(logger=structured_logger)
+            # Подключение эпизодической памяти к иерархии
+            memory_hierarchy.set_episodic_memory(self_state.memory)
+            logger.info("MemoryHierarchyManager initialized successfully")
+        except ImportError as e:
+            logger.warning(f"MemoryHierarchyManager not available: {e}")
+            memory_hierarchy = None
+        except Exception as e:
+            logger.error(f"Failed to initialize MemoryHierarchyManager: {e}")
+            memory_hierarchy = None  # Гарантируем None при ошибке
+    else:
+        logger.info("MemoryHierarchyManager disabled by feature flag")
 
 
     # Менеджеры для управления снапшотами, логами и политикой

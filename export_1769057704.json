@@ -1,0 +1,102 @@
+[
+  {
+    "timestamp": 1769057704.6348753,
+    "event_type": "system_event",
+    "data": {
+      "id": 9,
+      "timestamp": 1769057704.6348727
+    },
+    "source": "component_a",
+    "metadata": {}
+  },
+  {
+    "timestamp": 1769057704.6187289,
+    "event_type": "background_event",
+    "data": {
+      "id": 8,
+      "timestamp": 1769057704.6187263
+    },
+    "source": "component_c",
+    "metadata": {}
+  },
+  {
+    "timestamp": 1769057704.6067424,
+    "event_type": "user_event",
+    "data": {
+      "id": 7,
+      "timestamp": 1769057704.6067395
+    },
+    "source": "component_b",
+    "metadata": {}
+  },
+  {
+    "timestamp": 1769057704.590563,
+    "event_type": "system_event",
+    "data": {
+      "id": 6,
+      "timestamp": 1769057704.59056
+    },
+    "source": "component_a",
+    "metadata": {}
+  },
+  {
+    "timestamp": 1769057704.5742197,
+    "event_type": "background_event",
+    "data": {
+      "id": 5,
+      "timestamp": 1769057704.5742166
+    },
+    "source": "component_c",
+    "metadata": {}
+  },
+  {
+    "timestamp": 1769057704.5573568,
+    "event_type": "user_event",
+    "data": {
+      "id": 4,
+      "timestamp": 1769057704.5573537
+    },
+    "source": "component_b",
+    "metadata": {}
+  },
+  {
+    "timestamp": 1769057704.5450172,
+    "event_type": "system_event",
+    "data": {
+      "id": 3,
+      "timestamp": 1769057704.545014
+    },
+    "source": "component_a",
+    "metadata": {}
+  },
+  {
+    "timestamp": 1769057704.5304668,
+    "event_type": "background_event",
+    "data": {
+      "id": 2,
+      "timestamp": 1769057704.5304637
+    },
+    "source": "component_c",
+    "metadata": {}
+  },
+  {
+    "timestamp": 1769057704.5177162,
+    "event_type": "user_event",
+    "data": {
+      "id": 1,
+      "timestamp": 1769057704.517714
+    },
+    "source": "component_b",
+    "metadata": {}
+  },
+  {
+    "timestamp": 1769057704.5107484,
+    "event_type": "system_event",
+    "data": {
+      "id": 0,
+      "timestamp": 1769057704.5107467
+    },
+    "source": "component_a",
+    "metadata": {}
+  }
+]

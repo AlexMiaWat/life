@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional
 from ..state.self_state import SelfState
 from ..utils.performance_monitor import performance_monitor
 from .intensity_adapter_interface import IntensityAdapterInterface, IntensityModifier
+from .smoothing_engine_interface import SmoothingEngineInterface
 
 
 class IntensityAdapter(IntensityAdapterInterface):
@@ -18,12 +19,10 @@ class IntensityAdapter(IntensityAdapterInterface):
     - категорийных правил
     """
 
-    def __init__(self):
+    def __init__(self, smoothing_engine: Optional[SmoothingEngineInterface] = None):
         """Инициализация адаптера интенсивности."""
-        # История модификаторов для экспоненциального сглаживания
-        self._modifier_history: Dict[str, List[float]] = {}
-        self._intensity_history: Dict[str, List[float]] = {}
-        self._smoothing_alpha = 0.3  # Коэффициент сглаживания
+        # Используем внешний SmoothingEngine или создаем свой
+        self.smoothing_engine = smoothing_engine or SmoothingEngine()
 
         # Кэши для оптимизации производительности
         self._state_modifier_cache: Dict[tuple, float] = {}
@@ -70,12 +69,12 @@ class IntensityAdapter(IntensityAdapterInterface):
                 subjective_modifier
             )
 
-            # Применяем экспоненциальное сглаживание
-            smoothed_modifier = self._calculate_smoothed_modifier(event_type, combined_modifier)
+            # Применяем экспоненциальное сглаживание через SmoothingEngine
+            smoothed_modifier = self.smoothing_engine.smooth_modifier(event_type, combined_modifier)
 
             adapted_intensity = base_intensity * smoothed_modifier
 
-            # Сохраняем историю (оптимизировано - только каждый 10-й вызов для снижения overhead)
+            # Сохраняем историю интенсивностей через SmoothingEngine (оптимизировано)
             if not hasattr(self, '_history_counter'):
                 self._history_counter = {}
             if event_type not in self._history_counter:
@@ -83,7 +82,7 @@ class IntensityAdapter(IntensityAdapterInterface):
 
             self._history_counter[event_type] += 1
             if self._history_counter[event_type] % 10 == 0:  # Каждый 10-й вызов
-                self._update_intensity_history(event_type, adapted_intensity)
+                self.smoothing_engine.smooth_intensity(event_type, adapted_intensity)
 
             return adapted_intensity
 
@@ -295,80 +294,10 @@ class IntensityAdapter(IntensityAdapterInterface):
 
         return 1.0  # Без изменений для большинства событий
 
-    def _calculate_smoothed_modifier(self, event_type: str, current_modifier: float) -> float:
-        """Применяет экспоненциальное сглаживание к модификатору интенсивности."""
-        if event_type not in self._modifier_history:
-            # Сохраняем текущий модификатор для будущих сглаживаний
-            self._modifier_history[event_type] = [current_modifier]
-            return current_modifier
-
-        history = self._modifier_history[event_type]
-        if not history:
-            history.append(current_modifier)
-            return current_modifier
-
-        # Экспоненциальное сглаживание
-        prev_smoothed = history[-1]
-        smoothed = self._smoothing_alpha * current_modifier + (1 - self._smoothing_alpha) * prev_smoothed
-
-        # Сохраняем сглаженное значение в историю
-        history.append(smoothed)
-
-        # Ограничиваем размер истории (последние 10 значений)
-        if len(history) > 10:
-            history.pop(0)
-
-        return smoothed
-
-    def _update_intensity_history(self, event_type: str, intensity: float) -> None:
-        """Обновляет историю интенсивностей для экспоненциального сглаживания."""
-        if event_type not in self._intensity_history:
-            self._intensity_history[event_type] = []
-
-        self._intensity_history[event_type].append(intensity)
-
-        # Ограничиваем размер истории (последние 20 значений)
-        if len(self._intensity_history[event_type]) > 20:
-            self._intensity_history[event_type] = self._intensity_history[event_type][-20:]
 
     def get_intensity_history_stats(self) -> Dict[str, Dict[str, Any]]:
-        """Возвращает статистику истории интенсивностей и модификаторов."""
-        stats = {}
-
-        # Статистика интенсивностей
-        for event_type, history in self._intensity_history.items():
-            if history:
-                stats[event_type] = {
-                    "intensity": {
-                        "count": len(history),
-                        "current": history[-1],
-                        "average": sum(history) / len(history),
-                        "min": min(history),
-                        "max": max(history),
-                        "volatility": self._calculate_volatility(history)
-                    }
-                }
-
-        # Статистика модификаторов
-        for event_type, history in self._modifier_history.items():
-            if history and event_type in stats:
-                stats[event_type]["modifier"] = {
-                    "count": len(history),
-                    "current": history[-1],
-                    "average": sum(history) / len(history),
-                    "volatility": self._calculate_volatility(history)
-                }
-            elif history:
-                stats[event_type] = {
-                    "modifier": {
-                        "count": len(history),
-                        "current": history[-1],
-                        "average": sum(history) / len(history),
-                        "volatility": self._calculate_volatility(history)
-                    }
-                }
-
-        return stats
+        """Возвращает статистику истории интенсивностей и модификаторов через SmoothingEngine."""
+        return self.smoothing_engine.get_smoothing_stats()
 
     def _calculate_volatility(self, values: List[float]) -> float:
         """Вычисляет волатильность (стандартное отклонение) ряда значений."""
@@ -393,8 +322,7 @@ class IntensityAdapter(IntensityAdapterInterface):
 
         Реализует метод интерфейса IntensityAdapterInterface.
         """
-        self._modifier_history.clear()
-        self._intensity_history.clear()
+        self.smoothing_engine.reset_history()
         self._state_modifier_cache.clear()
         self._category_modifier_cache.clear()
         self._subjective_time_cache.clear()

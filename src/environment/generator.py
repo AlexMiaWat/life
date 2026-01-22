@@ -5,8 +5,9 @@ from typing import Any, Dict, List, Optional
 from .event import Event
 from .event_dependency_manager import EventDependencyManager
 from .environment_config import EnvironmentConfigManager
-from .intensity_adapter import IntensityAdapter
+from .intensity_calculator import IntensityCalculator
 from .pattern_analyzer import PatternAnalyzer
+from .smoothing_engine import SmoothingEngine
 from .event_generator_interface import EventGeneratorInterface
 from ..state.self_state import SelfState
 from ..utils.performance_monitor import performance_monitor
@@ -14,11 +15,12 @@ from ..utils.performance_monitor import performance_monitor
 
 class EventGenerator(EventGeneratorInterface):
     def __init__(self):
-        """Инициализация генератора с системой зависимостей событий."""
+        """Инициализация генератора с системой независимых компонентов."""
         self.dependency_manager = EventDependencyManager()
         self.config_manager = EnvironmentConfigManager()
-        self.intensity_adapter = IntensityAdapter()
-        self.pattern_analyzer = PatternAnalyzer(self.dependency_manager)
+        self.intensity_calculator = IntensityCalculator()
+        self.pattern_analyzer = PatternAnalyzer()
+        self.smoothing_engine = SmoothingEngine()
 
         # Публичные константы для тестирования
         self.types = [
@@ -171,7 +173,7 @@ class EventGenerator(EventGeneratorInterface):
 
     def _adapt_intensity(self, event_type: str, base_intensity: float, context_state: Optional[SelfState] = None) -> float:
         """
-        Адаптирует интенсивность события через IntensityAdapter.
+        Адаптирует интенсивность события через IntensityCalculator.
 
         Args:
             event_type: Тип события
@@ -181,23 +183,10 @@ class EventGenerator(EventGeneratorInterface):
         Returns:
             Адаптированная интенсивность, ограниченная диапазоном типа события
         """
-        # Получаем модификаторы от анализаторов
-        pattern_modifier = 1.0
-        if context_state and hasattr(context_state, 'recent_events') and context_state.recent_events:
-            pattern_modifier = self.pattern_analyzer.analyze_pattern_modifier(event_type, context_state.recent_events)
+        # Используем новый IntensityCalculator
+        adapted_intensity = self.intensity_calculator.calculate(event_type, base_intensity, context_state)
 
-        dependency_modifier = 1.0
-        dependency_modifiers = self.dependency_manager.get_probability_modifiers()
-        dependency_modifier_raw = dependency_modifiers.get(event_type, 1.0)
-        if dependency_modifier_raw != 1.0:
-            dependency_modifier = 1.0 + (1.0 - dependency_modifier_raw) * 0.3  # 0.7-1.3 диапазон
-
-        # Делегируем адаптацию в IntensityAdapter
-        adapted_intensity = self.intensity_adapter.adapt_intensity(
-            event_type, base_intensity, context_state, pattern_modifier, dependency_modifier
-        )
-
-        # Ограничиваем результат диапазоном типа события
+        # Ограничиваем результат диапазоном типа события (дополнительная гарантия)
         config = self.config_manager.get_config()
         min_intensity, max_intensity = config.get_intensity_range(event_type)
 

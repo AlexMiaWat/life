@@ -279,7 +279,9 @@ class TestMemoryHierarchyIntegration:
 
     def test_hierarchy_manager_full_integration(self):
         """Тест полной интеграции MemoryHierarchyManager."""
-        manager = MemoryHierarchyManager()
+        from src.experimental.memory_hierarchy.sensory_buffer import SensoryBuffer
+        sensory_buffer = SensoryBuffer(buffer_size=20)
+        manager = MemoryHierarchyManager(sensory_buffer=sensory_buffer)
 
         # Добавляем события в сенсорный буфер
         for i in range(3):
@@ -304,7 +306,9 @@ class TestMemoryHierarchyIntegration:
 
     def test_memory_hierarchy_with_self_state(self):
         """Тест интеграции MemoryHierarchy с SelfState."""
-        manager = MemoryHierarchyManager()
+        from src.experimental.memory_hierarchy.sensory_buffer import SensoryBuffer
+        sensory_buffer = SensoryBuffer(buffer_size=20)
+        manager = MemoryHierarchyManager(sensory_buffer=sensory_buffer)
         state = SelfState()
 
         # Добавляем события в память
@@ -345,7 +349,7 @@ class TestConsciousnessIntegration:
 
         # Выполняем переход состояния для тестирования истории
         from src.experimental.consciousness.parallel_engine import ConsciousnessState
-        engine.transition_to_state(ConsciousnessState.SELF_REFLECTION)
+        engine.transition_to_state(ConsciousnessState.REFLECTIVE)
 
         # Проверяем историю переходов
         assert len(engine.transition_history) > 0
@@ -495,7 +499,9 @@ class TestFullSystemIntegration:
 
     def test_memory_hierarchy_full_system(self):
         """Тест полной интеграции memory hierarchy с системой."""
-        manager = MemoryHierarchyManager()
+        from src.experimental.memory_hierarchy.sensory_buffer import SensoryBuffer
+        sensory_buffer = SensoryBuffer(buffer_size=20)
+        manager = MemoryHierarchyManager(sensory_buffer=sensory_buffer)
         state = SelfState()
         clarity = ClarityMoments()
 

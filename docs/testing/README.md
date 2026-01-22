@@ -25,6 +25,8 @@
   - Потокобезопасность: полное покрытие ✅
   - MCP Index Engine: полное покрытие ✅
   - **Runtime Managers:** 28 тестов (SnapshotManager, LogManager, LifePolicy) ✅
+  - **MemoryHierarchyManager обновления:** Требует явного SensoryBuffer для консистентности ✅
+  - **Обновления статистики тестов:** Исправлены проверки полей (total_entries, buffer_size, total_entries_expired) ✅
   - **Dev-mode E2E Smoke Test:** Полный цикл старт→изменение→рестарт→восстановление ✅
 - **API тесты:** Восстановлены (работают через immutable snapshots)
 
@@ -79,9 +81,9 @@ pytest src/test/ -q
 - `test_runtime_loop_edge_cases.py` - Edge cases Runtime Loop
 - `test_runtime_loop_feedback_coverage.py` - Тесты обработки Feedback в Loop
 - `test_runtime_loop_managers.py` - Тесты менеджеров Runtime Loop (SnapshotManager, LogManager, LifePolicy) - **ОБНОВЛЕНО**
-- `test_new_functionality_static.py` - Статические тесты новой функциональности (runtime managers) - **НОВЫЙ**
-- `test_new_functionality_smoke.py` - Дымовые тесты новой функциональности (runtime managers) - **НОВЫЙ**
-- `test_new_functionality_integration.py` - Интеграционные тесты новой функциональности (runtime managers) - **НОВЫЙ**
+- `test_new_functionality_static.py` - Статические тесты новой функциональности (runtime managers) - **ОБНОВЛЕНО**
+- `test_new_functionality_smoke.py` - Дымовые тесты новой функциональности (runtime managers) - **ОБНОВЛЕНО**
+- `test_new_functionality_integration.py` - Интеграционные тесты новой функциональности (runtime managers) - **ОБНОВЛЕНО**
 - `test_dev_mode_smoke_e2e.py` - End-to-end smoke-тест dev-mode (полный цикл перезапуска) - **НОВЫЙ**
 - `test_event_queue_edge_cases.py` - Edge cases EventQueue
 - `test_event_queue_race_condition.py` - Race conditions в EventQueue
