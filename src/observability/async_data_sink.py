@@ -33,7 +33,9 @@ class AsyncDataSink:
         observations_file: str = "async_observations.jsonl",
         enabled: bool = True,
         buffer_size: int = 1000,
-        flush_interval: float = 1.0
+        max_queue_size: Optional[int] = None,
+        flush_interval: float = 1.0,
+        processing_interval: Optional[float] = None
     ):
         """
         Инициализация AsyncDataSink.
@@ -43,22 +45,28 @@ class AsyncDataSink:
             observations_file: Имя файла для хранения наблюдений
             enabled: Включен ли сбор данных
             buffer_size: Размер буфера в памяти
+            max_queue_size: Максимальный размер очереди (для обратной совместимости)
             flush_interval: Интервал сброса на диск
+            processing_interval: Интервал обработки (алиас для flush_interval)
         """
         self.data_directory = Path(data_directory)
         self.observations_file = observations_file
         self.enabled = enabled
         self.buffer_size = buffer_size
-        self.flush_interval = flush_interval
+        self.max_queue_size = max_queue_size or buffer_size
+        self.flush_interval = processing_interval if processing_interval is not None else flush_interval
+        self.processing_interval = self.flush_interval  # Алиас для обратной совместимости
 
         # Создаем директорию если не существует
         self.data_directory.mkdir(parents=True, exist_ok=True)
 
         # Очередь для данных
-        self._queue: queue.Queue[ObservationData] = queue.Queue(maxsize=buffer_size)
+        self._queue: queue.Queue[ObservationData] = queue.Queue(maxsize=self.max_queue_size)
 
         # Буфер обработанных данных
         self._processed_data: List[ObservationData] = []
+        self._all_processed_data: List[ObservationData] = []
+        self._lock = threading.Lock()
 
         # Статистика
         self._stats = {
@@ -66,6 +74,7 @@ class AsyncDataSink:
             "events_logged": 0,
             "events_processed": 0,
             "buffer_size": buffer_size,
+            "max_queue_size": self.max_queue_size,
             "data_directory": str(data_directory),
             "observations_file": observations_file
         }
@@ -74,10 +83,17 @@ class AsyncDataSink:
         self._processing_thread: Optional[threading.Thread] = None
         self._stop_event = threading.Event()
 
-        if enabled:
-            self._start_processing()
-
         logger.info(f"AsyncDataSink initialized: {data_directory}/{observations_file}")
+
+    async def start(self) -> None:
+        """Start the async data sink processing."""
+        if not self.enabled:
+            return
+        self._start_processing()
+
+    async def receive_data_async(self, event_type: str, data: Any, source: str, metadata: Optional[Dict[str, Any]] = None) -> bool:
+        """Receive data asynchronously (backward compatibility)."""
+        return self.log_event(data, event_type, source, metadata)
 
     def _start_processing(self) -> None:
         """Запустить поток обработки данных."""
@@ -101,7 +117,9 @@ class AsyncDataSink:
                 while not self._queue.empty() and processed_count < 10:
                     try:
                         observation = self._queue.get_nowait()
-                        self._processed_data.append(observation)
+                        with self._lock:
+                            self._processed_data.append(observation)
+                            self._all_processed_data.append(observation)
                         self._stats["events_processed"] += 1
                         processed_count += 1
                     except queue.Empty:
@@ -176,14 +194,26 @@ class AsyncDataSink:
         Returns:
             Список обработанных наблюдений
         """
-        data = self._processed_data.copy()
-        if limit is not None:
-            data = data[-limit:]
-        return data
+        # Возвращаем все обработанные данные (не только в памяти)
+        with self._lock:
+            data = self._all_processed_data.copy()
+            if limit is not None:
+                data = data[-limit:]
+            return data
 
     def flush(self) -> None:
         """Принудительная запись всех данных на диск."""
         if self.enabled:
+            # Обрабатываем все доступные данные из очереди
+            while not self._queue.empty():
+                try:
+                    observation = self._queue.get_nowait()
+                    with self._lock:
+                        self._processed_data.append(observation)
+                        self._all_processed_data.append(observation)
+                    self._stats["events_processed"] += 1
+                except queue.Empty:
+                    break
             self._flush_to_disk()
 
     def get_statistics(self) -> Dict[str, Any]:
@@ -194,6 +224,15 @@ class AsyncDataSink:
             Словарь со статистикой
         """
         return self._stats.copy()
+
+    def get_stats(self) -> Dict[str, Any]:
+        """
+        Получить статистику AsyncDataSink (алиас для get_statistics).
+
+        Returns:
+            Словарь со статистикой
+        """
+        return self.get_statistics()
 
     def stop(self) -> None:
         """Остановить обработку данных."""
@@ -216,11 +255,12 @@ class AsyncDataSink:
             file_path = self.data_directory / self.observations_file
             with open(file_path, 'a', encoding='utf-8') as f:
                 # Записываем обработанные данные
-                for observation in self._processed_data:
-                    f.write(observation.to_json_line())
+                with self._lock:
+                    for observation in self._processed_data:
+                        f.write(observation.to_json_line())
 
-            # Очищаем обработанные данные после записи
-            self._processed_data.clear()
+                    # Очищаем обработанные данные после записи (только _processed_data, не _all_processed_data)
+                    self._processed_data.clear()
 
         except Exception as e:
             logger.error(f"Failed to flush data to disk: {e}")

@@ -37,15 +37,18 @@ class AnalysisResult:
         return (time.time() - self.timestamp) < max_age_seconds and not self.is_stale
 
 
-class RuntimeAnalysisEngine:
+class ActiveRuntimeAnalysisEngine:
     """
-    Движок анализа в реальном времени для интеграции в runtime loop.
+    Активный движок анализа для интеграции в runtime loop.
 
     Предоставляет:
-    - Периодический анализ логов производительности
-    - Мониторинг ошибок в реальном времени
+    - Анализ логов производительности по запросу
+    - Мониторинг ошибок по требованию
     - Анализ трендов и аномалий
     - Интеграцию результатов анализа в принятие решений
+
+    Note: Переименован из RuntimeAnalysisEngine для отражения активной природы
+    анализа без фоновых потоков.
     """
 
     def __init__(
@@ -81,10 +84,8 @@ class RuntimeAnalysisEngine:
 
         # Синхронизация
         self._lock = threading.RLock()
-        self._stop_event = threading.Event()
 
-        # Фоновый поток анализа
-        self._analysis_thread: Optional[threading.Thread] = None
+        # Время последнего анализа (для предотвращения слишком частого анализа)
         self._last_analysis_time = 0.0
 
         # Callbacks для обработки результатов
@@ -92,35 +93,26 @@ class RuntimeAnalysisEngine:
 
         logger.info(f"RuntimeAnalysisEngine initialized: interval={analysis_interval}s, log_path={log_path}")
 
-    def start(self) -> None:
-        """Запустить фоновый анализ."""
-        if self._analysis_thread and self._analysis_thread.is_alive():
-            logger.warning("RuntimeAnalysisEngine is already running")
+    def perform_analysis(self) -> None:
+        """
+        Выполнить анализ по запросу.
+
+        Анализирует логи производительности, ошибки и тренды,
+        обновляет историю и вызывает callbacks.
+        """
+        current_time = time.time()
+
+        # Предотвращаем слишком частый анализ
+        if current_time - self._last_analysis_time < self.analysis_interval:
             return
 
-        self._stop_event.clear()
-        self._analysis_thread = threading.Thread(
-            target=self._analysis_loop,
-            name="RuntimeAnalysisEngine",
-            daemon=True
-        )
-        self._analysis_thread.start()
-        logger.info("RuntimeAnalysisEngine analysis thread started")
+        try:
+            # Выполняем анализ всех типов
+            self.trigger_immediate_analysis()
+            self._last_analysis_time = current_time
 
-    def stop(self, timeout: float = 5.0) -> None:
-        """Остановить фоновый анализ."""
-        if not self._analysis_thread or not self._analysis_thread.is_alive():
-            return
-
-        logger.info("Stopping RuntimeAnalysisEngine analysis thread...")
-        self._stop_event.set()
-
-        self._analysis_thread.join(timeout=timeout)
-
-        if self._analysis_thread.is_alive():
-            logger.warning("RuntimeAnalysisEngine analysis thread did not stop gracefully")
-        else:
-            logger.info("RuntimeAnalysisEngine analysis thread stopped")
+        except Exception as e:
+            logger.error(f"Error in ActiveRuntimeAnalysisEngine analysis: {e}")
 
     def add_result_callback(self, callback: Callable[[str, Dict[str, Any]], None]) -> None:
         """
@@ -207,27 +199,6 @@ class RuntimeAnalysisEngine:
 
         return results
 
-    def _analysis_loop(self) -> None:
-        """Основной цикл анализа."""
-        logger.info("RuntimeAnalysisEngine analysis loop started")
-
-        while not self._stop_event.is_set():
-            try:
-                current_time = time.time()
-
-                # Проверяем необходимость анализа
-                if current_time - self._last_analysis_time >= self.analysis_interval:
-                    self.trigger_immediate_analysis()
-                    self._last_analysis_time = current_time
-
-                # Небольшая пауза для снижения нагрузки CPU
-                time.sleep(1.0)
-
-            except Exception as e:
-                logger.error(f"Error in RuntimeAnalysisEngine analysis loop: {e}")
-                time.sleep(5.0)  # Пауза при ошибке
-
-        logger.info("RuntimeAnalysisEngine analysis loop stopped")
 
     def _analyze_performance(self) -> Dict[str, Any]:
         """Анализ производительности."""

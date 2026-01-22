@@ -13,6 +13,7 @@ class Event:
     timestamp: float  # time.time()
     metadata: Optional[Dict[str, Any]] = None  # Опционально: дополнительные данные
     event_type: Optional[str] = None  # Алиас для type для обратной совместимости
+    source: Optional[str] = None  # Источник события для обратной совместимости
 
     def __post_init__(self):
         if self.metadata is None:

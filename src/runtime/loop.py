@@ -284,11 +284,38 @@ def run_loop(
             enable_detailed_logging=False,  # Отключить детальное логирование для производительности
             buffer_size=10000,  # Буфер на 10000 записей в памяти
             batch_size=50,  # Batch-запись по 50 записей
-            flush_interval=0.1  # Сброс каждые 100ms
+            flush_interval=0.1,  # Сброс каждые 100ms
+            passive_data_sink=passive_data_sink,  # Передача компонентов для интеграции
+            async_data_sink=async_data_sink
         )
 
+    # Инициализация PassiveDataSink для пассивного сбора данных
+    from src.observability.passive_data_sink import PassiveDataSink
+    passive_data_sink = PassiveDataSink(
+        data_directory="./data/observations",
+        observations_file="passive_observations.jsonl",
+        max_entries=50000,  # Увеличенный буфер для пассивного сбора
+        enabled=True,
+        auto_flush=True
+    )
+
+    # Инициализация AsyncDataSink для асинхронной обработки данных
+    from src.observability.async_data_sink import AsyncDataSink
+    async_data_sink = AsyncDataSink(
+        data_directory="./data/observations",
+        observations_file="async_observations.jsonl",
+        enabled=True,
+        buffer_size=5000,
+        max_queue_size=10000,
+        flush_interval=0.5  # Более частый сброс для асинхронной обработки
+    )
+
+    # Запуск AsyncDataSink
+    import asyncio
+    asyncio.run(async_data_sink.start())
+
     # Инициализация компонентов наблюдения
-    from src.observability.runtime_analysis_engine import RuntimeAnalysisEngine
+    from src.observability.runtime_analysis_engine import ActiveRuntimeAnalysisEngine
 
     # Функция обработки результатов анализа для real-time алертов
     def handle_analysis_results(analysis_type: str, result_data: Dict[str, Any]) -> None:
@@ -314,16 +341,15 @@ def run_loop(
             if error_trend > 1:
                 logger.warning(f"ERROR TREND ALERT: Error rate is increasing (trend: {error_trend:.2f})")
 
-    # Инициализация движка анализа
-    analysis_engine = RuntimeAnalysisEngine(
+    # Инициализация активного движка анализа (без фоновых потоков)
+    analysis_engine = ActiveRuntimeAnalysisEngine(
         log_path="data/structured_log.jsonl",
         structured_logger=structured_logger,
-        analysis_interval=30.0  # Анализ каждые 30 секунд
+        analysis_interval=30.0  # Минимальный интервал между анализами
     )
 
-    # Добавляем callback для real-time алертов
+    # Добавляем callback для алертов
     analysis_engine.add_result_callback(handle_analysis_results)
-    # Убираем автоматический запуск - анализ будет вызываться по запросу
 
     engine = MeaningEngine()
     learning_engine = LearningEngine()  # Learning Engine (Этап 14)
@@ -404,6 +430,22 @@ def run_loop(
                 # Log tick start
                 queue_size = event_queue.size() if event_queue else 0
                 structured_logger.log_tick_start(self_state.ticks, queue_size)
+
+                # Passive data collection: tick start
+                passive_data_sink.receive_data(
+                    event_type="tick_start",
+                    data={"tick": self_state.ticks, "queue_size": queue_size, "timestamp": current_time},
+                    source="runtime_loop",
+                    metadata={"subjective_time": self_state.subjective_time}
+                )
+
+                # Async data collection: tick metrics
+                async_data_sink.log_event(
+                    data={"tick": self_state.ticks, "queue_size": queue_size, "dt": dt},
+                    event_type="tick_metrics",
+                    source="runtime_loop",
+                    metadata={"performance": True}
+                )
 
                 # Обновление состояния
                 self_state.apply_delta({"ticks": 1})
@@ -522,13 +564,12 @@ def run_loop(
                         else:
                             logger.warning("Failed to queue technical metrics collection")
 
-                        # Запускаем анализ логов для получения рекомендаций
+                        # Запускаем анализ логов для получения рекомендаций (активный анализ по запросу)
                         try:
-                            analysis_results = analysis_engine.trigger_immediate_analysis()
-                            if analysis_results:
-                                logger.debug(f"Runtime analysis completed: {list(analysis_results.keys())}")
+                            analysis_engine.perform_analysis()
+                            logger.debug("Active runtime analysis completed")
                         except Exception as e:
-                            logger.warning(f"Failed to run runtime analysis: {e}")
+                            logger.warning(f"Failed to run active runtime analysis: {e}")
 
                     except Exception as e:
                         logger.warning(f"Failed to queue technical metrics collection: {e}")
@@ -618,6 +659,22 @@ def run_loop(
                     for event in events:
                         correlation_id = structured_logger.log_event(event)
                         correlation_ids.append(correlation_id)
+
+                        # Passive data collection: external events
+                        passive_data_sink.receive_data(
+                            event_type="external_event",
+                            data={"event": event.to_dict() if hasattr(event, 'to_dict') else str(event)},
+                            source="runtime_loop",
+                            metadata={"correlation_id": correlation_id, "tick": self_state.ticks}
+                        )
+
+                        # Async data collection: event processing
+                        async_data_sink.log_event(
+                            data={"event_type": getattr(event, 'event_type', 'unknown'), "correlation_id": correlation_id},
+                            event_type="event_processed",
+                            source="runtime_loop",
+                            metadata={"external": True}
+                        )
                     # Update intensity signal for this tick using exponential smoothing
                     try:
                         current_max_intensity = max([float(e.intensity) for e in events] + [0.0])
@@ -780,6 +837,22 @@ def run_loop(
                             ticks_since_last_memory_echo = 0
                             # Логируем внутреннее событие
                             correlation_id = structured_logger.log_event(internal_event)
+
+                            # Passive data collection: internal events
+                            passive_data_sink.receive_data(
+                                event_type="internal_event",
+                                data={"event": internal_event.to_dict() if hasattr(internal_event, 'to_dict') else str(internal_event)},
+                                source="runtime_loop",
+                                metadata={"correlation_id": correlation_id, "tick": self_state.ticks}
+                            )
+
+                            # Async data collection: internal event generation
+                            async_data_sink.log_event(
+                                data={"event_type": getattr(internal_event, 'event_type', 'unknown'), "correlation_id": correlation_id},
+                                event_type="internal_event_generated",
+                                source="runtime_loop",
+                                metadata={"internal": True}
+                            )
                         else:
                             logger.warning("[LOOP] No event queue available for internal event")
                     else:
@@ -1102,6 +1175,29 @@ def run_loop(
                 # Поддержка постоянного интервала тиков
                 tick_end = time.time()
                 elapsed_tick = tick_end - current_time
+
+                # Passive data collection: tick end metrics
+                passive_data_sink.receive_data(
+                    event_type="tick_end",
+                    data={"tick": self_state.ticks, "elapsed": elapsed_tick, "timestamp": tick_end},
+                    source="runtime_loop",
+                    metadata={"performance": True}
+                )
+
+                # Async data collection: performance metrics
+                async_data_sink.log_event(
+                    data={"tick": self_state.ticks, "elapsed_seconds": elapsed_tick, "sleep_duration": sleep_duration},
+                    event_type="performance_metrics",
+                    source="runtime_loop",
+                    metadata={"tick_duration": elapsed_tick}
+                )
+
+                # Периодическая очистка старых данных в PassiveDataSink (каждые 100 тиков)
+                if self_state.ticks % 100 == 0:
+                    removed_count = passive_data_sink.clear_old_data(keep_recent=10000)
+                    if removed_count > 0:
+                        logger.info(f"[DATA_SINK] Cleared {removed_count} old entries from PassiveDataSink")
+
                 sleep_duration = max(0.0, tick_interval - elapsed_tick)
                 time.sleep(sleep_duration)
 
@@ -1122,6 +1218,20 @@ def run_loop(
                 # Остановка менеджера сбора данных
                 if data_collection_manager:
                     data_collection_manager.stop()
+
+                # Остановка AsyncDataSink
+                try:
+                    async_data_sink.stop()
+                    logger.info("[DATA_SINK] AsyncDataSink stopped successfully")
+                except Exception as e:
+                    logger.error(f"[DATA_SINK] Error stopping AsyncDataSink: {e}")
+
+                # Финализация PassiveDataSink
+                try:
+                    final_stats = passive_data_sink.get_stats()
+                    logger.info(f"[DATA_SINK] PassiveDataSink final stats: {final_stats}")
+                except Exception as e:
+                    logger.error(f"[DATA_SINK] Error getting PassiveDataSink stats: {e}")
 
 
                 # Flush логов при завершении (обязательно)

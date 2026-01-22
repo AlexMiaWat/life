@@ -308,6 +308,11 @@ class ParallelConsciousnessEngine:
         with self._lock:
             return self._transition_history.copy()
 
+    @property
+    def transition_history(self) -> List[Dict[str, Any]]:
+        """Get the history of state transitions (property for backward compatibility)."""
+        return self.get_transition_history()
+
     def get_consciousness_report(self) -> Dict[str, Any]:
         """Get a comprehensive consciousness report."""
         with self._lock:

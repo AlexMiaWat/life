@@ -9,7 +9,7 @@
 *   **v2.0:** Добавлена архивная память, механизм забывания с весами, статистика использования.
 *   **v2.1:** Добавлено субъективное время как сквозная ось жизни.
 *   **v2.2:** Добавлены оптимизации производительности - кэширование сериализации, метрики производительности, оптимизированная clamp_size().
-*   **v2.3:** Реализована многоуровневая система индексации для быстрого поиска - MemoryIndexEngine с LRU кэшированием, primary и composite индексы.
+*   **v2.3:** Реализована многоуровневая система индексации для быстрого поиска - MemoryIndexEngine с LRU кэшированием, primary и composite индексы. Добавлен метод search_by_type() для поиска по типу события.
 
 ### Описание реализации
 Memory как `list[MemoryEntry]` в SelfState, append после MeaningEngine если significance >0, clamp_size=50 (удаление по весу). Поддержка архивации старых записей.
@@ -58,6 +58,7 @@ class MemoryEntry:
 *   `add_entries(entries)` — добавляет несколько записей в архив.
 *   `get_entries(event_type, min_significance, start_timestamp, end_timestamp)` — получает записи из архива с фильтрацией.
 *   `get_all_entries()` — возвращает все записи из архива.
+*   `search_by_type(event_type)` — поиск записей по типу события (v2.3).
 *   `size()` — возвращает количество записей в архиве.
 *   `save_archive()` — сохраняет архив в файл `data/archive/memory_archive.json`.
 *   `_load_archive()` — загружает архив из файла при инициализации.
@@ -179,6 +180,12 @@ old_entries = archive.get_entries(
     min_significance=0.7
 )
 print(f"Найдено в архиве: {len(old_entries)}")
+
+# Поиск по типу события (новый метод v2.3)
+decay_events = archive.search_by_type("decay")
+recovery_events = archive.search_by_type("recovery")
+print(f"Все decay события в архиве: {len(decay_events)}")
+print(f"Все recovery события в архиве: {len(recovery_events)}")
 ```
 
 ### Индексированный поиск (v2.3)

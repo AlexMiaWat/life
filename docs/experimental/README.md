@@ -800,6 +800,7 @@ meta_cognition_depth: float = 0.0      # Глубина метакогниции
 - **Интеграция с AdaptiveProcessingManager**: Engine теперь использует AdaptiveProcessingManager для анализа системных условий
 - **Совместимость API**: Сохранена обратная совместимость с существующими интерфейсами
 - **Улучшенная обработка**: Добавлена поддержка новых типов обработки через adaptive состояния
+- **Новое свойство transition_history (2026-01-22)**: Добавлено property `transition_history` для обратной совместимости с методом `get_transition_history()`
 
 #### Изменения в ConsciousnessMetrics
 - **Интеграция метрик**: Метрики consciousness теперь интегрируются с метриками AdaptiveProcessingManager

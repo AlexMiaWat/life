@@ -1,0 +1,102 @@
+[
+  {
+    "timestamp": 1769052770.9103537,
+    "event_type": "system_event",
+    "data": {
+      "id": 9,
+      "timestamp": 1769052770.9103513
+    },
+    "source": "component_a",
+    "metadata": {}
+  },
+  {
+    "timestamp": 1769052770.9002626,
+    "event_type": "background_event",
+    "data": {
+      "id": 8,
+      "timestamp": 1769052770.9002607
+    },
+    "source": "component_c",
+    "metadata": {}
+  },
+  {
+    "timestamp": 1769052770.890453,
+    "event_type": "user_event",
+    "data": {
+      "id": 7,
+      "timestamp": 1769052770.8904507
+    },
+    "source": "component_b",
+    "metadata": {}
+  },
+  {
+    "timestamp": 1769052770.8799455,
+    "event_type": "system_event",
+    "data": {
+      "id": 6,
+      "timestamp": 1769052770.8799431
+    },
+    "source": "component_a",
+    "metadata": {}
+  },
+  {
+    "timestamp": 1769052770.8695457,
+    "event_type": "background_event",
+    "data": {
+      "id": 5,
+      "timestamp": 1769052770.8695438
+    },
+    "source": "component_c",
+    "metadata": {}
+  },
+  {
+    "timestamp": 1769052770.8596606,
+    "event_type": "user_event",
+    "data": {
+      "id": 4,
+      "timestamp": 1769052770.8596582
+    },
+    "source": "component_b",
+    "metadata": {}
+  },
+  {
+    "timestamp": 1769052770.8495522,
+    "event_type": "system_event",
+    "data": {
+      "id": 3,
+      "timestamp": 1769052770.8495495
+    },
+    "source": "component_a",
+    "metadata": {}
+  },
+  {
+    "timestamp": 1769052770.8393455,
+    "event_type": "background_event",
+    "data": {
+      "id": 2,
+      "timestamp": 1769052770.8393428
+    },
+    "source": "component_c",
+    "metadata": {}
+  },
+  {
+    "timestamp": 1769052770.8288338,
+    "event_type": "user_event",
+    "data": {
+      "id": 1,
+      "timestamp": 1769052770.8288312
+    },
+    "source": "component_b",
+    "metadata": {}
+  },
+  {
+    "timestamp": 1769052770.8224382,
+    "event_type": "system_event",
+    "data": {
+      "id": 0,
+      "timestamp": 1769052770.8224366
+    },
+    "source": "component_a",
+    "metadata": {}
+  }
+]

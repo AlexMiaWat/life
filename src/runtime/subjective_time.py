@@ -31,15 +31,19 @@ def compute_subjective_time_rate(
     recovery_efficiency: float = 1.0,
 ) -> float:
     """
-    Compute subjective time rate multiplier.
+    Compute subjective time rate multiplier with circadian rhythm influence.
 
     Design:
     - higher intensity -> faster subjective time (positive effect)
     - lower stability -> slower subjective time (negative effect)
     - higher energy -> faster subjective time (positive effect)
-    - circadian rhythm affects time perception based on recovery efficiency
+    - circadian rhythm strongly affects time perception:
+      * Day (circadian_phase ~π): faster subjective time (активность)
+      * Night (circadian_phase ~0 or 2π): slower subjective time (отдых)
     - rate is clamped to [rate_min, rate_max]
     """
+    import math
+
     intensity = clamp(float(intensity), 0.0, 1.0)
     stability = clamp(float(stability), 0.0, 1.0)
     energy_normalized = clamp(float(energy) / 100.0, 0.0, 1.0)  # normalize energy to [0,1]
@@ -50,8 +54,12 @@ def compute_subjective_time_rate(
     stability_term = stability_coeff * (stability - 0.5)  # 0.5 = neutral stability
     # energy term: higher energy -> faster subjective time (positive contribution)
     energy_term = energy_coeff * energy_normalized
-    # circadian term: recovery efficiency affects subjective time perception
-    circadian_term = 0.1 * (recovery_efficiency - 1.0)  # small effect from circadian rhythm
+
+    # circadian term: strong influence on subjective time perception
+    # Day phase (around π): faster time perception (активность, бодрость)
+    # Night phase (around 0/2π): slower time perception (отдых, восстановление)
+    circadian_sin = math.sin(circadian_phase)  # -1 (ночь) to +1 (день)
+    circadian_term = 0.3 * circadian_sin * recovery_efficiency  # stronger effect with recovery efficiency
 
     rate = base_rate + intensity_coeff * intensity + stability_term + energy_term + circadian_term
     return clamp(rate, float(rate_min), float(rate_max))

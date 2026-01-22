@@ -130,31 +130,31 @@ class EnvironmentConfig:
             ),
             # Другие события
             "connection": EventTypeConfig(
-                weight=0.007, intensity_min=0.0, intensity_max=0.8, description="Ощущение связи"
+                weight=0.028, intensity_min=0.0, intensity_max=0.8, description="Ощущение связи"
             ),
             "isolation": EventTypeConfig(
-                weight=0.007, intensity_min=-0.7, intensity_max=0.0, description="Ощущение изоляции"
+                weight=0.025, intensity_min=-0.7, intensity_max=0.0, description="Ощущение изоляции"
             ),
             "insight": EventTypeConfig(
-                weight=0.007, intensity_min=0.0, intensity_max=0.6, description="Момент озарения"
+                weight=0.022, intensity_min=0.0, intensity_max=0.6, description="Момент озарения"
             ),
             "confusion": EventTypeConfig(
-                weight=0.007,
+                weight=0.020,
                 intensity_min=-0.5,
                 intensity_max=0.0,
                 description="Состояние замешательства",
             ),
             "curiosity": EventTypeConfig(
-                weight=0.007, intensity_min=-0.3, intensity_max=0.4, description="Любопытство"
+                weight=0.018, intensity_min=-0.3, intensity_max=0.4, description="Любопытство"
             ),
             "meaning_found": EventTypeConfig(
-                weight=0.007, intensity_min=0.0, intensity_max=0.9, description="Нахождение смысла"
+                weight=0.015, intensity_min=0.0, intensity_max=0.9, description="Нахождение смысла"
             ),
             "void": EventTypeConfig(
-                weight=0.007, intensity_min=-0.8, intensity_max=0.0, description="Ощущение пустоты"
+                weight=0.012, intensity_min=-0.8, intensity_max=0.0, description="Ощущение пустоты"
             ),
             "acceptance": EventTypeConfig(
-                weight=0.007, intensity_min=0.0, intensity_max=0.5, description="Принятие состояния"
+                weight=0.010, intensity_min=0.0, intensity_max=0.5, description="Принятие состояния"
             ),
             # Новые эмоциональные события
             "joy": EventTypeConfig(

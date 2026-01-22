@@ -152,6 +152,18 @@ class ArchiveMemory(EpisodicMemoryInterface):
         """
         return self._index_engine.search(query)
 
+    def search_by_type(self, event_type: str) -> List[MemoryEntry]:
+        """
+        Поиск записей по типу события.
+
+        Args:
+            event_type: Тип события для поиска
+
+        Returns:
+            Список найденных записей
+        """
+        return self.get_entries(event_type=event_type)
+
     def size(self) -> int:
         """Возвращает количество записей в архиве."""
         return len(self._entries)

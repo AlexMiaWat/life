@@ -32,7 +32,7 @@ class EchoCandidate:
         emotional_intensity: Эмоциональная интенсивность (0.0-1.0)
         contextual_modifier: Модификатор контекста
         subjective_time_modifier: Модификатор субъективного времени
-        perceived_age_days: Воспринимаемый возраст в днях (с учетом субъективного времени)
+        subjective_age: Реальный субъективный возраст воспоминания (в единицах субъективного времени)
     """
     memory_entry: MemoryEntry
     weight: float
@@ -40,7 +40,7 @@ class EchoCandidate:
     emotional_intensity: float
     contextual_modifier: float
     subjective_time_modifier: float = 1.0
-    perceived_age_days: float = 0.0
+    subjective_age: float = 0.0
 
 
 class MemoryEchoSelector:
@@ -165,15 +165,20 @@ class MemoryEchoSelector:
         # Вычисляем субъективный темп времени для контекста
         subjective_rate = self._calculate_current_subjective_rate(context_state)
 
-        # Вычисляем воспринимаемый возраст (как система воспринимает время)
+        # Вычисляем реальный субъективный возраст воспоминания
+        subjective_age = 0.0
+        if hasattr(entry, 'subjective_timestamp') and entry.subjective_timestamp is not None:
+            subjective_age = context_state.subjective_time - entry.subjective_timestamp
+
+        # Вычисляем воспринимаемый возраст для обратной совместимости (будет удален)
         perceived_age_days = age_days / subjective_rate if subjective_rate > 0 else age_days
 
         # Вычисляем компоненты веса
-        age_weight = self._calculate_age_weight(age_days, perceived_age_days)
+        age_weight = self._calculate_age_weight(age_days, subjective_age if subjective_age > 0 else perceived_age_days)
         significance_weight = entry.meaning_significance
         emotional_intensity = self._get_emotional_intensity(entry.event_type)
         contextual_modifier = self._calculate_contextual_modifier(entry.event_type, context_state)
-        subjective_time_modifier = self._calculate_subjective_time_modifier(entry, context_state, subjective_rate, perceived_age_days)
+        subjective_time_modifier = self._calculate_subjective_time_modifier(entry, context_state, subjective_rate, subjective_age if subjective_age > 0 else perceived_age_days)
 
         # Общий вес как взвешенная сумма компонентов
         total_weight = (
@@ -191,37 +196,41 @@ class MemoryEchoSelector:
             emotional_intensity=emotional_intensity,
             contextual_modifier=contextual_modifier,
             subjective_time_modifier=subjective_time_modifier,
-            perceived_age_days=perceived_age_days
+            subjective_age=subjective_age
         )
 
-    def _calculate_age_weight(self, age_days: float, perceived_age_days: Optional[float] = None) -> float:
+    def _calculate_age_weight(self, age_days: float, subjective_age: Optional[float] = None) -> float:
         """
         Вычисляет вес на основе возраста воспоминания.
 
-        Воспоминания старше 7 дней получают более высокий вес,
-        но слишком старые (>1 года) получают пониженный вес.
-        Учитывает как хронологический, так и воспринимаемый возраст.
+        Воспоминания старше определенного субъективного возраста получают более высокий вес,
+        но слишком старые получают пониженный вес.
+        Использует реальный субъективный возраст воспоминания.
 
         Args:
-            age_days: Хронологический возраст в днях
-            perceived_age_days: Воспринимаемый возраст в днях (опционально)
+            age_days: Хронологический возраст в днях (для обратной совместимости)
+            subjective_age: Реальный субъективный возраст воспоминания (в единицах субъективного времени)
 
         Returns:
             Вес от 0.0 до 1.0
         """
-        # Используем воспринимаемый возраст если доступен, иначе хронологический
-        effective_age = perceived_age_days if perceived_age_days is not None else age_days
+        # Используем субъективный возраст если доступен, иначе хронологический
+        effective_age = subjective_age if subjective_age is not None and subjective_age > 0 else age_days
 
-        if effective_age < 1.0:
+        # Конвертируем субъективный возраст в "эквивалент дней" для порогов
+        # Предполагаем, что 100 единиц субъективного времени ≈ 1 дню
+        effective_age_days = effective_age / 100.0 if subjective_age is not None and subjective_age > 0 else effective_age
+
+        if effective_age_days < 1.0:
             # Совсем свежие воспоминания получают низкий вес
             return 0.1
-        elif effective_age < self.age_preference_threshold_days:
+        elif effective_age_days < self.age_preference_threshold_days:
             # Воспоминания 1-7 дней получают средний вес
             return 0.5
-        elif effective_age < self.max_age_days:
+        elif effective_age_days < self.max_age_days:
             # Воспоминания 7 дней - 1 год получают высокий вес
             # Легкое затухание с возрастом
-            age_factor = 1.0 - (effective_age - self.age_preference_threshold_days) / (self.max_age_days - self.age_preference_threshold_days)
+            age_factor = 1.0 - (effective_age_days - self.age_preference_threshold_days) / (self.max_age_days - self.age_preference_threshold_days)
             return 0.8 + 0.2 * age_factor
         else:
             # Слишком старые воспоминания получают низкий вес
@@ -454,7 +463,7 @@ class MemoryEchoSelector:
         except Exception:
             return 1.0
 
-    def _calculate_subjective_time_modifier(self, entry: MemoryEntry, context_state: SelfState, subjective_rate: float, perceived_age_days: float) -> float:
+    def _calculate_subjective_time_modifier(self, entry: MemoryEntry, context_state: SelfState, subjective_rate: float, subjective_age: float) -> float:
         """
         Вычисляет модификатор веса на основе субъективного времени.
 
@@ -462,33 +471,33 @@ class MemoryEchoSelector:
             entry: Запись памяти
             context_state: Текущее состояние
             subjective_rate: Текущий субъективный темп времени
-            perceived_age_days: Воспринимаемый возраст воспоминания
+            subjective_age: Реальный субъективный возраст воспоминания
 
         Returns:
             Модификатор веса (-0.5 до 0.5)
         """
         modifier = 0.0
 
+        # Конвертируем субъективный возраст в дни для сравнения с порогами
+        subjective_age_days = subjective_age / 100.0 if subjective_age > 0 else 0
+
         # Модификатор на основе субъективного темпа времени
         if subjective_rate < 0.7:  # Замедленное субъективное время
             # При замедленном времени чаще всплывают глубокие воспоминания
-            if perceived_age_days > 30:  # Старые воспоминания
+            if subjective_age_days > 30:  # Старые воспоминания
                 modifier += 0.3
         elif subjective_rate > 1.5:  # Ускоренное субъективное время
             # При ускоренном времени - свежие воспоминания
-            if perceived_age_days < 7:  # Недавние воспоминания
+            if subjective_age_days < 7:  # Недавние воспоминания
                 modifier += 0.2
 
         # Модификатор на основе субъективной временной метки записи
-        if hasattr(entry, 'subjective_timestamp') and entry.subjective_timestamp:
-            # Разница между субъективным временем записи и текущим
-            subjective_age = context_state.subjective_time - entry.subjective_timestamp
-            if subjective_age > 0:
-                # Нормализуем возраст (старше 1000 единиц субъективного времени = 1.0)
-                normalized_subjective_age = min(1.0, subjective_age / 1000.0)
-                # Предпочитаем воспоминания, субъективно не слишком старые и не слишком свежие
-                if 0.1 <= normalized_subjective_age <= 0.8:
-                    modifier += 0.2
+        if subjective_age > 0:
+            # Нормализуем возраст (старше 1000 единиц субъективного времени = 1.0)
+            normalized_subjective_age = min(1.0, subjective_age / 1000.0)
+            # Предпочитаем воспоминания, субъективно не слишком старые и не слишком свежие
+            if 0.1 <= normalized_subjective_age <= 0.8:
+                modifier += 0.2
 
         # Модификатор на основе циркадного ритма и субъективного времени
         if hasattr(context_state, 'circadian_phase'):

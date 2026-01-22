@@ -5,6 +5,19 @@
 Формат основан на [Keep a Changelog](https://keepachangelog.com/ru/1.0.0/),
 и этот проект придерживается [Semantic Versioning](https://semver.org/lang/ru/).
 
+## [2026-01-22]
+
+### Добавлено
+- **Memory ArchiveMemory.search_by_type()**: Новый метод для поиска записей памяти по типу события
+- **ParallelConsciousnessEngine.transition_history property**: Свойство для обратной совместимости с методом get_transition_history()
+- **AsyncDataSink улучшения**: Новые параметры конфигурации (max_queue_size, processing_interval) и улучшенная обработка данных
+- **PassiveDataSink улучшения**: Убран лимит maxlen для предотвращения потери данных
+- **RawDataAccess улучшения**: Изменена логика получения данных - лимит применяется после получения всех данных
+
+### Изменено
+- **EnvironmentConfigManager**: Значительно увеличены веса новых типов событий (connection, isolation, insight, confusion, curiosity, meaning_found, void, acceptance) для повышения их влияния
+- **Observability архитектура**: Обновлен статус компонентов AsyncDataSink и PassiveDataSink как устаревших, но поддерживаемых для совместимости
+
 ## [Unreleased]
 
 ### Исправления

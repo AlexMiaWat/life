@@ -86,9 +86,9 @@ class TestAdaptiveThresholds:
 
         thresholds = engine.calculate_adaptive_thresholds(statistics)
 
-        # Средняя значимость = 0.6, std ≈ 0.1
-        expected_high_sig = min(0.9, max(0.1, 0.6 + 0.1 * 0.5))  # ≈ 0.65
-        expected_low_sig = max(0.1, min(0.9, 0.6 - 0.1 * 0.5))  # ≈ 0.55
+        # Средняя значимость ≈ 0.533, std ≈ 0.096
+        expected_high_sig = min(0.9, max(0.1, 0.5333 + 0.096 * 0.5))  # ≈ 0.581
+        expected_low_sig = max(0.1, min(0.9, 0.5333 - 0.096 * 0.5))  # ≈ 0.485
 
         assert "high_significance_threshold" in thresholds
         assert "low_significance_threshold" in thresholds

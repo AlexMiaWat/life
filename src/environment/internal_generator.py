@@ -86,6 +86,11 @@ class InternalEventGenerator:
             selected_memory = self.echo_selector.select_memory_for_echo(self.memory, context_state)
 
         if selected_memory:
+            # Вычисляем реальный субъективный возраст воспоминания
+            subjective_age = 0.0
+            if hasattr(selected_memory, 'subjective_timestamp') and selected_memory.subjective_timestamp is not None:
+                subjective_age = context_state.subjective_time - selected_memory.subjective_timestamp
+
             # Генерируем интенсивность с учетом субъективного времени
             base_intensity = selected_memory.meaning_significance * 0.4  # 0.0 - 0.4
 
@@ -94,14 +99,20 @@ class InternalEventGenerator:
             intensity_modifier = 0.5 + 0.5 * subjective_rate  # 0.5-1.0 для нормализации
             base_intensity *= intensity_modifier
 
+            # Модифицируем интенсивность на основе субъективного возраста воспоминания
+            if subjective_age > 0:
+                # Нормализуем субъективный возраст (старше 1000 единиц = пониженная интенсивность)
+                age_modifier = max(0.3, 1.0 - (subjective_age / 1000.0))
+                base_intensity *= age_modifier
+
             intensity = random.uniform(-base_intensity, base_intensity)
 
-            # Вычисляем возраст в днях с учетом субъективного времени
+            # Вычисляем возраст в днях (для обратной совместимости)
             age_seconds = time.time() - selected_memory.timestamp
             age_days = age_seconds / (24 * 3600)
 
-            # Корректируем воспринимаемый возраст на основе субъективного времени
-            perceived_age_days = age_days / subjective_rate
+            # Корректируем воспринимаемый возраст на основе субъективного времени (для обратной совместимости)
+            perceived_age_days = age_days / subjective_rate if subjective_rate > 0 else age_days
 
             # Определяем эмоциональный тип на основе event_type
             emotional_impact = self._get_emotional_impact(selected_memory.event_type)
@@ -121,7 +132,8 @@ class InternalEventGenerator:
                     "subjective_timestamp": selected_memory.subjective_timestamp,
                     "weight": selected_memory.weight,
                     "age_days": age_days,
-                    "perceived_age_days": perceived_age_days,
+                    "subjective_age": subjective_age,
+                    "perceived_age_days": perceived_age_days,  # Для обратной совместимости
                     "emotional_impact": emotional_impact,
                 }
             })

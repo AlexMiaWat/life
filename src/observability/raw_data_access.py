@@ -71,8 +71,11 @@ class DataSource:
             Список наблюдений
         """
         try:
-            if self.get_recent_data and limit:
-                return self.get_recent_data(limit=limit)
+            if self.get_recent_data:
+                data = self.get_recent_data()
+                if limit:
+                    return data[:limit]
+                return data
             else:
                 data = self.get_entries()
                 if limit:

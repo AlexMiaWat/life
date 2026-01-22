@@ -1,0 +1,11 @@
+[
+  {
+    "timestamp": 1769052386.2584739,
+    "event_type": "test_event",
+    "data": {
+      "key": "value"
+    },
+    "source": "test_source",
+    "metadata": {}
+  }
+]

@@ -38,7 +38,9 @@ class StructuredLogger:
         buffer_size: int = 10000,  # Размер буфера в памяти
         batch_size: int = 50,  # Размер пакета для batch-записи
         flush_interval: float = 1.0,  # Увеличен до 1s для лучшей производительности (был 0.1)
-        async_queue=None  # Для совместимости с тестами
+        async_queue=None,  # Для совместимости с тестами
+        passive_data_sink=None,  # PassiveDataSink для пассивного сбора данных
+        async_data_sink=None  # AsyncDataSink для асинхронного сбора данных
     ):
         """
         Initialize structured logger with AsyncLogWriter or external AsyncDataQueue.
@@ -53,6 +55,8 @@ class StructuredLogger:
             batch_size: Размер пакета для batch-записи
             flush_interval: Интервал сброса буфера (секунды)
             async_queue: Внешняя асинхронная очередь (для тестов)
+            passive_data_sink: PassiveDataSink для пассивного сбора данных
+            async_data_sink: AsyncDataSink для асинхронного сбора данных
         """
         if config is None:
             config = get_observability_config()
@@ -61,6 +65,10 @@ class StructuredLogger:
         self.enabled = enabled if enabled is not None else config.structured_logging.enabled
         self.log_tick_interval = log_tick_interval
         self.enable_detailed_logging = enable_detailed_logging
+
+        # Компоненты для сбора данных
+        self.passive_data_sink = passive_data_sink
+        self.async_data_sink = async_data_sink
 
         # Синхронизация
         self._lock = threading.Lock()
@@ -98,6 +106,29 @@ class StructuredLogger:
         """Write a single log entry via AsyncLogWriter or external queue."""
         if not self.enabled:
             return
+
+        # Передача данных в пассивные компоненты сбора данных
+        if self.passive_data_sink is not None:
+            try:
+                self.passive_data_sink.receive_data(
+                    event_type=f"structured_log_{entry.get('stage', 'unknown')}",
+                    data=entry,
+                    source="structured_logger",
+                    metadata={"correlation_id": entry.get("correlation_id")}
+                )
+            except Exception as e:
+                logger.debug(f"Failed to send data to passive_data_sink: {e}")
+
+        if self.async_data_sink is not None:
+            try:
+                self.async_data_sink.log_event(
+                    data=entry,
+                    event_type=f"structured_log_{entry.get('stage', 'unknown')}",
+                    source="structured_logger",
+                    metadata={"correlation_id": entry.get("correlation_id")}
+                )
+            except Exception as e:
+                logger.debug(f"Failed to send data to async_data_sink: {e}")
 
         if self._async_writer is not None:
             # Быстрая запись в буфер памяти (0.001ms) - <1% overhead

@@ -53,8 +53,8 @@ class PassiveDataSink:
         # Создаем директорию если не существует
         self.data_directory.mkdir(parents=True, exist_ok=True)
 
-        # Буфер в памяти
-        self._buffer: deque[ObservationData] = deque(maxlen=max_entries)
+        # Буфер в памяти (без maxlen, чтобы не терять данные)
+        self._buffer: deque[ObservationData] = deque()
 
         # Статистика
         self._stats = {
@@ -125,6 +125,7 @@ class PassiveDataSink:
             Список наблюдений
         """
         data = list(self._buffer)
+
         if limit is not None:
             data = data[-limit:]
         return data

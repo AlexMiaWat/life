@@ -1,0 +1,102 @@
+[
+  {
+    "timestamp": 1769052711.2993917,
+    "event_type": "system_event",
+    "data": {
+      "id": 9,
+      "timestamp": 1769052711.2993898
+    },
+    "source": "component_a",
+    "metadata": {}
+  },
+  {
+    "timestamp": 1769052711.2885427,
+    "event_type": "background_event",
+    "data": {
+      "id": 8,
+      "timestamp": 1769052711.2885404
+    },
+    "source": "component_c",
+    "metadata": {}
+  },
+  {
+    "timestamp": 1769052711.278011,
+    "event_type": "user_event",
+    "data": {
+      "id": 7,
+      "timestamp": 1769052711.278008
+    },
+    "source": "component_b",
+    "metadata": {}
+  },
+  {
+    "timestamp": 1769052711.267492,
+    "event_type": "system_event",
+    "data": {
+      "id": 6,
+      "timestamp": 1769052711.26749
+    },
+    "source": "component_a",
+    "metadata": {}
+  },
+  {
+    "timestamp": 1769052711.2568283,
+    "event_type": "background_event",
+    "data": {
+      "id": 5,
+      "timestamp": 1769052711.2568264
+    },
+    "source": "component_c",
+    "metadata": {}
+  },
+  {
+    "timestamp": 1769052711.2465062,
+    "event_type": "user_event",
+    "data": {
+      "id": 4,
+      "timestamp": 1769052711.2465043
+    },
+    "source": "component_b",
+    "metadata": {}
+  },
+  {
+    "timestamp": 1769052711.236293,
+    "event_type": "system_event",
+    "data": {
+      "id": 3,
+      "timestamp": 1769052711.236291
+    },
+    "source": "component_a",
+    "metadata": {}
+  },
+  {
+    "timestamp": 1769052711.2257056,
+    "event_type": "background_event",
+    "data": {
+      "id": 2,
+      "timestamp": 1769052711.2257013
+    },
+    "source": "component_c",
+    "metadata": {}
+  },
+  {
+    "timestamp": 1769052711.2145128,
+    "event_type": "user_event",
+    "data": {
+      "id": 1,
+      "timestamp": 1769052711.2145104
+    },
+    "source": "component_b",
+    "metadata": {}
+  },
+  {
+    "timestamp": 1769052711.208017,
+    "event_type": "system_event",
+    "data": {
+      "id": 0,
+      "timestamp": 1769052711.208016
+    },
+    "source": "component_a",
+    "metadata": {}
+  }
+]
