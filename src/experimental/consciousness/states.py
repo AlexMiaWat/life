@@ -4,6 +4,7 @@ Consciousness States - Compatibility Layer
 Backward compatibility for consciousness states API.
 """
 
+import time
 from enum import Enum
 from typing import Dict, Any, Optional, List
 from dataclasses import dataclass

@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 from collections import defaultdict
 
 from src.observability.structured_logger import StructuredLogger
+from src.contracts.serialization_contract import SerializationContract
 import sys
 # Import interfaces through sys.modules to ensure we get the same object
 _memory_interface_module = sys.modules.get('src.memory.memory_interface')
@@ -86,7 +87,7 @@ class SemanticAssociation:
         self.last_updated = time.time()
 
 
-class SemanticMemoryStore(SemanticMemoryInterface):
+class SemanticMemoryStore(SemanticMemoryInterface, SerializationContract):
     """
     Хранилище семантической памяти.
 
@@ -600,6 +601,75 @@ class SemanticMemoryStore(SemanticMemoryInterface):
             "associations_by_type": types_count,
             "associations_by_strength": strength_ranges,
         }
+
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Сериализовать состояние семантического хранилища.
+
+        Returns:
+            Dict[str, Any]: Словарь с состоянием компонента
+        """
+        import time
+        current_time = time.time()
+
+        return {
+            "concepts": {
+                concept_id: {
+                    "concept_id": concept.concept_id,
+                    "name": concept.name,
+                    "description": concept.description,
+                    "confidence": concept.confidence,
+                    "activation_count": concept.activation_count,
+                    "last_activation": concept.last_activation,
+                    "related_concepts": list(concept.related_concepts),
+                    "properties": concept.properties,
+                    "created_at": concept.created_at,
+                }
+                for concept_id, concept in self._concepts.items()
+            },
+            "associations": [
+                {
+                    "source_id": association.source_id,
+                    "target_id": association.target_id,
+                    "association_type": association.association_type,
+                    "strength": association.strength,
+                    "evidence_count": association.evidence_count,
+                    "last_updated": association.last_updated,
+                }
+                for association in self._associations.values()
+            ],
+            "name_to_id": dict(self._name_to_id),
+            "stats": dict(self._stats),
+            "last_consolidation": self._stats.get("last_consolidation", current_time),
+            "timestamp": current_time,
+        }
+
+    def get_serialization_metadata(self) -> Dict[str, Any]:
+        """
+        Получить метаданные сериализации семантического хранилища.
+
+        Returns:
+            Dict[str, Any]: Метаданные сериализации
+        """
+        import time
+        current_time = time.time()
+
+        return {
+            "version": "1.0",
+            "timestamp": current_time,
+            "component_type": "semantic_memory_store",
+            "thread_safe": True,  # SemanticMemoryStore thread-safe для чтения
+            "concepts_count": len(self._concepts),
+            "associations_count": len(self._associations),
+            "total_size_bytes": self._estimate_size(),
+        }
+
+    def _estimate_size(self) -> int:
+        """Оценить размер хранилища в байтах."""
+        # Грубая оценка: каждый концепт ~1KB, каждая ассоциация ~100B
+        concepts_size = len(self._concepts) * 1024
+        associations_size = len(self._associations) * 100
+        return concepts_size + associations_size
 
     def get_full_statistics(self) -> Dict[str, Any]:
         """

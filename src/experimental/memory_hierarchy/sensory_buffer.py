@@ -13,6 +13,7 @@ from typing import Deque, List, Optional, Dict, Any
 
 from src.environment.event import Event
 from src.observability.structured_logger import StructuredLogger
+from src.contracts.serialization_contract import SerializationContract
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +40,7 @@ class SensoryEntry:
         return max(0.0, self.ttl_seconds - elapsed)
 
 
-class SensoryBuffer:
+class SensoryBuffer(SerializationContract):
     """
     Кольцевой буфер для кратковременного хранения сенсорных данных.
 
@@ -351,3 +352,64 @@ class SensoryBuffer:
             "current_ttl": self.default_ttl,
             "is_empty": len(self._buffer) == 0
         }
+
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Сериализовать состояние сенсорного буфера.
+
+        Returns:
+            Dict[str, Any]: Словарь с состоянием компонента
+        """
+        import time
+        current_time = time.time()
+
+        return {
+            "entries": [
+                {
+                    "event": {
+                        "type": entry.event.type,
+                        "intensity": entry.event.intensity,
+                        "timestamp": entry.event.timestamp,
+                        "source": getattr(entry.event, 'source', None),
+                        "data": getattr(entry.event, 'data', {}),
+                    },
+                    "entry_timestamp": entry.entry_timestamp,
+                    "ttl_seconds": entry.ttl_seconds,
+                }
+                for entry in self._buffer
+            ],
+            "buffer_size": self.buffer_size,
+            "default_ttl": self.default_ttl,
+            "stats": {
+                "total_entries_added": self._total_entries_added,
+                "total_entries_expired": self._total_entries_expired,
+                "total_entries_processed": self._total_entries_processed,
+                "last_cleanup_time": self._last_cleanup_time,
+            },
+            "timestamp": current_time,
+        }
+
+    def get_serialization_metadata(self) -> Dict[str, Any]:
+        """
+        Получить метаданные сериализации сенсорного буфера.
+
+        Returns:
+            Dict[str, Any]: Метаданные сериализации
+        """
+        import time
+        current_time = time.time()
+
+        return {
+            "version": "1.0",
+            "timestamp": current_time,
+            "component_type": "sensory_buffer",
+            "thread_safe": False,  # SensoryBuffer не thread-safe из-за deque
+            "current_entries_count": len(self._buffer),
+            "buffer_capacity": self.buffer_size,
+            "total_size_bytes": self._estimate_size(),
+        }
+
+    def _estimate_size(self) -> int:
+        """Оценить размер буфера в байтах."""
+        # Грубая оценка: каждая запись ~1KB
+        return len(self._buffer) * 1024

@@ -177,3 +177,60 @@ module = [
     "src.test.*",
 ]
 ignore_errors = true  # Полностью игнорировать ошибки типизации в тестах
+
+[tool.pytest.ini_options]
+testpaths = ["src/test"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-v",
+    "--tb=short",
+    "--strict-markers",
+    "--cov=src",
+    "--cov-report=xml",
+    "--cov-report=term-missing",
+    "--cov-append",
+    "--cov-branch",
+]
+asyncio_mode = "auto"
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests",
+    "static: Static analysis tests (structure, types, forbidden methods)",
+    "smoke: Smoke tests (basic functionality checks)",
+    "slow: Slow running tests",
+    "real_server: Tests that can use real server with --real-server option",
+    "order: Test execution order (used by pytest-order plugin)",
+    "performance: Performance benchmark tests",
+    "concurrency: Concurrency tests",
+    "runtime_managers: Runtime managers tests",
+    "e2e: End-to-end tests",
+    "dev_mode: Development mode tests",
+    "profiling: Profiling system tests",
+    "race_conditions: Race condition tests",
+    "long_running: Long running tests (300+ ticks)",
+]
+
+[tool.coverage.run]
+source = ["src"]
+branch = true
+parallel = true
+omit = [
+    "*/test/*",
+    "*/tests/*",
+    "*/conftest.py",
+    "*/__main__.py",
+    "src/main.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "class .*\bProtocol\):",
+    "@(abc\.)?abstractmethod",
+]

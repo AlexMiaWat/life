@@ -7,7 +7,7 @@ from typing import Dict, Any
 from src.action import execute_action
 from src.activation.activation import activate_memory
 from src.adaptation.adaptation import AdaptationManager
-from src.decision.decision import decide_response
+from src.decision.decision import decide_response, DecisionEngine
 from src.environment.internal_generator import InternalEventGenerator
 
 # Экспериментальные компоненты импортируются условно на основе feature flags
@@ -482,9 +482,11 @@ def run_loop(
             logger.info("Initializing MemoryHierarchyManager (experimental component)")
             from src.experimental.memory_hierarchy import MemoryHierarchyManager
 
-            memory_hierarchy = MemoryHierarchyManager(logger=structured_logger)
+            memory_hierarchy = MemoryHierarchyManager(logger=structured_logger, feature_flags=feature_flags)
             # Подключение эпизодической памяти к иерархии
             memory_hierarchy.set_episodic_memory(self_state.memory)
+            # Интеграция в SelfState для сериализации
+            self_state.set_memory_hierarchy(memory_hierarchy)
             logger.info("MemoryHierarchyManager initialized successfully")
         except ImportError as e:
             logger.warning(f"MemoryHierarchyManager not available: {e}")
@@ -982,16 +984,18 @@ def run_loop(
                                 # Обновление размера сенсорного буфера
                                 self_state.sensory_buffer_size = (
                                     memory_hierarchy.sensory_buffer.buffer_size
+                                    if memory_hierarchy.sensory_buffer
+                                    else 0
                                 )
                                 # Обновление количества концепций
                                 self_state.semantic_concepts_count = (
-                                    len(memory_hierarchy.semantic_store._concepts)
+                                    memory_hierarchy.semantic_store.get_concepts_count()
                                     if memory_hierarchy.semantic_store
                                     else 0
                                 )
                                 # Обновление количества паттернов
                                 self_state.procedural_patterns_count = (
-                                    len(memory_hierarchy.procedural_store._patterns)
+                                    memory_hierarchy.procedural_store.size
                                     if memory_hierarchy.procedural_store
                                     else 0
                                 )

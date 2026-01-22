@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 from collections import defaultdict
 
 from src.observability.structured_logger import StructuredLogger
+from src.contracts.serialization_contract import SerializationContract
 import sys
 # Import interfaces through sys.modules to ensure we get the same object
 _memory_interface_module = sys.modules.get('memory.memory_interface')
@@ -227,7 +228,7 @@ class DecisionPattern:
         return matches / total_conditions if total_conditions > 0 else 0.0
 
 
-class ProceduralMemoryStore(ProceduralMemoryInterface):
+class ProceduralMemoryStore(ProceduralMemoryInterface, SerializationContract):
     """
     Хранилище процедурной памяти.
 
@@ -661,3 +662,76 @@ class ProceduralMemoryStore(ProceduralMemoryInterface):
         }
 
         self.logger.log_event({"event_type": "procedural_store_cleared"})
+
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Сериализовать состояние процедурного хранилища.
+
+        Returns:
+            Dict[str, Any]: Словарь с состоянием компонента
+        """
+        import time
+        current_time = time.time()
+
+        return {
+            "patterns": {
+                pattern_id: {
+                    "pattern_id": pattern.pattern_id,
+                    "name": pattern.name,
+                    "description": pattern.description,
+                    "action_sequence": pattern.action_sequence,
+                    "trigger_conditions": pattern.trigger_conditions,
+                    "success_count": pattern.success_count,
+                    "failure_count": pattern.failure_count,
+                    "total_executions": pattern.total_executions,
+                    "average_execution_time": pattern.average_execution_time,
+                    "success_rate": pattern.success_rate,
+                    "automation_level": pattern.automation_level,
+                    "min_automation_threshold": pattern.min_automation_threshold,
+                    "created_at": pattern.created_at,
+                    "last_execution": pattern.last_execution,
+                    "last_success": pattern.last_success,
+                }
+                for pattern_id, pattern in self._patterns.items()
+            },
+            "decision_patterns": {
+                hash_key: {
+                    "pattern_id": pattern.pattern_id,
+                    "conditions": pattern.conditions,
+                    "decision": pattern.decision,
+                    "outcome": pattern.outcome,
+                    "confidence": pattern.confidence,
+                    "usage_count": pattern.usage_count,
+                }
+                for hash_key, pattern in self._decision_patterns.items()
+            },
+            "stats": dict(self._stats),
+            "timestamp": current_time,
+        }
+
+    def get_serialization_metadata(self) -> Dict[str, Any]:
+        """
+        Получить метаданные сериализации процедурного хранилища.
+
+        Returns:
+            Dict[str, Any]: Метаданные сериализации
+        """
+        import time
+        current_time = time.time()
+
+        return {
+            "version": "1.0",
+            "timestamp": current_time,
+            "component_type": "procedural_memory_store",
+            "thread_safe": True,  # ProceduralMemoryStore thread-safe для чтения
+            "patterns_count": len(self._patterns),
+            "decision_patterns_count": len(self._decision_patterns),
+            "total_size_bytes": self._estimate_size(),
+        }
+
+    def _estimate_size(self) -> int:
+        """Оценить размер хранилища в байтах."""
+        # Грубая оценка: каждый паттерн ~2KB, каждый decision pattern ~500B
+        patterns_size = len(self._patterns) * 2048
+        decision_patterns_size = len(self._decision_patterns) * 500
+        return patterns_size + decision_patterns_size

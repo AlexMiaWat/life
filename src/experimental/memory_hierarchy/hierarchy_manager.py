@@ -7,21 +7,23 @@
 
 import logging
 import time
+import threading
 from typing import Dict, List, Optional, Any
 
 from src.environment.event import Event
 from src.memory.memory_types import MemoryEntry
 from src.observability.structured_logger import StructuredLogger
+from src.contracts.serialization_contract import SerializationContract
 
 from .sensory_buffer import SensoryBuffer
 from .semantic_store import SemanticMemoryStore, SemanticConcept
 from .procedural_store import ProceduralMemoryStore
-from src.config import feature_flags
+from src.config.feature_flags import FeatureFlags
 
 logger = logging.getLogger(__name__)
 
 
-class MemoryHierarchyManager:
+class MemoryHierarchyManager(SerializationContract):
     """
     Центральный менеджер для координации многоуровневой системы памяти.
 
@@ -41,6 +43,7 @@ class MemoryHierarchyManager:
         self,
         sensory_buffer: Optional[SensoryBuffer] = None,
         logger: Optional[StructuredLogger] = None,
+        feature_flags: Optional[FeatureFlags] = None,
         sensory_to_episodic_threshold: Optional[int] = None,
         episodic_to_semantic_threshold: Optional[int] = None,
         semantic_consolidation_interval: Optional[float] = None,
@@ -51,11 +54,18 @@ class MemoryHierarchyManager:
         Args:
             sensory_buffer: Сенсорный буфер (если None, будет создан автоматически)
             logger: Логгер для структурированного логирования
+            feature_flags: Менеджер feature flags (опционально)
             sensory_to_episodic_threshold: Порог переноса из сенсорного буфера в эпизодическую память
             episodic_to_semantic_threshold: Порог переноса из эпизодической в семантическую память
             semantic_consolidation_interval: Интервал консолидации семантических знаний (секунды)
         """
         self.logger = logger or StructuredLogger(__name__)
+
+        # Thread-safety lock для защиты разделяемых структур данных
+        self._lock = threading.RLock()
+
+        # Feature flags для конфигурации
+        self.feature_flags = feature_flags or FeatureFlags()
 
         # Настройка порогов переноса данных
         self.sensory_to_episodic_threshold = sensory_to_episodic_threshold or self.DEFAULT_SENSORY_TO_EPISODIC_THRESHOLD
@@ -66,7 +76,7 @@ class MemoryHierarchyManager:
         # Создаем SensoryBuffer только если feature flag включен
         if sensory_buffer is not None:
             self.sensory_buffer = sensory_buffer
-        elif feature_flags.is_sensory_buffer_enabled():
+        elif self.feature_flags.is_sensory_buffer_enabled():
             self.sensory_buffer = SensoryBuffer()
         else:
             self.sensory_buffer = None
@@ -239,13 +249,14 @@ class MemoryHierarchyManager:
             consolidation_stats["episodic_to_semantic_transfers"] = semantic_transfers
 
         # Периодическая консолидация semantic (раз в минуту)
-        if (
-            time.time() - self._transfer_stats["last_semantic_consolidation"]
-            > self.semantic_consolidation_interval
-        ):
-            semantic_consolidations = self._consolidate_semantic_knowledge()
-            consolidation_stats["semantic_consolidations"] = semantic_consolidations
-            self._transfer_stats["last_semantic_consolidation"] = time.time()
+        with self._lock:
+            if (
+                time.time() - self._transfer_stats["last_semantic_consolidation"]
+                > self.semantic_consolidation_interval
+            ):
+                semantic_consolidations = self._consolidate_semantic_knowledge()
+                consolidation_stats["semantic_consolidations"] = semantic_consolidations
+                self._transfer_stats["last_semantic_consolidation"] = time.time()
 
         self.logger.log_event(
             {"event_type": "memory_consolidation_completed", **consolidation_stats}
@@ -266,7 +277,8 @@ class MemoryHierarchyManager:
         Returns:
             Количество перенесенных записей
         """
-        transfers_count = 0
+        with self._lock:
+            transfers_count = 0
 
         # Получаем события для анализа консолидации (не удаляем из буфера)
         sensory_events = self.sensory_buffer.peek_events(max_events=None) if self.sensory_buffer else []
@@ -347,7 +359,7 @@ class MemoryHierarchyManager:
                     # Очищаем счетчик для этого события (оно уже перенесено)
                     del self._event_processing_counts[event_hash]
 
-        return transfers_count
+            return transfers_count
 
     def _consolidate_episodic_to_semantic(self, self_state) -> int:
         """
@@ -441,12 +453,15 @@ class MemoryHierarchyManager:
         Returns:
             Dict со статусом всех уровней памяти
         """
+        with self._lock:
+            transfer_stats = dict(self._transfer_stats)
+
         status = {
             "hierarchy_manager": {
-                "transfers_sensory_to_episodic": self._transfer_stats["sensory_to_episodic"],
-                "transfers_episodic_to_semantic": self._transfer_stats["episodic_to_semantic"],
-                "transfers_semantic_to_procedural": self._transfer_stats["semantic_to_procedural"],
-                "last_semantic_consolidation": self._transfer_stats["last_semantic_consolidation"],
+                "transfers_sensory_to_episodic": transfer_stats["sensory_to_episodic"],
+                "transfers_episodic_to_semantic": transfer_stats["episodic_to_semantic"],
+                "transfers_semantic_to_procedural": transfer_stats["semantic_to_procedural"],
+                "last_semantic_consolidation": transfer_stats["last_semantic_consolidation"],
             },
             "sensory_buffer": {
                 **(self.sensory_buffer.get_buffer_status() if self.sensory_buffer else {}),
@@ -459,14 +474,12 @@ class MemoryHierarchyManager:
             "semantic_store": {
                 "available": self.semantic_store is not None,
                 "status": "implemented" if self.semantic_store else "not_implemented",
-                "concepts_count": len(self.semantic_store._concepts) if self.semantic_store else 0,
+                "concepts_count": self.semantic_store.get_concepts_count() if self.semantic_store else 0,
             },
             "procedural_store": {
                 "available": self.procedural_store is not None,
                 "status": "implemented" if self.procedural_store else "not_implemented",
-                "patterns_count": (
-                    len(self.procedural_store._patterns) if self.procedural_store else 0
-                ),
+                "patterns_count": self.procedural_store.size if self.procedural_store else 0,
             },
         }
 
@@ -509,17 +522,18 @@ class MemoryHierarchyManager:
 
     def reset_hierarchy(self) -> None:
         """Сбросить всю иерархию памяти (для тестирования или перезапуска)."""
-        if self.sensory_buffer:
-            self.sensory_buffer.clear_buffer()
-        self._event_processing_counts.clear()
-        self._transfer_stats = {
-            "sensory_to_episodic": 0,
-            "episodic_to_semantic": 0,
-            "semantic_to_procedural": 0,
-            "last_semantic_consolidation": time.time(),
-        }
+        with self._lock:
+            if self.sensory_buffer:
+                self.sensory_buffer.clear_buffer()
+            self._event_processing_counts.clear()
+            self._transfer_stats = {
+                "sensory_to_episodic": 0,
+                "episodic_to_semantic": 0,
+                "semantic_to_procedural": 0,
+                "last_semantic_consolidation": time.time(),
+            }
 
-        self.logger.log_event({"event_type": "memory_hierarchy_reset"})
+            self.logger.log_event({"event_type": "memory_hierarchy_reset"})
 
     @property
     def episodic_memory(self):
@@ -588,6 +602,66 @@ class MemoryHierarchyManager:
                 "new_thresholds": new_thresholds,
             }
         )
+
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Сериализовать состояние менеджера иерархии памяти.
+
+        Returns:
+            Dict[str, Any]: Словарь с состоянием компонента
+        """
+        import time
+        current_time = time.time()
+
+        with self._lock:
+            return {
+                "sensory_buffer": self.sensory_buffer.to_dict() if self.sensory_buffer else None,
+                "semantic_store": self.semantic_store.to_dict() if self.semantic_store else None,
+                "procedural_store": self.procedural_store.to_dict() if self.procedural_store else None,
+                "configuration": {
+                    "sensory_to_episodic_threshold": self.sensory_to_episodic_threshold,
+                    "episodic_to_semantic_threshold": self.episodic_to_semantic_threshold,
+                    "semantic_consolidation_interval": self.semantic_consolidation_interval,
+                },
+                "statistics": dict(self._transfer_stats),
+                "event_processing_counts": dict(self._event_processing_counts),
+                "episodic_memory_available": self._episodic_memory is not None,
+                "timestamp": current_time,
+            }
+
+    def get_serialization_metadata(self) -> Dict[str, Any]:
+        """
+        Получить метаданные сериализации менеджера иерархии памяти.
+
+        Returns:
+            Dict[str, Any]: Метаданные сериализации
+        """
+        import time
+        current_time = time.time()
+
+        with self._lock:
+            return {
+                "version": "1.0",
+                "timestamp": current_time,
+                "component_type": "memory_hierarchy_manager",
+                "thread_safe": True,  # MemoryHierarchyManager thread-safe для чтения
+                "sensory_buffer_enabled": self.sensory_buffer is not None,
+                "semantic_store_enabled": self.semantic_store is not None,
+                "procedural_store_enabled": self.procedural_store is not None,
+                "episodic_memory_integrated": self._episodic_memory is not None,
+                "total_size_bytes": self._estimate_size(),
+            }
+
+    def _estimate_size(self) -> int:
+        """Оценить размер всей иерархии памяти в байтах."""
+        size = 0
+        if self.sensory_buffer:
+            size += self.sensory_buffer.get_serialization_metadata()["total_size_bytes"]
+        if self.semantic_store:
+            size += self.semantic_store.get_serialization_metadata()["total_size_bytes"]
+        if self.procedural_store:
+            size += self.procedural_store.get_serialization_metadata()["total_size_bytes"]
+        return size
 
     def get_transfer_thresholds(self) -> Dict[str, Any]:
         """

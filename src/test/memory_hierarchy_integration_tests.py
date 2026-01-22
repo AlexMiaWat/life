@@ -530,3 +530,237 @@ class TestIntegrationErrorRecovery:
         # Поиск должен работать
         results = self.manager.semantic_store.search_concepts("Invalid")
         assert isinstance(results, list)
+
+
+class TestMemoryHierarchySelfStateIntegration:
+    """Интеграционные тесты взаимодействия Memory Hierarchy с SelfState."""
+
+    def setup_method(self):
+        """Настройка теста с полным SelfState."""
+        self.logger = Mock(spec=StructuredLogger)
+
+        # Создаем SelfState
+        self.self_state = SelfState()
+
+        # Создаем MemoryHierarchyManager
+        self.memory_hierarchy = MemoryHierarchyManager(logger=self.logger)
+
+        # Интегрируем в SelfState
+        self.self_state.set_memory_hierarchy(self.memory_hierarchy)
+
+    def test_memory_hierarchy_integration_in_self_state(self):
+        """Тест интеграции memory hierarchy в SelfState."""
+        # Проверяем, что memory hierarchy установлен
+        assert self.self_state.memory_hierarchy is not None
+        assert self.self_state.memory_hierarchy is self.memory_hierarchy
+
+    def test_memory_hierarchy_serialization_with_self_state(self):
+        """Тест сериализации SelfState с memory hierarchy."""
+        # Добавляем данные в memory hierarchy
+        concept = SemanticConcept(
+            concept_id="test_concept",
+            name="Test Concept",
+            description="A test concept for serialization",
+            confidence=0.8
+        )
+        self.memory_hierarchy.semantic_store.add_concept(concept)
+
+        # Сериализуем SelfState
+        serialized_data = self.self_state.to_dict()
+
+        # Проверяем, что memory_hierarchy включен в сериализацию
+        assert "components" in serialized_data
+        assert "memory_hierarchy" in serialized_data["components"]
+        assert serialized_data["components"]["memory_hierarchy"] is not None
+
+        # Проверяем содержимое сериализации
+        mh_data = serialized_data["components"]["memory_hierarchy"]
+        assert "semantic_store" in mh_data
+        assert mh_data["semantic_store"] is not None
+
+        # Проверяем, что концепция сериализована
+        concepts = mh_data["semantic_store"]["concepts"]
+        assert "test_concept" in concepts
+        assert concepts["test_concept"]["name"] == "Test Concept"
+
+    def test_memory_hierarchy_serialization_metadata(self):
+        """Тест метаданных сериализации memory hierarchy."""
+        # Получаем метаданные сериализации
+        metadata = self.memory_hierarchy.get_serialization_metadata()
+
+        # Проверяем структуру метаданных
+        assert metadata["version"] == "1.0"
+        assert metadata["component_type"] == "memory_hierarchy_manager"
+        assert metadata["thread_safe"] is True
+        assert "total_size_bytes" in metadata
+
+        # Проверяем метаданные SelfState с memory hierarchy
+        self_state_metadata = self.self_state.get_serialization_metadata()
+        assert "memory_hierarchy" in self_state_metadata or "components" in self_state_metadata
+
+    def test_memory_hierarchy_thread_safety_with_self_state(self):
+        """Тест thread-safety memory hierarchy в контексте SelfState."""
+        import threading
+        import concurrent.futures
+
+        # Функция для конкурентного доступа
+        def concurrent_operation(operation_id: int):
+            # Добавляем концепцию
+            concept = SemanticConcept(
+                concept_id=f"concurrent_concept_{operation_id}",
+                name=f"Concurrent Concept {operation_id}",
+                description=f"Concept created by thread {operation_id}",
+                confidence=0.7
+            )
+            self.memory_hierarchy.semantic_store.add_concept(concept)
+
+            # Выполняем сериализацию
+            self.memory_hierarchy.to_dict()
+
+            # Получаем статус
+            self.memory_hierarchy.get_hierarchy_status()
+
+            return operation_id
+
+        # Запускаем несколько потоков
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+            futures = [executor.submit(concurrent_operation, i) for i in range(10)]
+            results = [future.result() for future in concurrent.futures.as_completed(futures)]
+
+        # Проверяем, что все операции завершились успешно
+        assert len(results) == 10
+        assert set(results) == set(range(10))
+
+        # Проверяем, что концепции были добавлены
+        status = self.memory_hierarchy.get_hierarchy_status()
+        assert status["semantic_store"]["concepts_count"] >= 10
+
+
+class TestMemoryHierarchySerializationContracts:
+    """Тесты соблюдения контрактов сериализации."""
+
+    def setup_method(self):
+        """Настройка теста."""
+        self.logger = Mock(spec=StructuredLogger)
+
+    def test_serialization_contract_compliance(self):
+        """Тест соответствия контракту сериализации для всех компонентов."""
+        # Создаем все компоненты
+        sensory_buffer = SensoryBuffer()
+        semantic_store = SemanticMemoryStore(logger=self.logger)
+        procedural_store = ProceduralMemoryStore(logger=self.logger)
+        memory_hierarchy = MemoryHierarchyManager(
+            sensory_buffer=sensory_buffer,
+            logger=self.logger
+        )
+
+        # Проверяем, что все компоненты реализуют Serializable
+        from src.contracts.serialization_contract import Serializable
+
+        assert isinstance(sensory_buffer, Serializable)
+        assert isinstance(semantic_store, Serializable)
+        assert isinstance(procedural_store, Serializable)
+        assert isinstance(memory_hierarchy, Serializable)
+
+        # Проверяем, что все компоненты реализуют ThreadSafeSerializable
+        from src.contracts.serialization_contract import ThreadSafeSerializable
+
+        assert isinstance(sensory_buffer, ThreadSafeSerializable)
+        assert isinstance(semantic_store, ThreadSafeSerializable)
+        assert isinstance(procedural_store, ThreadSafeSerializable)
+        assert isinstance(memory_hierarchy, ThreadSafeSerializable)
+
+    def test_serialization_output_structure(self):
+        """Тест структуры выходных данных сериализации."""
+        # Создаем компоненты с данными
+        semantic_store = SemanticMemoryStore(logger=self.logger)
+        concept = SemanticConcept(
+            concept_id="structure_test",
+            name="Structure Test",
+            description="Testing serialization structure",
+            confidence=0.9
+        )
+        semantic_store.add_concept(concept)
+
+        # Сериализуем
+        data = semantic_store.to_dict()
+
+        # Проверяем структуру
+        assert isinstance(data, dict)
+        assert "concepts" in data
+        assert "associations" in data
+        assert "stats" in data
+        assert "timestamp" in data
+
+        # Проверяем конкретные данные
+        assert "structure_test" in data["concepts"]
+        concept_data = data["concepts"]["structure_test"]
+        assert concept_data["name"] == "Structure Test"
+        assert concept_data["confidence"] == 0.9
+
+    def test_serialization_metadata_completeness(self):
+        """Тест полноты метаданных сериализации."""
+        memory_hierarchy = MemoryHierarchyManager(logger=self.logger)
+
+        metadata = memory_hierarchy.get_serialization_metadata()
+
+        # Проверяем обязательные поля
+        required_fields = ["version", "timestamp", "component_type", "thread_safe"]
+        for field in required_fields:
+            assert field in metadata
+
+        # Проверяем значения
+        assert metadata["version"] == "1.0"
+        assert isinstance(metadata["timestamp"], (int, float))
+        assert metadata["component_type"] == "memory_hierarchy_manager"
+        assert isinstance(metadata["thread_safe"], bool)
+
+    def test_serialization_determinism(self):
+        """Тест детерминированности сериализации."""
+        semantic_store = SemanticMemoryStore(logger=self.logger)
+
+        # Добавляем концепции в определенном порядке
+        concepts = []
+        for i in range(3):
+            concept = SemanticConcept(
+                concept_id=f"determinism_test_{i}",
+                name=f"Determinism Concept {i}",
+                description=f"Concept {i} for determinism test",
+                confidence=0.8 - i * 0.1
+            )
+            semantic_store.add_concept(concept)
+            concepts.append(concept)
+
+        # Сериализуем несколько раз
+        serialization1 = semantic_store.to_dict()
+        time.sleep(0.001)  # Небольшая задержка
+        serialization2 = semantic_store.to_dict()
+
+        # Проверяем детерминированность (исключая timestamp)
+        def normalize_serialization(data):
+            normalized = data.copy()
+            normalized["timestamp"] = None  # Игнорируем timestamp
+            return normalized
+
+        assert normalize_serialization(serialization1) == normalize_serialization(serialization2)
+
+    def test_serialization_error_resilience(self):
+        """Тест устойчивости сериализации к ошибкам."""
+        # Создаем semantic store с потенциально проблемными данными
+        semantic_store = SemanticMemoryStore(logger=self.logger)
+
+        # Добавляем концепцию с потенциально проблемными данными
+        concept = SemanticConcept(
+            concept_id="error_test",
+            name="Error Test Concept",
+            description="Testing error resilience",
+            confidence=float('nan')  # NaN значение
+        )
+        semantic_store.add_concept(concept)
+
+        # Сериализация должна выполниться без исключений
+        try:
+            data = semantic_store.to_dict()
+            assert isinstance(data, dict)
+        except Exception as e:
+            pytest.fail(f"Serialization failed with error: {e}")

@@ -4,8 +4,11 @@ import time
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional, Any, Dict, List
+from typing import Optional, Any, Dict, List, TYPE_CHECKING
 import concurrent.futures
+
+if TYPE_CHECKING:
+    from src.experimental.memory_hierarchy.hierarchy_manager import MemoryHierarchyManager
 
 from src.memory.memory import ArchiveMemory, Memory
 from src.memory.memory_types import MemoryEntry
@@ -63,6 +66,7 @@ class SelfState(SerializationContract, ThreadSafeSerializable):
     memory_state: MemoryState = field(default_factory=MemoryState)
     cognitive: CognitiveState = field(default_factory=CognitiveState)
     events: EventState = field(default_factory=EventState)
+    memory_hierarchy: Optional['MemoryHierarchyManager'] = field(default=None, init=False)
 
     # История изменений параметров (для обратной совместимости и анализа эволюции)
     parameter_history: list[ParameterChange] = field(
@@ -1109,6 +1113,15 @@ class SelfState(SerializationContract, ThreadSafeSerializable):
         if len(self._log_buffer) >= size:
             self._flush_log_buffer()
 
+    def set_memory_hierarchy(self, memory_hierarchy: Optional['MemoryHierarchyManager']) -> None:
+        """
+        Установить менеджер иерархии памяти.
+
+        Args:
+            memory_hierarchy: Экземпляр MemoryHierarchyManager или None
+        """
+        self.memory_hierarchy = memory_hierarchy
+
     def update_circadian_rhythm(self, dt: float) -> None:
         """
         Обновить адаптивный циркадный ритм с 4 фазами: рассвет/день/закат/ночь.
@@ -1803,6 +1816,10 @@ class SelfState(SerializationContract, ThreadSafeSerializable):
             "cognitive": self.cognitive,
             "events": self.events
         }
+
+        # Добавляем memory hierarchy если доступен
+        if self.memory_hierarchy is not None:
+            component_mappings["memory_hierarchy"] = self.memory_hierarchy
 
         # Используем ThreadPoolExecutor для изоляции и timeout
         with concurrent.futures.ThreadPoolExecutor(max_workers=len(component_mappings)) as executor:

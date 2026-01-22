@@ -14,6 +14,7 @@
 
 - **Всего тестов:** 917+ (см. [docs/development/STATISTICS.md](../development/STATISTICS.md) для актуальной статистики)
   - **Новые тесты восстановления:** +17 тестов для ProcessRestarter
+  - **Новые экспериментальные тесты (2026-01-22):** +5 файлов тестов для экспериментальной функциональности
 - **Все тесты проходят:** ✅ (статические и интеграционные)
 - **Покрытие кода:** 96%
 - **Основные модули:** 100% покрытие
@@ -110,6 +111,11 @@ pytest src/test/ -q
 - `test_new_functionality_smoke.py` - Дымовые тесты новой функциональности - **НОВЫЙ**
 - `test_new_functionality_static.py` - Статические тесты новой функциональности с комплексными тестами компонентов - **НОВЫЙ**
 - `test_restart_recovery.py` - Комплексное тестирование восстановления из snapshot после перезапуска (17 тестов) - **НОВЫЙ**
+- `adaptive_processing_static_tests.py` - Статические тесты экспериментальной функциональности Adaptive Processing Manager - **НОВЫЙ**
+- `clarity_moments_static_tests.py` - Статические тесты экспериментальной функциональности Clarity Moments - **НОВЫЙ**
+- `consciousness_static_tests.py` - Статические тесты экспериментальной функциональности Consciousness States - **НОВЫЙ**
+- `new_functionality_integration_tests.py` - Интеграционные тесты новой экспериментальной функциональности - **НОВЫЙ**
+- `new_functionality_smoke_tests.py` - Дымовые тесты новой экспериментальной функциональности - **НОВЫЙ**
 
 ## Покрытие модулей
 
@@ -291,6 +297,39 @@ python run_performance_tests.py --report-only
   - Доступность публичных и защищенных эндпоинтов
   - Регистрация и аутентификация пользователей
   - Маркер: `@pytest.mark.smoke`
+
+### Экспериментальные тесты новой функциональности (2026-01-22)
+
+Новая серия комплексных тестов для экспериментальной функциональности системы Life:
+
+#### Статические тесты экспериментальной функциональности
+- **Adaptive Processing Manager** (`adaptive_processing_static_tests.py`):
+  - Unit-тесты для ProcessingMode enum и значений
+  - Тесты AdaptiveState enum и состояний
+  - Валидация ProcessingEvent структуры
+  - Тесты AdaptiveProcessingConfig
+  - Проверка контрактов сериализации
+
+- **Clarity Moments** (`clarity_moments_static_tests.py`):
+  - Статические тесты для системы моментов ясности
+  - Валидация структур данных и состояний
+  - Проверка логики переходов между состояниями
+
+- **Consciousness States** (`consciousness_static_tests.py`):
+  - Тесты ConsciousnessState enum (inactive, initializing, active, processing, analyzing, reflecting, error, shutdown)
+  - Валидация ConsciousnessStateData структуры
+  - Тесты ConsciousnessStateManager логики
+
+#### Дымовые тесты экспериментальной функциональности (`new_functionality_smoke_tests.py`)
+- Базовая работоспособность экспериментальных компонентов
+- Проверка основных сценариев использования
+- Раннее обнаружение критических проблем в новой функциональности
+
+#### Интеграционные тесты экспериментальной функциональности (`new_functionality_integration_tests.py`)
+- Тестирование взаимодействия экспериментальных компонентов
+- Полные циклы обработки с новой логикой
+- Тестирование с реальным состоянием и памятью
+- Проверка интеграции с существующими компонентами системы
 
 - **Статические тесты** (`test_api_auth_static.py`):
   - Структура Pydantic моделей (User, Token, EventCreate, etc.)
