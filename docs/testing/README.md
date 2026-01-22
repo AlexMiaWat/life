@@ -12,11 +12,13 @@
 
 ## Статистика тестирования
 
-- **Всего тестов:** 900+ (см. [docs/development/STATISTICS.md](../development/STATISTICS.md) для актуальной статистики)
+- **Всего тестов:** 917+ (см. [docs/development/STATISTICS.md](../development/STATISTICS.md) для актуальной статистики)
+  - **Новые тесты восстановления:** +17 тестов для ProcessRestarter
 - **Все тесты проходят:** ✅ (статические и интеграционные)
 - **Покрытие кода:** 96%
 - **Основные модули:** 100% покрытие
 - **Новые тесты (2026-01-22):** Комплексное тестирование новой функциональности
+  - **Тесты восстановления из snapshot после перезапуска:** 17 новых тестов для ProcessRestarter (StateSerializer, GracefulShutdownManager, интеграционные тесты)
   - **Инструменты анализа данных:** Полное покрытие Python библиотеки, CLI инструментов и REST API ✅
   - Learning Engine: 45 статических тестов ✅
   - Adaptation Manager: полное покрытие ✅
@@ -102,6 +104,7 @@ pytest src/test/ -q
 - `test_new_functionality_integration.py` - Интеграционные тесты новой функциональности - **НОВЫЙ**
 - `test_new_functionality_smoke.py` - Дымовые тесты новой функциональности - **НОВЫЙ**
 - `test_new_functionality_static.py` - Статические тесты новой функциональности с комплексными тестами компонентов - **НОВЫЙ**
+- `test_restart_recovery.py` - Комплексное тестирование восстановления из snapshot после перезапуска (17 тестов) - **НОВЫЙ**
 
 ## Покрытие модулей
 
@@ -326,6 +329,41 @@ python run_performance_tests.py --report-only
   - **Особенности:** Требует ручного запуска, использует порт 8000, изменяет файлы проекта
   - **Время выполнения:** ~7-8 секунд
   - **Изоляция:** Полная изоляция через subprocess и tempfile
+
+### Тесты восстановления из snapshot после перезапуска (НОВЫЕ)
+
+**Комплексное тестирование ProcessRestarter** (`test_restart_recovery.py`):
+- **StateSerializer** (8 тестов): сохранение, загрузка, очистка состояния перезапуска
+  - `test_state_serializer_save_restart_state` - сохранение состояния SelfState и EventQueue
+  - `test_state_serializer_load_restart_state` - загрузка сохраненного состояния
+  - `test_state_serializer_cleanup_restart_state` - очистка файла состояния
+  - `test_state_serializer_invalid_file` - обработка поврежденных файлов
+  - `test_state_serializer_atomic_operations` - атомарность операций сохранения
+  - `test_state_serializer_with_empty_event_queue` - работа с пустой очередью событий
+  - `test_state_serializer_large_state` - тестирование с большим объемом данных
+  - `test_state_serializer_concurrent_access` - одновременный доступ к сериализации
+
+- **ProcessRestarter** (2 теста): регистрация компонентов, делегирование сериализации
+  - `test_process_restarter_initialization` - инициализация с правильными параметрами
+  - `test_process_restarter_callbacks_setup` - настройка коллбеков сохранения/загрузки
+
+- **GracefulShutdownManager** (3 теста): graceful shutdown с таймаутами
+  - `test_graceful_shutdown_successful` - успешное завершение всех компонентов
+  - `test_graceful_shutdown_with_timeout` - завершение с таймаутами
+  - `test_graceful_shutdown_partial_failure` - частичное завершение компонентов
+
+- **Интеграционные тесты** (4 теста): полный цикл восстановления
+  - `test_full_restart_recovery_cycle` - полный цикл перезапуска и восстановления
+  - `test_restart_recovery_with_modified_files` - восстановление после изменений файлов
+  - `test_restart_recovery_state_consistency` - проверка консистентности состояния
+  - `test_restart_recovery_edge_cases` - edge cases восстановления
+
+**Особенности тестирования:**
+- Полное покрытие всех компонентов ProcessRestarter
+- Тестирование реальных сценариев перезапуска
+- Проверка thread-safety и atomic operations
+- Интеграция с `to_dict()` методами SelfState и EventQueue
+- **Маркеры:** `@pytest.mark.integration`, `@pytest.mark.restart_recovery`
 
 ### Расширенные тесты длительной работы (НОВЫЕ)
 - **Стресс-тесты с высокой нагрузкой** (`TestExtendedLongRunningStress` в `test_degradation.py`):

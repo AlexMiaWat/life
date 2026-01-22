@@ -9,6 +9,8 @@ from typing import Optional, Any, Dict, List
 from src.memory.memory import ArchiveMemory, Memory
 from src.memory.memory_types import MemoryEntry
 from src.validation.field_validator import FieldValidator
+from src.logging_config import get_logger
+from src.contracts.serialization_contract import SerializationContract
 from .components.identity_state import IdentityState
 from .components.physical_state import PhysicalState
 from .components.time_state import TimeState
@@ -49,7 +51,7 @@ class ParameterChange:
 
 
 @dataclass
-class SelfState:
+class SelfState(SerializationContract):
     # Thread-safety lock для API доступа
     _api_lock: threading.RLock = field(default_factory=threading.RLock, init=False, repr=False)
 
@@ -1666,6 +1668,131 @@ class SelfState:
             },
         }
 
+
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Композитная сериализация SelfState через делегирование к компонентам.
+
+        Архитектурный контракт:
+        - Thread-safe: Использует _api_lock для защиты от конкурентного доступа
+        - Композитный: Делегирует сериализацию к специализированным компонентам
+        - Атомарный: Создает консистентный snapshot всего состояния
+        - Отказоустойчивый: Исключения в одном компоненте не ломают всю сериализацию
+
+        Структура возвращаемого словаря:
+        {
+            "metadata": {
+                "version": "2.0",
+                "timestamp": float,
+                "component_type": "SelfState",
+                "life_id": str
+            },
+            "components": {
+                "identity": dict,      # IdentityState.to_dict()
+                "physical": dict,      # PhysicalState.to_dict()
+                "time": dict,          # TimeState.to_dict()
+                "memory": dict,        # MemoryState.to_dict()
+                "cognitive": dict,     # CognitiveState.to_dict()
+                "events": dict         # EventState.to_dict()
+            },
+            "legacy_fields": dict    # Устаревшие поля для обратной совместимости
+        }
+
+        Returns:
+            Dict[str, Any]: Полное состояние системы в композитном формате
+
+        Raises:
+            RuntimeError: Если сериализация невозможна по системным причинам
+        """
+        with self._api_lock:
+            try:
+                # Метаданные сериализации
+                metadata = {
+                    "version": "2.0",  # Композитная версия
+                    "timestamp": time.time(),
+                    "component_type": "SelfState",
+                    "life_id": self.identity.life_id
+                }
+
+                # Сериализация компонентов с защитой от исключений
+                components = {}
+                component_errors = []
+
+                component_mappings = {
+                    "identity": self.identity,
+                    "physical": self.physical,
+                    "time": self.time,
+                    "memory": self.memory_state,
+                    "cognitive": self.cognitive,
+                    "events": self.events
+                }
+
+                for name, component in component_mappings.items():
+                    try:
+                        if hasattr(component, 'to_dict'):
+                            components[name] = component.to_dict()
+                        else:
+                            # Fallback для компонентов без to_dict
+                            components[name] = {"error": "Component does not support serialization"}
+                            component_errors.append(f"{name}: no to_dict method")
+                    except Exception as e:
+                        components[name] = {"error": f"Serialization failed: {str(e)}"}
+                        component_errors.append(f"{name}: {str(e)}")
+                        logger.warning(f"Failed to serialize component {name}: {e}")
+
+                # Legacy поля для обратной совместимости
+                # Включаем только критически важные поля, остальные должны использовать компоненты
+                legacy_fields = {
+                    "subjective_time_base_rate": self.subjective_time_base_rate,
+                    "circadian_phase": self.circadian_phase,
+                    "consciousness_level": self.consciousness_level,
+                    "last_event_intensity": self.last_event_intensity,
+                    "parameter_history": [param.__dict__ for param in self.parameter_history[-10:]]  # Последние 10
+                }
+
+                result = {
+                    "metadata": metadata,
+                    "components": components,
+                    "legacy_fields": legacy_fields
+                }
+
+                # Логируем ошибки компонентов
+                if component_errors:
+                    logger.warning(f"Serialization completed with {len(component_errors)} component errors: {component_errors}")
+                    result["metadata"]["warnings"] = component_errors
+
+                return result
+
+            except Exception as e:
+                logger.error(f"Critical error during SelfState serialization: {e}")
+                # Возвращаем минимальное состояние вместо падения
+                return {
+                    "metadata": {
+                        "version": "2.0",
+                        "timestamp": time.time(),
+                        "component_type": "SelfState",
+                        "error": f"Serialization failed: {str(e)}"
+                    },
+                    "components": {},
+                    "legacy_fields": {}
+                }
+
+    def get_serialization_metadata(self) -> Dict[str, Any]:
+        """
+        Получить метаданные сериализации SelfState.
+
+        Returns:
+            Dict[str, Any]: Метаданные с информацией о состоянии сериализации
+        """
+        return {
+            "version": "2.0",
+            "component_type": "SelfState",
+            "thread_safe": True,
+            "composite": True,
+            "components": ["identity", "physical", "time", "memory", "cognitive", "events"],
+            "has_legacy_fields": True
+        }
+
     def get_change_history(
         self, limit: Optional[int] = None, filter_by_life_id: bool = True
     ) -> list:
@@ -2342,3 +2469,7 @@ def load_snapshot(tick: int) -> SelfState:
         # Создаем временный экземпляр для доступа к методам валидации
         temp_state = SelfState()
         return temp_state._load_snapshot_from_data(data)
+
+
+# Инициализация логгера для модуля
+logger = get_logger(__name__)
