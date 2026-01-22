@@ -222,3 +222,13 @@ benchmark_1769042717.json
 performance_1769042717.json
 coverage_1769042717.xml
 htmlcov_1769042717/
+
+# Current testing session artifacts (1769044124)
+test_full_task_1769044124.*
+test_results_1769044124.xml
+test_output_1769044124.txt
+test_report_1769044124.json
+benchmark_1769044124.json
+performance_1769044124.json
+coverage_1769044124.xml
+htmlcov_1769044124/

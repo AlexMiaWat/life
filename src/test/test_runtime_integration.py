@@ -295,8 +295,8 @@ class TestRuntimeLoop:
         stop_event.set()
         loop_thread.join(timeout=1.0)
 
-        # Проверяем, что состояние деактивировано
-        assert base_state.active is False
+        # Проверяем, что состояние остается активным (бессмертная слабость - ADR 009)
+        assert base_state.active is True
 
     def test_snapshot_recovery_integration(self, tmp_path):
         """Интеграционный тест восстановления из snapshot после 'перезапуска'"""

@@ -6,7 +6,6 @@ Provides comprehensive logging of key processing stages for debugging and analys
 """
 
 from .structured_logger import StructuredLogger
-from .observation_api import MetricsResponse
 from .passive_data_sink import PassiveDataSink, ObservationData
 from .async_data_sink import AsyncDataSink, RawObservationData
 
@@ -14,7 +13,6 @@ from .async_data_sink import AsyncDataSink, RawObservationData
 
 __all__ = [
     "StructuredLogger",      # Active structured logger for runtime integration
-    "MetricsResponse",       # Response model for metrics
     "PassiveDataSink",       # Passive data collection component
     "AsyncDataSink",         # Asynchronous data sink with queue
     "ObservationData",       # Data structure for observations

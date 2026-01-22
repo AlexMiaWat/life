@@ -14,10 +14,11 @@ from pathlib import Path
 from unittest.mock import Mock
 
 # Add src to path
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+project_root = Path(__file__).parent
+sys.path.insert(0, str(project_root / "src"))
 
-from observability.async_data_sink import AsyncDataSink, RawObservationData
-from observability.async_passive_observer import AsyncPassiveObserver
+from src.observability.async_data_sink import AsyncDataSink, RawObservationData
+from src.observability.async_log_writer import AsyncLogWriter
 
 
 class PerformanceBenchmark:
@@ -32,7 +33,7 @@ class PerformanceBenchmark:
         print("=" * 55)
 
         self.benchmark_data_sink_throughput()
-        self.benchmark_observer_passivity()
+        self.benchmark_log_writer_performance()
         self.benchmark_memory_usage()
         self.benchmark_disabled_impact()
 
@@ -93,68 +94,71 @@ class PerformanceBenchmark:
                 print(f"  Batch {batch_size}: {metrics['avg_time_per_operation_ms']:.3f}ms/op, "
                       f"{metrics['throughput_ops_per_sec']:.0f} ops/sec")
 
-    def benchmark_observer_passivity(self):
-        """Benchmark that observer doesn't interfere with runtime."""
-        print("🔍 Benchmarking observer passivity...")
+    def benchmark_log_writer_performance(self):
+        """Benchmark AsyncLogWriter performance for <1% overhead."""
+        print("📝 Benchmarking AsyncLogWriter performance...")
 
         import tempfile
         with tempfile.TemporaryDirectory() as temp_dir:
-            # Create test snapshots
-            snapshots_dir = f"{temp_dir}/snapshots"
-            Path(snapshots_dir).mkdir()
+            log_file = f"{temp_dir}/benchmark_log.jsonl"
 
-            # Create some test snapshots
-            for i in range(5):
-                snapshot_path = Path(snapshots_dir) / f"snapshot_{i}.json"
-                snapshot_data = {
-                    "timestamp": time.time() - i * 60,  # Spread over time
-                    "energy": 0.5 + i * 0.1,
-                    "stability": 0.8 - i * 0.05,
-                    "memory": {"episodic_memory": [f"event_{j}" for j in range(10)]}
+            # Test with different configurations
+            configs = [
+                {"batch_size": 50, "flush_interval": 0.1, "buffer_size": 10000},  # Production config
+                {"batch_size": 1, "flush_interval": 0.001, "buffer_size": 1000},  # High frequency
+            ]
+
+            results = {}
+
+            for i, config in enumerate(configs):
+                config_name = f"config_{i+1}"
+                print(f"  Testing {config_name}: batch_size={config['batch_size']}, flush={config['flush_interval']}s")
+
+                writer = AsyncLogWriter(
+                    log_file=log_file,
+                    enabled=True,
+                    buffer_size=config["buffer_size"],
+                    batch_size=config["batch_size"],
+                    flush_interval=config["flush_interval"]
+                )
+
+                # Test logging performance
+                total_entries = 10000
+                start_time = time.perf_counter()
+
+                for j in range(total_entries):
+                    writer.write_entry(
+                        stage="benchmark",
+                        correlation_id=f"test_{j}",
+                        event_id=f"event_{j}",
+                        data={"value": j, "timestamp": time.time()}
+                    )
+
+                # Force flush
+                writer.flush()
+                end_time = time.perf_counter()
+
+                total_time = end_time - start_time
+                avg_time_per_entry = (total_time / total_entries) * 1000  # ms
+
+                # Get stats
+                stats = writer.get_stats()
+
+                results[config_name] = {
+                    "total_time_ms": total_time * 1000,
+                    "avg_time_per_entry_us": avg_time_per_entry * 1000,
+                    "entries_per_sec": total_entries / total_time,
+                    "buffer_utilization_percent": stats["utilization_percent"],
+                    "batches_written": stats["batches_written"],
+                    "io_errors": stats["io_errors"]
                 }
 
-                with open(snapshot_path, 'w') as f:
-                    import json
-                    json.dump(snapshot_data, f)
+                writer.shutdown()
 
-            # Test with observer enabled
-            observer_enabled = AsyncPassiveObserver(
-                collection_interval=0.1,  # Fast for testing
-                snapshots_dir=snapshots_dir,
-                enabled=True
-            )
+                print(f"    Time: {total_time:.3f}s, Avg: {avg_time_per_entry:.3f}ms/entry")
+                print(f"    Throughput: {total_entries / total_time:.0f} entries/sec")
 
-            # Let it collect some data
-            time.sleep(0.5)
-
-            enabled_status = observer_enabled.get_status()
-
-            # Test with observer disabled
-            observer_disabled = AsyncPassiveObserver(
-                collection_interval=0.1,
-                snapshots_dir=snapshots_dir,
-                enabled=False
-            )
-
-            disabled_status = observer_disabled.get_status()
-
-            # Cleanup
-            observer_enabled.shutdown()
-            observer_disabled.shutdown()
-
-            results = {
-                "enabled_observer_records": enabled_status["total_state_records"],
-                "disabled_observer_records": disabled_status["total_state_records"],
-                "enabled_thread_alive": enabled_status["thread_alive"],
-                "disabled_thread_alive": disabled_status["thread_alive"]
-            }
-
-            self.results["observer_passivity"] = results
-
-            print(f"  Enabled observer collected: {results['enabled_observer_records']} records")
-            print(f"  Disabled observer collected: {results['disabled_observer_records']} records")
-            print(f"  Enabled observer thread: {'alive' if results['enabled_thread_alive'] else 'dead'}")
-            print(f"  Disabled observer thread: {'alive' if results['disabled_thread_alive'] else 'dead'}")
+            self.results["log_writer_performance"] = results
 
     def benchmark_memory_usage(self):
         """Benchmark memory usage of observability components."""
@@ -175,10 +179,12 @@ class PerformanceBenchmark:
                 enabled=True
             )
 
-            observer = AsyncPassiveObserver(
-                collection_interval=10.0,  # Long interval
-                snapshots_dir=temp_dir,
-                enabled=True
+            log_writer = AsyncLogWriter(
+                log_file=f"{temp_dir}/memory_test_log.jsonl",
+                enabled=True,
+                buffer_size=10000,
+                batch_size=50,
+                flush_interval=0.1
             )
 
             # Let them initialize
@@ -188,7 +194,7 @@ class PerformanceBenchmark:
             with_components_memory = process.memory_info().rss / 1024 / 1024
 
             # Cleanup
-            observer.shutdown()
+            log_writer.shutdown()
             sink.shutdown()
 
             # Wait for cleanup
@@ -269,14 +275,18 @@ class PerformanceBenchmark:
             else:
                 print(f"✅ Data sink performance: {single_op_time:.3f}ms per operation")
 
-        # Observer passivity check
-        if "observer_passivity" in self.results:
-            passivity = self.results["observer_passivity"]
-            if passivity["disabled_thread_alive"]:
-                print("❌ Disabled observer still has active thread")
-                all_passed = False
-            else:
-                print("✅ Disabled observer properly inactive")
+        # Log writer performance check (<1% overhead target)
+        if "log_writer_performance" in self.results:
+            perf = self.results["log_writer_performance"]
+            # Check production config (config_1)
+            if "config_1" in perf:
+                config1 = perf["config_1"]
+                avg_time_us = config1["avg_time_per_entry_us"]
+                if avg_time_us > 100:  # < 100μs per entry for <1% overhead
+                    print(f"❌ Log writer too slow: {avg_time_us:.1f}μs per entry")
+                    all_passed = False
+                else:
+                    print(f"✅ Log writer performance: {avg_time_us:.1f}μs per entry")
 
         # Memory usage check
         if "memory_usage" in self.results:

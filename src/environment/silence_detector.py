@@ -7,11 +7,13 @@ SilenceDetector отслеживает периоды отсутствия со�
 
 import logging
 import time
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from src.observability.structured_logger import StructuredLogger
 from dataclasses import dataclass
 
 from .event import Event
-from src.observability.structured_logger import StructuredLogger
 
 logger = logging.getLogger(__name__)
 
@@ -50,14 +52,19 @@ class SilenceDetector:
     DISTURBING_SILENCE_MIN = -0.4  # Минимальная интенсивность тревожной тишины
     DISTURBING_SILENCE_MAX = -0.05  # Максимальная интенсивность тревожной тишины
 
-    def __init__(self, logger: Optional[StructuredLogger] = None):
+    def __init__(self, logger: Optional["StructuredLogger"] = None):
         """
         Инициализация детектора тишины.
 
         Args:
             logger: Логгер для структурированного логирования
         """
-        self.logger = logger or StructuredLogger(__name__)
+        # Lazy import to avoid circular dependency
+        if logger is None:
+            from src.observability.structured_logger import StructuredLogger
+            self.logger = StructuredLogger(__name__)
+        else:
+            self.logger = logger
         self.state = SilenceState(last_event_timestamp=time.time())
         self._last_check_timestamp = time.time()
         self._last_silence_event_timestamp = 0.0

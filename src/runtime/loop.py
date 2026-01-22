@@ -2,6 +2,7 @@ import copy
 import cProfile
 import logging
 import time
+from typing import Dict, Any
 
 from src.action import execute_action
 from src.activation.activation import activate_memory
@@ -271,6 +272,18 @@ def run_loop(
     async_data_queue = AsyncDataQueue(max_size=10000, flush_interval=1.0)  # Быстрое сброс каждую секунду
     async_data_queue.start()
 
+    # Инициализация structured logger с AsyncLogWriter для <1% overhead
+    # Оптимизация производительности: логируем каждый 10-й тик, отключаем детальное логирование
+    from src.observability.structured_logger import StructuredLogger
+    if not isinstance(structured_logger, StructuredLogger):
+        structured_logger = StructuredLogger(
+            log_tick_interval=10,  # Логировать каждый 10-й тик
+            enable_detailed_logging=False,  # Отключить детальное логирование для производительности
+            buffer_size=10000,  # Буфер на 10000 записей в памяти
+            batch_size=50,  # Batch-запись по 50 записей
+            flush_interval=0.1  # Сброс каждые 100ms
+        )
+
     # Инициализация компонентов наблюдения
     from src.observability.passive_data_sink import PassiveDataSink
     from src.observability.async_data_sink import AsyncDataSink
@@ -316,16 +329,6 @@ def run_loop(
     # Добавляем callback для real-time алертов
     analysis_engine.add_result_callback(handle_analysis_results)
     analysis_engine.start()
-
-    # Инициализация structured logger с асинхронной очередью
-    # Оптимизация производительности: логируем каждый 10-й тик, отключаем детальное логирование
-    if structured_logger is None:
-        from src.observability.structured_logger import StructuredLogger
-        structured_logger = StructuredLogger(
-            async_queue=async_data_queue,
-            log_tick_interval=10,  # Логировать каждый 10-й тик
-            enable_detailed_logging=False  # Отключить детальное логирование для производительности
-        )
 
     engine = MeaningEngine()
     learning_engine = LearningEngine()  # Learning Engine (Этап 14)
@@ -1106,9 +1109,6 @@ def run_loop(
                         {"event_type": "adaptive_processing_manager_stopped"}
                     )
 
-                # Остановка асинхронной очереди
-                async_data_queue.stop()
-
                 # Остановка движка анализа
                 analysis_engine.stop()
 
@@ -1156,6 +1156,8 @@ def run_loop(
         else:
             run_main_loop()
     finally:
-        pass
+        # Корректное завершение StructuredLogger при окончании работы
+        if 'structured_logger' in locals() and structured_logger is not None:
+            structured_logger.shutdown()
 
 
