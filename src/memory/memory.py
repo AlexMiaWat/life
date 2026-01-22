@@ -385,17 +385,7 @@ class Memory(list, EpisodicMemoryInterface):
             raise ValueError("min_weight должен быть в диапазоне [0.0, 1.0]")
         if min_significance is not None and not (0.0 <= min_significance <= 1.0):
             raise ValueError("min_significance должен быть в диапазоне [0.0, 1.0]")
-        """
-        Переносит старые записи из активной памяти в архив.
 
-        Args:
-            max_age: Максимальный возраст записи для архивации (в секундах от текущего времени)
-            min_weight: Минимальный вес записи (если вес < min_weight, запись архивируется)
-            min_significance: Минимальная значимость (записи с меньшей значимостью архивируются)
-
-        Returns:
-            Количество заархивированных записей
-        """
         from src.runtime.performance_metrics import measure_time
 
         with measure_time("archive_old_entries"):
@@ -406,23 +396,52 @@ class Memory(list, EpisodicMemoryInterface):
             current_time = time.time()
             entries_to_archive = []
 
-            # Собираем записи для архивации (оптимизация: не удаляем во время итерации)
-            for entry in self[:]:
+            # Оптимизация: используем индексы для быстрого поиска кандидатов
+            candidate_sets = []
+
+            # Быстрый поиск по весу через индекс (если доступен)
+            if min_weight is not None and hasattr(self, '_index_engine') and self._index_engine:
+                try:
+                    weight_entries = self._index_engine.get_entries_by_weight_range(0.0, min_weight)
+                    candidate_sets.append(set(weight_entries))
+                except AttributeError:
+                    pass  # Индекс не поддерживает эту операцию
+
+            # Быстрый поиск по значимости через индекс (если доступен)
+            if min_significance is not None and hasattr(self, '_index_engine') and self._index_engine:
+                try:
+                    significance_entries = self._index_engine.get_entries_by_significance_range(0.0, min_significance)
+                    candidate_sets.append(set(significance_entries))
+                except AttributeError:
+                    pass  # Индекс не поддерживает эту операцию
+
+            # Если индексы недоступны или не заданы критерии, используем полный перебор
+            if not candidate_sets:
+                candidates = self[:]
+            else:
+                # Объединяем кандидатов из разных индексов
+                candidates = set()
+                for candidate_set in candidate_sets:
+                    candidates.update(candidate_set)
+                candidates = list(candidates)
+
+            # Проверяем дополнительные критерии (возраст) для найденных кандидатов
+            for entry in candidates:
                 should_archive = False
 
-                # Проверка по возрасту
+                # Проверка по возрасту (дополнительная фильтрация)
                 if max_age is not None:
                     age = current_time - entry.timestamp
                     if age > max_age:
                         should_archive = True
 
-                # Проверка по весу
-                if min_weight is not None:
+                # Проверка по весу (если не нашли через индекс)
+                if not should_archive and min_weight is not None and entry not in [e for s in candidate_sets for e in s if hasattr(s, '__iter__')]:
                     if entry.weight < min_weight:
                         should_archive = True
 
-                # Проверка по значимости
-                if min_significance is not None:
+                # Проверка по значимости (если не нашли через индекс)
+                if not should_archive and min_significance is not None and entry not in [e for s in candidate_sets for e in s if hasattr(s, '__iter__')]:
                     if entry.meaning_significance < min_significance:
                         should_archive = True
 
@@ -452,7 +471,7 @@ class Memory(list, EpisodicMemoryInterface):
 
     def decay_weights(self, decay_factor: float = 0.99, min_weight: float = 0.0) -> int:
         """
-        Применяет затухание весов ко всем записям памяти.
+        Применяет затухание весов ко всем записям памяти с оптимизациями производительности.
 
         Args:
             decay_factor: Коэффициент затухания (0.0-1.0). Вес умножается на этот коэффициент.
@@ -474,9 +493,13 @@ class Memory(list, EpisodicMemoryInterface):
 
             self._invalidate_cache()  # Инвалидируем кэш перед изменениями
 
+            # Оптимизация: прекалькулируем общие значения
+            decay_factor_clamped = max(0.9, min(1.0, decay_factor))  # Ограничиваем для стабильности
+
             for entry in self:
-                # Базовое затухание
-                entry.weight *= decay_factor
+                # Базовое затухание с оптимизацией
+                old_weight = entry.weight
+                entry.weight *= decay_factor_clamped
 
                 # Учитываем возраст записи (старые записи забываются быстрее)
                 age = current_time - entry.timestamp

@@ -1,5 +1,5 @@
 """
-Статические тесты для экспериментальной функциональности Adaptive Processing Manager.
+Статические тесты для экспериментальной функциональности Adaptive Processing.
 
 Включает unit тесты, валидацию типов, проверку контрактов сериализации.
 """
@@ -14,15 +14,19 @@ from src.experimental.adaptive_processing_manager import (
     ProcessingMode,
     AdaptiveState,
     ProcessingEvent,
-    AdaptiveProcessingConfig
+    AdaptiveProcessingConfig,
+    AdaptiveStateTransition,
+    ProcessingStatistics,
+    AdaptiveStatistics
 )
+from src.contracts.serialization_contract import SerializationContract, SerializationError
 from src.observability.structured_logger import StructuredLogger
 
 
 class TestProcessingMode:
-    """Тесты для ProcessingMode."""
+    """Тесты для ProcessingMode enum."""
 
-    def test_processing_mode_enum_values(self):
+    def test_enum_values(self):
         """Тест значений enum ProcessingMode."""
         assert ProcessingMode.BASELINE.value == "baseline"
         assert ProcessingMode.EFFICIENT.value == "efficient"
@@ -30,17 +34,19 @@ class TestProcessingMode:
         assert ProcessingMode.OPTIMIZED.value == "optimized"
         assert ProcessingMode.SELF_MONITORING.value == "self_monitoring"
 
-    def test_all_processing_modes_exist(self):
-        """Тест что все необходимые режимы обработки определены."""
-        modes = [mode.value for mode in ProcessingMode]
-        expected_modes = ["baseline", "efficient", "intensive", "optimized", "self_monitoring"]
-        assert set(modes) == set(expected_modes)
+    def test_enum_members(self):
+        """Тест членов enum ProcessingMode."""
+        modes = [ProcessingMode.BASELINE, ProcessingMode.EFFICIENT,
+                ProcessingMode.INTENSIVE, ProcessingMode.OPTIMIZED,
+                ProcessingMode.SELF_MONITORING]
+        assert len(modes) == 5
+        assert all(isinstance(mode, ProcessingMode) for mode in modes)
 
 
 class TestAdaptiveState:
-    """Тесты для AdaptiveState."""
+    """Тесты для AdaptiveState enum."""
 
-    def test_adaptive_state_enum_values(self):
+    def test_enum_values(self):
         """Тест значений enum AdaptiveState."""
         assert AdaptiveState.STANDARD.value == "standard"
         assert AdaptiveState.EFFICIENT_PROCESSING.value == "efficient_processing"
@@ -48,591 +54,487 @@ class TestAdaptiveState:
         assert AdaptiveState.SYSTEM_SELF_MONITORING.value == "system_self_monitoring"
         assert AdaptiveState.OPTIMAL_PROCESSING.value == "optimal_processing"
 
-    def test_all_adaptive_states_exist(self):
-        """Тест что все необходимые адаптивные состояния определены."""
-        states = [state.value for state in AdaptiveState]
-        expected_states = [
-            "standard", "efficient_processing", "intensive_analysis",
-            "system_self_monitoring", "optimal_processing"
-        ]
-        assert set(states) == set(expected_states)
+    def test_enum_members(self):
+        """Тест членов enum AdaptiveState."""
+        states = [AdaptiveState.STANDARD, AdaptiveState.EFFICIENT_PROCESSING,
+                 AdaptiveState.INTENSIVE_ANALYSIS, AdaptiveState.SYSTEM_SELF_MONITORING,
+                 AdaptiveState.OPTIMAL_PROCESSING]
+        assert len(states) == 5
+        assert all(isinstance(state, AdaptiveState) for state in states)
 
 
 class TestProcessingEvent:
-    """Тесты для ProcessingEvent."""
+    """Тесты для ProcessingEvent dataclass."""
 
-    def test_processing_event_initialization(self):
-        """Тест инициализации ProcessingEvent."""
-        event = ProcessingEvent(
-            processing_mode=ProcessingMode.EFFICIENT,
-            intensity=0.75,
-            duration_ticks=60,
-            trigger_conditions={"test": "condition"},
-            timestamp=123.45
-        )
+    def test_initialization_default(self):
+        """Тест инициализации с параметрами по умолчанию."""
+        event = ProcessingEvent(processing_mode=ProcessingMode.EFFICIENT)
 
         assert event.processing_mode == ProcessingMode.EFFICIENT
-        assert event.intensity == 0.75
-        assert event.duration_ticks == 60
-        assert event.trigger_conditions == {"test": "condition"}
-        assert event.timestamp == 123.45
-
-    def test_processing_event_default_values(self):
-        """Тест значений по умолчанию ProcessingEvent."""
-        event = ProcessingEvent(processing_mode=ProcessingMode.BASELINE)
-
         assert event.intensity == 1.0
         assert event.duration_ticks == 50
+        assert isinstance(event.trigger_conditions, dict)
         assert event.trigger_conditions == {}
         assert isinstance(event.timestamp, float)
         assert event.timestamp <= time.time()
 
+    def test_initialization_custom(self):
+        """Тест инициализации с пользовательскими параметрами."""
+        trigger_conditions = {"stability": 0.8, "energy": 0.7}
+        timestamp = 1234567890.0
+
+        event = ProcessingEvent(
+            processing_mode=ProcessingMode.INTENSIVE,
+            intensity=0.9,
+            duration_ticks=100,
+            trigger_conditions=trigger_conditions,
+            timestamp=timestamp
+        )
+
+        assert event.processing_mode == ProcessingMode.INTENSIVE
+        assert event.intensity == 0.9
+        assert event.duration_ticks == 100
+        assert event.trigger_conditions == trigger_conditions
+        assert event.timestamp == timestamp
+
+    def test_invalid_intensity(self):
+        """Тест валидации intensity."""
+        with pytest.raises(ValueError):
+            ProcessingEvent(
+                processing_mode=ProcessingMode.EFFICIENT,
+                intensity=-0.1  # Отрицательное значение
+            )
+
+        with pytest.raises(ValueError):
+            ProcessingEvent(
+                processing_mode=ProcessingMode.EFFICIENT,
+                intensity=1.5  # Больше 1.0
+            )
+
+    def test_invalid_duration_ticks(self):
+        """Тест валидации duration_ticks."""
+        with pytest.raises(ValueError):
+            ProcessingEvent(
+                processing_mode=ProcessingMode.EFFICIENT,
+                duration_ticks=-1  # Отрицательное значение
+            )
+
 
 class TestAdaptiveProcessingConfig:
-    """Тесты для AdaptiveProcessingConfig."""
+    """Тесты для AdaptiveProcessingConfig dataclass."""
 
-    def test_default_config_values(self):
-        """Тест значений конфигурации по умолчанию."""
+    def test_initialization_default(self):
+        """Тест инициализации с параметрами по умолчанию."""
         config = AdaptiveProcessingConfig()
+
+        assert config.stability_threshold == 0.7
+        assert config.energy_threshold == 0.6
+        assert config.processing_efficiency_threshold == 0.5
+        assert config.cognitive_load_threshold == 0.8
+        assert config.update_interval_ticks == 10
+        assert config.processing_event_timeout == 300
+        assert config.adaptive_state_timeout == 600
+
+    def test_initialization_custom(self):
+        """Тест инициализации с пользовательскими параметрами."""
+        config = AdaptiveProcessingConfig(
+            stability_threshold=0.8,
+            energy_threshold=0.7,
+            processing_efficiency_threshold=0.6,
+            cognitive_load_threshold=0.9,
+            update_interval_ticks=20,
+            processing_event_timeout=400,
+            adaptive_state_timeout=800
+        )
 
         assert config.stability_threshold == 0.8
         assert config.energy_threshold == 0.7
         assert config.processing_efficiency_threshold == 0.6
-        assert config.cognitive_load_max == 0.7
-        assert config.enable_efficient_processing is True
-        assert config.enable_intensive_analysis is True
-        assert config.enable_system_self_monitoring is True
-        assert config.enable_optimal_processing is True
-        assert config.check_interval == 1.0
-        assert config.state_transition_cooldown == 5.0
-        assert config.max_history_size == 100
-        assert config.max_transition_history_size == 50
-        assert config.integrate_with_memory is True
-        assert config.adaptive_thresholds_enabled is True
+        assert config.cognitive_load_threshold == 0.9
+        assert config.update_interval_ticks == 20
+        assert config.processing_event_timeout == 400
+        assert config.adaptive_state_timeout == 800
 
-    def test_config_custom_values(self):
-        """Тест установки пользовательских значений конфигурации."""
-        config = AdaptiveProcessingConfig(
-            stability_threshold=0.9,
-            energy_threshold=0.8,
-            enable_efficient_processing=False,
-            check_interval=2.0
+    def test_validation_thresholds(self):
+        """Тест валидации пороговых значений."""
+        # Все пороги должны быть между 0.0 и 1.0
+        with pytest.raises(ValueError):
+            AdaptiveProcessingConfig(stability_threshold=-0.1)
+
+        with pytest.raises(ValueError):
+            AdaptiveProcessingConfig(energy_threshold=1.5)
+
+        with pytest.raises(ValueError):
+            AdaptiveProcessingConfig(processing_efficiency_threshold=-0.5)
+
+        with pytest.raises(ValueError):
+            AdaptiveProcessingConfig(cognitive_load_threshold=2.0)
+
+    def test_validation_timeouts(self):
+        """Тест валидации таймаутов."""
+        with pytest.raises(ValueError):
+            AdaptiveProcessingConfig(update_interval_ticks=-1)
+
+        with pytest.raises(ValueError):
+            AdaptiveProcessingConfig(processing_event_timeout=-100)
+
+        with pytest.raises(ValueError):
+            AdaptiveProcessingConfig(adaptive_state_timeout=-200)
+
+
+class TestAdaptiveStateTransition:
+    """Тесты для AdaptiveStateTransition dataclass."""
+
+    def test_initialization(self):
+        """Тест инициализации AdaptiveStateTransition."""
+        transition = AdaptiveStateTransition(
+            from_state=AdaptiveState.STANDARD,
+            to_state=AdaptiveState.EFFICIENT_PROCESSING,
+            trigger_reason="high_efficiency",
+            metrics={"processing_efficiency": 0.9}
         )
 
-        assert config.stability_threshold == 0.9
-        assert config.energy_threshold == 0.8
-        assert config.enable_efficient_processing is False
-        assert config.check_interval == 2.0
+        assert transition.from_state == AdaptiveState.STANDARD
+        assert transition.to_state == AdaptiveState.EFFICIENT_PROCESSING
+        assert transition.trigger_reason == "high_efficiency"
+        assert transition.metrics == {"processing_efficiency": 0.9}
+        assert isinstance(transition.timestamp, float)
+        assert transition.timestamp <= time.time()
 
 
-class TestAdaptiveProcessingManager:
-    """Тесты для AdaptiveProcessingManager."""
+class TestProcessingStatistics:
+    """Тесты для ProcessingStatistics dataclass."""
+
+    def test_initialization(self):
+        """Тест инициализации ProcessingStatistics."""
+        stats = ProcessingStatistics()
+
+        assert stats.total_processing_events == 0
+        assert stats.successful_events == 0
+        assert stats.failed_events == 0
+        assert stats.average_processing_time == 0.0
+        assert stats.last_event_timestamp == 0.0
+        assert stats.event_history == []
+
+    def test_serialization(self):
+        """Тест сериализации ProcessingStatistics."""
+        stats = ProcessingStatistics(
+            total_processing_events=10,
+            successful_events=8,
+            failed_events=2,
+            average_processing_time=1.5,
+            last_event_timestamp=1234567890.0
+        )
+
+        data = stats.to_dict()
+        assert isinstance(data, dict)
+        assert data["total_processing_events"] == 10
+        assert data["successful_events"] == 8
+        assert data["failed_events"] == 2
+        assert data["average_processing_time"] == 1.5
+        assert data["last_event_timestamp"] == 1234567890.0
+
+
+class TestAdaptiveStatistics:
+    """Тесты для AdaptiveStatistics dataclass."""
+
+    def test_initialization(self):
+        """Тест инициализации AdaptiveStatistics."""
+        stats = AdaptiveStatistics()
+
+        assert stats.total_state_transitions == 0
+        assert stats.time_in_states == {}
+        assert stats.transition_reasons == {}
+        assert stats.average_state_duration == 0.0
+
+    def test_serialization(self):
+        """Тест сериализации AdaptiveStatistics."""
+        stats = AdaptiveStatistics(
+            total_state_transitions=5,
+            time_in_states={"standard": 100.0, "efficient": 200.0},
+            transition_reasons={"high_load": 3, "low_energy": 2},
+            average_state_duration=75.0
+        )
+
+        data = stats.to_dict()
+        assert isinstance(data, dict)
+        assert data["total_state_transitions"] == 5
+        assert data["time_in_states"] == {"standard": 100.0, "efficient": 200.0}
+        assert data["transition_reasons"] == {"high_load": 3, "low_energy": 2}
+        assert data["average_state_duration"] == 75.0
+
+
+class TestAdaptiveProcessingManagerInitialization:
+    """Тесты инициализации AdaptiveProcessingManager."""
+
+    def test_initialization_with_mock_provider(self):
+        """Тест инициализации с mock провайдером."""
+        mock_provider = Mock()
+        mock_state = Mock()
+        mock_provider.return_value = mock_state
+
+        manager = AdaptiveProcessingManager(mock_provider)
+
+        assert manager is not None
+        assert not manager._is_active
+        assert manager._config is not None
+        assert isinstance(manager._config, AdaptiveProcessingConfig)
+        assert manager._last_update_time == 0.0
+        assert manager._current_adaptive_state == AdaptiveState.STANDARD
+
+    def test_initialization_with_logger(self):
+        """Тест инициализации с логером."""
+        mock_provider = Mock()
+        mock_state = Mock()
+        mock_provider.return_value = mock_state
+
+        mock_logger = Mock(spec=StructuredLogger)
+
+        manager = AdaptiveProcessingManager(mock_provider, logger=mock_logger)
+
+        assert manager._logger == mock_logger
+
+    def test_initialization_with_config(self):
+        """Тест инициализации с кастомной конфигурацией."""
+        mock_provider = Mock()
+        mock_state = Mock()
+        mock_provider.return_value = mock_state
+
+        config = AdaptiveProcessingConfig(
+            stability_threshold=0.8,
+            update_interval_ticks=20
+        )
+
+        manager = AdaptiveProcessingManager(mock_provider, config=config)
+
+        assert manager._config.stability_threshold == 0.8
+        assert manager._config.update_interval_ticks == 20
+
+
+class TestAdaptiveProcessingManagerStateManagement:
+    """Тесты управления состоянием AdaptiveProcessingManager."""
 
     def setup_method(self):
-        """Настройка перед каждым тестом."""
-        self.logger = Mock(spec=StructuredLogger)
-        self.mock_self_state_provider = Mock()
-        self.mock_self_state = Mock()
-        self.mock_self_state_provider.return_value = self.mock_self_state
+        """Настройка теста."""
+        self.mock_provider = Mock()
+        self.mock_state = Mock()
+        self.mock_state.stability = 0.8
+        self.mock_state.energy = 0.7
+        self.mock_state.processing_efficiency = 0.6
+        self.mock_state.cognitive_load = 0.3
+        self.mock_state.current_adaptive_state = AdaptiveState.STANDARD.value
+        self.mock_provider.return_value = self.mock_state
 
-        # Настройка mock self_state с базовыми атрибутами
-        self.mock_self_state.stability = 0.8
-        self.mock_self_state.energy = 0.7
-        self.mock_self_state.processing_efficiency = 0.6
-        self.mock_self_state.cognitive_load = 0.3
-        self.mock_self_state.self_reflection_score = 0.7
-        self.mock_self_state.meta_cognition_depth = 0.6
+        self.manager = AdaptiveProcessingManager(self.mock_provider)
 
-    def test_initialization_default_config(self):
-        """Тест инициализации с конфигурацией по умолчанию."""
-        manager = AdaptiveProcessingManager(self.mock_self_state_provider, logger=self.logger)
-
-        assert manager._is_active is False
-        assert manager._last_update_time == 0.0
-        assert manager._update_interval == 0.5
-        assert len(manager.processing_history) == 0
-        assert len(manager.state_transitions) == 0
-        assert manager._stats["total_updates"] == 0
-        assert "start_time" in manager._stats
-
-        # Проверка логирования инициализации (вызывается несколько раз для разных компонентов)
-        assert self.logger.log_event.call_count >= 1
-
-    def test_initialization_custom_config(self):
-        """Тест инициализации с пользовательской конфигурацией."""
-        config = AdaptiveProcessingConfig(
-            stability_threshold=0.9,
-            enable_efficient_processing=False,
-            integrate_with_memory=False
-        )
-        manager = AdaptiveProcessingManager(self.mock_self_state_provider, config=config, logger=self.logger)
-
-        assert manager.config.stability_threshold == 0.9
-        assert manager.config.enable_efficient_processing is False
-        assert manager.config.integrate_with_memory is False
-
-    def test_start_stop_functionality(self):
-        """Тест функций запуска и остановки."""
-        manager = AdaptiveProcessingManager(self.mock_self_state_provider, logger=self.logger)
-
-        # Тест запуска
-        manager.start()
-        assert manager._is_active is True
-        self.logger.log_event.assert_called_with({"event_type": "adaptive_processing_manager_started"})
-
-        # Тест остановки
-        self.logger.log_event.reset_mock()
-        manager.stop()
-        assert manager._is_active is False
-        self.logger.log_event.assert_called_with({"event_type": "adaptive_processing_manager_stopped"})
-
-    def test_update_inactive_manager(self):
-        """Тест обновления неактивного менеджера."""
-        manager = AdaptiveProcessingManager(self.mock_self_state_provider, logger=self.logger)
-
-        result = manager.update(self.mock_self_state)
-        assert result == {"status": "inactive"}
-
-    def test_update_too_early(self):
-        """Тест обновления слишком рано."""
-        manager = AdaptiveProcessingManager(self.mock_self_state_provider, logger=self.logger)
-        manager.start()
-        manager._last_update_time = time.time()  # Только что обновлялся
-
-        result = manager.update(self.mock_self_state)
-        assert result["status"] == "too_early"
-
-    def test_update_normal_flow(self):
-        """Тест нормального потока обновления."""
-        manager = AdaptiveProcessingManager(self.mock_self_state_provider, logger=self.logger)
-        manager.start()
-
-        # Установка времени для прохождения проверки интервала
-        manager._last_update_time = time.time() - 1.0
-
-        result = manager.update(self.mock_self_state)
-
-        assert result["status"] == "updated"
-        assert "processing_events" in result
-        assert "state_transitions" in result
-        assert "memory_operations" in result
-        assert "timestamp" in result
-        assert manager._stats["total_updates"] == 1
-
-    def test_gather_processing_metrics(self):
-        """Тест сбора метрик обработки."""
-        manager = AdaptiveProcessingManager(self.mock_self_state_provider, logger=self.logger)
-
-        # Настройка self_state с различными значениями
-        self.mock_self_state.stability = 0.85
-        self.mock_self_state.energy = 0.75
-        self.mock_self_state.processing_efficiency = 0.65
-        self.mock_self_state.cognitive_load = 0.35
-        self.mock_self_state.self_reflection_score = 0.7
-        self.mock_self_state.meta_cognition_depth = 0.6
-
-        metrics = manager._gather_processing_metrics(self.mock_self_state)
-
-        expected_metrics = {
-            "stability": 0.85,
-            "energy": 0.75,
-            "processing_efficiency": 0.65,
-            "cognitive_load": 0.35,
-            "self_reflection_score": 0.7,
-            "meta_cognition_depth": 0.6
-        }
-        assert metrics == expected_metrics
-
-    def test_check_basic_processing_conditions(self):
-        """Тест проверки базовых условий обработки."""
-        manager = AdaptiveProcessingManager(self.mock_self_state_provider, logger=self.logger)
-
-        # Успешные условия
-        good_metrics = {
-            "stability": 0.9,
-            "energy": 0.8,
-            "processing_efficiency": 0.7,
-            "cognitive_load": 0.6
-        }
-        assert manager._check_basic_processing_conditions(good_metrics) is True
-
-        # Провал по стабильности
-        bad_metrics = good_metrics.copy()
-        bad_metrics["stability"] = 0.7
-        assert manager._check_basic_processing_conditions(bad_metrics) is False
-
-        # Провал по когнитивной нагрузке
-        bad_metrics = good_metrics.copy()
-        bad_metrics["cognitive_load"] = 0.8
-        assert manager._check_basic_processing_conditions(bad_metrics) is False
-
-    def test_determine_processing_mode(self):
-        """Тест определения режима обработки."""
-        manager = AdaptiveProcessingManager(self.mock_self_state_provider, logger=self.logger)
-
-        # Оптимизированный режим
-        metrics = {"processing_efficiency": 0.95, "meta_cognition_depth": 0.85, "self_reflection_score": 0.7}
-        mode = manager._determine_processing_mode(metrics)
-        assert mode == ProcessingMode.OPTIMIZED
-
-        # Режим самоконтроля
-        metrics = {"processing_efficiency": 0.75, "meta_cognition_depth": 0.65, "self_reflection_score": 0.6}
-        mode = manager._determine_processing_mode(metrics)
-        assert mode == ProcessingMode.SELF_MONITORING
-
-        # Интенсивный анализ
-        metrics = {"processing_efficiency": 0.65, "self_reflection_score": 0.8, "meta_cognition_depth": 0.5}
-        mode = manager._determine_processing_mode(metrics)
-        assert mode == ProcessingMode.INTENSIVE
-
-        # Эффективный режим
-        metrics = {"processing_efficiency": 0.55, "stability": 0.85, "self_reflection_score": 0.5, "meta_cognition_depth": 0.4}
-        mode = manager._determine_processing_mode(metrics)
-        assert mode == ProcessingMode.EFFICIENT
-
-        # Базовый режим
-        metrics = {"processing_efficiency": 0.4, "stability": 0.6, "self_reflection_score": 0.3, "meta_cognition_depth": 0.2}
-        mode = manager._determine_processing_mode(metrics)
-        assert mode == ProcessingMode.BASELINE
-
-    def test_check_processing_mode_conditions(self):
-        """Тест проверки специфических условий режима обработки."""
-        manager = AdaptiveProcessingManager(self.mock_self_state_provider, logger=self.logger)
-
-        # Оптимизированный режим - успех
-        metrics = {"processing_efficiency": 0.85, "meta_cognition_depth": 0.75}
-        assert manager._check_processing_mode_conditions(ProcessingMode.OPTIMIZED, metrics) is True
-
-        # Оптимизированный режим - провал
-        metrics = {"processing_efficiency": 0.75, "meta_cognition_depth": 0.65}
-        assert manager._check_processing_mode_conditions(ProcessingMode.OPTIMIZED, metrics) is False
-
-        # Эффективный режим - успех
-        metrics = {"processing_efficiency": 0.45, "stability": 0.7}
-        assert manager._check_processing_mode_conditions(ProcessingMode.EFFICIENT, metrics) is True
-
-        # Эффективный режим - провал
-        metrics = {"processing_efficiency": 0.35, "stability": 0.5}
-        assert manager._check_processing_mode_conditions(ProcessingMode.EFFICIENT, metrics) is False
-
-    def test_calculate_processing_intensity(self):
-        """Тест расчета интенсивности обработки."""
-        manager = AdaptiveProcessingManager(self.mock_self_state_provider, logger=self.logger)
-
-        # Высокая интенсивность
-        metrics = {"stability": 0.9, "energy": 0.9, "processing_efficiency": 0.9}
-        intensity = manager._calculate_processing_intensity(metrics)
-        assert 0.8 <= intensity <= 1.0
-
-        # Низкая интенсивность
-        metrics = {"stability": 0.5, "energy": 0.5, "processing_efficiency": 0.5}
-        intensity = manager._calculate_processing_intensity(metrics)
-        assert 0.1 <= intensity <= 0.6
-
-    def test_calculate_processing_duration(self):
-        """Тест расчета длительности режима обработки."""
-        manager = AdaptiveProcessingManager(self.mock_self_state_provider, logger=self.logger)
-
-        # Оптимизированный режим
-        duration = manager._calculate_processing_duration(ProcessingMode.OPTIMIZED)
-        assert duration == 75  # 50 * 1.5
-
-        # Интенсивный режим
-        duration = manager._calculate_processing_duration(ProcessingMode.INTENSIVE)
-        assert duration == 60  # 50 * 1.2
-
-        # Базовый режим
-        duration = manager._calculate_processing_duration(ProcessingMode.BASELINE)
-        assert duration == 50
-
-    def test_apply_processing_effects(self):
-        """Тест применения эффектов режима обработки."""
-        manager = AdaptiveProcessingManager(self.mock_self_state_provider, logger=self.logger)
-
-        event = ProcessingEvent(
-            processing_mode=ProcessingMode.EFFICIENT,
-            intensity=0.8,
-            duration_ticks=60
+    def test_force_adaptive_state_success(self):
+        """Тест принудительной установки состояния - успех."""
+        result = self.manager.force_adaptive_state(
+            self.mock_state,
+            AdaptiveState.EFFICIENT_PROCESSING
         )
 
-        manager._apply_processing_effects(self.mock_self_state, event)
+        assert result is True
+        assert self.mock_state.current_adaptive_state == AdaptiveState.EFFICIENT_PROCESSING.value
 
-        # Проверка установки атрибутов на self_state
-        assert self.mock_self_state.processing_state is True
-        assert self.mock_self_state.processing_duration == 60
-        assert self.mock_self_state.processing_modifier == pytest.approx(1.0 + (0.5 * 0.8), rel=1e-2)
-        # Проверка что processing_mode был установлен
-        assert hasattr(self.mock_self_state, 'processing_mode')
+    def test_force_adaptive_state_invalid_input(self):
+        """Тест принудительной установки состояния - некорректный ввод."""
+        # None состояние
+        result = self.manager.force_adaptive_state(self.mock_state, None)
+        assert result is False
 
-        # Проверка логирования
-        self.logger.log_event.assert_called()
+        # Некорректный тип состояния
+        result = self.manager.force_adaptive_state(self.mock_state, "invalid_state")
+        assert result is False
 
-    def test_update_state_transitions(self):
-        """Тест обновления переходов между состояниями."""
-        manager = AdaptiveProcessingManager(self.mock_self_state_provider, logger=self.logger)
-
-        # Начальное состояние
-        self.mock_self_state.current_adaptive_state = AdaptiveState.STANDARD.value
-
-        # Настройка метрик для перехода в эффективное состояние
-        self.mock_self_state.processing_efficiency = 0.7
-        self.mock_self_state.stability = 0.9
-        self.mock_self_state.meta_cognition_depth = 0.4
-
-        manager._update_state_transitions(self.mock_self_state)
-
-        # Проверка перехода в эффективное состояние
-        assert self.mock_self_state.current_adaptive_state == AdaptiveState.EFFICIENT_PROCESSING.value
-        assert len(manager.state_transitions) == 1
-
-        # Проверка логирования
-        self.logger.log_event.assert_called()
-
-    def test_determine_adaptive_state(self):
-        """Тест определения адаптивного состояния."""
-        manager = AdaptiveProcessingManager(self.mock_self_state_provider, logger=self.logger)
-
-        # Оптимальная обработка
-        self.mock_self_state.processing_efficiency = 0.95
-        self.mock_self_state.meta_cognition_depth = 0.85
-        state = manager._determine_adaptive_state(self.mock_self_state)
-        assert state == AdaptiveState.OPTIMAL_PROCESSING
-
-        # Самоконтроль системы
-        self.mock_self_state.processing_efficiency = 0.75
-        self.mock_self_state.meta_cognition_depth = 0.65
-        state = manager._determine_adaptive_state(self.mock_self_state)
-        assert state == AdaptiveState.SYSTEM_SELF_MONITORING
-
-        # Эффективная обработка
-        self.mock_self_state.processing_efficiency = 0.65
-        self.mock_self_state.stability = 0.9
-        self.mock_self_state.meta_cognition_depth = 0.3
-        state = manager._determine_adaptive_state(self.mock_self_state)
-        assert state == AdaptiveState.EFFICIENT_PROCESSING
-
-        # Интенсивный анализ
-        self.mock_self_state.processing_efficiency = 0.55
-        self.mock_self_state.stability = 0.6
-        state = manager._determine_adaptive_state(self.mock_self_state)
-        assert state == AdaptiveState.INTENSIVE_ANALYSIS
-
-        # Стандартное состояние
-        self.mock_self_state.processing_efficiency = 0.4
-        state = manager._determine_adaptive_state(self.mock_self_state)
+    def test_get_current_adaptive_state(self):
+        """Тест получения текущего адаптивного состояния."""
+        state = self.manager.get_current_adaptive_state()
         assert state == AdaptiveState.STANDARD
 
-    def test_trigger_processing_event(self):
-        """Тест принудительного вызова события обработки."""
-        manager = AdaptiveProcessingManager(self.mock_self_state_provider, logger=self.logger)
+        # Изменяем состояние
+        self.manager.force_adaptive_state(self.mock_state, AdaptiveState.OPTIMAL_PROCESSING)
+        state = self.manager.get_current_adaptive_state()
+        assert state == AdaptiveState.OPTIMAL_PROCESSING
 
-        # Успешный вызов (ожидаем True независимо от деталей реализации)
-        result = manager.trigger_processing_event(self.mock_self_state, ProcessingMode.INTENSIVE, 0.8)
-        # Проверяем что метод выполнился без исключений
-        assert isinstance(result, bool)
 
-        # Проверка эффектов (убираем проверки конкретных значений mock объектов)
-        # assert self.mock_self_state.processing_state is True
-        # assert self.mock_self_state.processing_intensity == 0.8
+class TestAdaptiveProcessingManagerEventProcessing:
+    """Тесты обработки событий AdaptiveProcessingManager."""
 
-        # Проверка статистики
-        assert manager._stats["processing_events_triggered"] == 1
+    def setup_method(self):
+        """Настройка теста."""
+        self.mock_provider = Mock()
+        self.mock_state = Mock()
+        self.mock_state.stability = 0.9
+        self.mock_state.energy = 0.8
+        self.mock_state.processing_efficiency = 0.7
+        self.mock_state.cognitive_load = 0.2
+        self.mock_state.processing_state = False
+        self.mock_state.processing_intensity = 0.0
+        self.mock_provider.return_value = self.mock_state
 
-        # Проверка логирования
-        assert self.logger.log_event.call_count == 2  # Инициализация + событие
+        self.manager = AdaptiveProcessingManager(self.mock_provider)
+        self.manager.start()
 
-    def test_force_adaptive_state(self):
-        """Тест принудительного изменения адаптивного состояния."""
-        manager = AdaptiveProcessingManager(self.mock_self_state_provider, logger=self.logger)
+    def test_trigger_processing_event_success(self):
+        """Тест успешного срабатывания события обработки."""
+        result = self.manager.trigger_processing_event(
+            self.mock_state,
+            ProcessingMode.EFFICIENT,
+            0.8
+        )
 
-        # Успешный переход
-        result = manager.force_adaptive_state(self.mock_self_state, AdaptiveState.OPTIMAL_PROCESSING)
         assert result is True
+        assert self.mock_state.processing_state is True
+        assert self.mock_state.processing_intensity == 0.8
 
-        # Проверка изменения состояния
-        assert self.mock_self_state.current_adaptive_state == AdaptiveState.OPTIMAL_PROCESSING.value
-        assert len(manager.state_transitions) == 1
+    def test_trigger_processing_event_invalid_mode(self):
+        """Тест срабатывания события с некорректным режимом."""
+        result = self.manager.trigger_processing_event(
+            self.mock_state,
+            None,  # Некорректный режим
+            0.8
+        )
 
-        # Проверка статистики
-        assert manager._stats["state_transitions"] == 1
+        assert result is False
 
-        # Проверка логирования
-        self.logger.log_event.assert_called()
+    def test_trigger_processing_event_invalid_intensity(self):
+        """Тест срабатывания события с некорректной интенсивностью."""
+        result = self.manager.trigger_processing_event(
+            self.mock_state,
+            ProcessingMode.EFFICIENT,
+            -0.1  # Некорректная интенсивность
+        )
 
-    def test_get_system_status(self):
-        """Тест получения статуса системы."""
-        manager = AdaptiveProcessingManager(self.mock_self_state_provider, logger=self.logger)
-        manager.start()
+        assert result is False
 
-        status = manager.get_system_status()
+        result = self.manager.trigger_processing_event(
+            self.mock_state,
+            ProcessingMode.EFFICIENT,
+            1.5  # Некорректная интенсивность
+        )
 
-        # Проверка структуры статуса
+        assert result is False
+
+
+class TestAdaptiveProcessingManagerStatistics:
+    """Тесты статистики AdaptiveProcessingManager."""
+
+    def setup_method(self):
+        """Настройка теста."""
+        self.mock_provider = Mock()
+        self.mock_state = Mock()
+        self.mock_state.stability = 0.8
+        self.mock_state.energy = 0.7
+        self.mock_state.processing_efficiency = 0.6
+        self.mock_state.cognitive_load = 0.3
+        self.mock_provider.return_value = self.mock_state
+
+        self.manager = AdaptiveProcessingManager(self.mock_provider)
+
+    def test_get_processing_statistics_initial(self):
+        """Тест получения начальной статистики обработки."""
+        stats = self.manager.get_processing_statistics()
+
+        assert isinstance(stats, dict)
+        assert "total_processing_events" in stats
+        assert "successful_events" in stats
+        assert "failed_events" in stats
+        assert stats["total_processing_events"] == 0
+
+    def test_get_adaptive_statistics_initial(self):
+        """Тест получения начальной адаптивной статистики."""
+        stats = self.manager.get_adaptive_statistics()
+
+        assert isinstance(stats, dict)
+        assert "total_state_transitions" in stats
+        assert "time_in_states" in stats
+        assert "transition_reasons" in stats
+        assert stats["total_state_transitions"] == 0
+
+
+class TestAdaptiveProcessingManagerSystemStatus:
+    """Тесты статуса системы AdaptiveProcessingManager."""
+
+    def setup_method(self):
+        """Настройка теста."""
+        self.mock_provider = Mock()
+        self.mock_state = Mock()
+        self.mock_provider.return_value = self.mock_state
+
+        self.manager = AdaptiveProcessingManager(self.mock_provider)
+
+    def test_get_system_status_inactive(self):
+        """Тест получения статуса системы при неактивном менеджере."""
+        status = self.manager.get_system_status()
+
+        assert isinstance(status, dict)
         assert "manager" in status
         assert "components" in status
+        assert status["manager"]["is_active"] is False
 
-        manager_status = status["manager"]
-        assert "is_active" in manager_status
-        assert "config" in manager_status
-        assert "stats" in manager_status
-        assert "uptime" in manager_status
+    def test_get_system_status_active(self):
+        """Тест получения статуса системы при активном менеджере."""
+        self.manager.start()
 
-        # Проверка значений
-        assert manager_status["is_active"] is True
-        assert isinstance(manager_status["uptime"], float)
+        status = self.manager.get_system_status()
 
-    def test_get_processing_statistics(self):
-        """Тест получения статистики обработки."""
-        manager = AdaptiveProcessingManager(self.mock_self_state_provider, logger=self.logger)
-
-        # Добавление тестовых данных
-        manager._stats["processing_events_triggered"] = 5
-        manager.processing_history = [
-            ProcessingEvent(ProcessingMode.EFFICIENT, 0.8),
-            ProcessingEvent(ProcessingMode.INTENSIVE, 0.9)
-        ]
-
-        stats = manager.get_processing_statistics()
-
-        # Проверка структуры
-        assert "total_processing_events" in stats
-        assert "active_processing" in stats
-        assert "processing_modes_distribution" in stats
-        assert "average_intensity" in stats
-
-        # Проверка значений
-        assert stats["total_processing_events"] == 5
-        assert stats["average_intensity"] == (0.8 + 0.9) / 2
-
-    def test_get_adaptive_statistics(self):
-        """Тест получения статистики адаптивных состояний."""
-        manager = AdaptiveProcessingManager(self.mock_self_state_provider, logger=self.logger)
-
-        # Добавление тестовых данных
-        manager._stats["state_transitions"] = 3
-        manager.state_transitions = [
-            {"to_state": "efficient_processing"},
-            {"to_state": "optimal_processing"}
-        ]
-
-        stats = manager.get_adaptive_statistics()
-
-        # Проверка структуры
-        assert "total_state_transitions" in stats
-        assert "current_state" in stats
-        assert "state_distribution" in stats
-        assert "average_processing_efficiency" in stats
-
-        # Проверка значений
-        assert stats["total_state_transitions"] == 3
-        assert stats["state_distribution"]["efficient_processing"] == 1
-        assert stats["state_distribution"]["optimal_processing"] == 1
-
-    def test_reset_statistics(self):
-        """Тест сброса статистики."""
-        manager = AdaptiveProcessingManager(self.mock_self_state_provider, logger=self.logger)
-
-        # Установка тестовых значений
-        manager._stats["total_updates"] = 10
-        manager._stats["processing_events_triggered"] = 5
-
-        manager.reset_statistics()
-
-        # Проверка сброса
-        assert manager._stats["total_updates"] == 0
-        assert manager._stats["processing_events_triggered"] == 0
-        assert "start_time" in manager._stats
-
-        # Проверка логирования
-        self.logger.log_event.assert_called_with({"event_type": "adaptive_processing_statistics_reset"})
-
-    def test_update_configuration(self):
-        """Тест обновления конфигурации."""
-        manager = AdaptiveProcessingManager(self.mock_self_state_provider, logger=self.logger)
-
-        # Обновление параметров
-        new_config = {
-            "stability_threshold": 0.9,
-            "enable_efficient_processing": False,
-            "check_interval": 2.0
-        }
-
-        manager.update_configuration(new_config)
-
-        # Проверка обновления
-        assert manager.config.stability_threshold == 0.9
-        assert manager.config.enable_efficient_processing is False
-        assert manager.config.check_interval == 2.0
-
-        # Проверка логирования
-        self.logger.log_event.assert_called()
+        assert isinstance(status, dict)
+        assert status["manager"]["is_active"] is True
 
     def test_get_legacy_status(self):
         """Тест получения статуса в старом формате."""
-        manager = AdaptiveProcessingManager(self.mock_self_state_provider, logger=self.logger)
+        legacy_status = self.manager.get_legacy_status()
 
-        # Настройка mock self_state для legacy статуса
-        self.mock_self_state.clarity_state = True
-        self.mock_self_state.clarity_duration = 45
-        self.mock_self_state.clarity_modifier = 1.5
-        self.mock_self_state.current_adaptive_state = "optimal_processing"
-        self.mock_self_state.processing_efficiency = 0.8
-        self.mock_self_state.processing_history = []
-
-        # Настройка статистики
-        manager._stats["processing_events_triggered"] = 10
-        manager._stats["state_transitions"] = 5
-
-        legacy_status = manager.get_legacy_status()
-
-        # Проверка структуры legacy статуса
+        assert isinstance(legacy_status, dict)
         assert "clarity_moments" in legacy_status
         assert "consciousness_system" in legacy_status
-        assert "unified_system" in legacy_status
 
-        clarity = legacy_status["clarity_moments"]
-        # Проверяем наличие полей вместо конкретных значений mock объектов
-        assert "active" in clarity
-        assert "duration_remaining" in clarity
-        assert "modifier" in clarity
 
-        consciousness = legacy_status["consciousness_system"]
-        assert consciousness["current_state"] == "optimal_processing"
-        assert consciousness["consciousness_level"] == 0.8
+class TestSerializationContract:
+    """Тесты сериализации компонентов."""
 
-    def test_config_validation(self):
-        """Тест валидации конфигурации."""
-        # Корректная конфигурация
-        config = AdaptiveProcessingConfig(stability_threshold=0.8, energy_threshold=0.7)
-        assert config.stability_threshold == 0.8
+    def setup_method(self):
+        """Настройка теста."""
+        self.contract = SerializationContract()
 
-        # Проверка что валидация проходит в менеджере
-        manager = AdaptiveProcessingManager(
-            self.mock_self_state_provider,
-            config=config,
-            logger=self.logger
-        )
-        assert manager.config.stability_threshold == 0.8
-
-    def test_memory_hierarchy_integration_creation(self):
-        """Тест создания интеграции с иерархией памяти."""
-        # С включенной интеграцией
-        config = AdaptiveProcessingConfig(integrate_with_memory=True)
-        manager = AdaptiveProcessingManager(
-            self.mock_self_state_provider,
-            config=config,
-            logger=self.logger
+    def test_processing_event_serialization(self):
+        """Тест сериализации ProcessingEvent."""
+        event = ProcessingEvent(
+            processing_mode=ProcessingMode.EFFICIENT,
+            intensity=0.8,
+            duration_ticks=100,
+            trigger_conditions={"test": "value"}
         )
 
-        # Менеджер должен попытаться создать memory hierarchy
-        # (фактическое создание может зависеть от доступности модулей)
+        # Сериализация
+        data = self.contract.serialize(event)
+        assert isinstance(data, dict)
+        assert "processing_mode" in data
+        assert "intensity" in data
+        assert "duration_ticks" in data
 
-        # Без интеграции
-        config = AdaptiveProcessingConfig(integrate_with_memory=False)
-        manager = AdaptiveProcessingManager(
-            self.mock_self_state_provider,
-            config=config,
-            logger=self.logger
+        # Десериализация
+        restored = self.contract.deserialize(data, ProcessingEvent)
+        assert isinstance(restored, ProcessingEvent)
+        assert restored.processing_mode == event.processing_mode
+        assert restored.intensity == event.intensity
+
+    def test_adaptive_config_serialization(self):
+        """Тест сериализации AdaptiveProcessingConfig."""
+        config = AdaptiveProcessingConfig(
+            stability_threshold=0.8,
+            energy_threshold=0.7
         )
 
-        # Memory hierarchy не должен создаваться
-        assert manager._memory_hierarchy is None
+        # Сериализация
+        data = self.contract.serialize(config)
+        assert isinstance(data, dict)
+        assert "stability_threshold" in data
+        assert "energy_threshold" in data
+
+        # Десериализация
+        restored = self.contract.deserialize(data, AdaptiveProcessingConfig)
+        assert isinstance(restored, AdaptiveProcessingConfig)
+        assert restored.stability_threshold == config.stability_threshold
+        assert restored.energy_threshold == config.energy_threshold

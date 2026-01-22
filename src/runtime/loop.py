@@ -24,6 +24,7 @@ from src.runtime.life_policy import LifePolicy
 from src.runtime.log_manager import FlushPolicy, LogManager
 from src.runtime.snapshot_manager import SnapshotManager
 from src.runtime.subjective_time import compute_subjective_dt
+from src.runtime.computation_cache import cached_compute_subjective_dt, cached_activate_memory, get_computation_cache
 from src.runtime.data_collection_manager import DataCollectionManager
 from src.state.self_state import SelfState, save_snapshot
 from src.contracts.contract_manager import contract_manager
@@ -44,6 +45,10 @@ MEMORY_MIN_WEIGHT = 0.1  # Минимальный вес для архиваци
 MEMORY_MAX_AGE_SECONDS = 7 * 24 * 3600  # Максимальный возраст записей (7 дней в секундах)
 MEMORY_DECAY_MIN_WEIGHT = 0.0  # Минимальный вес при затухании (для полного забывания)
 
+# Оптимизация: lazy evaluation для операций памяти
+MEMORY_DECAY_LAZY_THRESHOLD = 50  # Выполнять decay только если накопилось 50 тиков
+MEMORY_ARCHIVE_LAZY_THRESHOLD = 100  # Выполнять archive только если накопилось 100 тиков
+
 # Константы для обработки ошибок
 # Штраф integrity при ошибке в цикле
 ERROR_INTEGRITY_PENALTY = 0.05
@@ -51,6 +56,9 @@ ERROR_INTEGRITY_PENALTY = 0.05
 # Константы для модификации impact
 # Коэффициент для уменьшения impact при обработке событий
 IMPACT_REDUCTION_COEFFICIENT = 0.5
+
+# Константы для батчинга обработки событий
+EVENT_BATCH_SIZE = 25  # Размер батча для обработки событий (оптимально 10-50)
 
 
 def _get_default_learning_params() -> dict:
@@ -229,6 +237,190 @@ def _record_adaptation_params_change(self_state, old_params: dict, new_params: d
     # Ограничиваем размер истории (последние 50 записей)
     if len(self_state.adaptation_params_history) > 50:
         self_state.adaptation_params_history = self_state.adaptation_params_history[-50:]
+
+
+def _process_events_batch(events_batch, self_state, engine, structured_logger, passive_data_sink, async_data_sink, memory_hierarchy, decision_engine, pending_actions, event_queue):
+    """
+    Обрабатывает батч событий для оптимизации производительности.
+
+    Args:
+        events_batch: Список событий для обработки
+        self_state: Текущее состояние Life
+        engine: MeaningEngine
+        structured_logger: StructuredLogger
+        passive_data_sink: PassiveDataSink
+        async_data_sink: AsyncDataSink
+        memory_hierarchy: MemoryHierarchyManager
+        decision_engine: DecisionEngine
+        pending_actions: Список ожидающих действий для Feedback
+        event_queue: Очередь событий
+
+    Returns:
+        tuple: (correlation_ids, processed_count, significant_events_count)
+    """
+    correlation_ids = []
+    processed_count = 0
+    significant_events_count = 0
+
+    # Batch логирование событий
+    for event in events_batch:
+        correlation_id = structured_logger.log_event(event)
+        correlation_ids.append(correlation_id)
+
+        # Passive data collection: external events (batch)
+        passive_data_sink.receive_data(
+            event_type="external_event",
+            data={"event": event.to_dict() if hasattr(event, 'to_dict') else str(event)},
+            source="runtime_loop_batch",
+            metadata={"correlation_id": correlation_id, "tick": self_state.ticks, "batch_size": len(events_batch)}
+        )
+
+        # Async data collection: event processing (batch)
+        async_data_sink.log_event(
+            data={"event_type": getattr(event, 'event_type', 'unknown'), "correlation_id": correlation_id, "batch_size": len(events_batch)},
+            event_type="event_processed_batch",
+            source="runtime_loop",
+            metadata={"external": True, "batch_processing": True}
+        )
+
+    # Batch обработка событий
+    for event_index, event in enumerate(events_batch):
+        correlation_id = correlation_ids[event_index] if event_index < len(correlation_ids) else None
+
+        logger.debug(
+            f"[LOOP] Interpreting event: type={event.type}, intensity={event.intensity}"
+        )
+        meaning = engine.process(
+            event,
+            self_state.get_safe_status_dict(include_optional=False),
+        )
+
+        # Log meaning
+        if correlation_id:
+            structured_logger.log_meaning(event, meaning, correlation_id)
+
+        if meaning.significance > 0:
+            significant_events_count += 1
+
+            # Активация памяти для события с учетом субъективного времени (кэшированная версия)
+            activated = cached_activate_memory(
+                event.type, self_state.memory, self_state=self_state
+            )
+            self_state.activated_memory = activated
+            logger.debug(
+                f"[LOOP] Activated {len(activated)} memories for type '{event.type}'"
+            )
+
+            # Decision
+            decision_start_time = time.time()
+            pattern = decide_response(self_state, meaning)
+            decision_time = time.time() - decision_start_time
+            self_state.last_pattern = pattern
+
+            # Записываем решение в DecisionEngine
+            decision_engine.record_decision(
+                decision_type="response_selection",
+                context={
+                    "meaning_significance": meaning.significance,
+                    "event_type": event.type,
+                    "current_energy": self_state.energy,
+                    "current_stability": self_state.stability,
+                },
+                outcome=pattern,
+                execution_time=decision_time,
+            )
+
+            # Log decision
+            if correlation_id:
+                structured_logger.log_decision(correlation_id)
+
+            if pattern == "ignore":
+                processed_count += 1
+                continue  # skip apply_delta
+            elif pattern == "dampen":
+                meaning.impact = {
+                    k: v * IMPACT_REDUCTION_COEFFICIENT
+                    for k, v in meaning.impact.items()
+                }
+            # else "absorb" — no change
+
+            # Применяем модификаторы ритмов к recovery событиям
+            if event.type == "recovery" and meaning.impact:
+                # Применяем эффективность восстановления от циркадного ритма
+                recovery_impact = meaning.impact.copy()
+                for key in recovery_impact:
+                    if key in ["energy"]:  # Восстановление влияет на энергию
+                        recovery_impact[key] *= self_state.recovery_efficiency
+                meaning.impact = recovery_impact
+
+            # КРИТИЧНО: Сохраняем снимок состояния ДО действия
+            state_before = {
+                "energy": self_state.energy,
+                "stability": self_state.stability,
+                "integrity": self_state.integrity,
+            }
+
+            self_state.apply_delta(meaning.impact)
+            execute_action(pattern, self_state)
+
+            # Log action
+            if correlation_id:
+                action_id = (
+                    f"action_{self_state.ticks}_{pattern}_{int(time.time()*1000)}"
+                )
+                structured_logger.log_action(action_id, correlation_id)
+
+            # Регистрируем для Feedback (после выполнения)
+            # Action не знает о Feedback - регистрация происходит в Loop
+            action_id = (
+                f"action_{self_state.ticks}_{pattern}_{int(time.time()*1000)}"
+            )
+            action_timestamp = time.time()
+            register_action(
+                action_id,
+                pattern,
+                state_before,
+                action_timestamp,
+                pending_actions,
+            )
+            self_state.recent_events.append(event.type)
+            self_state.last_significance = meaning.significance
+            self_state.memory.append(
+                MemoryEntry(
+                    event_type=event.type,
+                    meaning_significance=meaning.significance,
+                    timestamp=time.time(),
+                    subjective_timestamp=self_state.subjective_time,
+                )
+            )
+
+            # Хук: Обновление экспериментальных метрик SelfState
+            if memory_hierarchy:
+                # Обновление размера сенсорного буфера
+                self_state.sensory_buffer_size = (
+                    memory_hierarchy.sensory_buffer.buffer_size
+                    if memory_hierarchy.sensory_buffer
+                    else 0
+                )
+                # Обновление количества концепций
+                self_state.semantic_concepts_count = (
+                    memory_hierarchy.semantic_store.get_concepts_count()
+                    if memory_hierarchy.semantic_store
+                    else 0
+                )
+                # Обновление количества паттернов
+                self_state.procedural_patterns_count = (
+                    memory_hierarchy.procedural_store.size
+                    if memory_hierarchy.procedural_store
+                    else 0
+                )
+
+                # Обновление уровня сознания (базовое значение на основе стабильности и энергии)
+                self_state.consciousness_level = min(1.0, (self_state.stability + self_state.energy / 100.0) / 2.0)
+
+        processed_count += 1
+
+    return correlation_ids, processed_count, significant_events_count
 
 
 def run_loop(
@@ -516,6 +708,10 @@ def run_loop(
     data_collection_manager = DataCollectionManager()  # Менеджер сбора данных
     data_collection_manager.start()  # Запускаем менеджер сбора данных
 
+    # Инициализация кэша вычислений для оптимизации производительности
+    computation_cache = get_computation_cache()
+    cache_stats_interval = 100  # Логировать статистику кэша каждые 100 тиков
+
     # Счетчики ошибок для отслеживания проблем
     learning_errors = 0
     adaptation_errors = 0
@@ -525,8 +721,16 @@ def run_loop(
     # Счетчики для внутренних событий
     ticks_since_last_memory_echo = 0
     ticks_since_last_metrics_collection = 0
+    ticks_since_last_monitor_call = 0  # Счетчик тиков с последнего вызова monitor
+
+    # Оптимизация: счетчики для lazy evaluation операций памяти
+    ticks_since_last_memory_decay = 0
+    ticks_since_last_memory_archive = 0
     last_report_time = time.time()  # Время последнего автоматического отчета
     report_interval = 6 * 3600  # Генерировать отчет каждые 6 часов
+
+    # Константы для оптимизации мониторинга
+    MONITOR_AGGREGATION_INTERVAL = 10  # Вызывать monitor каждые 10 тиков вместо каждого
 
     def _check_and_recover_degraded_state():
         """
@@ -568,7 +772,7 @@ def run_loop(
 
     def run_main_loop():
         """Основной цикл runtime loop - выделен для профилирования"""
-        nonlocal learning_errors, adaptation_errors, ticks_since_last_memory_echo, ticks_since_last_metrics_collection
+        nonlocal learning_errors, adaptation_errors, ticks_since_last_memory_echo, ticks_since_last_metrics_collection, ticks_since_last_monitor_call, ticks_since_last_memory_decay, ticks_since_last_memory_archive
         last_time = None  # Инициализируем как None для безопасного расчета dt
         degraded_state_checks = 0  # Счетчик проверок degraded state
 
@@ -619,7 +823,8 @@ def run_loop(
                 clarity_modifier = getattr(self_state, 'clarity_modifier', 1.0)
                 adjusted_dt = dt * clarity_modifier
 
-                subjective_dt = compute_subjective_dt(
+                # Используем кэшированную версию для оптимизации производительности
+                subjective_dt = cached_compute_subjective_dt(
                     dt=adjusted_dt,
                     base_rate=self_state.subjective_time_base_rate,
                     intensity=self_state.last_event_intensity,
@@ -713,6 +918,16 @@ def run_loop(
                         else:
                             logger.warning("Failed to queue technical metrics collection")
 
+                        # Логируем статистику кэша вычислений
+                        cache_stats = computation_cache.get_stats()
+                        logger.info(f"[CACHE] Computation cache stats: "
+                                  f"subjective_dt(hit_rate={cache_stats['subjective_dt']['hit_rate']:.1f}%, "
+                                  f"size={cache_stats['subjective_dt']['size']}), "
+                                  f"validation(hit_rate={cache_stats['validation']['hit_rate']:.1f}%, "
+                                  f"size={cache_stats['validation']['size']}), "
+                                  f"memory_search(hit_rate={cache_stats['memory_search']['hit_rate']:.1f}%, "
+                                  f"size={cache_stats['memory_search']['size']})")
+
                         # Запускаем анализ логов для получения рекомендаций (активный анализ по запросу)
                         try:
                             analysis_engine.perform_analysis()
@@ -802,28 +1017,6 @@ def run_loop(
                     if memory_hierarchy and events:
                         for event in events:
                             memory_hierarchy.add_sensory_event(event)
-
-                    # Log events
-                    correlation_ids = []
-                    for event in events:
-                        correlation_id = structured_logger.log_event(event)
-                        correlation_ids.append(correlation_id)
-
-                        # Passive data collection: external events
-                        passive_data_sink.receive_data(
-                            event_type="external_event",
-                            data={"event": event.to_dict() if hasattr(event, 'to_dict') else str(event)},
-                            source="runtime_loop",
-                            metadata={"correlation_id": correlation_id, "tick": self_state.ticks}
-                        )
-
-                        # Async data collection: event processing
-                        async_data_sink.log_event(
-                            data={"event_type": getattr(event, 'event_type', 'unknown'), "correlation_id": correlation_id},
-                            event_type="event_processed",
-                            source="runtime_loop",
-                            metadata={"external": True}
-                        )
                     # Update intensity signal for this tick using exponential smoothing
                     try:
                         # Безопасный расчет максимальной интенсивности с проверкой на валидные значения
@@ -866,148 +1059,45 @@ def run_loop(
                         logger.warning(f"Failed to update event intensity: {e}")
                         self_state.last_event_intensity = 0.0
 
-                    # === ШАГ 2: Интерпретировать события ===
-                    event_index = 0
-                    for event in events:
-                        correlation_id = (
-                            correlation_ids[event_index]
-                            if event_index < len(correlation_ids)
-                            else None
+                    # === ШАГ 2: Интерпретировать события с батчингом ===
+                    # Разделяем события на батчи для оптимизации производительности
+                    total_processed = 0
+                    total_significant = 0
+
+                    for i in range(0, len(events), EVENT_BATCH_SIZE):
+                        batch = events[i:i + EVENT_BATCH_SIZE]
+                        logger.debug(f"[LOOP] Processing batch {i//EVENT_BATCH_SIZE + 1} with {len(batch)} events")
+
+                        # Обрабатываем батч событий
+                        batch_correlation_ids, batch_processed, batch_significant = _process_events_batch(
+                            batch, self_state, engine, structured_logger, passive_data_sink,
+                            async_data_sink, memory_hierarchy, decision_engine, pending_actions, event_queue
                         )
-                        logger.debug(
-                            f"[LOOP] Interpreting event: type={event.type}, intensity={event.intensity}"
+
+                        total_processed += batch_processed
+                        total_significant += batch_significant
+
+                        # Async логирование статистики батча
+                        async_data_sink.log_event(
+                            data={
+                                "batch_index": i//EVENT_BATCH_SIZE + 1,
+                                "batch_size": len(batch),
+                                "processed_events": batch_processed,
+                                "significant_events": batch_significant,
+                                "tick": self_state.ticks
+                            },
+                            event_type="batch_processing_complete",
+                            source="runtime_loop",
+                            metadata={"performance": True, "batch_processing": True}
                         )
-                        meaning = engine.process(
-                            event,
-                            self_state.get_safe_status_dict(include_optional=False),
-                        )
 
-                        # Log meaning
-                        if correlation_id:
-                            structured_logger.log_meaning(event, meaning, correlation_id)
-
-                        if meaning.significance > 0:
-                            # Активация памяти для события с учетом субъективного времени
-                            activated = activate_memory(
-                                event.type, self_state.memory, self_state=self_state
-                            )
-                            self_state.activated_memory = activated
-                            logger.debug(
-                                f"[LOOP] Activated {len(activated)} memories for type '{event.type}'"
-                            )
-
-                            # Decision
-                            decision_start_time = time.time()
-                            pattern = decide_response(self_state, meaning)
-                            decision_time = time.time() - decision_start_time
-                            self_state.last_pattern = pattern
-
-                            # Записываем решение в DecisionEngine
-                            decision_engine.record_decision(
-                                decision_type="response_selection",
-                                context={
-                                    "meaning_significance": meaning.significance,
-                                    "event_type": event.type,
-                                    "current_energy": self_state.energy,
-                                    "current_stability": self_state.stability,
-                                },
-                                outcome=pattern,
-                                execution_time=decision_time,
-                            )
-
-                            # Log decision
-                            if correlation_id:
-                                structured_logger.log_decision(correlation_id)
-
-                            if pattern == "ignore":
-                                continue  # skip apply_delta
-                            elif pattern == "dampen":
-                                meaning.impact = {
-                                    k: v * IMPACT_REDUCTION_COEFFICIENT
-                                    for k, v in meaning.impact.items()
-                                }
-                            # else "absorb" — no change
-
-                            # Применяем модификаторы ритмов к recovery событиям
-                            if event.type == "recovery" and meaning.impact:
-                                # Применяем эффективность восстановления от циркадного ритма
-                                recovery_impact = meaning.impact.copy()
-                                for key in recovery_impact:
-                                    if key in ["energy"]:  # Восстановление влияет на энергию
-                                        recovery_impact[key] *= self_state.recovery_efficiency
-                                meaning.impact = recovery_impact
-
-                            # КРИТИЧНО: Сохраняем снимок состояния ДО действия
-                            state_before = {
-                                "energy": self_state.energy,
-                                "stability": self_state.stability,
-                                "integrity": self_state.integrity,
-                            }
-
-                            self_state.apply_delta(meaning.impact)
-                            execute_action(pattern, self_state)
-
-                            # Log action
-                            if correlation_id:
-                                action_id = (
-                                    f"action_{self_state.ticks}_{pattern}_{int(time.time()*1000)}"
-                                )
-                                structured_logger.log_action(action_id, correlation_id)
-
-                            # Регистрируем для Feedback (после выполнения)
-                            # Action не знает о Feedback - регистрация происходит в Loop
-                            action_id = (
-                                f"action_{self_state.ticks}_{pattern}_{int(time.time()*1000)}"
-                            )
-                            action_timestamp = time.time()
-                            register_action(
-                                action_id,
-                                pattern,
-                                state_before,
-                                action_timestamp,
-                                pending_actions,
-                            )
-                            self_state.recent_events.append(event.type)
-                            self_state.last_significance = meaning.significance
-                            self_state.memory.append(
-                                MemoryEntry(
-                                    event_type=event.type,
-                                    meaning_significance=meaning.significance,
-                                    timestamp=time.time(),
-                                    subjective_timestamp=self_state.subjective_time,
-                                )
-                            )
-
-
-                            # Хук: Обновление экспериментальных метрик SelfState
-                            if memory_hierarchy:
-                                # Обновление размера сенсорного буфера
-                                self_state.sensory_buffer_size = (
-                                    memory_hierarchy.sensory_buffer.buffer_size
-                                    if memory_hierarchy.sensory_buffer
-                                    else 0
-                                )
-                                # Обновление количества концепций
-                                self_state.semantic_concepts_count = (
-                                    memory_hierarchy.semantic_store.get_concepts_count()
-                                    if memory_hierarchy.semantic_store
-                                    else 0
-                                )
-                                # Обновление количества паттернов
-                                self_state.procedural_patterns_count = (
-                                    memory_hierarchy.procedural_store.size
-                                    if memory_hierarchy.procedural_store
-                                    else 0
-                                )
-
-                                # Обновление уровня сознания (базовое значение на основе стабильности и энергии)
-                                self_state.consciousness_level = min(1.0, (self_state.stability + self_state.energy / 100.0) / 2.0)
-
-
-                        logger.debug(
-                            f"[LOOP] After interpret: energy={self_state.energy:.2f}, stability={self_state.stability:.4f}"
-                        )
-                        event_index += 1
+                    logger.debug(
+                        f"[LOOP] Batch processing complete: {total_processed} events processed, "
+                        f"{total_significant} significant events"
+                    )
+                    logger.debug(
+                        f"[LOOP] After interpret: energy={self_state.energy:.2f}, stability={self_state.stability:.4f}"
+                    )
 
                     record_potential_sequences(self_state)
                     process_information(self_state)
@@ -1138,20 +1228,23 @@ def run_loop(
                                 "Возможна деградация функциональности."
                             )
 
-                # Затухание весов памяти (Memory v2.0) - механизм забывания
-                # Вызывается раз в DECAY_INTERVAL тиков
-                if self_state.ticks > 0 and self_state.ticks % DECAY_INTERVAL == 0:
+                # Оптимизация: lazy evaluation для затухания весов памяти
+                # Накопление счетчика для отложенного выполнения
+                ticks_since_last_memory_decay += 1
+                if ticks_since_last_memory_decay >= MEMORY_DECAY_LAZY_THRESHOLD:
                     try:
                         self_state.memory.decay_weights(
                             decay_factor=MEMORY_DECAY_FACTOR,
                             min_weight=MEMORY_DECAY_MIN_WEIGHT,
                         )
+                        ticks_since_last_memory_decay = 0  # Сброс счетчика после выполнения
                     except Exception as e:
                         logger.error(f"Ошибка в decay_weights: {e}", exc_info=True)
 
-                # Архивация старых записей памяти (Memory v2.0)
-                # Вызывается раз в ARCHIVE_INTERVAL тиков
-                if self_state.ticks > 0 and self_state.ticks % ARCHIVE_INTERVAL == 0:
+                # Оптимизация: lazy evaluation для архивации памяти
+                # Накопление счетчика для отложенного выполнения
+                ticks_since_last_memory_archive += 1
+                if ticks_since_last_memory_archive >= MEMORY_ARCHIVE_LAZY_THRESHOLD:
                     try:
                         # Архивируем записи старше MEMORY_MAX_AGE_SECONDS или с весом < MEMORY_MIN_WEIGHT
                         archived_count = self_state.memory.archive_old_entries(
@@ -1159,6 +1252,7 @@ def run_loop(
                         )
                         if archived_count > 0:
                             logger.info(f"[LOOP] Заархивировано {archived_count} записей памяти")
+                        ticks_since_last_memory_archive = 0  # Сброс счетчика после выполнения
                     except Exception as e:
                         logger.error(f"Ошибка в archive_old_entries: {e}", exc_info=True)
 
@@ -1345,11 +1439,14 @@ def run_loop(
                         f"[LOOP] Слабость: штрафы penalty={penalty:.4f}, energy={self_state.energy:.2f}"
                     )
 
-                # Вызов мониторинга
-                try:
-                    monitor(self_state)
-                except Exception as e:
-                    logger.error(f"Ошибка в monitor: {e}", exc_info=True)
+                # Вызов мониторинга с агрегацией (каждые 10 тиков для оптимизации производительности)
+                ticks_since_last_monitor_call += 1
+                if ticks_since_last_monitor_call >= MONITOR_AGGREGATION_INTERVAL:
+                    try:
+                        monitor(self_state)
+                        ticks_since_last_monitor_call = 0  # Сброс счетчика
+                    except Exception as e:
+                        logger.error(f"Ошибка в monitor: {e}", exc_info=True)
 
                 # Периодическое обслуживание DataCollectionManager теперь выполняется асинхронно
                 # в фоновом потоке AsyncDataQueue
@@ -1383,6 +1480,9 @@ def run_loop(
                     metadata={"performance": True}
                 )
 
+                # Рассчитываем длительность сна перед логированием
+                sleep_duration = max(0.0, tick_interval - elapsed_tick)
+
                 # Async data collection: performance metrics
                 async_data_sink.log_event(
                     data={"tick": self_state.ticks, "elapsed_seconds": elapsed_tick, "sleep_duration": sleep_duration},
@@ -1391,13 +1491,12 @@ def run_loop(
                     metadata={"tick_duration": elapsed_tick}
                 )
 
-                # Периодическая очистка старых данных в PassiveDataSink (каждые 100 тиков)
+                # Passive data collection cleanup
                 if self_state.ticks % 100 == 0:
                     removed_count = passive_data_sink.clear_old_data(keep_recent=10000)
                     if removed_count > 0:
                         logger.info(f"[DATA_SINK] Cleared {removed_count} old entries from PassiveDataSink")
 
-                sleep_duration = max(0.0, tick_interval - elapsed_tick)
                 time.sleep(sleep_duration)
 
             except Exception as e:

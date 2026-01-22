@@ -318,6 +318,96 @@ class MemoryIndexEngine:
 
         return candidates
 
+    def get_entries_by_weight_range(self, min_weight: Optional[float] = None,
+                                   max_weight: Optional[float] = None) -> List[MemoryEntry]:
+        """
+        Быстрый поиск записей по диапазону веса.
+
+        Args:
+            min_weight: Минимальный вес (включительно)
+            max_weight: Максимальный вес (включительно)
+
+        Returns:
+            Список записей в указанном диапазоне веса
+        """
+        if not self.weight_entries:
+            return []
+
+        start_idx = 0
+        end_idx = len(self.weight_entries)
+
+        # Находим левую границу
+        if min_weight is not None:
+            start_idx = self._binary_search_left(self.weight_entries, min_weight,
+                                                key=lambda x: x[0])
+
+        # Находим правую границу
+        if max_weight is not None:
+            end_idx = self._binary_search_right(self.weight_entries, max_weight,
+                                               key=lambda x: x[0])
+
+        return [entry for _, entry in self.weight_entries[start_idx:end_idx]]
+
+    def get_entries_by_significance_range(self, min_sig: Optional[float] = None,
+                                         max_sig: Optional[float] = None) -> List[MemoryEntry]:
+        """
+        Быстрый поиск записей по диапазону значимости.
+
+        Args:
+            min_sig: Минимальная значимость (включительно)
+            max_sig: Максимальная значимость (включительно)
+
+        Returns:
+            Список записей в указанном диапазоне значимости
+        """
+        if not self.significance_entries:
+            return []
+
+        start_idx = 0
+        end_idx = len(self.significance_entries)
+
+        # Находим левую границу
+        if min_sig is not None:
+            start_idx = self._binary_search_left(self.significance_entries, min_sig,
+                                                key=lambda x: x[0])
+
+        # Находим правую границу
+        if max_sig is not None:
+            end_idx = self._binary_search_right(self.significance_entries, max_sig,
+                                               key=lambda x: x[0])
+
+        return [entry for _, entry in self.significance_entries[start_idx:end_idx]]
+
+    def get_entries_by_timestamp_range(self, start_ts: Optional[float] = None,
+                                      end_ts: Optional[float] = None) -> List[MemoryEntry]:
+        """
+        Быстрый поиск записей по диапазону времени.
+
+        Args:
+            start_ts: Начальное время (включительно)
+            end_ts: Конечное время (включительно)
+
+        Returns:
+            Список записей в указанном диапазоне времени
+        """
+        if not self.timestamp_entries:
+            return []
+
+        start_idx = 0
+        end_idx = len(self.timestamp_entries)
+
+        # Находим левую границу
+        if start_ts is not None:
+            start_idx = self._binary_search_left(self.timestamp_entries, start_ts,
+                                                key=lambda x: x[0])
+
+        # Находим правую границу
+        if end_ts is not None:
+            end_idx = self._binary_search_right(self.timestamp_entries, end_ts,
+                                               key=lambda x: x[0])
+
+        return [entry for _, entry in self.timestamp_entries[start_idx:end_idx]]
+
     def _matches_query(self, entry: MemoryEntry, query: MemoryQuery) -> bool:
         """
         Проверяет, соответствует ли запись всем критериям запроса.

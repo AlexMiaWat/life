@@ -108,11 +108,68 @@ class MemoryEntry:
 *   **LRU кэширование:** Автоматическое кэширование результатов повторяющихся запросов
 *   **Мониторинг:** Детальная статистика производительности и использования кэша
 *   **Оптимизация памяти:** Эффективное использование памяти с ограничением размера кэша
+*   **Диапазонный поиск:** Быстрый поиск по диапазонам веса, значимости и времени (v2.6)
+
+#### Новые методы диапазонного поиска (v2.6)
+
+```python
+class MemoryIndexEngine:
+    def get_entries_by_weight_range(self, min_weight: Optional[float] = None,
+                                   max_weight: Optional[float] = None) -> List[MemoryEntry]:
+        """Быстрый поиск записей по диапазону веса с использованием бинарного поиска."""
+
+    def get_entries_by_significance_range(self, min_sig: Optional[float] = None,
+                                         max_sig: Optional[float] = None) -> List[MemoryEntry]:
+        """Быстрый поиск записей по диапазону значимости."""
+
+    def get_entries_by_timestamp_range(self, start_ts: Optional[float] = None,
+                                      end_ts: Optional[float] = None) -> List[MemoryEntry]:
+        """Быстрый поиск записей по диапазону времени."""
+```
+
+**Алгоритм бинарного поиска:**
+- Использует предварительно отсортированные индексы (`weight_entries`, `significance_entries`, `timestamp_entries`)
+- `binary_search_left()` находит левую границу диапазона
+- `binary_search_right()` находит правую границу диапазона
+- Возвращает срез отсортированного массива
+
+#### Оптимизированная архивация с индексами (v2.6)
+
+Функция `archive_old_entries()` теперь использует индексы для предварительной фильтрации:
+
+```python
+def archive_old_entries(self, max_age=None, min_weight=None, min_significance=None):
+    # Быстрый поиск кандидатов через индексы
+    candidate_sets = []
+
+    if min_weight is not None and self._index_engine:
+        weight_entries = self._index_engine.get_entries_by_weight_range(0.0, min_weight)
+        candidate_sets.append(set(weight_entries))
+
+    if min_significance is not None and self._index_engine:
+        significance_entries = self._index_engine.get_entries_by_significance_range(0.0, min_significance)
+        candidate_sets.append(set(significance_entries))
+
+    # Объединение кандидатов из разных индексов
+    candidates = set()
+    for candidate_set in candidate_sets:
+        candidates.update(candidate_set)
+
+    # Дополнительная фильтрация по возрасту для найденных кандидатов
+    for entry in candidates:
+        # Проверка возраста и других критериев
+```
+
+**Преимущества оптимизированной архивации:**
+- **Предварительная фильтрация:** Индексы отсеивают неподходящие записи перед полным сканированием
+- **Снижение CPU:** O(log n) вместо O(n) для поиска кандидатов
+- **Масштабируемость:** Эффективная работа с памятью >10k записей
 
 #### Производительность
 *   **Запросов в секунду:** до 800+ для 10k записей с повторяющимися запросами
 *   **Cache hit rate:** до 98% для типичных сценариев использования
 *   **Ускорение:** 10-100x по сравнению с линейным поиском для больших объемов данных
+*   **Диапазонный поиск:** O(log n) для поиска по диапазонам вместо O(n)
 
 ## Пример использования
 

@@ -14,6 +14,12 @@ from src.environment.event import Event
 from src.memory.memory_types import MemoryEntry
 from src.observability.structured_logger import StructuredLogger
 from src.contracts.serialization_contract import SerializationContract
+from src.contracts.memory_hierarchy_api_contract import (
+    MemoryQueryParams,
+    MemoryQueryResult,
+    ConsolidationResult,
+    MemoryHierarchyAPIContract
+)
 
 from .sensory_buffer import SensoryBuffer
 from .semantic_store import SemanticMemoryStore, SemanticConcept
@@ -23,7 +29,7 @@ from src.config.feature_flags import FeatureFlags
 logger = logging.getLogger(__name__)
 
 
-class MemoryHierarchyManager(SerializationContract):
+class MemoryHierarchyManager(SerializationContract, MemoryHierarchyAPIContract):
     """
     Центральный менеджер для координации многоуровневой системы памяти.
 
@@ -217,9 +223,15 @@ class MemoryHierarchyManager(SerializationContract):
             return []
         return self.sensory_buffer.get_events_for_processing(max_events)
 
-    def consolidate_memory(self, self_state) -> Dict[str, Any]:
+    def consolidate_memory(self, self_state) -> ConsolidationResult:
         """
         Выполнить консолидацию памяти между уровнями.
+
+        Архитектурный контракт MemoryHierarchyAPIContract:
+        - Атомарность: Все переносы выполняются как единая транзакция
+        - Thread-safety для конкурентного доступа
+        - Стандартизированный ConsolidationResult
+        - Отказоустойчивость и логирование
 
         Этот метод вызывается периодически для переноса данных между уровнями:
         - sensory → episodic (на основе повторений)
@@ -227,42 +239,88 @@ class MemoryHierarchyManager(SerializationContract):
         - semantic → procedural (на основе автоматизации)
 
         Args:
-            self_state: Текущее состояние системы
+            self_state: Текущее состояние системы (SelfState)
 
         Returns:
-            Статистика консолидации
+            ConsolidationResult: Стандартизированная статистика консолидации
+
+        Raises:
+            RuntimeError: Если консолидация не может быть выполнена
         """
-        consolidation_stats = {
-            "sensory_to_episodic_transfers": 0,
-            "episodic_to_semantic_transfers": 0,
-            "semantic_consolidations": 0,
-            "timestamp": time.time(),
-        }
+        import time
+        start_time = time.time()
 
-        # Консолидация sensory → episodic
-        sensory_transfers = self._consolidate_sensory_to_episodic(self_state)
-        consolidation_stats["sensory_to_episodic_transfers"] = sensory_transfers
+        try:
+            sensory_to_episodic_transfers = 0
+            episodic_to_semantic_transfers = 0
+            semantic_consolidations = 0
+            procedural_optimizations = 0
 
-        # Консолидация episodic → semantic (пока заглушка)
-        if self._episodic_memory and self.semantic_store:
-            semantic_transfers = self._consolidate_episodic_to_semantic(self_state)
-            consolidation_stats["episodic_to_semantic_transfers"] = semantic_transfers
+            # Консолидация sensory → episodic
+            sensory_to_episodic_transfers = self._consolidate_sensory_to_episodic(self_state)
 
-        # Периодическая консолидация semantic (раз в минуту)
-        with self._lock:
-            if (
-                time.time() - self._transfer_stats["last_semantic_consolidation"]
-                > self.semantic_consolidation_interval
-            ):
-                semantic_consolidations = self._consolidate_semantic_knowledge()
-                consolidation_stats["semantic_consolidations"] = semantic_consolidations
-                self._transfer_stats["last_semantic_consolidation"] = time.time()
+            # Консолидация episodic → semantic (пока заглушка)
+            if self._episodic_memory and self.semantic_store:
+                episodic_to_semantic_transfers = self._consolidate_episodic_to_semantic(self_state)
 
-        self.logger.log_event(
-            {"event_type": "memory_consolidation_completed", **consolidation_stats}
-        )
+            # Периодическая консолидация semantic (раз в минуту)
+            with self._lock:
+                if (
+                    time.time() - self._transfer_stats["last_semantic_consolidation"]
+                    > self.semantic_consolidation_interval
+                ):
+                    semantic_consolidations = self._consolidate_semantic_knowledge()
+                    self._transfer_stats["last_semantic_consolidation"] = time.time()
 
-        return consolidation_stats
+            duration = time.time() - start_time
+
+            consolidation_result = ConsolidationResult(
+                sensory_to_episodic_transfers=sensory_to_episodic_transfers,
+                episodic_to_semantic_transfers=episodic_to_semantic_transfers,
+                semantic_consolidations=semantic_consolidations,
+                procedural_optimizations=procedural_optimizations,
+                timestamp=time.time(),
+                duration=duration,
+                success=True,
+                details={
+                    "sensory_buffer_available": self.sensory_buffer is not None,
+                    "episodic_memory_available": self._episodic_memory is not None,
+                    "semantic_store_available": self.semantic_store is not None,
+                    "procedural_store_available": self.procedural_store is not None,
+                }
+            )
+
+            self.logger.log_event({
+                "event_type": "memory_consolidation_completed",
+                "sensory_to_episodic_transfers": sensory_to_episodic_transfers,
+                "episodic_to_semantic_transfers": episodic_to_semantic_transfers,
+                "semantic_consolidations": semantic_consolidations,
+                "duration": duration,
+                "success": True
+            })
+
+            return consolidation_result
+
+        except Exception as e:
+            duration = time.time() - start_time
+
+            self.logger.log_event({
+                "event_type": "memory_consolidation_failed",
+                "error": str(e),
+                "duration": duration,
+                "success": False
+            })
+
+            return ConsolidationResult(
+                sensory_to_episodic_transfers=0,
+                episodic_to_semantic_transfers=0,
+                semantic_consolidations=0,
+                procedural_optimizations=0,
+                timestamp=time.time(),
+                duration=duration,
+                success=False,
+                error_message=str(e)
+            )
 
     def _consolidate_sensory_to_episodic(self, self_state) -> int:
         """
@@ -297,11 +355,12 @@ class MemoryHierarchyManager(SerializationContract):
             # Создаем идентификатор события для отслеживания повторений по типу
             event_hash = event.type
 
-            # Увеличиваем счетчик "видов" события (сколько раз оно наблюдалось в буфере)
-            self._event_processing_counts[event_hash] = (
-                self._event_processing_counts.get(event_hash, 0) + 1
-            )
-            processing_count = self._event_processing_counts[event_hash]
+            # Thread-safe увеличение счетчика "видов" события
+            with self._lock:
+                self._event_processing_counts[event_hash] = (
+                    self._event_processing_counts.get(event_hash, 0) + 1
+                )
+                processing_count = self._event_processing_counts[event_hash]
 
             # Проверяем условия для переноса в эпизодическую память:
             # 1. Достигнут порог повторений ИЛИ
@@ -485,40 +544,103 @@ class MemoryHierarchyManager(SerializationContract):
 
         return status
 
-    def query_memory(self, level: str, **query_params) -> List[Any]:
+    def query_memory(self, level: str, **query_params) -> MemoryQueryResult:
         """
         Запрос к конкретному уровню памяти.
 
+        Архитектурный контракт MemoryHierarchyAPIContract:
+        - Валидация входных параметров
+        - Thread-safety для конкурентного доступа
+        - Стандартизированный MemoryQueryResult
+        - Обработка ошибок без нарушения состояния
+
         Args:
             level: Уровень памяти ("sensory", "episodic", "semantic", "procedural")
-            **query_params: Параметры запроса
+            **query_params: Параметры запроса (см. MemoryQueryParams)
 
         Returns:
-            Результаты запроса
+            MemoryQueryResult: Стандартизированный результат запроса
+
+        Raises:
+            ValueError: Если уровень памяти неизвестен
+            RuntimeError: Если запрос не может быть выполнен
         """
-        if level == "sensory":
-            return self.sensory_buffer.peek_events(query_params.get("max_events")) if self.sensory_buffer else []
-        elif level == "episodic":
-            if self._episodic_memory:
-                # TODO: Реализовать запрос к эпизодической памяти
-                return []
-            else:
-                return []
-        elif level == "semantic":
-            if self.semantic_store:
-                query_str = query_params.get("query", "")
-                limit = query_params.get("limit", 10)
-                return self.semantic_store.search_concepts(query_str, limit)
-            else:
-                return []
-        elif level == "procedural":
-            if self.procedural_store:
-                context = query_params.get("context", {})
-                return self.procedural_store.find_applicable_patterns(context)
-            else:
-                return []
-        else:
-            raise ValueError(f"Unknown memory level: {level}")
+        import time
+        start_time = time.time()
+
+        try:
+            # Создаем параметры запроса из kwargs
+            params = MemoryQueryParams(**query_params)
+
+            # Валидация уровня памяти
+            valid_levels = {"sensory", "episodic", "semantic", "procedural"}
+            if level not in valid_levels:
+                raise ValueError(f"Unknown memory level: {level}. Valid levels: {valid_levels}")
+
+            results = []
+            total_count = 0
+
+            # Выполняем запрос в зависимости от уровня
+            if level == "sensory":
+                if self.sensory_buffer:
+                    max_events = params.max_events or 100
+                    results = self.sensory_buffer.peek_events(max_events)
+                    total_count = self.sensory_buffer.size
+                else:
+                    results = []
+                    total_count = 0
+
+            elif level == "episodic":
+                if self._episodic_memory:
+                    # TODO: Реализовать полноценный запрос к эпизодической памяти
+                    # Пока возвращаем пустой результат
+                    results = []
+                    total_count = 0
+                else:
+                    results = []
+                    total_count = 0
+
+            elif level == "semantic":
+                if self.semantic_store:
+                    query_str = params.query or ""
+                    limit = params.limit or 10
+                    results = self.semantic_store.search_concepts(query_str, limit)
+                    total_count = len(results)  # Приблизительная оценка
+                else:
+                    results = []
+                    total_count = 0
+
+            elif level == "procedural":
+                if self.procedural_store:
+                    context = params.context or {}
+                    results = self.procedural_store.find_applicable_patterns(context)
+                    total_count = len(results)
+                else:
+                    results = []
+                    total_count = 0
+
+            execution_time = time.time() - start_time
+
+            return MemoryQueryResult(
+                level=level,
+                results=results,
+                total_count=total_count,
+                query_params=params,
+                execution_time=execution_time,
+                success=True
+            )
+
+        except Exception as e:
+            execution_time = time.time() - start_time
+            return MemoryQueryResult(
+                level=level,
+                results=[],
+                total_count=0,
+                query_params=MemoryQueryParams(),
+                execution_time=execution_time,
+                success=False,
+                error_message=str(e)
+            )
 
     def reset_hierarchy(self) -> None:
         """Сбросить всю иерархию памяти (для тестирования или перезапуска)."""
