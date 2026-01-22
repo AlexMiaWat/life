@@ -71,7 +71,7 @@ class EventGeneratorContract(ContractValidator):
 
         required_attributes = [
             "types", "base_weights", "dependency_manager",
-            "config_manager", "intensity_adapter", "pattern_analyzer", "smoothing_engine"
+            "config_manager", "intensity_calculator", "pattern_analyzer", "smoothing_engine"
         ]
 
         for attr in required_attributes:
@@ -128,8 +128,8 @@ class EventGeneratorContract(ContractValidator):
         subcomponents = {
             "dependency_manager": ["get_probability_modifiers", "get_dependency_stats"],
             "config_manager": ["get_config"],
-            "intensity_adapter": ["adapt_intensity", "get_modifiers"],
-            "pattern_analyzer": ["analyze_pattern_modifier"],
+            "intensity_calculator": ["calculate"],
+            "pattern_analyzer": ["analyze"],
             "smoothing_engine": ["smooth_modifier", "smooth_intensity"]
         }
 

@@ -230,6 +230,10 @@ class TestSnapshots:
         entry = MemoryEntry(event_type="test", meaning_significance=0.5, timestamp=time.time())
         state.memory.append(entry)
 
+        # Добавляем activated_memory
+        activated_entry = MemoryEntry(event_type="activated_test", meaning_significance=0.7, timestamp=time.time())
+        state.activated_memory.append(activated_entry)
+
         save_snapshot(state)
 
         # Проверяем, что файл создан
@@ -247,14 +251,17 @@ class TestSnapshots:
         assert len(data["memory"]) == 1
         assert data["memory"][0]["event_type"] == "test"
 
-        # Проверяем, что transient поля не сохранены
-        assert "activated_memory" not in data
+        # Проверяем, что некоторые transient поля не сохранены, но activated_memory теперь сохраняется
         assert "last_pattern" not in data
+        # activated_memory теперь сохраняется для корректного восстановления состояния
+        assert "activated_memory" in data
 
     def test_load_snapshot(self, temp_snapshot_dir):
         """Тест загрузки снимка"""
         # Создаем снимок
-        state = SelfState(life_id="test_life_id")
+        state = SelfState()
+        # Устанавливаем life_id через identity компонент напрямую (обход валидации)
+        object.__setattr__(state.identity, 'life_id', "test_life_id")
         state.ticks = 200
         state.energy = 50.0
         state.integrity = 0.6
@@ -566,53 +573,62 @@ class TestSelfStateIsActive:
         assert state.active is True
 
     def test_is_active_energy_zero(self):
-        """Тест is_active когда energy = 0"""
+        """Тест is_active когда energy = 0 (immortal weakness)"""
         state = SelfState()
         state.energy = 0.0
         state.integrity = 0.5
         state.stability = 0.5
-        assert state.is_active() is False
-        assert state.active is False
+        # Согласно immortal weakness, система остается активной даже при energy = 0
+        assert state.is_active() is True
+        assert state.active is True
 
     def test_is_active_integrity_zero(self):
-        """Тест is_active когда integrity = 0"""
+        """Тест is_active когда integrity = 0 (immortal weakness)"""
         state = SelfState()
         state.energy = 50.0
         state.integrity = 0.0
         state.stability = 0.5
-        assert state.is_active() is False
-        assert state.active is False
+        # Согласно immortal weakness, система остается активной даже при integrity = 0
+        assert state.is_active() is True
+        assert state.active is True
 
     def test_is_active_stability_zero(self):
-        """Тест is_active когда stability = 0"""
+        """Тест is_active когда stability = 0 (immortal weakness)"""
         state = SelfState()
         state.energy = 50.0
         state.integrity = 0.5
         state.stability = 0.0
-        assert state.is_active() is False
-        assert state.active is False
+        # Согласно immortal weakness, система остается активной даже при stability = 0
+        assert state.is_active() is True
+        assert state.active is True
 
     def test_is_active_all_zero(self):
-        """Тест is_active когда все параметры = 0"""
+        """Тест is_active когда все параметры = 0 (immortal weakness)"""
         state = SelfState()
         state.energy = 0.0
         state.integrity = 0.0
         state.stability = 0.0
-        assert state.is_active() is False
-        assert state.active is False
+        # Согласно immortal weakness, система остается активной даже при всех параметрах = 0
+        assert state.is_active() is True
+        assert state.active is True
 
     def test_is_active_auto_update(self):
-        """Тест автоматического обновления active при изменении vital параметров"""
+        """Тест что active не обновляется автоматически при изменении vital параметров (immortal weakness)"""
         state = SelfState()
         assert state.active is True
 
+        # Согласно immortal weakness, active остается True даже при energy = 0
         state.energy = 0.0
-        assert state.active is False
+        assert state.active is True
 
         state.energy = 50.0
         state.integrity = 0.5
         state.stability = 0.5
         assert state.active is True
+
+        # Только ручная установка в False делает систему неактивной
+        state.active = False
+        assert state.active is False
 
     def test_is_viable(self):
         """Тест метода is_viable с более строгими критериями"""

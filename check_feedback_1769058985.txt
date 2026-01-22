@@ -1,0 +1,17 @@
+============================================================
+Testing Feedback Data Storage
+============================================================
+
+Checking for feedback records...
+(Feedback records appear 3-10 ticks after actions)
+Connecting to server...
+[ERROR] Cannot connect to server. Is it running?
+Start server with: python src/main_server_api.py --dev --tick-interval 1.0 --snapshot-period 15
+
+============================================================
+[INFO] No feedback records with data found yet.
+This could mean:
+  1. System just started (wait 15-20 seconds)
+  2. No actions have been executed yet
+  3. Feedback records haven't been observed yet (3-10 tick delay)
+============================================================

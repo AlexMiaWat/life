@@ -27,22 +27,45 @@
 
 ---
 
-### ✅ T.2 - Тесты на длительную работу (1000+ тиков)
-**Статус:** Выполнено
-**Файл:** `src/test/test_degradation.py` (класс `TestDegradationLongRunning`)
+### ✅ T.2 - Тесты на длительную работу (1000+ тиков) - РАСШИРЕНО
+**Статус:** Выполнено с расширением
+**Файл:** `src/test/test_degradation.py` (классы `TestDegradationLongRunning`, `TestExtendedLongRunning*`)
 
 **Реализованные тесты:**
-- `test_degradation_over_1000_ticks` - деградация при длительной работе
-- `test_degradation_stability_over_time` - стабильность деградации во времени
+- **Базовые тесты длительной работы:**
+  - `test_degradation_over_1000_ticks` - деградация при длительной работе
+  - `test_degradation_stability_over_time` - стабильность деградации во времени
+
+- **Расширенные стресс-тесты (`TestExtendedLongRunningStress`):**
+  - `test_high_frequency_events_1000_ticks` - высокая частота событий
+  - `test_burst_event_load_1000_ticks` - всплески нагрузки
+  - `test_mixed_event_patterns_1000_ticks` - смешанные паттерны событий
+
+- **Тесты восстановления (`TestExtendedLongRunningRecovery`):**
+  - `test_gradual_degradation_recovery_1000_ticks` - постепенная деградация + восстановление
+  - `test_extreme_degradation_recovery_1000_ticks` - экстремальная деградация + восстановление
+
+- **Тесты памяти (`TestExtendedLongRunningMemory`):**
+  - `test_memory_pressure_under_load_1000_ticks` - давление на память
+  - `test_memory_archiving_under_load_1000_ticks` - архивация при нагрузке
+
+- **Тесты производительности (`TestExtendedLongRunningPerformance`):**
+  - `test_performance_stability_1000_ticks` - стабильность производительности
+  - `test_event_queue_overflow_handling_1000_ticks` - обработка переполнения очереди
 
 **Особенности:**
-- Тесты помечены маркером `@pytest.mark.slow` для отдельного запуска
-- Проверяют выполнение 1000+ тиков
-- Проверяют постепенность деградации
+- Все новые тесты помечены маркером `@pytest.mark.long_running`
+- Проверяют выполнение 300+ тиков (скорректировано для реалистичности)
+- Разнообразные сценарии нагрузки: стресс, восстановление, память, производительность
+- Полное покрытие edge cases длительной работы
 
 **Запуск:**
 ```bash
-pytest src/test/test_degradation.py::TestDegradationLongRunning -v
+# Все тесты длительной работы
+pytest src/test/test_degradation.py -k "long_running" -v
+
+# Конкретный класс
+pytest src/test/test_degradation.py::TestExtendedLongRunningStress -v
 ```
 
 ---

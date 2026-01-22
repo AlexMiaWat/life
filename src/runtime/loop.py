@@ -26,6 +26,7 @@ from src.runtime.snapshot_manager import SnapshotManager
 from src.runtime.subjective_time import compute_subjective_dt
 from src.runtime.data_collection_manager import DataCollectionManager
 from src.state.self_state import SelfState, save_snapshot
+from src.contracts.contract_manager import contract_manager
 
 logger = logging.getLogger(__name__)
 
@@ -296,8 +297,46 @@ def run_loop(
 
         return enabled_experimental
 
+    def _validate_architecture_contracts():
+        """Проверяет соблюдение архитектурных контрактов системы."""
+        logger.info("Validating architecture contracts...")
+
+        violations_found = False
+
+        try:
+            # Валидация SelfState
+            self_state_violations = contract_manager.validate_component(self_state, "SelfState")
+            if self_state_violations:
+                violations_found = True
+                logger.error(f"SelfState contract violations found: {len(self_state_violations)}")
+                for violation in self_state_violations[:5]:  # Логируем первые 5 нарушений
+                    logger.error(f"  - {violation}")
+
+            # Валидация EventGenerator (если инициализирован)
+            if 'event_generator' in locals():
+                eg_violations = contract_manager.validate_component(event_generator, "EventGenerator")
+                if eg_violations:
+                    violations_found = True
+                    logger.error(f"EventGenerator contract violations found: {len(eg_violations)}")
+                    for violation in eg_violations[:5]:  # Логируем первые 5 нарушений
+                        logger.error(f"  - {violation}")
+
+        except Exception as e:
+            logger.error(f"Error during contract validation: {e}")
+            violations_found = True
+
+        if not violations_found:
+            logger.info("All architecture contracts validated successfully")
+        else:
+            logger.warning("Architecture contract violations detected - system may be unstable")
+
+        return violations_found
+
     # Выполняем проверку безопасности экспериментальных компонентов
     enabled_experimental = _validate_experimental_components_safety()
+
+    # Выполняем валидацию архитектурных контрактов
+    contracts_violated = _validate_architecture_contracts()
 
     # Инициализация асинхронной очереди для операций наблюдения
     from src.runtime.async_data_queue import AsyncDataQueue
@@ -486,15 +525,67 @@ def run_loop(
     last_report_time = time.time()  # Время последнего автоматического отчета
     report_interval = 6 * 3600  # Генерировать отчет каждые 6 часов
 
+    def _check_and_recover_degraded_state():
+        """
+        Проверяет и восстанавливает систему из degraded state.
+        Обеспечивает стабильную работу даже при критически низких параметрах.
+        """
+        try:
+            # Проверяем все vital параметры на валидность
+            for param in ['energy', 'integrity', 'stability']:
+                value = getattr(self_state, param, 0.0)
+
+                # Проверяем на NaN или бесконечность
+                if value != value or abs(value) == float('inf'):  # NaN or inf
+                    logger.warning(f"[RECOVERY] Invalid {param} detected: {value}, recovering to minimum viable value")
+                    if param == 'energy':
+                        setattr(self_state, param, 0.1)  # Минимальная энергия для работы
+                    else:
+                        setattr(self_state, param, 0.001)  # Минимальные integrity/stability
+                    continue
+
+                # Проверяем на критически низкие значения
+                min_viable = 0.001 if param == 'energy' else 0.0001
+                if value < min_viable:
+                    logger.warning(f"[RECOVERY] {param} critically low: {value:.6f}, boosting to minimum viable {min_viable}")
+                    setattr(self_state, param, min_viable)
+
+            # Проверяем ticks на валидность
+            if getattr(self_state, 'ticks', 0) < 0:
+                logger.warning(f"[RECOVERY] Invalid ticks value: {self_state.ticks}, resetting to 0")
+                self_state.ticks = 0
+
+            # Проверяем age на валидность
+            if getattr(self_state, 'age', 0.0) < 0.0:
+                logger.warning(f"[RECOVERY] Invalid age value: {self_state.age}, resetting to 0")
+                self_state.age = 0.0
+
+        except Exception as e:
+            logger.error(f"[RECOVERY] Failed to check/recover degraded state: {e}")
+
     def run_main_loop():
         """Основной цикл runtime loop - выделен для профилирования"""
         nonlocal learning_errors, adaptation_errors, ticks_since_last_memory_echo, ticks_since_last_metrics_collection
-        last_time = time.time()  # Инициализация last_time в начале цикла
+        last_time = None  # Инициализируем как None для безопасного расчета dt
+        degraded_state_checks = 0  # Счетчик проверок degraded state
+
         while stop_event is None or not stop_event.is_set():
+            # Периодическая проверка degraded state (каждые 100 тиков)
+            if self_state.ticks % 100 == 0:
+                _check_and_recover_degraded_state()
+                degraded_state_checks += 1
             try:
                 tick_start_time = time.time()
                 current_time = tick_start_time
-                dt = current_time - last_time
+
+                # Безопасный расчет dt с обработкой первого тика
+                if 'last_time' not in locals() or last_time is None:
+                    dt = tick_interval  # Первый тик использует стандартный интервал
+                else:
+                    dt = current_time - last_time
+                    # Ограничиваем dt разумными пределами (0.001 - 10 секунд) для обработки edge cases
+                    dt = max(0.001, min(10.0, dt))
+
                 last_time = current_time
 
                 # Log tick start
@@ -773,14 +864,44 @@ def run_loop(
                         )
                     # Update intensity signal for this tick using exponential smoothing
                     try:
-                        current_max_intensity = max([float(e.intensity) for e in events] + [0.0])
-                        # Exponential smoothing: new_value = alpha * current + (1-alpha) * previous
-                        alpha = self_state.subjective_time_intensity_smoothing
+                        # Безопасный расчет максимальной интенсивности с проверкой на валидные значения
+                        intensities = []
+                        for e in events:
+                            try:
+                                intensity = float(e.intensity)
+                                # Проверяем что интенсивность валидна (не NaN, не бесконечность, в разумных пределах)
+                                if not (intensity != intensity) and intensity >= 0.0 and intensity <= 1.0:  # not NaN check
+                                    intensities.append(intensity)
+                            except (ValueError, TypeError, AttributeError):
+                                continue
+
+                        current_max_intensity = max(intensities) if intensities else 0.0
+
+                        # Проверяем параметры сглаживания
+                        alpha = getattr(self_state, 'subjective_time_intensity_smoothing', 0.3)
+                        alpha = max(0.0, min(1.0, alpha))  # Ограничиваем alpha в [0, 1]
+
+                        # Проверяем предыдущую интенсивность
+                        prev_intensity = getattr(self_state, 'last_event_intensity', 0.0)
+                        if prev_intensity != prev_intensity:  # NaN check
+                            prev_intensity = 0.0
+
+                        # Exponential smoothing с дополнительной защитой
                         self_state.last_event_intensity = (
                             alpha * current_max_intensity
-                            + (1 - alpha) * self_state.last_event_intensity
+                            + (1 - alpha) * prev_intensity
                         )
-                    except Exception:
+
+                        # Финальная проверка результата
+                        if self_state.last_event_intensity != self_state.last_event_intensity:  # NaN check
+                            self_state.last_event_intensity = 0.0
+                        elif self_state.last_event_intensity < 0.0:
+                            self_state.last_event_intensity = 0.0
+                        elif self_state.last_event_intensity > 1.0:
+                            self_state.last_event_intensity = 1.0
+
+                    except Exception as e:
+                        logger.warning(f"Failed to update event intensity: {e}")
                         self_state.last_event_intensity = 0.0
 
                     # === ШАГ 2: Интерпретировать события ===
@@ -1301,10 +1422,42 @@ def run_loop(
                 time.sleep(sleep_duration)
 
             except Exception as e:
-                self_state.apply_delta({"integrity": -ERROR_INTEGRITY_PENALTY})
+                # Безопасное применение штрафа integrity с проверкой degraded state
+                try:
+                    current_integrity = getattr(self_state, 'integrity', 1.0)
+                    # В degraded state применяем меньший штраф или не применяем вовсе
+                    if current_integrity > 0.01:  # Не штрафуем если integrity уже критически низкая
+                        penalty = min(ERROR_INTEGRITY_PENALTY, current_integrity * 0.1)  # Максимум 10% от текущего integrity
+                        self_state.apply_delta({"integrity": -penalty})
+                    else:
+                        logger.warning(f"[LOOP] Skipping integrity penalty in degraded state (integrity={current_integrity:.6f})")
+                except Exception as penalty_error:
+                    logger.error(f"[LOOP] Failed to apply integrity penalty: {penalty_error}")
+
                 logger.error(f"[LOOP] Ошибка в цикле: {e}", exc_info=True)
+
+                # Дополнительная проверка состояния системы после ошибки
+                try:
+                    # Проверяем vital параметры на NaN/бесконечность и исправляем
+                    for param in ['energy', 'integrity', 'stability']:
+                        try:
+                            value = getattr(self_state, param, 0.0)
+                            if value != value or abs(value) == float('inf'):  # NaN or inf check
+                                logger.warning(f"[LOOP] Invalid {param} value detected: {value}, resetting to safe value")
+                                if param == 'energy':
+                                    setattr(self_state, param, 1.0)  # Минимальная энергия для degraded state
+                                else:
+                                    setattr(self_state, param, 0.01)  # Минимальные integrity/stability
+                        except Exception as param_error:
+                            logger.error(f"[LOOP] Failed to validate {param}: {param_error}")
+                except Exception as validation_error:
+                    logger.error(f"[LOOP] Failed to validate system state after error: {validation_error}")
+
                 # Flush логов при исключении (если политика требует)
-                log_manager.maybe_flush(self_state, phase="exception")
+                try:
+                    log_manager.maybe_flush(self_state, phase="exception")
+                except Exception as flush_error:
+                    logger.error(f"[LOOP] Failed to flush logs after exception: {flush_error}")
 
             finally:
                 # Остановка адаптивной системы обработки

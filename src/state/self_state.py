@@ -66,28 +66,8 @@ class SelfState:
         default_factory=list
     )
 
-    # === Устаревшие поля для обратной совместимости ===
-    # Эти поля будут автоматически синхронизироваться с компонентами
-    life_id: str = field(init=False)
-    birth_timestamp: float = field(init=False)
-    age: float = field(init=False)
-    subjective_time: float = field(init=False)
-    ticks: int = field(init=False)
-    energy: float = field(init=False)
-    integrity: float = field(init=False)
-    stability: float = field(init=False)
-    fatigue: float = field(init=False)
-    tension: float = field(init=False)
-    _active: bool = field(init=False)
-    recent_events: list = field(init=False)
-    last_significance: float = field(init=False)
-    energy_history: list = field(init=False)
-    stability_history: list = field(init=False)
-    planning: Dict[str, Any] = field(init=False)
-    intelligence: Dict[str, Any] = field(init=False)
-    memory: Optional[Memory] = field(init=False)
-    archive_memory: ArchiveMemory = field(init=False)
-    memory_entries_by_type: dict = field(init=False)
+    # === Legacy поля заменены на delegation properties ===
+    # Обратная совместимость обеспечивается через properties, делегирующие к компонентам
 
     # Внутренние флаги для контроля инициализации и логирования
     _initialized: bool = field(default=False, init=False, repr=False)
@@ -146,45 +126,219 @@ class SelfState:
         if self.memory_state.memory is None:
             self.memory_state.memory = Memory(archive=self.memory_state.archive_memory)
 
-        # Синхронизация устаревших полей с компонентами (для обратной совместимости)
-        self._sync_legacy_fields()
+        # Legacy поля теперь реализованы через delegation properties
 
         # Помечаем объект как инициализированный после __post_init__
         object.__setattr__(self, "_initialized", True)
 
-    def _sync_legacy_fields(self) -> None:
-        """Синхронизирует устаревшие поля с компонентами состояния."""
-        # Identity
-        object.__setattr__(self, "life_id", self.identity.life_id)
-        object.__setattr__(self, "birth_timestamp", self.identity.birth_timestamp)
-        object.__setattr__(self, "age", self.identity.age)
-        object.__setattr__(self, "ticks", self.identity.ticks)
-        object.__setattr__(self, "_active", self.identity.active)
+    # === Legacy delegation properties для обратной совместимости ===
+    # Эти properties делегируют к компонентам состояния, устраняя дублирование данных
 
-        # Physical
-        object.__setattr__(self, "energy", self.physical.energy)
-        object.__setattr__(self, "integrity", self.physical.integrity)
-        object.__setattr__(self, "stability", self.physical.stability)
-        object.__setattr__(self, "fatigue", self.physical.fatigue)
-        object.__setattr__(self, "tension", self.physical.tension)
-        object.__setattr__(self, "energy_history", self.physical.energy_history)
-        object.__setattr__(self, "stability_history", self.physical.stability_history)
+    # Identity delegation
+    @property
+    def life_id(self) -> str:
+        """Делегирует к identity.life_id"""
+        return self.identity.life_id
 
-        # Time
-        object.__setattr__(self, "subjective_time", self.time.subjective_time)
+    @life_id.setter
+    def life_id(self, value: str) -> None:
+        """Делегирует установку к identity.life_id"""
+        self.identity.life_id = value
 
-        # Memory
-        object.__setattr__(self, "memory", self.memory_state.memory)
-        object.__setattr__(self, "archive_memory", self.memory_state.archive_memory)
-        object.__setattr__(self, "memory_entries_by_type", self.memory_state.entries_by_type)
+    @property
+    def birth_timestamp(self) -> float:
+        """Делегирует к identity.birth_timestamp"""
+        return self.identity.birth_timestamp
 
-        # Cognitive
-        object.__setattr__(self, "planning", self.cognitive.planning)
-        object.__setattr__(self, "intelligence", self.cognitive.intelligence)
+    @birth_timestamp.setter
+    def birth_timestamp(self, value: float) -> None:
+        """Делегирует установку к identity.birth_timestamp"""
+        self.identity.birth_timestamp = value
 
-        # Events
-        object.__setattr__(self, "recent_events", self.events.recent_events)
-        object.__setattr__(self, "last_significance", self.events.last_significance)
+    @property
+    def age(self) -> float:
+        """Делегирует к identity.age"""
+        return self.identity.age
+
+    @age.setter
+    def age(self, value: float) -> None:
+        """Делегирует установку к identity.age"""
+        self.identity.age = value
+
+    @property
+    def ticks(self) -> int:
+        """Делегирует к identity.ticks"""
+        return self.identity.ticks
+
+    @ticks.setter
+    def ticks(self, value: int) -> None:
+        """Делегирует установку к identity.ticks"""
+        self.identity.ticks = value
+
+    @property
+    def _active(self) -> bool:
+        """Делегирует к identity.active"""
+        return self.identity.active
+
+    @_active.setter
+    def _active(self, value: bool) -> None:
+        """Делегирует установку к identity.active"""
+        self.identity.active = value
+
+    # Physical delegation
+    @property
+    def energy(self) -> float:
+        """Делегирует к physical.energy"""
+        return self.physical.energy
+
+    @energy.setter
+    def energy(self, value: float) -> None:
+        """Делегирует установку к physical.energy"""
+        self.physical.energy = value
+
+    @property
+    def integrity(self) -> float:
+        """Делегирует к physical.integrity"""
+        return self.physical.integrity
+
+    @integrity.setter
+    def integrity(self, value: float) -> None:
+        """Делегирует установку к physical.integrity"""
+        self.physical.integrity = value
+
+    @property
+    def stability(self) -> float:
+        """Делегирует к physical.stability"""
+        return self.physical.stability
+
+    @stability.setter
+    def stability(self, value: float) -> None:
+        """Делегирует установку к physical.stability"""
+        self.physical.stability = value
+
+    @property
+    def fatigue(self) -> float:
+        """Делегирует к physical.fatigue"""
+        return self.physical.fatigue
+
+    @fatigue.setter
+    def fatigue(self, value: float) -> None:
+        """Делегирует установку к physical.fatigue"""
+        self.physical.fatigue = value
+
+    @property
+    def tension(self) -> float:
+        """Делегирует к physical.tension"""
+        return self.physical.tension
+
+    @tension.setter
+    def tension(self, value: float) -> None:
+        """Делегирует установку к physical.tension"""
+        self.physical.tension = value
+
+    @property
+    def energy_history(self) -> list:
+        """Делегирует к physical.energy_history"""
+        return self.physical.energy_history
+
+    @energy_history.setter
+    def energy_history(self, value: list) -> None:
+        """Делегирует установку к physical.energy_history"""
+        self.physical.energy_history = value
+
+    @property
+    def stability_history(self) -> list:
+        """Делегирует к physical.stability_history"""
+        return self.physical.stability_history
+
+    @stability_history.setter
+    def stability_history(self, value: list) -> None:
+        """Делегирует установку к physical.stability_history"""
+        self.physical.stability_history = value
+
+    # Time delegation
+    @property
+    def subjective_time(self) -> float:
+        """Делегирует к time.subjective_time"""
+        return self.time.subjective_time
+
+    @subjective_time.setter
+    def subjective_time(self, value: float) -> None:
+        """Делегирует установку к time.subjective_time"""
+        self.time.subjective_time = value
+
+    # Memory delegation
+    @property
+    def memory(self):
+        """Делегирует к memory_state.memory"""
+        return self.memory_state.memory
+
+    @memory.setter
+    def memory(self, value) -> None:
+        """Делегирует установку к memory_state.memory"""
+        self.memory_state.memory = value
+
+    @property
+    def archive_memory(self):
+        """Делегирует к memory_state.archive_memory"""
+        return self.memory_state.archive_memory
+
+    @archive_memory.setter
+    def archive_memory(self, value) -> None:
+        """Делегирует установку к memory_state.archive_memory"""
+        self.memory_state.archive_memory = value
+
+    @property
+    def memory_entries_by_type(self) -> dict:
+        """Делегирует к memory_state.entries_by_type"""
+        return self.memory_state.entries_by_type
+
+    @memory_entries_by_type.setter
+    def memory_entries_by_type(self, value: dict) -> None:
+        """Делегирует установку к memory_state.entries_by_type"""
+        self.memory_state.entries_by_type = value
+
+    # Cognitive delegation
+    @property
+    def planning(self) -> Dict[str, Any]:
+        """Делегирует к cognitive.planning"""
+        return self.cognitive.planning
+
+    @planning.setter
+    def planning(self, value: Dict[str, Any]) -> None:
+        """Делегирует установку к cognitive.planning"""
+        self.cognitive.planning = value
+
+    @property
+    def intelligence(self) -> Dict[str, Any]:
+        """Делегирует к cognitive.intelligence"""
+        return self.cognitive.intelligence
+
+    @intelligence.setter
+    def intelligence(self, value: Dict[str, Any]) -> None:
+        """Делегирует установку к cognitive.intelligence"""
+        self.cognitive.intelligence = value
+
+    # Events delegation
+    @property
+    def recent_events(self) -> list:
+        """Делегирует к events.recent_events"""
+        return self.events.recent_events
+
+    @recent_events.setter
+    def recent_events(self, value: list) -> None:
+        """Делегирует установку к events.recent_events"""
+        self.events.recent_events = value
+
+    @property
+    def last_significance(self) -> float:
+        """Делегирует к events.last_significance"""
+        return self.events.last_significance
+
+    @last_significance.setter
+    def last_significance(self, value: float) -> None:
+        """Делегирует установку к events.last_significance"""
+        self.events.last_significance = value
 
     def _invalidate_api_cache(self) -> None:
         """Инвалидирует кэш API сериализации"""
@@ -783,11 +937,22 @@ class SelfState:
 
     def is_active(self) -> bool:
         """
-        Проверка жизнеспособности состояния.
-        Согласно ADR 009, система Life остается активной даже при параметрах <= 0.
+        Проверка жизнеспособности состояния на основе всех параметров (энергия, целостность, стабильность).
+        Согласно ADR 009, система Life остается активной даже при параметрах <= 0 ("бессмертная слабость").
         Возвращает True всегда, кроме случаев ручной установки active=False.
         """
-        return (self.energy > 0 and self.integrity > 0 and self.stability > 0)
+        # Проверяем, не установлено ли active=False вручную
+        if hasattr(self, "_active") and self._active is False:
+            return False
+
+        # Согласно принципу "immortal weakness", система остается активной даже при параметрах <= 0
+        # Но проверяем что параметры находятся в допустимых диапазонах (не NaN, не бесконечность)
+        energy_valid = isinstance(self.energy, (int, float)) and not (self.energy != self.energy)  # not NaN
+        integrity_valid = isinstance(self.integrity, (int, float)) and not (self.integrity != self.integrity)
+        stability_valid = isinstance(self.stability, (int, float)) and not (self.stability != self.stability)
+
+        # Система активна если все vital параметры валидны (даже если <= 0)
+        return energy_valid and integrity_valid and stability_valid
 
     def is_viable(self) -> bool:
         """
@@ -1251,8 +1416,21 @@ class SelfState:
         # Используем оптимизированное создание базового словаря
         snapshot = self._create_base_state_dict()
 
-        # Исключаем transient поля
-        snapshot.pop("activated_memory", None)
+        # Сохраняем activated_memory - это важная часть состояния для восстановления
+        if hasattr(self, "activated_memory") and self.activated_memory:
+            # Сериализуем только важные поля MemoryEntry для activated_memory
+            snapshot["activated_memory"] = [
+                {
+                    "event_type": entry.event_type,
+                    "meaning_significance": entry.meaning_significance,
+                    "timestamp": entry.timestamp,
+                    "weight": entry.weight,
+                    "feedback_data": entry.feedback_data,
+                }
+                for entry in self.activated_memory
+            ]
+
+        # Исключаем другие transient поля
         snapshot.pop("last_pattern", None)
 
         # Исключаем большие структуры для уменьшения размера файла
@@ -1270,6 +1448,10 @@ class SelfState:
         # Оптимизированная конвертация Memory с кэшированием
         if isinstance(self.memory, Memory):
             snapshot["memory"] = self.memory.get_serialized_entries()
+
+        # Сохраняем memory_entries_by_type для корректного восстановления
+        if hasattr(self, "memory_entries_by_type") and self.memory_entries_by_type:
+            snapshot["memory_entries_by_type"] = self.memory_entries_by_type
 
         return snapshot
 
@@ -1671,13 +1853,26 @@ class SelfState:
         # Конвертировать memory из list of dict в list of MemoryEntry
         memory_entries = []
         if "memory" in mapped_data:
+            logger.info(f"Loading {len(mapped_data['memory'])} memory entries from snapshot")
             for i, entry in enumerate(mapped_data["memory"]):
                 try:
                     memory_entries.append(MemoryEntry(**entry))
+                    logger.debug(f"Loaded memory entry {i}: {entry['event_type']}")
                 except (TypeError, ValueError) as e:
                     logger.warning(f"Skipping corrupted memory entry {i}: {e}. Entry data: {entry}")
                     # Продолжаем с остальными записями
             mapped_data.pop("memory")  # Удаляем из mapped_data, инициализируем отдельно
+            logger.info(f"Successfully converted {len(memory_entries)} memory entries")
+
+        # Восстанавливаем activated_memory
+        activated_memory_entries = []
+        if "activated_memory" in mapped_data:
+            for i, entry in enumerate(mapped_data["activated_memory"]):
+                try:
+                    activated_memory_entries.append(MemoryEntry(**entry))
+                except (TypeError, ValueError) as e:
+                    logger.warning(f"Skipping corrupted activated_memory entry {i}: {e}. Entry data: {entry}")
+            mapped_data.pop("activated_memory")  # Удаляем из mapped_data, инициализируем отдельно
 
         # Создать экземпляр, разрешив изменение immutable полей для загрузки
         # Сначала создаем экземпляр с флагом загрузки
@@ -1696,8 +1891,18 @@ class SelfState:
         state.archive_memory = ArchiveMemory(load_existing=False)
         # Инициализируем memory с архивом и загруженными записями
         state.memory = Memory(archive=state.archive_memory)
-        for entry in memory_entries:
+        logger.info(f"Initialized memory object, adding {len(memory_entries)} entries")
+        for i, entry in enumerate(memory_entries):
             state.memory.append(entry)
+            logger.debug(f"Added memory entry {i}: {entry.event_type}")
+        logger.info(f"Memory initialization complete, total entries: {len(state.memory)}")
+
+        # Восстанавливаем activated_memory
+        state.activated_memory = activated_memory_entries
+
+        # Восстанавливаем memory_entries_by_type если он был сохранен
+        if "memory_entries_by_type" in mapped_data:
+            state.memory_entries_by_type = mapped_data.pop("memory_entries_by_type")
 
         # Финальная валидация загруженного состояния
         if state.energy < 0 or state.energy > 100:

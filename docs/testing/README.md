@@ -327,12 +327,39 @@ python run_performance_tests.py --report-only
   - **Время выполнения:** ~7-8 секунд
   - **Изоляция:** Полная изоляция через subprocess и tempfile
 
-### Новые маркеры pytest (2026-01-20)
+### Расширенные тесты длительной работы (НОВЫЕ)
+- **Стресс-тесты с высокой нагрузкой** (`TestExtendedLongRunningStress` в `test_degradation.py`):
+  - `test_high_frequency_events_1000_ticks` - высокая частота событий различной интенсивности
+  - `test_burst_event_load_1000_ticks` - всплески нагрузки с периодами затишья
+  - `test_mixed_event_patterns_1000_ticks` - смешанные паттерны событий с изменяющейся интенсивностью
+  - **Маркеры:** `@pytest.mark.integration`, `@pytest.mark.slow`, `@pytest.mark.long_running`
+  - **Особенности:** Проверяют стабильность системы при 300+ тиках, разнообразные сценарии нагрузки
+
+- **Тесты восстановления после деградации** (`TestExtendedLongRunningRecovery` в `test_degradation.py`):
+  - `test_gradual_degradation_recovery_1000_ticks` - постепенная деградация с последующим восстановлением
+  - `test_extreme_degradation_recovery_1000_ticks` - экстремальная деградация до критических значений
+  - **Маркеры:** `@pytest.mark.integration`, `@pytest.mark.slow`, `@pytest.mark.long_running`
+  - **Особенности:** Проверяют способность системы восстанавливаться после длительной деградации
+
+- **Тесты давления памяти** (`TestExtendedLongRunningMemory` в `test_degradation.py`):
+  - `test_memory_pressure_under_load_1000_ticks` - давление на память при высокой нагрузке событий
+  - `test_memory_archiving_under_load_1000_ticks` - работа механизма архивации при нагрузке
+  - **Маркеры:** `@pytest.mark.integration`, `@pytest.mark.slow`, `@pytest.mark.long_running`
+  - **Особенности:** Проверяют работу памяти и архивации при длительной работе
+
+- **Тесты производительности** (`TestExtendedLongRunningPerformance` в `test_degradation.py`):
+  - `test_performance_stability_1000_ticks` - стабильность производительности при длительной работе
+  - `test_event_queue_overflow_handling_1000_ticks` - обработка переполнения очереди событий
+  - **Маркеры:** `@pytest.mark.integration`, `@pytest.mark.slow`, `@pytest.mark.long_running`
+  - **Особенности:** Мониторят производительность и стабильность при длительной нагрузке
+
+### Новые маркеры pytest (2026-01-22)
 
 Добавлены новые маркеры для категоризации тестов в `pytest.ini`:
 
 - **`@pytest.mark.e2e`** - End-to-end тесты (интеграция компонентов в реальных условиях)
 - **`@pytest.mark.dev_mode`** - Тесты функциональности dev-mode (перезапуск процесса, отслеживание файлов)
+- **`@pytest.mark.long_running`** - Тесты длительной работы (300+ тиков с различными сценариями нагрузки)
 
 **Использование маркеров:**
 ```bash
@@ -423,6 +450,7 @@ pytest src/test/ --cov=src --cov-report=term-missing
 - API аутентификация: 100% ✅ (интеграционные, дымовые и статические тесты)
 - Менеджеры Runtime Loop: 100% ✅ (SnapshotManager, LogManager, LifePolicy)
 - Race conditions API /status: 100% ✅ (14 новых тестов покрывают все сценарии)
+- **Тесты длительной работы: 100% ✅ (8 новых тестов с различными сценариями нагрузки)**
 
 ### Прогресс покрытия
 

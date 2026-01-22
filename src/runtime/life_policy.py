@@ -63,9 +63,9 @@ class LifePolicy:
             True если система в состоянии слабости, False иначе
         """
         return (
-            self_state.energy <= self.weakness_threshold
-            or self_state.integrity <= self.weakness_threshold
-            or self_state.stability <= self.weakness_threshold
+            self_state.energy < self.weakness_threshold
+            or self_state.integrity < self.weakness_threshold
+            or self_state.stability < self.weakness_threshold
         )
 
     def weakness_penalty(self, dt: float) -> dict[str, float]:
@@ -90,4 +90,39 @@ class LifePolicy:
             "energy": -penalty,
             "stability": -penalty * self.stability_multiplier,
             "integrity": -penalty * self.integrity_multiplier,
+        }
+
+    def calculate_penalty(self, self_state: SelfState) -> float:
+        """
+        Вычисляет штраф за текущее состояние слабости.
+
+        Args:
+            self_state: Состояние Life для проверки
+
+        Returns:
+            Штраф (0.0 если система не в слабости)
+        """
+        if not self.is_weak(self_state):
+            return 0.0
+
+        # Штраф пропорционален отклонению от порога слабости с учетом множителей
+        stability_penalty = max(0, self.weakness_threshold - self_state.stability) * self.stability_multiplier
+        integrity_penalty = max(0, self.weakness_threshold - self_state.integrity) * self.integrity_multiplier
+        energy_penalty = max(0, self.weakness_threshold - self_state.energy)
+
+        total_penalty = (energy_penalty + stability_penalty + integrity_penalty) * self.penalty_k
+        return total_penalty
+
+    def get_policy_info(self) -> dict[str, float]:
+        """
+        Получить информацию о текущей политике.
+
+        Returns:
+            Словарь с параметрами политики
+        """
+        return {
+            "weakness_threshold": self.weakness_threshold,
+            "penalty_k": self.penalty_k,
+            "stability_multiplier": self.stability_multiplier,
+            "integrity_multiplier": self.integrity_multiplier,
         }
