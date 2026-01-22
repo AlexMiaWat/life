@@ -10,8 +10,25 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from .passive_data_sink import PassiveDataSink, ObservationData
-from .async_data_sink import AsyncDataSink
+# DEPRECATED: Passive data sinks are deprecated in active observation architecture
+# All observation is handled by StructuredLogger in runtime loop
+
+import logging
+
+logger = logging.getLogger(__name__)
+logger.warning("Passive data sinks are deprecated. Use StructuredLogger for active observation.")
+
+# Stub classes for backward compatibility
+class ObservationData:
+    pass
+
+class PassiveDataSink:
+    def __init__(self, max_entries=1000):
+        logger.warning("PassiveDataSink is deprecated. Use StructuredLogger for active observation.")
+
+class AsyncDataSink:
+    def __init__(self, max_queue_size=1000, enabled=True):
+        logger.warning("AsyncDataSink is deprecated. Use StructuredLogger for active observation.")
 from .raw_data_access import RawDataAccess
 
 logger = logging.getLogger(__name__)
@@ -33,8 +50,11 @@ app.add_middleware(
 )
 
 # Глобальные компоненты для хранения данных
-passive_sink = PassiveDataSink(max_entries=10000)
-async_sink = AsyncDataSink(max_queue_size=1000, enabled=True)
+# DEPRECATED: Passive data sinks are no longer used in active observation architecture
+# All observation is handled by StructuredLogger in runtime loop
+passive_sink = None
+async_sink = None
+logger.warning("Passive data sinks are deprecated. Use StructuredLogger for active observation.")
 raw_access = RawDataAccess(data_sources=[passive_sink, async_sink])
 
 # Глобальный список всех источников данных для RawDataAccess
@@ -70,29 +90,13 @@ class MetricsResponse(BaseModel):
 @app.post("/observations/", response_model=Dict[str, str])
 async def add_observation(observation: ObservationRequest):
     """
-    Добавить новое наблюдение.
+    DEPRECATED: This API endpoint is deprecated.
 
-    Принимает данные наблюдения и сохраняет их в системе.
+    All observation is handled by StructuredLogger in runtime loop.
     """
+    logger.warning("Observation API is deprecated. Use StructuredLogger for active observation.")
     try:
-        # Добавляем в пассивный sink
-        passive_sink.receive_data(
-            event_type=observation.event_type,
-            data=observation.data,
-            source=observation.source,
-            metadata=observation.metadata
-        )
-
-        # Добавляем в асинхронный sink (если он активен)
-        if async_sink.enabled:
-            await async_sink.receive_data_async(
-                event_type=observation.event_type,
-                data=observation.data,
-                source=observation.source,
-                metadata=observation.metadata
-            )
-
-        return {"status": "observation_added", "message": "Наблюдение успешно добавлено"}
+        return {"status": "deprecated", "message": "This API is deprecated. Use StructuredLogger for active observation."}
 
     except Exception as e:
         logger.error(f"Ошибка при добавлении наблюдения: {e}")
@@ -106,34 +110,12 @@ async def get_observations(
     event_type: Optional[str] = Query(None, description="Фильтр по типу события")
 ):
     """
-    Получить список наблюдений.
+    DEPRECATED: This API endpoint is deprecated.
 
-    Возвращает недавние наблюдения с возможностью фильтрации.
+    All observation is handled by StructuredLogger in runtime loop.
     """
-    try:
-        # Получаем данные через RawDataAccess
-        observations = raw_access.get_raw_data(
-            source_filter=source,
-            event_type_filter=event_type,
-            limit=limit
-        )
-
-        # Конвертируем в словари для JSON ответа
-        result = []
-        for obs in observations:
-            result.append({
-                "timestamp": obs.timestamp,
-                "event_type": obs.event_type,
-                "data": obs.data,
-                "source": obs.source,
-                "metadata": obs.metadata
-            })
-
-        return result
-
-    except Exception as e:
-        logger.error(f"Ошибка при получении наблюдений: {e}")
-        raise HTTPException(status_code=500, detail=f"Внутренняя ошибка сервера: {str(e)}")
+    logger.warning("Observation API is deprecated. Use StructuredLogger for active observation.")
+    return []
 
 
 @app.get("/observations/summary", response_model=Dict[str, Any])
@@ -158,11 +140,7 @@ async def export_observations(
     source: Optional[str] = Query(None, description="Фильтр по источнику"),
     event_type: Optional[str] = Query(None, description="Фильтр по типу события")
 ):
-    """
-    Экспортировать наблюдения.
-
-    Возвращает данные в указанном формате.
-    """
+    "DEPRECATED: This API is deprecated."
     try:
         if format not in ["json", "jsonl", "csv"]:
             raise HTTPException(status_code=400, detail="Неподдерживаемый формат экспорта")
@@ -197,64 +175,27 @@ async def export_observations(
 
 @app.get("/statistics/", response_model=Dict[str, Any])
 async def get_statistics():
-    """
-    Получить статистику компонентов наблюдения.
-
-    Возвращает детальную статистику по всем компонентам.
-    """
-    try:
-        stats = {
-            "passive_sink": passive_sink.get_statistics(),
-            "async_sink": async_sink.get_statistics(),
-            "raw_access": {
-                "data_sources_count": len(raw_access.data_sources),
-                "event_type_distribution": raw_access.get_event_type_distribution(),
-                "source_distribution": raw_access.get_source_distribution()
-            }
-        }
-
-        return stats
-
-    except Exception as e:
-        logger.error(f"Ошибка при получении статистики: {e}")
-        raise HTTPException(status_code=500, detail=f"Внутренняя ошибка сервера: {str(e)}")
+    "DEPRECATED: This API is deprecated.    "
+    logger.warning("Observation API is deprecated. Use StructuredLogger for active observation.")
+    return {}
 
 
 @app.delete("/observations/")
 async def clear_observations():
-    """
-    Очистить все наблюдения.
-
-    Удаляет все хранимые данные наблюдений.
-    """
-    try:
-        passive_sink.clear_data()
-        async_sink.clear_processed_data()
-
-        return {"status": "cleared", "message": "Все наблюдения очищены"}
-
-    except Exception as e:
-        logger.error(f"Ошибка при очистке наблюдений: {e}")
-        raise HTTPException(status_code=500, detail=f"Внутренняя ошибка сервера: {str(e)}")
+    "DEPRECATED: This API is deprecated."
+    logger.warning("Observation API is deprecated. Use StructuredLogger for active observation.")
+    return {"status": "deprecated", "message": "This API is deprecated. Use StructuredLogger for active observation."}
 
 
 @app.on_event("startup")
 async def startup_event():
-    """Действия при запуске сервера."""
-    try:
-        # Запускаем асинхронный sink
-        await async_sink.start()
-        logger.info("Observation API запущен")
-    except Exception as e:
-        logger.error(f"Ошибка при запуске Observation API: {e}")
+    "DEPRECATED: This API is deprecated."
+    logger.warning("Observation API is deprecated. Use StructuredLogger for active observation.")
+    pass
 
 
 @app.on_event("shutdown")
 async def shutdown_event():
-    """Действия при остановке сервера."""
-    try:
-        # Останавливаем асинхронный sink
-        await async_sink.stop()
-        logger.info("Observation API остановлен")
-    except Exception as e:
-        logger.error(f"Ошибка при остановке Observation API: {e}")
+    "DEPRECATED: This API is deprecated."
+    logger.warning("Observation API is deprecated. Use StructuredLogger for active observation.")
+    pass

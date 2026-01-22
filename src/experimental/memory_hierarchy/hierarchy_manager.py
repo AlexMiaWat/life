@@ -87,7 +87,7 @@ class MemoryHierarchyManager:
         self.logger.log_event(
             {
                 "event_type": "episodic_memory_integrated",
-                "memory_entries_count": memory.size() if hasattr(memory, 'size') and memory else len(memory) if memory else 0,
+                "memory_entries_count": len(memory) if memory else 0,
             }
         )
 

@@ -9,34 +9,48 @@ import json
 import logging
 import threading
 import time
-import signal
 from typing import Any, Dict, Optional
 from uuid import uuid4
 from pathlib import Path
-from contextlib import contextmanager
 
 from src.config.observability_config import get_observability_config
 
 logger = logging.getLogger(__name__)
 
 
-@contextmanager
+class TimeoutError(Exception):
+    """Custom timeout exception for thread-safe timeouts."""
+    pass
+
+
 def timeout_context(seconds: float):
     """
-    Context manager for operation timeouts.
+    Context manager for operation timeouts using threading.Timer.
 
     Args:
         seconds: Timeout in seconds
-    """
-    def timeout_handler(signum, frame):
-        raise TimeoutError(f"Operation timed out after {seconds} seconds")
 
-    signal.signal(signal.SIGALRM, timeout_handler)
-    signal.alarm(int(seconds))
-    try:
-        yield
-    finally:
-        signal.alarm(0)
+    Returns:
+        Context manager
+    """
+    class TimeoutContext:
+        def __init__(self, timeout_seconds: float):
+            self.timeout_seconds = timeout_seconds
+            self.timer = None
+
+        def __enter__(self):
+            self.timer = threading.Timer(self.timeout_seconds, self._timeout)
+            self.timer.start()
+            return self
+
+        def __exit__(self, exc_type, exc_val, exc_tb):
+            if self.timer:
+                self.timer.cancel()
+
+        def _timeout(self):
+            raise TimeoutError(f"Operation timed out after {self.timeout_seconds} seconds")
+
+    return TimeoutContext(seconds)
 
 
 class StructuredLogger:
@@ -76,6 +90,9 @@ class StructuredLogger:
         """Get next correlation ID for tracing chains."""
         with self._lock:
             self._correlation_counter += 1
+            # Prevent counter overflow (wrap around after 1 billion)
+            if self._correlation_counter > 1000000000:
+                self._correlation_counter = 1
             return f"chain_{self._correlation_counter}"
 
     def _write_log_entry(self, entry: Dict[str, Any]) -> None:

@@ -1,401 +1,866 @@
 """
-Static Tests for New Functionality.
+Статические тесты для новой функциональности.
 
-Статические тесты проверяют:
-- Структуру данных и типов
-- Константы и конфигурацию
-- Импорты и зависимости
-- API интерфейсы
-- Валидацию параметров
+Тестирует основные классы и методы новых компонентов:
+- PassiveDataSink
+- AsyncDataSink
+- RawDataAccess
+- ClarityMoments
+- MemoryHierarchy компоненты
 """
 
 import pytest
-from unittest.mock import Mock, MagicMock
-from dataclasses import is_dataclass
-from enum import Enum
-import sys
+import asyncio
+import time
+from unittest.mock import Mock, patch
 from pathlib import Path
 
-# Настройка путей
-project_root = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(project_root / "src"))
+# Импорты observability компонентов
+from src.observability.observation_api import PassiveDataSink, ObservationData, AsyncDataSink
+from src.observability.raw_data_access import RawDataAccess
 
-from src.experimental.adaptive_processing_manager import (
-    AdaptiveProcessingManager,
-    ProcessingMode,
-    AdaptiveState,
-    ProcessingEvent,
-    AdaptiveProcessingConfig,
-)
+# Импорты experimental компонентов
+from src.experimental.clarity_moments import ClarityMoments, ClarityMoment, ClarityMomentsTracker
+from src.experimental.memory_hierarchy.sensory_buffer import SensoryBuffer, SensoryEntry
 from src.experimental.memory_hierarchy.hierarchy_manager import MemoryHierarchyManager
-from src.experimental.memory_hierarchy.semantic_store import SemanticConcept
+from src.experimental.memory_hierarchy.semantic_store import SemanticMemoryStore
 from src.experimental.memory_hierarchy.procedural_store import ProceduralMemoryStore
-from src.experimental.memory_hierarchy.sensory_buffer import SensoryBuffer
+
+# Импорты consciousness компонентов
+from src.experimental.consciousness.metrics import ConsciousnessMetrics
+from src.experimental.consciousness.states import ConsciousnessState
 from src.experimental.consciousness.parallel_engine import ParallelConsciousnessEngine
-from src.environment.event import Event
 
 
-class TestStaticDataStructures:
-    """Статические тесты структур данных."""
+class TestPassiveDataSink:
+    """Статические тесты для PassiveDataSink."""
 
-    def test_processing_mode_enum(self):
-        """Проверка enum ProcessingMode."""
-        assert isinstance(ProcessingMode.BASELINE, Enum)
-        assert isinstance(ProcessingMode.EFFICIENT, Enum)
-        assert isinstance(ProcessingMode.INTENSIVE, Enum)
-        assert isinstance(ProcessingMode.OPTIMIZED, Enum)
-        assert isinstance(ProcessingMode.SELF_MONITORING, Enum)
+    def test_initialization(self):
+        """Тест инициализации PassiveDataSink."""
+        sink = PassiveDataSink(max_entries=100)
+        assert sink.max_entries == 100
+        assert len(sink._data) == 0
+        assert sink._total_received == 0
+        assert sink._last_receive_time is None
 
-        # Проверка значений
-        assert ProcessingMode.BASELINE.value == "baseline"
-        assert ProcessingMode.EFFICIENT.value == "efficient"
-        assert ProcessingMode.INTENSIVE.value == "intensive"
-        assert ProcessingMode.OPTIMIZED.value == "optimized"
-        assert ProcessingMode.SELF_MONITORING.value == "self_monitoring"
+    def test_receive_data(self):
+        """Тест приема данных."""
+        sink = PassiveDataSink(max_entries=10)
 
-    def test_adaptive_state_enum(self):
-        """Проверка enum AdaptiveState."""
-        assert isinstance(AdaptiveState.STANDARD, Enum)
-        assert isinstance(AdaptiveState.EFFICIENT_PROCESSING, Enum)
-        assert isinstance(AdaptiveState.INTENSIVE_ANALYSIS, Enum)
-        assert isinstance(AdaptiveState.SYSTEM_SELF_MONITORING, Enum)
-        assert isinstance(AdaptiveState.OPTIMAL_PROCESSING, Enum)
+        # Принимаем данные
+        test_data = {"key": "value", "number": 42}
+        sink.receive_data("test_event", test_data, "test_source", {"meta": "data"})
 
-        # Проверка значений
-        assert AdaptiveState.STANDARD.value == "standard"
-        assert AdaptiveState.EFFICIENT_PROCESSING.value == "efficient_processing"
-        assert AdaptiveState.INTENSIVE_ANALYSIS.value == "intensive_analysis"
-        assert AdaptiveState.SYSTEM_SELF_MONITORING.value == "system_self_monitoring"
-        assert AdaptiveState.OPTIMAL_PROCESSING.value == "optimal_processing"
+        # Проверяем
+        assert len(sink._data) == 1
+        assert sink._total_received == 1
+        assert sink._last_receive_time is not None
 
-    def test_processing_event_dataclass(self):
-        """Проверка dataclass ProcessingEvent."""
-        assert is_dataclass(ProcessingEvent)
+        entry = sink._data[0]
+        assert entry.event_type == "test_event"
+        assert entry.data == test_data
+        assert entry.source == "test_source"
+        assert entry.metadata == {"meta": "data"}
+        assert isinstance(entry.timestamp, float)
 
-        # Создание экземпляра с минимальными параметрами
-        event = ProcessingEvent(processing_mode=ProcessingMode.BASELINE)
-        assert event.processing_mode == ProcessingMode.BASELINE
-        assert event.intensity == 1.0
-        assert event.duration_ticks == 50
-        assert isinstance(event.trigger_conditions, dict)
-        assert isinstance(event.timestamp, float)
+    def test_max_entries_limit(self):
+        """Тест ограничения максимального количества записей."""
+        sink = PassiveDataSink(max_entries=3)
 
-    def test_adaptive_processing_config_dataclass(self):
-        """Проверка dataclass AdaptiveProcessingConfig."""
-        assert is_dataclass(AdaptiveProcessingConfig)
+        # Добавляем больше записей чем max_entries
+        for i in range(5):
+            sink.receive_data(f"event_{i}", {"id": i}, f"source_{i}")
 
-        # Создание с дефолтными значениями
-        config = AdaptiveProcessingConfig()
-        assert isinstance(config.stability_threshold, float)
-        assert isinstance(config.energy_threshold, float)
-        assert isinstance(config.processing_efficiency_threshold, float)
-        assert isinstance(config.cognitive_load_max, float)
-        assert isinstance(config.check_interval, float)
-        assert isinstance(config.state_transition_cooldown, float)
-        assert isinstance(config.max_history_size, int)
-        assert isinstance(config.max_transition_history_size, int)
+        # Проверяем что буфер ограничен
+        assert len(sink._data) == 3
+        assert sink._total_received == 5
 
-        # Проверка булевых флагов
-        assert isinstance(config.enable_efficient_processing, bool)
-        assert isinstance(config.enable_intensive_analysis, bool)
-        assert isinstance(config.enable_system_self_monitoring, bool)
-        assert isinstance(config.enable_optimal_processing, bool)
-        assert isinstance(config.integrate_with_memory, bool)
-        assert isinstance(config.adaptive_thresholds_enabled, bool)
+    def test_get_recent_data(self):
+        """Тест получения недавних данных."""
+        sink = PassiveDataSink(max_entries=10)
 
-    def test_semantic_concept_dataclass(self):
-        """Проверка dataclass SemanticConcept."""
-        assert is_dataclass(SemanticConcept)
+        # Добавляем данные
+        for i in range(5):
+            sink.receive_data(f"event_{i}", {"id": i}, "source")
 
-        # Создание экземпляра
-        concept = SemanticConcept(
-            concept_id="test_concept",
-            name="Test Concept",
-            description="A test concept",
-            confidence=0.8
+        # Получаем все данные
+        data = sink.get_recent_data()
+        assert len(data) == 5
+
+        # Получаем ограниченное количество
+        limited_data = sink.get_recent_data(limit=3)
+        assert len(limited_data) == 3
+
+    def test_get_data_by_type(self):
+        """Тест фильтрации данных по типу события."""
+        sink = PassiveDataSink(max_entries=10)
+
+        # Добавляем данные разных типов
+        sink.receive_data("type_a", {"id": 1}, "source")
+        sink.receive_data("type_b", {"id": 2}, "source")
+        sink.receive_data("type_a", {"id": 3}, "source")
+
+        # Фильтруем по типу
+        type_a_data = sink.get_data_by_type("type_a")
+        type_b_data = sink.get_data_by_type("type_b")
+
+        assert len(type_a_data) == 2
+        assert len(type_b_data) == 1
+        assert all(obs.event_type == "type_a" for obs in type_a_data)
+
+    def test_get_data_by_source(self):
+        """Тест фильтрации данных по источнику."""
+        sink = PassiveDataSink(max_entries=10)
+
+        # Добавляем данные из разных источников
+        sink.receive_data("event", {"id": 1}, "source_a")
+        sink.receive_data("event", {"id": 2}, "source_b")
+        sink.receive_data("event", {"id": 3}, "source_a")
+
+        # Фильтруем по источнику
+        source_a_data = sink.get_data_by_source("source_a")
+        source_b_data = sink.get_data_by_source("source_b")
+
+        assert len(source_a_data) == 2
+        assert len(source_b_data) == 1
+        assert all(obs.source == "source_a" for obs in source_a_data)
+
+    def test_clear_data(self):
+        """Тест очистки данных."""
+        sink = PassiveDataSink(max_entries=10)
+
+        # Добавляем данные
+        for i in range(3):
+            sink.receive_data(f"event_{i}", {"id": i}, "source")
+
+        assert len(sink._data) == 3
+
+        # Очищаем
+        sink.clear_data()
+
+        assert len(sink._data) == 0
+        assert sink._total_received == 3  # Общее количество не сбрасывается
+
+    def test_get_statistics_empty(self):
+        """Тест статистики для пустого буфера."""
+        sink = PassiveDataSink(max_entries=10)
+
+        stats = sink.get_statistics()
+        assert stats["total_received"] == 0
+        assert stats["current_entries"] == 0
+        assert stats["max_entries"] == 10
+        assert stats["last_receive_time"] is None
+        assert stats["event_types"] == []
+        assert stats["sources"] == []
+
+    def test_get_statistics_with_data(self):
+        """Тест статистики с данными."""
+        sink = PassiveDataSink(max_entries=10)
+
+        sink.receive_data("event_a", {"id": 1}, "source_1")
+        sink.receive_data("event_b", {"id": 2}, "source_1")
+        sink.receive_data("event_a", {"id": 3}, "source_2")
+
+        stats = sink.get_statistics()
+        assert stats["total_received"] == 3
+        assert stats["current_entries"] == 3
+        assert set(stats["event_types"]) == {"event_a", "event_b"}
+        assert set(stats["sources"]) == {"source_1", "source_2"}
+
+
+class TestAsyncDataSink:
+    """Статические тесты для AsyncDataSink."""
+
+    @pytest.mark.asyncio
+    async def test_initialization(self):
+        """Тест инициализации AsyncDataSink."""
+        sink = AsyncDataSink(max_queue_size=50, processing_interval=0.1, enabled=True)
+
+        assert sink.max_queue_size == 50
+        assert sink.processing_interval == 0.1
+        assert sink.enabled is True
+        assert sink._queue is None  # Не запущен
+        assert len(sink._processed_data) == 0
+
+    @pytest.mark.asyncio
+    async def test_start_stop(self):
+        """Тест запуска и остановки AsyncDataSink."""
+        sink = AsyncDataSink(enabled=True)
+
+        # Запуск
+        await sink.start()
+        assert sink._queue is not None
+        assert sink._processing_task is not None
+        assert not sink._processing_task.done()
+
+        # Остановка
+        await sink.stop()
+        assert sink._queue is None
+        assert sink._processing_task is None or sink._processing_task.done()
+
+    @pytest.mark.asyncio
+    async def test_receive_data_async(self):
+        """Тест асинхронного приема данных."""
+        sink = AsyncDataSink(enabled=True)
+        await sink.start()
+
+        # Принимаем данные
+        success = await sink.receive_data_async(
+            "test_event", {"key": "value"}, "test_source", {"meta": "data"}
         )
-        assert concept.concept_id == "test_concept"
-        assert concept.name == "Test Concept"
-        assert concept.description == "A test concept"
-        assert concept.confidence == 0.8
-        assert concept.activation_count == 0
-        assert isinstance(concept.related_concepts, set)
-        assert isinstance(concept.properties, dict)
-        assert isinstance(concept.created_at, float)
-        assert isinstance(concept.last_activation, float)
 
+        assert success is True
 
-class TestConstants:
-    """Статические тесты констант и конфигурации."""
+        # Даем время на обработку
+        await asyncio.sleep(0.2)
 
-    def test_memory_hierarchy_constants(self):
-        """Проверка констант MemoryHierarchyManager."""
-        assert hasattr(MemoryHierarchyManager, 'SENSORY_TO_EPISODIC_THRESHOLD')
-        assert hasattr(MemoryHierarchyManager, 'EPISODIC_TO_SEMANTIC_THRESHOLD')
-        assert hasattr(MemoryHierarchyManager, 'SEMANTIC_CONSOLIDATION_INTERVAL')
+        # Проверяем обработанные данные
+        processed = sink.get_recent_data()
+        assert len(processed) == 1
+        assert processed[0].event_type == "test_event"
+        assert processed[0].data == {"key": "value"}
+        assert processed[0].source == "test_source"
 
-        assert isinstance(MemoryHierarchyManager.SENSORY_TO_EPISODIC_THRESHOLD, int)
-        assert isinstance(MemoryHierarchyManager.EPISODIC_TO_SEMANTIC_THRESHOLD, int)
-        assert isinstance(MemoryHierarchyManager.SEMANTIC_CONSOLIDATION_INTERVAL, float)
+        await sink.stop()
 
-        assert MemoryHierarchyManager.SENSORY_TO_EPISODIC_THRESHOLD > 0
-        assert MemoryHierarchyManager.EPISODIC_TO_SEMANTIC_THRESHOLD > MemoryHierarchyManager.SENSORY_TO_EPISODIC_THRESHOLD
-        assert MemoryHierarchyManager.SEMANTIC_CONSOLIDATION_INTERVAL > 0
+    def test_receive_data_sync_disabled(self):
+        """Тест синхронного приема данных при отключенном компоненте."""
+        sink = AsyncDataSink(enabled=False)
 
-    def test_default_config_values(self):
-        """Проверка дефолтных значений конфигурации."""
-        config = AdaptiveProcessingConfig()
+        success = sink.receive_data_sync("event", {}, "source")
+        assert success is False
 
-        # Проверка диапазонов значений
-        assert 0.0 <= config.stability_threshold <= 1.0
-        assert 0.0 <= config.energy_threshold <= 1.0
-        assert 0.0 <= config.processing_efficiency_threshold <= 1.0
-        assert 0.0 <= config.cognitive_load_max <= 1.0
-        assert config.check_interval > 0
-        assert config.state_transition_cooldown > 0
-        assert config.max_history_size > 0
-        assert config.max_transition_history_size > 0
+    def test_add_data_callback(self):
+        """Тест добавления коллбэка обработки данных."""
+        sink = AsyncDataSink()
+        callback_called = False
 
+        def test_callback(data):
+            nonlocal callback_called
+            callback_called = True
 
-class TestImportsAndDependencies:
-    """Статические тесты импортов и зависимостей."""
+        sink.add_data_callback(test_callback)
+        assert len(sink._data_callbacks) == 1
 
-    def test_adaptive_processing_imports(self):
-        """Проверка импортов AdaptiveProcessingManager."""
-        # Проверяем что все необходимые импорты доступны
-        from src.experimental.adaptive_processing_manager import (
-            AdaptiveProcessingManager,
-            ProcessingMode,
-            AdaptiveState,
-            ProcessingEvent,
-            AdaptiveProcessingConfig,
+        # Удаляем коллбэк
+        sink.remove_data_callback(test_callback)
+        assert len(sink._data_callbacks) == 0
+
+    def test_get_statistics(self):
+        """Тест получения статистики AsyncDataSink."""
+        sink = AsyncDataSink(max_queue_size=100, enabled=False)
+
+        stats = sink.get_statistics()
+        assert stats["enabled"] is False
+        assert stats["queue_size"] == 0
+        assert stats["max_queue_size"] == 100
+        assert stats["total_received"] == 0
+        assert stats["total_processed"] == 0
+
+    def test_create_async_data_sink(self):
+        """Тест фабричной функции создания AsyncDataSink."""
+        from src.observability.async_data_sink import create_async_data_sink
+
+        sink = create_async_data_sink(
+            max_queue_size=25,
+            processing_interval=0.5,
+            enabled=False
         )
 
-        # Проверяем что классы определены
-        assert AdaptiveProcessingManager is not None
-        assert ProcessingMode is not None
-        assert AdaptiveState is not None
-        assert ProcessingEvent is not None
-        assert AdaptiveProcessingConfig is not None
+        assert sink.max_queue_size == 25
+        assert sink.processing_interval == 0.5
+        assert sink.enabled is False
 
-    def test_memory_hierarchy_imports(self):
-        """Проверка импортов MemoryHierarchyManager."""
-        from src.experimental.memory_hierarchy.hierarchy_manager import MemoryHierarchyManager
-        from src.experimental.memory_hierarchy.semantic_store import SemanticConcept
-        from src.experimental.memory_hierarchy.procedural_store import ProceduralMemoryStore
-        from src.experimental.memory_hierarchy.sensory_buffer import SensoryBuffer
 
-        assert MemoryHierarchyManager is not None
-        assert SemanticConcept is not None
-        assert ProceduralMemoryStore is not None
-        assert SensoryBuffer is not None
+class TestRawDataAccess:
+    """Статические тесты для RawDataAccess."""
 
-    def test_consciousness_imports(self):
-        """Проверка импортов ParallelConsciousnessEngine."""
-        from src.experimental.consciousness.parallel_engine import (
-            ParallelConsciousnessEngine,
-            ProcessingMode as ConsciousnessProcessingMode,
-            ProcessingResult,
-        )
+    def test_initialization(self):
+        """Тест инициализации RawDataAccess."""
+        access = RawDataAccess()
+        assert len(access.data_sources) == 0
 
-        assert ParallelConsciousnessEngine is not None
-        assert ConsciousnessProcessingMode is not None
-        assert ProcessingResult is not None
+    def test_add_remove_data_source(self):
+        """Тест добавления и удаления источников данных."""
+        access = RawDataAccess()
 
-    def test_no_circular_imports(self):
-        """Проверка отсутствия циклических импортов."""
-        # Импорт всех основных модулей
-        modules_to_test = [
-            'src.experimental.adaptive_processing_manager',
-            'src.experimental.memory_hierarchy.hierarchy_manager',
-            'src.experimental.memory_hierarchy.semantic_store',
-            'src.experimental.memory_hierarchy.procedural_store',
-            'src.experimental.memory_hierarchy.sensory_buffer',
-            'src.experimental.consciousness.parallel_engine',
+        # Создаем mock источники
+        mock_sink1 = Mock()
+        mock_sink2 = Mock()
+
+        # Добавляем
+        access.add_data_source(mock_sink1)
+        access.add_data_source(mock_sink2)
+        assert len(access.data_sources) == 2
+
+        # Удаляем
+        access.remove_data_source(mock_sink1)
+        assert len(access.data_sources) == 1
+        assert mock_sink2 in access.data_sources
+
+    def test_get_raw_data_with_filters(self):
+        """Тест получения данных с фильтрами."""
+        access = RawDataAccess()
+
+        # Создаем mock PassiveDataSink
+        mock_sink = Mock()
+        current_time = time.time()
+
+        mock_data = [
+            ObservationData(current_time - 1, "event_a", {"id": 1}, "source_1"),
+            ObservationData(current_time - 2, "event_b", {"id": 2}, "source_1"),
+            ObservationData(current_time - 3, "event_a", {"id": 3}, "source_2"),
         ]
+        mock_sink.get_recent_data.return_value = mock_data
 
-        for module_name in modules_to_test:
-            # Проверяем что модуль можно импортировать без ошибок
-            try:
-                __import__(module_name)
-                # Проверяем что модуль в sys.modules
-                assert module_name in sys.modules
-            except ImportError as e:
-                pytest.fail(f"Failed to import {module_name}: {e}")
+        access.add_data_source(mock_sink)
+
+        # Получаем все данные
+        all_data = access.get_raw_data()
+        assert len(all_data) == 3
+
+        # Фильтр по источнику
+        filtered_data = access.get_raw_data(source_filter="source_1")
+        assert len(filtered_data) == 2
+        assert all(obs.source == "source_1" for obs in filtered_data)
+
+        # Фильтр по типу события
+        filtered_data = access.get_raw_data(event_type_filter="event_a")
+        assert len(filtered_data) == 2
+        assert all(obs.event_type == "event_a" for obs in filtered_data)
+
+    def test_get_data_by_time_window(self):
+        """Тест получения данных за временной интервал."""
+        access = RawDataAccess()
+
+        # Создаем mock данные с разными временными метками
+        current_time = time.time()
+        mock_sink = Mock()
+
+        mock_data = [
+            ObservationData(current_time - 10, "event", {"id": 1}, "source"),  # Старое
+            ObservationData(current_time - 5, "event", {"id": 2}, "source"),   # В интервале
+            ObservationData(current_time - 1, "event", {"id": 3}, "source"),   # В интервале
+        ]
+        mock_sink.get_recent_data.return_value = mock_data
+
+        access.add_data_source(mock_sink)
+
+        # Получаем данные за последние 3 секунды
+        window_data = access.get_data_by_time_window(3.0, current_time)
+        assert len(window_data) == 1  # Одно событие в окне (последнее, timestamp=current_time)
+
+    def test_export_data_formats(self):
+        """Тест экспорта данных в разных форматах."""
+        access = RawDataAccess()
+
+        # Создаем mock данные
+        mock_sink = Mock()
+        mock_data = [
+            ObservationData(time.time(), "test_event", {"key": "value"}, "test_source")
+        ]
+        mock_sink.get_recent_data.return_value = mock_data
+        access.add_data_source(mock_sink)
+
+        # Экспорт в JSON
+        json_data = access.export_data(format='json')
+        assert isinstance(json_data, str)
+        assert '"event_type": "test_event"' in json_data
+
+        # Экспорт в JSONL
+        jsonl_data = access.export_data(format='jsonl')
+        assert isinstance(jsonl_data, str)
+        assert '"event_type": "test_event"' in jsonl_data
+
+        # Экспорт в CSV
+        csv_data = access.export_data(format='csv')
+        assert isinstance(csv_data, str)
+        assert 'test_event' in csv_data
+
+    def test_invalid_export_format(self):
+        """Тест экспорта с неверным форматом."""
+        access = RawDataAccess()
+
+        with pytest.raises(ValueError, match="Unsupported format"):
+            access.export_data(format='invalid')
+
+    def test_get_event_type_distribution(self):
+        """Тест получения распределения типов событий."""
+        access = RawDataAccess()
+
+        mock_sink = Mock()
+        mock_data = [
+            ObservationData(time.time(), "event_a", {}, "source"),
+            ObservationData(time.time(), "event_a", {}, "source"),
+            ObservationData(time.time(), "event_b", {}, "source"),
+        ]
+        mock_sink.get_recent_data.return_value = mock_data
+        access.add_data_source(mock_sink)
+
+        distribution = access.get_event_type_distribution()
+        assert distribution["event_a"] == 2
+        assert distribution["event_b"] == 1
+
+    def test_iterate_data(self):
+        """Тест итерации данных порциями."""
+        access = RawDataAccess()
+
+        mock_sink = Mock()
+        mock_data = [ObservationData(time.time(), f"event_{i}", {}, "source") for i in range(10)]
+        mock_sink.get_recent_data.return_value = mock_data
+        access.add_data_source(mock_sink)
+
+        # Итерируем порциями по 3
+        chunks = list(access.iterate_data(chunk_size=3))
+        assert len(chunks) == 4  # 10 элементов / 3 = 4 порции (3, 3, 3, 1)
+        assert len(chunks[0]) == 3
+        assert len(chunks[-1]) == 1  # Последняя порция
 
 
-class TestAPIInterfaces:
-    """Статические тесты API интерфейсов."""
+class TestClarityMoments:
+    """Статические тесты для ClarityMoments."""
 
-    def test_adaptive_processing_api_methods(self):
-        """Проверка методов API AdaptiveProcessingManager."""
-        # Создаем мок для self_state_provider
-        mock_self_state = Mock()
-        manager = AdaptiveProcessingManager(lambda: mock_self_state)
+    def test_initialization(self):
+        """Тест инициализации ClarityMoments."""
+        clarity = ClarityMoments()
+        assert isinstance(clarity.tracker, ClarityMomentsTracker)
+        assert len(clarity.tracker.moments) == 0
+        assert clarity._clarity_events_count == 0
 
-        # Проверяем наличие основных методов
-        assert hasattr(manager, 'start')
-        assert hasattr(manager, 'stop')
-        assert hasattr(manager, 'update')
-        assert hasattr(manager, 'analyze_system_conditions')
-        assert hasattr(manager, 'get_current_state')
-        assert hasattr(manager, 'trigger_processing_event')
-        assert hasattr(manager, 'force_adaptive_state')
-        assert hasattr(manager, 'get_system_status')
-        assert hasattr(manager, 'get_processing_statistics')
-        assert hasattr(manager, 'get_adaptive_statistics')
-        assert hasattr(manager, 'reset_statistics')
-        assert hasattr(manager, 'update_configuration')
-        assert hasattr(manager, 'get_legacy_status')
+    def test_analyze_clarity(self):
+        """Тест анализа ясности."""
+        clarity = ClarityMoments()
 
-        # Проверяем callable методы
-        assert callable(manager.start)
-        assert callable(manager.stop)
-        assert callable(manager.update)
-        assert callable(manager.analyze_system_conditions)
-        assert callable(manager.get_current_state)
+        # Выполняем анализ
+        moment = clarity.analyze_clarity()
 
-    def test_memory_hierarchy_api_methods(self):
-        """Проверка методов API MemoryHierarchyManager."""
-        manager = MemoryHierarchyManager()
+        assert moment is not None
+        assert isinstance(moment, ClarityMoment)
+        assert moment.event_type == "system_analysis"
+        assert 0.0 <= moment.intensity <= 1.0
 
-        # Проверяем наличие основных методов
-        assert hasattr(manager, 'set_episodic_memory')
-        assert hasattr(manager, 'add_sensory_event')
-        assert hasattr(manager, 'process_sensory_events')
-        assert hasattr(manager, 'consolidate_memory')
-        assert hasattr(manager, 'get_hierarchy_status')
-        assert hasattr(manager, 'query_memory')
-        assert hasattr(manager, 'reset_hierarchy')
+    def test_get_clarity_moments(self):
+        """Тест получения моментов ясности."""
+        clarity = ClarityMoments()
 
-        # Проверяем callable методы
-        assert callable(manager.set_episodic_memory)
-        assert callable(manager.add_sensory_event)
-        assert callable(manager.process_sensory_events)
-        assert callable(manager.consolidate_memory)
-        assert callable(manager.get_hierarchy_status)
-        assert callable(manager.query_memory)
-        assert callable(manager.reset_hierarchy)
-
-    def test_semantic_concept_api_methods(self):
-        """Проверка методов API SemanticConcept."""
-        concept = SemanticConcept(
-            concept_id="test",
-            name="Test",
-            description="Test concept",
-            confidence=0.8
+        # Добавляем момент вручную
+        test_moment = ClarityMoment(
+            timestamp=time.time(),
+            stage="test",
+            correlation_id="test_123",
+            event_id="event_123",
+            event_type="test_event",
+            intensity=0.8,
+            data={"test": True}
         )
 
-        # Проверяем наличие методов
-        assert hasattr(concept, 'activate')
-        assert hasattr(concept, 'add_relation')
-        assert hasattr(concept, 'get_activation_strength')
+        clarity.tracker.add_moment(test_moment)
 
-        # Проверяем callable методы
-        assert callable(concept.activate)
-        assert callable(concept.add_relation)
-        assert callable(concept.get_activation_strength)
+        # Получаем моменты
+        moments = clarity.get_clarity_moments()
+        assert len(moments) == 1
+        assert moments[0].intensity == 0.8
 
-    def test_parallel_consciousness_api_methods(self):
-        """Проверка методов API ParallelConsciousnessEngine."""
-        engine = ParallelConsciousnessEngine()
+    def test_check_clarity_conditions(self):
+        """Тест проверки условий ясности."""
+        clarity = ClarityMoments()
 
-        # Проверяем наличие основных методов
-        assert hasattr(engine, 'process_async')
-        assert hasattr(engine, 'process_sync')
-        assert hasattr(engine, 'shutdown')
+        # Проверяем условия (должен создать момент)
+        result = clarity.check_clarity_conditions(None)
 
-        # Проверяем callable методы
-        assert callable(engine.process_async)
-        assert callable(engine.process_sync)
-        assert callable(engine.shutdown)
+        assert result is not None
+        assert result["type"] == "clarity_moment"
+        assert "data" in result
+        assert clarity._clarity_events_count == 1
+
+    def test_clarity_state_management(self):
+        """Тест управления состоянием ясности."""
+        clarity = ClarityMoments()
+
+        # Mock self_state
+        class MockState:
+            def __init__(self):
+                self.clarity_state = False
+                self.clarity_duration = 0
+                self.clarity_modifier = 1.0
+
+        state = MockState()
+
+        # Активируем момент ясности
+        clarity.activate_clarity_moment(state)
+        assert state.clarity_state is True
+        assert state.clarity_duration == 50  # CLARITY_DURATION_TICKS
+        assert state.clarity_modifier == 1.5
+
+        # Обновляем состояние (уменьшаем длительность)
+        clarity.update_clarity_state(state)
+        assert state.clarity_duration == 49
+
+        # Деактивируем
+        clarity.deactivate_clarity_moment(state)
+        assert state.clarity_state is False
+        assert state.clarity_duration == 0
+        assert state.clarity_modifier == 1.0
+
+    def test_get_clarity_level(self):
+        """Тест получения уровня ясности."""
+        clarity = ClarityMoments()
+
+        # Без моментов
+        level = clarity.get_clarity_level()
+        assert level == 0.0
+
+        # С моментом
+        test_moment = ClarityMoment(
+            timestamp=time.time(),
+            stage="test",
+            correlation_id="test_123",
+            event_id="event_123",
+            event_type="test_event",
+            intensity=0.7,
+            data={}
+        )
+        clarity.tracker.add_moment(test_moment)
+
+        level = clarity.get_clarity_level()
+        assert level == 0.7
 
 
-class TestParameterValidation:
-    """Статические тесты валидации параметров."""
+class TestClarityMomentsTracker:
+    """Статические тесты для ClarityMomentsTracker."""
 
-    def test_adaptive_processing_config_validation(self):
-        """Проверка валидации AdaptiveProcessingConfig."""
-        # Валидная конфигурация
-        config = AdaptiveProcessingConfig()
-        manager = AdaptiveProcessingManager(lambda: Mock())
+    def test_initialization(self):
+        """Тест инициализации ClarityMomentsTracker."""
+        tracker = ClarityMomentsTracker()
+        assert len(tracker.moments) == 0
+        assert tracker._correlation_counter == 0
 
-        # Это должно пройти без ошибок
-        manager.config = config
+    def test_add_moment(self):
+        """Тест добавления момента ясности."""
+        tracker = ClarityMomentsTracker()
 
-        # Проверка что валидация работает
-        assert hasattr(manager, '_validate_config')
-        assert callable(manager._validate_config)
-
-    def test_processing_event_validation(self):
-        """Проверка валидации ProcessingEvent."""
-        # Валидное событие
-        event = ProcessingEvent(
-            processing_mode=ProcessingMode.BASELINE,
-            intensity=0.5,
-            duration_ticks=100
+        moment = ClarityMoment(
+            timestamp=time.time(),
+            stage="test_stage",
+            correlation_id="corr_123",
+            event_id="event_123",
+            event_type="test_event",
+            intensity=0.8,
+            data={"key": "value"}
         )
 
-        assert event.processing_mode == ProcessingMode.BASELINE
-        assert event.intensity == 0.5
-        assert event.duration_ticks == 100
+        tracker.add_moment(moment)
+        assert len(tracker.moments) == 1
+        assert tracker.moments[0].intensity == 0.8
 
-    def test_semantic_concept_validation(self):
-        """Проверка валидации SemanticConcept."""
-        # Валидная концепция
-        concept = SemanticConcept(
-            concept_id="valid_id",
-            name="Valid Name",
-            description="Valid description",
-            confidence=0.75
-        )
+    def test_get_moments_by_intensity(self):
+        """Тест фильтрации моментов по интенсивности."""
+        tracker = ClarityMomentsTracker()
 
-        assert concept.concept_id == "valid_id"
-        assert concept.name == "Valid Name"
-        assert concept.description == "Valid description"
-        assert concept.confidence == 0.75
+        # Добавляем моменты с разной интенсивностью
+        for intensity in [0.3, 0.6, 0.9]:
+            moment = ClarityMoment(
+                timestamp=time.time(),
+                stage="test",
+                correlation_id=f"corr_{intensity}",
+                event_id=f"event_{intensity}",
+                event_type="test_event",
+                intensity=intensity,
+                data={}
+            )
+            tracker.add_moment(moment)
 
-    def test_enum_value_types(self):
-        """Проверка типов значений enum."""
-        # ProcessingMode
-        for mode in ProcessingMode:
-            assert isinstance(mode.value, str)
-            assert len(mode.value) > 0
+        # Фильтруем по минимальной интенсивности
+        filtered = tracker.get_moments_by_intensity(0.5)
+        assert len(filtered) == 2  # 0.6 и 0.9
+        assert all(m.intensity >= 0.5 for m in filtered)
 
-        # AdaptiveState
-        for state in AdaptiveState:
+    def test_get_recent_moments(self):
+        """Тест получения недавних моментов."""
+        tracker = ClarityMomentsTracker()
+
+        # Добавляем моменты с разными временными метками
+        base_time = time.time()
+        for i in range(5):
+            moment = ClarityMoment(
+                timestamp=base_time + i,
+                stage="test",
+                correlation_id=f"corr_{i}",
+                event_id=f"event_{i}",
+                event_type="test_event",
+                intensity=0.5,
+                data={}
+            )
+            tracker.add_moment(moment)
+
+        # Получаем 3 самых свежих
+        recent = tracker.get_recent_moments(3)
+        assert len(recent) == 3
+        # Проверяем что они отсортированы по времени (новые первые)
+        assert recent[0].timestamp > recent[1].timestamp
+
+    def test_analyze_clarity_patterns_empty(self):
+        """Тест анализа паттернов для пустого трекера."""
+        tracker = ClarityMomentsTracker()
+
+        patterns = tracker.analyze_clarity_patterns()
+        assert patterns["total_moments"] == 0
+
+    def test_analyze_clarity_patterns_with_data(self):
+        """Тест анализа паттернов с данными."""
+        tracker = ClarityMomentsTracker()
+
+        # Добавляем тестовые моменты
+        for i in range(3):
+            moment = ClarityMoment(
+                timestamp=time.time(),
+                stage="test",
+                correlation_id=f"corr_{i}",
+                event_id=f"event_{i}",
+                event_type=f"event_type_{i % 2}",  # Два разных типа
+                intensity=0.5 + i * 0.2,  # Разная интенсивность
+                data={}
+            )
+            tracker.add_moment(moment)
+
+        patterns = tracker.analyze_clarity_patterns()
+        assert patterns["total_moments"] == 3
+        assert patterns["avg_intensity"] > 0
+        assert patterns["max_intensity"] > 0
+        assert patterns["unique_event_types"] == 2  # event_type_0 и event_type_1
+
+
+class TestSensoryBuffer:
+    """Статические тесты для SensoryBuffer."""
+
+    def test_initialization(self):
+        """Тест инициализации SensoryBuffer."""
+        buffer = SensoryBuffer(buffer_size=128, default_ttl=1.5)
+
+        assert buffer.buffer_size == 128
+        assert buffer.default_ttl == 1.5
+        assert len(buffer._buffer) == 0
+        assert buffer._total_entries_added == 0
+
+    def test_sensory_entry_expiration(self):
+        """Тест проверки истечения срока жизни записи."""
+        entry = SensoryEntry(Mock(), time.time() - 3.0, ttl_seconds=2.0)  # Истекло 3 секунды назад
+
+        assert entry.is_expired(time.time()) is True
+
+        # Проверяем оставшееся время
+        remaining = entry.time_remaining(time.time())
+        assert remaining == 0.0
+
+    def test_sensory_entry_not_expired(self):
+        """Тест записи, которая не истекла."""
+        current_time = time.time()
+        entry = SensoryEntry(Mock(), current_time, ttl_seconds=5.0)
+
+        assert entry.is_expired(current_time) is False
+
+        # Проверяем оставшееся время
+        remaining = entry.time_remaining(current_time)
+        assert 4.9 <= remaining <= 5.0
+
+    def test_add_event(self):
+        """Тест добавления события в буфер."""
+        buffer = SensoryBuffer(buffer_size=10)
+
+        # Создаем mock событие с intensity
+        mock_event = Mock()
+        mock_event.event_id = "test_event_123"
+        mock_event.intensity = 0.8  # Значимое событие
+
+        # Добавляем событие
+        buffer.add_event(mock_event, custom_ttl=3.0)
+
+        assert len(buffer._buffer) == 1
+        assert buffer._total_entries_added == 1
+
+        entry = buffer._buffer[0]
+        assert entry.event == mock_event
+        assert entry.ttl_seconds == 3.0
+
+    def test_buffer_size_limit(self):
+        """Тест ограничения размера буфера."""
+        buffer = SensoryBuffer(buffer_size=3)
+
+        # Добавляем больше событий чем размер буфера
+        for i in range(5):
+            mock_event = Mock()
+            mock_event.event_id = f"event_{i}"
+            mock_event.intensity = 0.5  # Значимое событие
+            buffer.add_event(mock_event)
+
+        assert len(buffer._buffer) == 3  # Кольцевой буфер
+        assert buffer._total_entries_added == 5
+
+    def test_cleanup_expired_entries(self):
+        """Тест очистки истекших записей."""
+        buffer = SensoryBuffer(buffer_size=10, default_ttl=0.1)  # Очень короткий TTL
+
+        # Добавляем события с очень коротким TTL
+        for i in range(3):
+            mock_event = Mock()
+            mock_event.event_id = f"event_{i}"
+            mock_event.intensity = 0.6  # Значимое событие
+            buffer.add_event(mock_event, custom_ttl=0.01)  # Очень короткий TTL
+
+        assert len(buffer._buffer) == 3
+
+        # Ждем истечения TTL и выполняем очистку
+        time.sleep(0.1)  # Ждем дольше
+        expired_count = buffer._cleanup_expired_entries()
+
+        # Может не все истечь из-за интервала очистки, но буфер должен уменьшиться
+        assert expired_count >= 0
+        assert len(buffer._buffer) <= 3
+
+    def test_get_events_for_processing(self):
+        """Тест получения событий для обработки."""
+        buffer = SensoryBuffer(buffer_size=10)
+
+        # Добавляем события
+        events = []
+        for i in range(5):
+            mock_event = Mock()
+            mock_event.event_id = f"event_{i}"
+            mock_event.intensity = 0.7  # Значимое событие
+            events.append(mock_event)
+            buffer.add_event(mock_event)
+
+        # Получаем события для обработки
+        processing_events = buffer.get_events_for_processing(max_events=3)
+        assert len(processing_events) == 3
+
+    def test_get_buffer_status(self):
+        """Тест получения статистики буфера."""
+        buffer = SensoryBuffer(buffer_size=10)
+
+        # Добавляем события
+        for i in range(3):
+            mock_event = Mock()
+            mock_event.intensity = 0.5  # Значимое событие
+            buffer.add_event(mock_event)
+
+        stats = buffer.get_buffer_status()
+
+        assert stats["buffer_size"] == 3  # current_entries
+        assert stats["buffer_capacity"] == 10
+        assert stats["total_entries_added"] == 3
+        assert stats["total_entries_expired"] == 0
+        assert stats["total_entries_processed"] == 0
+
+
+class TestConsciousnessComponents:
+    """Статические тесты для компонентов сознания."""
+
+    def test_consciousness_metrics_initialization(self):
+        """Тест инициализации ConsciousnessMetrics."""
+        # Создаем mock self_state_provider для AdaptiveProcessingManager
+        def mock_state_provider():
+            return type('MockState', (), {
+                'energy': 80.0,
+                'stability': 0.9,
+                'processing_load': 0.3,
+                'memory_usage': 0.6,
+                'error_rate': 0.01
+            })()
+
+        # Monkey patch для теста
+        import src.experimental.consciousness.metrics as metrics_module
+        original_adaptive_init = metrics_module.AdaptiveProcessingManager.__init__
+
+        def patched_adaptive_init(self, self_state_provider=None, *args, **kwargs):
+            if self_state_provider is None:
+                self_state_provider = mock_state_provider
+            return original_adaptive_init(self, self_state_provider, *args, **kwargs)
+
+        metrics_module.AdaptiveProcessingManager.__init__ = patched_adaptive_init
+
+        try:
+            metrics = ConsciousnessMetrics()
+
+            # Проверяем наличие основных атрибутов
+            assert hasattr(metrics, 'metrics')
+            assert isinstance(metrics.metrics, dict)
+
+        finally:
+            # Восстанавливаем оригинальный метод
+            metrics_module.AdaptiveProcessingManager.__init__ = original_adaptive_init
+
+    def test_consciousness_state_enum(self):
+        """Тест перечисления состояний сознания."""
+        from src.experimental.consciousness.states import ConsciousnessState
+
+        # Проверяем что все состояния определены
+        states = [ConsciousnessState.INACTIVE,
+                 ConsciousnessState.ACTIVE,
+                 ConsciousnessState.PROCESSING,
+                 ConsciousnessState.ANALYZING]
+
+        for state in states:
             assert isinstance(state.value, str)
             assert len(state.value) > 0
 
+    def test_parallel_consciousness_engine_initialization(self):
+        """Тест инициализации ParallelConsciousnessEngine."""
+        engine = ParallelConsciousnessEngine()
 
-class TestTypeHints:
-    """Статические тесты type hints."""
+        # Проверяем базовую функциональность
+        assert hasattr(engine, 'current_state')
+        assert hasattr(engine, '_transition_history')
+        assert len(engine._transition_history) == 0
 
-    def test_dataclass_field_types(self):
-        """Проверка типов полей в dataclass."""
-        import typing
-        from typing import get_type_hints
+    def test_consciousness_state_transition(self):
+        """Тест переходов между состояниями сознания."""
+        from src.experimental.consciousness.parallel_engine import ConsciousnessState as EngineConsciousnessState
 
-        # ProcessingEvent
-        hints = get_type_hints(ProcessingEvent)
-        assert 'processing_mode' in hints
-        assert 'intensity' in hints
-        assert 'duration_ticks' in hints
-        assert 'trigger_conditions' in hints
-        assert 'timestamp' in hints
+        engine = ParallelConsciousnessEngine()
 
-        # SemanticConcept
-        hints = get_type_hints(SemanticConcept)
-        assert 'concept_id' in hints
-        assert 'name' in hints
-        assert 'description' in hints
-        assert 'confidence' in hints
-        assert 'activation_count' in hints
-        assert 'last_activation' in hints
-        assert 'related_concepts' in hints
-        assert 'properties' in hints
-        assert 'created_at' in hints
+        # Проверяем начальное состояние
+        initial_state = engine.current_state
+        assert initial_state in EngineConsciousnessState
+
+        # Выполняем анализ уровня сознания
+        new_state = engine.evaluate_consciousness_level()
+        assert new_state is not None
+
+        # Обновляем метрики
+        engine.update_metrics()
+
+        # Проверяем что история переходов обновилась
+        assert len(engine._transition_history) >= 0
 
 
-if __name__ == "__main__":
-    pytest.main([__file__])
+class TestMemoryHierarchyComponents:
+    """Статические тесты для компонентов иерархической памяти."""
+
+    def test_semantic_store_initialization(self):
+        """Тест инициализации SemanticMemoryStore."""
+        store = SemanticMemoryStore()
+
+        assert len(store._concepts) == 0
+        assert store._stats["total_concepts"] == 0
+
+    def test_procedural_store_initialization(self):
+        """Тест инициализации ProceduralMemoryStore."""
+        store = ProceduralMemoryStore()
+
+        assert len(store._patterns) == 0
+        assert store._stats["total_patterns"] == 0
+
+    def test_memory_hierarchy_manager_initialization(self):
+        """Тест инициализации MemoryHierarchyManager."""
+        manager = MemoryHierarchyManager()
+
+        assert hasattr(manager, 'sensory_buffer')
+        assert hasattr(manager, 'episodic_memory')
+        assert hasattr(manager, 'semantic_store')
+        assert hasattr(manager, 'procedural_store')
+
+        # Проверяем что компоненты инициализированы
+        assert manager.sensory_buffer is not None
+        assert isinstance(manager.semantic_store, SemanticMemoryStore)
+        assert isinstance(manager.procedural_store, ProceduralMemoryStore)

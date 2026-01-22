@@ -7,13 +7,16 @@
 
 ## [Unreleased]
 
+### Исправления
+- **Удаление мертвого кода:** Компоненты PassiveDataSink, AsyncDataSink и RawDataAccess помечены deprecated как не соответствующие активной архитектуре observability
+- **Исправление многопоточности StructuredLogger:** Заменен не thread-safe signal.alarm на threading.Timer для корректной работы в многопоточной среде
+- **Исправление hierarchy_manager.py:** Устранена ошибка с вызовом memory.size() - заменено на len(memory)
+
 ### Добавлено
-- **Новые компоненты observability:** Добавлены PassiveDataSink, AsyncDataSink и RawDataAccess для расширения возможностей системы наблюдения
-- **Observation API:** REST API для внешнего доступа к данным наблюдений с поддержкой добавления, чтения и экспорта данных
-- **AsyncDataSink:** Асинхронная версия с очередью и фоновой обработкой для неблокирующего приема данных в высокопроизводительных сценариях
-- **PassiveDataSink:** Компонент для пассивного сбора данных наблюдений без фоновых потоков
-- **RawDataAccess:** Компонент для доступа к raw данным наблюдений с поддержкой фильтрации и экспорта в различных форматах (JSON, JSONL, CSV)
-- **Исправление скрипта запуска API:** Добавлена корректная настройка PYTHONPATH для работы run_observation_api.py
+- **Observation API (deprecated):** REST API для внешнего доступа к данным наблюдений - помечен deprecated в пользу активного логирования через StructuredLogger
+- **Архитектурные тесты:** Обновлены архитектурные тесты для проверки активной архитектуры observability с четкими границами
+- **Комплексные статические тесты:** Добавлены обширные тесты для компонентов SensoryBuffer, ConsciousnessMetrics, ParallelConsciousnessEngine, MemoryHierarchyManager
+- **Новые тестовые файлы:** `test_architectural_passivity.py`, `test_new_functionality_static.py`, `test_new_functionality_integration.py`, `test_new_functionality_smoke.py`
 
 ### Архитектурные исправления
 - **Признание активной архитектуры observability:** Отказ от ложных заявлений о "пассивности" - система Life использует активное логирование через StructuredLogger в runtime loop для обеспечения корректной работы
@@ -21,6 +24,7 @@
 
 ### Изменено
 - **AsyncPassiveObserver → PassiveDataSink:** Переименование компонента для лучшего отражения функциональности
+- **Завершение изоляции API от runtime:** Полностью убраны API endpoints для обеспечения истинной пассивности системы
 - **DeveloperReports → RawDataAccess:** Изменение названия для точного отражения функциональности доступа к raw данным
 - **API канал среды v2.0:** Полноценный канал для внешних воздействий с пакетными операциями, управлением сценариями, анализом воздействий и конфигурацией среды
 - **ScenarioManager:** Управление предопределенными сценариями внешних воздействий (crisis_simulation, recovery phases)

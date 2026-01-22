@@ -167,6 +167,11 @@ test_full_task_*.log
 test_full_task_*.json
 benchmark_*.json
 performance_*.json
+# Current task specific artifacts
+test_full_task_1769039481.xml
+test_full_task_1769039481.log
+test_full_task_1769039481.json
+test_full_task_1769039481.html
 
 # Hypothesis
 .hypothesis/

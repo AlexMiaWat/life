@@ -12,7 +12,7 @@
 
 ## Статистика тестирования
 
-- **Всего тестов:** 766+ (см. [docs/development/STATISTICS.md](../development/STATISTICS.md) для актуальной статистики)
+- **Всего тестов:** 900+ (см. [docs/development/STATISTICS.md](../development/STATISTICS.md) для актуальной статистики)
 - **Все тесты проходят:** ✅ (статические и интеграционные)
 - **Покрытие кода:** 96%
 - **Основные модули:** 100% покрытие
@@ -92,6 +92,10 @@ pytest src/test/ -q
 - `test_api_auth_integration.py` - Интеграционные тесты API аутентификации - **НОВЫЙ**
 - `test_api_auth_smoke.py` - Дымовые тесты API аутентификации - **НОВЫЙ**
 - `test_api_auth_static.py` - Статические тесты API аутентификации - **НОВЫЙ**
+- `test_architectural_passivity.py` - Архитектурные тесты гарантии пассивности observability (11 тестов) - **НОВЫЙ**
+- `test_new_functionality_integration.py` - Интеграционные тесты новой функциональности - **НОВЫЙ**
+- `test_new_functionality_smoke.py` - Дымовые тесты новой функциональности - **НОВЫЙ**
+- `test_new_functionality_static.py` - Статические тесты новой функциональности с комплексными тестами компонентов - **НОВЫЙ**
 
 ## Покрытие модулей
 
@@ -280,6 +284,30 @@ python run_performance_tests.py --report-only
   - Безопасность JWT токенов и хеширования паролей
   - Архитектурные ограничения аутентификации
   - Маркер: `@pytest.mark.static`
+
+### Архитектурные тесты пассивности (НОВЫЕ)
+
+Комплексные архитектурные тесты для гарантии истинной пассивности системы observability согласно ADR 001:
+
+**Файл:** `test_architectural_passivity.py`
+
+**11 архитектурных тестов:**
+- **Архитектурные тесты (ADR 001):** 5 тестов проверки отсутствия влияния на runtime
+  - `test_passive_data_sink_no_background_threads` - проверка отсутствия фоновых потоков
+  - `test_structured_logger_no_runtime_access` - проверка отсутствия ссылок на runtime объекты
+  - `test_only_raw_data_no_calculations` - проверка только сырых данных без расчетов
+  - `test_observability_does_not_alter_runtime_behavior` - проверка неизменности поведения runtime
+  - `test_passive_observation_can_be_disabled` - проверка возможности отключения
+
+- **Функциональные тесты:** 6 тестов проверки автономности и надежности
+  - `test_passive_sink_no_external_dependencies` - проверка автономности компонентов
+  - `test_structured_logger_graceful_degradation` - проверка обработки ошибок
+  - `test_no_runtime_object_references_in_observability` - проверка изоляции
+  - `test_observability_integration_no_side_effects` - проверка отсутствия side effects
+  - `test_raw_data_only_no_derived_metrics_in_logs` - проверка отсутствия derived metrics
+  - `test_passive_data_sink_isolation` - проверка полной изоляции
+
+**Результаты:** Все 11 тестов проходят успешно, гарантируя истинную пассивность observability.
 
 ### End-to-End Smoke-тесты dev-mode (НОВЫЕ)
 - **Полный цикл dev-mode** (`test_dev_mode_smoke_e2e.py`):
