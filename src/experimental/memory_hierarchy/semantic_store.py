@@ -459,3 +459,168 @@ class SemanticMemoryStore(SemanticMemoryInterface):
         }
 
         self.logger.log_event({"event_type": "semantic_store_cleared"})
+
+    def get_all_concepts(self) -> List[SemanticConcept]:
+        """
+        Получить все концепции из семантического хранилища.
+
+        Returns:
+            Список всех концепций
+        """
+        return list(self._concepts.values())
+
+    def get_concepts_count(self) -> int:
+        """
+        Получить количество концепций в хранилище.
+
+        Returns:
+            Количество концепций
+        """
+        return len(self._concepts)
+
+    def get_all_associations(self) -> List[SemanticAssociation]:
+        """
+        Получить все ассоциации из семантического хранилища.
+
+        Returns:
+            Список всех ассоциаций
+        """
+        return list(self._associations.values())
+
+    def get_associations_count(self) -> int:
+        """
+        Получить количество ассоциаций в хранилище.
+
+        Returns:
+            Количество ассоциаций
+        """
+        return len(self._associations)
+
+    def get_concept_statistics(self) -> Dict[str, Any]:
+        """
+        Получить подробную статистику по концепциям.
+
+        Returns:
+            Dict со статистикой концепций
+        """
+        current_time = time.time()
+
+        if not self._concepts:
+            return {
+                "total_concepts": 0,
+                "avg_confidence": 0.0,
+                "avg_activation_count": 0.0,
+                "avg_activation_strength": 0.0,
+                "oldest_concept_age": 0.0,
+                "newest_concept_age": 0.0,
+                "concepts_by_confidence": {},
+                "most_activated_concepts": [],
+            }
+
+        confidences = []
+        activation_counts = []
+        activation_strengths = []
+        ages = []
+
+        for concept in self._concepts.values():
+            confidences.append(concept.confidence)
+            activation_counts.append(concept.activation_count)
+            activation_strengths.append(concept.get_activation_strength(current_time))
+            ages.append(current_time - concept.created_at)
+
+        # Распределение по уровням уверенности
+        confidence_ranges = {
+            "high": len([c for c in confidences if c >= 0.8]),
+            "medium": len([c for c in confidences if 0.5 <= c < 0.8]),
+            "low": len([c for c in confidences if c < 0.5]),
+        }
+
+        # Топ наиболее активируемых концепций
+        most_activated = sorted(
+            self._concepts.values(),
+            key=lambda c: c.activation_count,
+            reverse=True
+        )[:5]
+
+        return {
+            "total_concepts": len(self._concepts),
+            "avg_confidence": sum(confidences) / len(confidences),
+            "avg_activation_count": sum(activation_counts) / len(activation_counts),
+            "avg_activation_strength": sum(activation_strengths) / len(activation_strengths),
+            "oldest_concept_age": max(ages) if ages else 0.0,
+            "newest_concept_age": min(ages) if ages else 0.0,
+            "concepts_by_confidence": confidence_ranges,
+            "most_activated_concepts": [
+                {
+                    "concept_id": c.concept_id,
+                    "name": c.name,
+                    "activation_count": c.activation_count,
+                    "confidence": c.confidence,
+                }
+                for c in most_activated
+            ],
+        }
+
+    def get_association_statistics(self) -> Dict[str, Any]:
+        """
+        Получить подробную статистику по ассоциациям.
+
+        Returns:
+            Dict со статистикой ассоциаций
+        """
+        if not self._associations:
+            return {
+                "total_associations": 0,
+                "avg_strength": 0.0,
+                "avg_evidence_count": 0.0,
+                "associations_by_type": {},
+                "associations_by_strength": {},
+            }
+
+        strengths = []
+        evidence_counts = []
+        types_count = {}
+
+        for association in self._associations.values():
+            strengths.append(association.strength)
+            evidence_counts.append(association.evidence_count)
+            types_count[association.association_type] = types_count.get(association.association_type, 0) + 1
+
+        # Распределение по уровням силы
+        strength_ranges = {
+            "strong": len([s for s in strengths if s >= 0.8]),
+            "medium": len([s for s in strengths if 0.5 <= s < 0.8]),
+            "weak": len([s for s in strengths if s < 0.5]),
+        }
+
+        return {
+            "total_associations": len(self._associations),
+            "avg_strength": sum(strengths) / len(strengths),
+            "avg_evidence_count": sum(evidence_counts) / len(evidence_counts),
+            "associations_by_type": types_count,
+            "associations_by_strength": strength_ranges,
+        }
+
+    def get_full_statistics(self) -> Dict[str, Any]:
+        """
+        Получить полную статистику семантического хранилища.
+
+        Returns:
+            Dict с полной статистикой
+        """
+        base_stats = self.get_statistics()
+        concept_stats = self.get_concept_statistics()
+        association_stats = self.get_association_statistics()
+
+        return {
+            "overview": base_stats,
+            "concepts": concept_stats,
+            "associations": association_stats,
+            "memory_usage": {
+                "concepts_count": len(self._concepts),
+                "associations_count": len(self._associations),
+                "relations_count": sum(len(rels) for rels in self._concept_relations.values()),
+            },
+            "last_consolidation": self._stats["last_consolidation"],
+            "timestamp": time.time(),
+        }

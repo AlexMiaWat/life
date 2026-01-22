@@ -1,9 +1,10 @@
 from dataclasses import dataclass, field
-from typing import List
+from typing import List, Dict, Any
+from ...contracts.serialization_contract import Serializable
 
 
 @dataclass
-class TimeState:
+class TimeState(Serializable):
     """
     Компонент состояния, отвечающий за субъективное восприятие времени.
 
@@ -99,3 +100,31 @@ class TimeState:
     def is_time_dilated(self) -> float:
         """Проверяет, замедлено ли время (возвращает коэффициент замедления)."""
         return max(0.0, 1.0 - self.base_rate)
+
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Сериализует состояние времени.
+
+        Returns:
+            Dict[str, Any]: Словарь с параметрами времени
+        """
+        return {
+            "subjective_time": self.subjective_time,
+            "base_rate": self.base_rate,
+            "rate_min": self.rate_min,
+            "rate_max": self.rate_max,
+            "intensity_coeff": self.intensity_coeff,
+            "stability_coeff": self.stability_coeff,
+            "energy_coeff": self.energy_coeff,
+            "intensity_smoothing": self.intensity_smoothing,
+            "circadian_phase": self.circadian_phase,
+            "circadian_period": self.circadian_period,
+            "circadian_adaptivity": self.circadian_adaptivity,
+            "day_length_modifier": self.day_length_modifier,
+            "recovery_efficiency": self.recovery_efficiency,
+            "stability_modifier": self.stability_modifier,
+            "time_ratio_history": self.time_ratio_history[-10:] if self.time_ratio_history else [],
+            "current_time_ratio": self.get_current_time_ratio(),
+            "time_acceleration": self.get_time_acceleration(),
+            "is_time_dilated": self.is_time_dilated()
+        }

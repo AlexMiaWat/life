@@ -1,9 +1,10 @@
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Any
+from ...contracts.serialization_contract import Serializable
 
 
 @dataclass
-class CognitiveState:
+class CognitiveState(Serializable):
     """
     Компонент состояния, отвечающий за когнитивные аспекты системы Life.
 
@@ -62,4 +63,22 @@ class CognitiveState:
             "clarity_type": self.clarity_type,
             "planning_items": len(self.planning),
             "intelligence_items": len(self.intelligence)
+        }
+
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Сериализует когнитивное состояние.
+
+        Returns:
+            Dict[str, Any]: Словарь с когнитивными параметрами
+        """
+        return {
+            "planning": self.planning.copy(),
+            "intelligence": self.intelligence.copy(),
+            "consciousness_level": self.consciousness_level,
+            "clarity_type": self.clarity_type,
+            "clarity_active": self.is_clarity_active(),
+            "clarity_history": self.clarity_history[-10:] if self.clarity_history else [],  # Последние 10
+            "state_transition_history": self.state_transition_history[-10:] if self.state_transition_history else [],
+            "cognitive_stats": self.get_cognitive_stats()
         }

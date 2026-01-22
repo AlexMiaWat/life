@@ -1,10 +1,12 @@
 import time
 import uuid
 from dataclasses import dataclass, field
+from typing import Dict, Any
+from ...contracts.serialization_contract import Serializable
 
 
 @dataclass
-class IdentityState:
+class IdentityState(Serializable):
     """
     Компонент состояния, отвечающий за идентичность и жизненный цикл системы Life.
 
@@ -39,3 +41,19 @@ class IdentityState:
     def is_active(self) -> bool:
         """Проверяет, активна ли система."""
         return self.active
+
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Сериализует состояние идентичности.
+
+        Returns:
+            Dict[str, Any]: Словарь с состоянием компонента
+        """
+        return {
+            "life_id": self.life_id,
+            "birth_timestamp": self.birth_timestamp,
+            "age": self.age,
+            "ticks": self.ticks,
+            "active": self.active,
+            "lifespan": self.get_lifespan()
+        }

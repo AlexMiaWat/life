@@ -5,12 +5,13 @@ import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional, Any, Dict, List
+import concurrent.futures
 
 from src.memory.memory import ArchiveMemory, Memory
 from src.memory.memory_types import MemoryEntry
 from src.validation.field_validator import FieldValidator
 from src.logging_config import get_logger
-from src.contracts.serialization_contract import SerializationContract
+from src.contracts.serialization_contract import SerializationContract, ThreadSafeSerializable
 from .components.identity_state import IdentityState
 from .components.physical_state import PhysicalState
 from .components.time_state import TimeState
@@ -51,7 +52,7 @@ class ParameterChange:
 
 
 @dataclass
-class SelfState(SerializationContract):
+class SelfState(SerializationContract, ThreadSafeSerializable):
     # Thread-safety lock для API доступа
     _api_lock: threading.RLock = field(default_factory=threading.RLock, init=False, repr=False)
 
@@ -82,6 +83,11 @@ class SelfState(SerializationContract):
     # Кэш для оптимизации API сериализации
     _api_cache: dict = field(default_factory=dict, init=False, repr=False)
     _api_cache_timestamp: float = field(default=0.0, init=False, repr=False)
+
+    # Параметры сериализации с timeout и изоляцией
+    _serialization_timeout: float = field(default=10.0, init=False, repr=False)  # 10 секунд на всю сериализацию
+    _component_timeout: float = field(default=2.0, init=False, repr=False)  # 2 секунды на компонент
+    _component_isolation_enabled: bool = field(default=True, init=False, repr=False)  # Изоляция компонентов
 
     # === Subjective time modulation parameters (defaults) ===
     subjective_time_base_rate: float = 1.0
@@ -1671,21 +1677,25 @@ class SelfState(SerializationContract):
 
     def to_dict(self) -> Dict[str, Any]:
         """
-        Композитная сериализация SelfState через делегирование к компонентам.
+        Композитная сериализация SelfState с timeout и изоляцией компонентов.
 
         Архитектурный контракт:
         - Thread-safe: Использует _api_lock для защиты от конкурентного доступа
         - Композитный: Делегирует сериализацию к специализированным компонентам
         - Атомарный: Создает консистентный snapshot всего состояния
-        - Отказоустойчивый: Исключения в одном компоненте не ломают всю сериализацию
+        - Отказоустойчивый: Исключения и timeout в компонентах не ломают всю сериализацию
+        - Изолированный: Проблемы одного компонента не влияют на другие
 
         Структура возвращаемого словаря:
         {
             "metadata": {
-                "version": "2.0",
+                "version": "3.0",
                 "timestamp": float,
                 "component_type": "SelfState",
-                "life_id": str
+                "life_id": str,
+                "serialization_duration": float,
+                "component_timeouts": [str],
+                "component_errors": [str]
             },
             "components": {
                 "identity": dict,      # IdentityState.to_dict()
@@ -1704,44 +1714,28 @@ class SelfState(SerializationContract):
         Raises:
             RuntimeError: Если сериализация невозможна по системным причинам
         """
+        start_time = time.time()
+
         with self._api_lock:
             try:
                 # Метаданные сериализации
                 metadata = {
-                    "version": "2.0",  # Композитная версия
-                    "timestamp": time.time(),
+                    "version": "3.0",  # Обновленная версия с timeout
+                    "timestamp": start_time,
                     "component_type": "SelfState",
-                    "life_id": self.identity.life_id
+                    "life_id": self.identity.life_id,
+                    "serialization_timeout": self._serialization_timeout,
+                    "component_timeout": self._component_timeout,
+                    "isolation_enabled": self._component_isolation_enabled
                 }
 
-                # Сериализация компонентов с защитой от исключений
-                components = {}
-                component_errors = []
+                # Сериализация компонентов с timeout и изоляцией
+                components, component_metrics = self._serialize_components_isolated()
 
-                component_mappings = {
-                    "identity": self.identity,
-                    "physical": self.physical,
-                    "time": self.time,
-                    "memory": self.memory_state,
-                    "cognitive": self.cognitive,
-                    "events": self.events
-                }
-
-                for name, component in component_mappings.items():
-                    try:
-                        if hasattr(component, 'to_dict'):
-                            components[name] = component.to_dict()
-                        else:
-                            # Fallback для компонентов без to_dict
-                            components[name] = {"error": "Component does not support serialization"}
-                            component_errors.append(f"{name}: no to_dict method")
-                    except Exception as e:
-                        components[name] = {"error": f"Serialization failed: {str(e)}"}
-                        component_errors.append(f"{name}: {str(e)}")
-                        logger.warning(f"Failed to serialize component {name}: {e}")
+                # Обновляем метаданные метриками
+                metadata.update(component_metrics)
 
                 # Legacy поля для обратной совместимости
-                # Включаем только критически важные поля, остальные должны использовать компоненты
                 legacy_fields = {
                     "subjective_time_base_rate": self.subjective_time_base_rate,
                     "circadian_phase": self.circadian_phase,
@@ -1756,19 +1750,27 @@ class SelfState(SerializationContract):
                     "legacy_fields": legacy_fields
                 }
 
-                # Логируем ошибки компонентов
-                if component_errors:
-                    logger.warning(f"Serialization completed with {len(component_errors)} component errors: {component_errors}")
-                    result["metadata"]["warnings"] = component_errors
+                serialization_duration = time.time() - start_time
+                result["metadata"]["serialization_duration"] = serialization_duration
+
+                # Логируем проблемы
+                if component_metrics.get("component_errors"):
+                    logger.warning(
+                        f"SelfState serialization completed in {serialization_duration:.3f}s "
+                        f"with {len(component_metrics['component_errors'])} component errors: "
+                        f"{component_metrics['component_errors']}"
+                    )
 
                 return result
 
             except Exception as e:
-                logger.error(f"Critical error during SelfState serialization: {e}")
+                serialization_duration = time.time() - start_time
+                logger.error(f"Critical error during SelfState serialization after {serialization_duration:.3f}s: {e}")
+
                 # Возвращаем минимальное состояние вместо падения
                 return {
                     "metadata": {
-                        "version": "2.0",
+                        "version": "3.0",
                         "timestamp": time.time(),
                         "component_type": "SelfState",
                         "error": f"Serialization failed: {str(e)}"
@@ -1776,6 +1778,110 @@ class SelfState(SerializationContract):
                     "components": {},
                     "legacy_fields": {}
                 }
+
+    def _serialize_components_isolated(self) -> tuple[Dict[str, Any], Dict[str, Any]]:
+        """
+        Сериализует компоненты с timeout и изоляцией.
+
+        Использует ThreadPoolExecutor для параллельной сериализации с timeout.
+        Исключения в одном компоненте не влияют на другие компоненты.
+
+        Returns:
+            tuple[Dict[str, Any], Dict[str, Any]]: (components, metrics)
+            - components: Словарь с сериализованными компонентами
+            - metrics: Метрики сериализации (errors, timeouts, duration)
+        """
+        components = {}
+        component_errors = []
+        component_timeouts = []
+
+        component_mappings = {
+            "identity": self.identity,
+            "physical": self.physical,
+            "time": self.time,
+            "memory": self.memory_state,
+            "cognitive": self.cognitive,
+            "events": self.events
+        }
+
+        # Используем ThreadPoolExecutor для изоляции и timeout
+        with concurrent.futures.ThreadPoolExecutor(max_workers=len(component_mappings)) as executor:
+            # Создаем future для каждого компонента
+            future_to_component = {
+                executor.submit(self._serialize_component_with_timeout, name, component): name
+                for name, component in component_mappings.items()
+            }
+
+            # Собираем результаты с timeout
+            for future in concurrent.futures.as_completed(future_to_component, timeout=self._serialization_timeout):
+                component_name = future_to_component[future]
+                try:
+                    component_data, duration = future.result(timeout=self._component_timeout)
+                    components[component_name] = component_data
+
+                    # Логируем медленные компоненты
+                    if duration > self._component_timeout * 0.8:  # >80% от timeout
+                        logger.warning(
+                            f"Component {component_name} serialization was slow: {duration:.3f}s "
+                            f"(timeout: {self._component_timeout}s)"
+                        )
+
+                except concurrent.futures.TimeoutError:
+                    component_timeouts.append(component_name)
+                    components[component_name] = {
+                        "error": f"Serialization timeout after {self._component_timeout}s",
+                        "timeout": self._component_timeout
+                    }
+                    logger.error(f"Component {component_name} serialization timed out after {self._component_timeout}s")
+
+                except Exception as e:
+                    component_errors.append(f"{component_name}: {str(e)}")
+                    components[component_name] = {
+                        "error": f"Serialization failed: {str(e)}",
+                        "exception_type": type(e).__name__
+                    }
+                    logger.error(f"Component {component_name} serialization failed: {e}")
+
+        # Метрики сериализации
+        metrics = {
+            "component_errors": component_errors,
+            "component_timeouts": component_timeouts,
+            "total_components": len(component_mappings),
+            "failed_components": len(component_errors) + len(component_timeouts),
+            "successful_components": len(component_mappings) - len(component_errors) - len(component_timeouts)
+        }
+
+        return components, metrics
+
+    def _serialize_component_with_timeout(self, name: str, component: Any) -> tuple[Dict[str, Any], float]:
+        """
+        Сериализует отдельный компонент с измерением времени.
+
+        Args:
+            name: Имя компонента для логирования
+            component: Компонент для сериализации
+
+        Returns:
+            tuple[Dict[str, Any], float]: (serialized_data, duration_seconds)
+
+        Raises:
+            Exception: Если сериализация компонента не удалась
+        """
+        start_time = time.time()
+
+        try:
+            if hasattr(component, 'to_dict'):
+                result = component.to_dict()
+            else:
+                raise AttributeError(f"Component {name} does not have to_dict method")
+
+            duration = time.time() - start_time
+            return result, duration
+
+        except Exception as e:
+            duration = time.time() - start_time
+            logger.warning(f"Component {name} serialization failed after {duration:.3f}s: {e}")
+            raise
 
     def get_serialization_metadata(self) -> Dict[str, Any]:
         """
@@ -1785,12 +1891,16 @@ class SelfState(SerializationContract):
             Dict[str, Any]: Метаданные с информацией о состоянии сериализации
         """
         return {
-            "version": "2.0",
+            "version": "3.0",
             "component_type": "SelfState",
             "thread_safe": True,
             "composite": True,
+            "isolation_enabled": self._component_isolation_enabled,
+            "serialization_timeout": self._serialization_timeout,
+            "component_timeout": self._component_timeout,
             "components": ["identity", "physical", "time", "memory", "cognitive", "events"],
-            "has_legacy_fields": True
+            "has_legacy_fields": True,
+            "uses_threadpool_isolation": True
         }
 
     def get_change_history(

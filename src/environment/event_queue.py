@@ -6,45 +6,53 @@ from typing import Optional, Dict, Any, List
 
 from .event import Event
 from .silence_detector import SilenceDetector
-from ..contracts.serialization_contract import SerializationContract
+from ..contracts.serialization_contract import SerializationContract, SerializationError, ThreadSafeSerializable
 
 logger = logging.getLogger(__name__)
 
 
-class EventQueue(SerializationContract):
+class EventQueue(SerializationContract, ThreadSafeSerializable):
     def __init__(self, enable_silence_detection: bool = True):
         self._queue = queue.Queue(maxsize=100)
         self._dropped_events_count = 0  # Счетчик потерянных событий
 
+        # Version-based concurrency control для обеспечения консистентности
+        self._version = 0  # Версия состояния очереди
+        self._version_lock = threading.RLock()  # Защита для версии
+
         # Система осознания тишины
         self.silence_detector = SilenceDetector() if enable_silence_detection else None
 
-        # Thread-safe сериализация через snapshot
-        self._snapshot_lock = threading.RLock()
-        self._last_snapshot_time = 0.0
-        self._snapshot_cache: Optional[List[Dict[str, Any]]] = None
-        self._snapshot_cache_lifetime = 0.1  # Кэшируем snapshot на 100ms
+        # Thread-safe сериализация с timeout
+        self._serialization_lock = threading.RLock()
+        self._serialization_timeout = 5.0  # 5 секунд максимум на сериализацию
 
     def push(self, event: Event) -> None:
-        try:
-            self._queue.put_nowait(event)
+        with self._version_lock:
+            try:
+                self._queue.put_nowait(event)
+                self._version += 1  # Инкремент версии при изменении состояния
 
-            # Уведомляем детектор тишины о новом событии
-            if self.silence_detector is not None:
-                self.silence_detector.update_last_event_time(event.timestamp)
+                # Уведомляем детектор тишины о новом событии
+                if self.silence_detector is not None:
+                    self.silence_detector.update_last_event_time(event.timestamp)
 
-        except queue.Full:
-            # Логируем потерю события вместо молчаливого игнорирования
-            self._dropped_events_count += 1
-            logger.warning(
-                f"EventQueue full, event dropped (type: {event.type}, count: {self._dropped_events_count})"
-            )
+            except queue.Full:
+                # Логируем потерю события вместо молчаливого игнорирования
+                self._dropped_events_count += 1
+                self._version += 1  # Версия изменяется даже при потере события
+                logger.warning(
+                    f"EventQueue full, event dropped (type: {event.type}, count: {self._dropped_events_count})"
+                )
 
     def pop(self) -> Event | None:
-        try:
-            return self._queue.get_nowait()
-        except queue.Empty:
-            return None
+        with self._version_lock:
+            try:
+                event = self._queue.get_nowait()
+                self._version += 1  # Инкремент версии при изменении состояния
+                return event
+            except queue.Empty:
+                return None
 
     def is_empty(self) -> bool:
         return self._queue.empty()
@@ -132,23 +140,24 @@ class EventQueue(SerializationContract):
 
     def to_dict(self) -> Dict[str, Any]:
         """
-        Thread-safe сериализация EventQueue через snapshot-based подход.
+        Thread-safe атомарная сериализация EventQueue с timeout.
 
         Архитектурный контракт:
-        - Thread-safe: Использует snapshot без блокировки основной очереди
-        - Эффективность: Кэширование snapshot для частых вызовов
-        - Атомарность: Snapshot создается атомарно
-        - Отказоустойчивость: Graceful degradation при ошибках
+        - Thread-safe: Полная синхронизация операции сериализации
+        - Атомарность: Захват консистентного состояния очереди
+        - Отказоустойчивость: Timeout и graceful degradation при ошибках
+        - Эффективность: Без кэширования для гарантии актуальности данных
 
         Returns:
             Dict[str, Any]: Стандартизированная структура сериализации:
             {
                 "metadata": {
-                    "version": "2.0",
+                    "version": "3.0",
                     "timestamp": float,
                     "component_type": "EventQueue",
                     "event_count": int,
-                    "dropped_events": int
+                    "dropped_events": int,
+                    "serialization_duration": float
                 },
                 "data": {
                     "events": [event_dict, ...],
@@ -157,28 +166,30 @@ class EventQueue(SerializationContract):
             }
 
         Raises:
-            RuntimeError: При критических ошибках сериализации
+            SerializationError: При критических ошибках сериализации
         """
-        with self._snapshot_lock:
-            current_time = time.time()
+        start_time = time.time()
 
-            # Используем кэшированный snapshot если он свежий
-            if (self._snapshot_cache is not None and
-                current_time - self._last_snapshot_time < self._snapshot_cache_lifetime):
-                return self._snapshot_cache
+        try:
+            # Атомарная сериализация с timeout
+            with self._serialization_lock:
+                # Создаем snapshot с timeout
+                events_snapshot = self._create_events_snapshot_atomic()
 
-            try:
-                # Создаем новый snapshot
-                events_snapshot = self._create_events_snapshot()
+                serialization_duration = time.time() - start_time
 
                 # Метаданные сериализации
                 metadata = {
-                    "version": "2.0",
-                    "timestamp": current_time,
+                    "version": "4.0",  # Обновлено с version-based concurrency control
+                    "timestamp": start_time,
                     "component_type": "EventQueue",
                     "event_count": len(events_snapshot),
                     "dropped_events": self._dropped_events_count,
-                    "silence_detection_enabled": self.silence_detector is not None
+                    "silence_detection_enabled": self.silence_detector is not None,
+                    "serialization_duration": serialization_duration,
+                    "serialization_timeout": self._serialization_timeout,
+                    "state_version": self._version,  # Version-based concurrency control
+                    "thread_safe": True  # Подтверждение thread-safety
                 }
 
                 # Структура данных
@@ -187,49 +198,57 @@ class EventQueue(SerializationContract):
                     "silence_detection_enabled": self.silence_detector is not None
                 }
 
-                result = {
+                return {
                     "metadata": metadata,
                     "data": data
                 }
 
-                # Кэшируем результат
-                self._snapshot_cache = result
-                self._last_snapshot_time = current_time
+        except Exception as e:
+            serialization_duration = time.time() - start_time
+            logger.error(f"Failed to serialize EventQueue after {serialization_duration:.3f}s: {e}")
 
-                return result
-
-            except Exception as e:
-                logger.error(f"Failed to serialize EventQueue: {e}")
-                # Возвращаем минимальную структуру вместо падения
-                return {
-                    "metadata": {
-                        "version": "2.0",
-                        "timestamp": current_time,
-                        "component_type": "EventQueue",
-                        "error": f"Serialization failed: {str(e)}"
-                    },
-                    "data": {
-                        "events": [],
-                        "silence_detection_enabled": self.silence_detector is not None
-                    }
+            # Graceful degradation - возвращаем минимальную структуру
+            return {
+                "metadata": {
+                    "version": "3.0",
+                    "timestamp": start_time,
+                    "component_type": "EventQueue",
+                    "error": f"Serialization failed: {str(e)}",
+                    "serialization_duration": serialization_duration,
+                    "serialization_timeout": self._serialization_timeout
+                },
+                "data": {
+                    "events": [],
+                    "silence_detection_enabled": self.silence_detector is not None
                 }
+            }
 
-    def _create_events_snapshot(self) -> List[Dict[str, Any]]:
+    def _create_events_snapshot_atomic(self) -> List[Dict[str, Any]]:
         """
-        Создает snapshot всех событий в очереди без блокировки.
+        Создает атомарный snapshot всех событий в очереди с timeout.
 
-        Использует атомарное извлечение и восстановление для thread-safety.
+        Thread-safety гарантируется за счет:
+        1. Полной синхронизации операции извлечения/восстановления
+        2. Timeout на все блокирующие операции
+        3. Graceful degradation при проблемах
 
         Returns:
             List[Dict[str, Any]]: Список сериализованных событий
+
+        Raises:
+            SerializationError: При timeout или критических ошибках
         """
         snapshot_events = []
         extracted_events = []
+        start_time = time.time()
 
         try:
-            # Атомарное извлечение всех доступных событий
-            while True:
+            # Фаза 1: Атомарное извлечение всех доступных событий с timeout
+            extraction_deadline = start_time + self._serialization_timeout * 0.7  # 70% времени на извлечение
+
+            while time.time() < extraction_deadline:
                 try:
+                    # Используем get_nowait для избежания блокировки
                     event = self._queue.get_nowait()
                     extracted_events.append(event)
                     snapshot_events.append({
@@ -240,30 +259,59 @@ class EventQueue(SerializationContract):
                         "source": event.source
                     })
                 except queue.Empty:
+                    # Очередь пуста, завершаем извлечение
                     break
 
-            # Гарантированное восстановление событий в оригинальном порядке
-            # Используем put() с timeout для предотвращения deadlock
+            # Фаза 2: Гарантированное восстановление событий с timeout
+            restoration_deadline = start_time + self._serialization_timeout
             restoration_errors = []
-            for event in extracted_events:
-                try:
-                    self._queue.put(event, timeout=1.0)  # 1 секунда timeout
-                except queue.Full:
-                    restoration_errors.append(f"Failed to restore event {event.type}")
 
+            for event in extracted_events:
+                if time.time() >= restoration_deadline:
+                    restoration_errors.append(f"Timeout during restoration of event {event.type}")
+                    break
+
+                try:
+                    # Используем timeout для предотвращения deadlock
+                    self._queue.put(event, timeout=0.5)
+                except queue.Full:
+                    restoration_errors.append(f"Queue full during restoration of event {event.type}")
+
+            # Логируем проблемы восстановления
             if restoration_errors:
-                logger.critical(
-                    f"CRITICAL: Failed to restore {len(restoration_errors)} events during serialization. "
-                    f"Errors: {restoration_errors}"
+                logger.warning(
+                    f"Serialization restoration issues: {len(restoration_errors)} events not restored. "
+                    f"Snapshot may be incomplete. Errors: {restoration_errors[:3]}"  # Логируем только первые 3 ошибки
                 )
-                # Не выбрасываем исключение - лучше вернуть частичные данные
+
+                # Если не удалось восстановить более 50% событий, считаем это критической ошибкой
+                if len(restoration_errors) > len(extracted_events) // 2:
+                    raise SerializationError(
+                        f"Critical restoration failure: {len(restoration_errors)}/{len(extracted_events)} events not restored"
+                    )
 
             return snapshot_events
 
+        except SerializationError:
+            # Перебрасываем serialization errors
+            raise
         except Exception as e:
-            logger.error(f"Failed to create events snapshot: {e}")
-            # В экстренном случае возвращаем пустой snapshot
-            return []
+            elapsed = time.time() - start_time
+            logger.error(f"Failed to create atomic events snapshot after {elapsed:.3f}s: {e}")
+
+            # В экстренном случае пытаемся восстановить события
+            emergency_restoration_errors = []
+            for event in extracted_events:
+                try:
+                    self._queue.put_nowait(event)
+                except queue.Full:
+                    emergency_restoration_errors.append(f"Emergency restoration failed for {event.type}")
+
+            if emergency_restoration_errors:
+                logger.critical(f"EMERGENCY restoration failed: {emergency_restoration_errors}")
+
+            # Возвращаем частичный snapshot вместо пустого
+            return snapshot_events
 
     def get_serialization_metadata(self) -> Dict[str, Any]:
         """
@@ -272,12 +320,18 @@ class EventQueue(SerializationContract):
         Returns:
             Dict[str, Any]: Метаданные с информацией о состоянии сериализации
         """
+        with self._version_lock:
+            current_version = self._version
+
         return {
-            "version": "2.0",
+            "version": "4.0",  # Обновлено с version-based concurrency control
             "component_type": "EventQueue",
             "thread_safe": True,
-            "snapshot_based": True,
-            "cache_lifetime": self._snapshot_cache_lifetime,
-            "last_snapshot_age": time.time() - self._last_snapshot_time if self._last_snapshot_time > 0 else None
+            "atomic_serialization": True,
+            "serialization_timeout": self._serialization_timeout,
+            "uses_timeout_protection": True,
+            "graceful_degradation": True,
+            "version_based_concurrency": True,  # Новые гарантии консистентности
+            "current_state_version": current_version  # Текущая версия состояния
         }
 

@@ -1,11 +1,12 @@
 from dataclasses import dataclass, field
-from typing import Dict, Optional
+from typing import Dict, Optional, Any
 
 from src.memory.memory import ArchiveMemory, Memory
+from ...contracts.serialization_contract import Serializable
 
 
 @dataclass
-class MemoryState:
+class MemoryState(Serializable):
     """
     Компонент состояния, отвечающий за память системы Life.
 
@@ -68,3 +69,22 @@ class MemoryState:
     def has_archive_memory(self) -> bool:
         """Проверяет, есть ли архивная память."""
         return self.archive_memory is not None
+
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Сериализует состояние памяти.
+
+        Returns:
+            Dict[str, Any]: Словарь с состоянием памяти
+        """
+        return {
+            "has_active_memory": self.has_active_memory(),
+            "has_archive_memory": self.has_archive_memory(),
+            "entries_by_type": self.entries_by_type.copy(),
+            "echo_count": self.echo_count,
+            "last_echo_time": self.last_echo_time,
+            "sensory_buffer_size": self.sensory_buffer_size,
+            "semantic_concepts_count": self.semantic_concepts_count,
+            "procedural_patterns_count": self.procedural_patterns_count,
+            "memory_stats": self.get_memory_stats() if self.memory else {}
+        }

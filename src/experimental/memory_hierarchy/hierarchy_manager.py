@@ -14,7 +14,7 @@ from src.memory.memory_types import MemoryEntry
 from src.observability.structured_logger import StructuredLogger
 
 from .sensory_buffer import SensoryBuffer
-from .semantic_store import SemanticMemoryStore
+from .semantic_store import SemanticMemoryStore, SemanticConcept
 from .procedural_store import ProceduralMemoryStore
 from src.config import feature_flags
 
@@ -32,15 +32,18 @@ class MemoryHierarchyManager:
     - API для запросов к разным уровням памяти
     """
 
-    # Константы для управления переносом данных
-    SENSORY_TO_EPISODIC_THRESHOLD = 5  # Количество обработок события для переноса
-    EPISODIC_TO_SEMANTIC_THRESHOLD = 10  # Порог повторений для семантизации
-    SEMANTIC_CONSOLIDATION_INTERVAL = 60.0  # Интервал консолидации семантических знаний (секунды)
+    # Константы для управления переносом данных (по умолчанию)
+    DEFAULT_SENSORY_TO_EPISODIC_THRESHOLD = 5  # Количество обработок события для переноса
+    DEFAULT_EPISODIC_TO_SEMANTIC_THRESHOLD = 10  # Порог повторений для семантизации
+    DEFAULT_SEMANTIC_CONSOLIDATION_INTERVAL = 60.0  # Интервал консолидации семантических знаний (секунды)
 
     def __init__(
         self,
         sensory_buffer: Optional[SensoryBuffer] = None,
         logger: Optional[StructuredLogger] = None,
+        sensory_to_episodic_threshold: Optional[int] = None,
+        episodic_to_semantic_threshold: Optional[int] = None,
+        semantic_consolidation_interval: Optional[float] = None,
     ):
         """
         Инициализация менеджера иерархии памяти.
@@ -48,8 +51,16 @@ class MemoryHierarchyManager:
         Args:
             sensory_buffer: Сенсорный буфер (если None, будет создан автоматически)
             logger: Логгер для структурированного логирования
+            sensory_to_episodic_threshold: Порог переноса из сенсорного буфера в эпизодическую память
+            episodic_to_semantic_threshold: Порог переноса из эпизодической в семантическую память
+            semantic_consolidation_interval: Интервал консолидации семантических знаний (секунды)
         """
         self.logger = logger or StructuredLogger(__name__)
+
+        # Настройка порогов переноса данных
+        self.sensory_to_episodic_threshold = sensory_to_episodic_threshold or self.DEFAULT_SENSORY_TO_EPISODIC_THRESHOLD
+        self.episodic_to_semantic_threshold = episodic_to_semantic_threshold or self.DEFAULT_EPISODIC_TO_SEMANTIC_THRESHOLD
+        self.semantic_consolidation_interval = semantic_consolidation_interval or self.DEFAULT_SEMANTIC_CONSOLIDATION_INTERVAL
 
         # Инициализация уровней памяти
         # Создаем SensoryBuffer только если feature flag включен
@@ -230,7 +241,7 @@ class MemoryHierarchyManager:
         # Периодическая консолидация semantic (раз в минуту)
         if (
             time.time() - self._transfer_stats["last_semantic_consolidation"]
-            > self.SEMANTIC_CONSOLIDATION_INTERVAL
+            > self.semantic_consolidation_interval
         ):
             semantic_consolidations = self._consolidate_semantic_knowledge()
             consolidation_stats["semantic_consolidations"] = semantic_consolidations
@@ -284,7 +295,7 @@ class MemoryHierarchyManager:
             # 1. Достигнут порог повторений ИЛИ
             # 2. Высокая интенсивность (даже при первой обработке)
             should_transfer = (
-                processing_count >= self.SENSORY_TO_EPISODIC_THRESHOLD
+                processing_count >= self.sensory_to_episodic_threshold
                 or abs(event.intensity) > 0.8  # Порог высокой интенсивности
             )
 
@@ -295,7 +306,7 @@ class MemoryHierarchyManager:
                     "event_type": event.type,
                     "intensity": event.intensity,
                     "processing_count": processing_count,
-                    "threshold": self.SENSORY_TO_EPISODIC_THRESHOLD,
+                    "threshold": self.sensory_to_episodic_threshold,
                     "should_transfer": should_transfer,
                     "episodic_memory_available": self._episodic_memory is not None,
                 }
@@ -325,11 +336,11 @@ class MemoryHierarchyManager:
                             "event_type": event.type,
                             "significance": memory_entry.meaning_significance,
                             "processing_count": processing_count,
-                            "transfer_reason": (
-                                "threshold_reached"
-                                if processing_count >= self.SENSORY_TO_EPISODIC_THRESHOLD
-                                else "high_intensity"
-                            ),
+                        "transfer_reason": (
+                            "threshold_reached"
+                            if processing_count >= self.sensory_to_episodic_threshold
+                            else "high_intensity"
+                        ),
                         }
                     )
 
@@ -350,32 +361,50 @@ class MemoryHierarchyManager:
         Returns:
             Количество перенесенных концепций
         """
-        if not self.semantic_store or not self_state.memory:
+        if not self.semantic_store or not self._episodic_memory:
             return 0
 
         transferred_concepts = 0
 
         # Анализируем эпизодическую память на предмет повторяющихся паттернов
         event_types = {}
-        for entry in self_state.memory:
+        for entry in self._episodic_memory:
             event_type = entry.event_type
             event_types[event_type] = event_types.get(event_type, 0) + 1
 
         # Извлекаем концепции из часто повторяющихся событий
         for event_type, count in event_types.items():
-            if count >= self.EPISODIC_TO_SEMANTIC_THRESHOLD:
+            if count >= self.episodic_to_semantic_threshold:
                 # Создаем семантическую концепцию
                 concept_id = f"concept_{event_type}_{int(time.time())}"
 
-                concept = self.semantic_store.SemanticConcept(
+                # Вычисляем среднюю значимость для концепции
+                total_significance = 0.0
+                count_for_avg = 0
+                for entry in self._episodic_memory:
+                    if entry.event_type == event_type:
+                        total_significance += entry.meaning_significance
+                        count_for_avg += 1
+
+                avg_significance = total_significance / count_for_avg if count_for_avg > 0 else 0.0
+
+                concept = SemanticConcept(
                     concept_id=concept_id,
                     name=f"Pattern of {event_type}",
-                    description=f"Recurring pattern of {event_type} events (observed {count} times)",
+                    description=f"Recurring pattern of {event_type} events (observed {count} times, avg significance: {avg_significance:.2f})",
                     confidence=min(
-                        0.8, count / 20.0
+                        0.9, count / 15.0
                     ),  # Уверенность растет с количеством наблюдений
                     activation_count=1,
                 )
+
+                # Добавляем свойства концепции
+                concept.properties.update({
+                    "source_event_type": event_type,
+                    "observation_count": count,
+                    "avg_significance": avg_significance,
+                    "consolidation_time": time.time(),
+                })
 
                 self.semantic_store.add_concept(concept)
                 transferred_concepts += 1
@@ -386,6 +415,7 @@ class MemoryHierarchyManager:
                         "concept_id": concept_id,
                         "source_event_type": event_type,
                         "observation_count": count,
+                        "avg_significance": avg_significance,
                         "confidence": concept.confidence,
                     }
                 )
@@ -517,3 +547,57 @@ class MemoryHierarchyManager:
                     "memory_entries_count": len(memory) if hasattr(memory, '__len__') else 0,
                 }
             )
+
+    def set_transfer_thresholds(
+        self,
+        sensory_to_episodic: Optional[int] = None,
+        episodic_to_semantic: Optional[int] = None,
+        semantic_consolidation_interval: Optional[float] = None,
+    ) -> None:
+        """
+        Настроить пороги переноса данных между уровнями памяти.
+
+        Args:
+            sensory_to_episodic: Порог переноса из сенсорного буфера в эпизодическую память
+            episodic_to_semantic: Порог переноса из эпизодической в семантическую память
+            semantic_consolidation_interval: Интервал консолидации семантических знаний (секунды)
+        """
+        old_thresholds = {
+            "sensory_to_episodic": self.sensory_to_episodic_threshold,
+            "episodic_to_semantic": self.episodic_to_semantic_threshold,
+            "semantic_consolidation_interval": self.semantic_consolidation_interval,
+        }
+
+        if sensory_to_episodic is not None:
+            self.sensory_to_episodic_threshold = max(1, sensory_to_episodic)  # Минимум 1
+        if episodic_to_semantic is not None:
+            self.episodic_to_semantic_threshold = max(1, episodic_to_semantic)  # Минимум 1
+        if semantic_consolidation_interval is not None:
+            self.semantic_consolidation_interval = max(1.0, semantic_consolidation_interval)  # Минимум 1 секунда
+
+        new_thresholds = {
+            "sensory_to_episodic": self.sensory_to_episodic_threshold,
+            "episodic_to_semantic": self.episodic_to_semantic_threshold,
+            "semantic_consolidation_interval": self.semantic_consolidation_interval,
+        }
+
+        self.logger.log_event(
+            {
+                "event_type": "memory_transfer_thresholds_updated",
+                "old_thresholds": old_thresholds,
+                "new_thresholds": new_thresholds,
+            }
+        )
+
+    def get_transfer_thresholds(self) -> Dict[str, Any]:
+        """
+        Получить текущие пороги переноса данных.
+
+        Returns:
+            Dict с текущими порогами
+        """
+        return {
+            "sensory_to_episodic_threshold": self.sensory_to_episodic_threshold,
+            "episodic_to_semantic_threshold": self.episodic_to_semantic_threshold,
+            "semantic_consolidation_interval": self.semantic_consolidation_interval,
+        }

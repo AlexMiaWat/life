@@ -422,6 +422,7 @@ def run_loop(
     engine = MeaningEngine()
     learning_engine = LearningEngine()  # Learning Engine (Этап 14)
     adaptation_manager = AdaptationManager()  # Adaptation Manager (Этап 15)
+    decision_engine = DecisionEngine()  # Decision Engine для анализа решений
     # Инициализация адаптивной системы обработки
     # Проверяем feature flag, если adaptive processing не отключен явно
     enable_adaptive_processing = not disable_adaptive_processing and feature_flags.is_adaptive_processing_enabled()
@@ -694,54 +695,13 @@ def run_loop(
                 ticks_since_last_metrics_collection += 1
                 if ticks_since_last_metrics_collection >= METRICS_COLLECTION_INTERVAL:
                     try:
-                        # Создаем mock decision engine с историей решений из self_state
-                        class MockDecisionEngine:
-                            def get_recent_decisions(self, limit=100):
-                                # Извлекаем недавние решения из памяти или действий
-                                decisions = []
-                                # Ищем записи о решениях в памяти
-                                for entry in reversed(self_state.memory):
-                                    if hasattr(entry, "event_type") and entry.event_type in [
-                                        "decision",
-                                        "action",
-                                    ]:
-                                        decision_data = {
-                                            "timestamp": getattr(entry, "timestamp", time.time()),
-                                            "type": getattr(entry, "event_type", "unknown"),
-                                            "data": (
-                                                getattr(entry, "data", {})
-                                                if hasattr(entry, "data")
-                                                else {}
-                                            ),
-                                        }
-                                        decisions.append(decision_data)
-                                        if len(decisions) >= limit:
-                                            break
-                                return decisions
-
-                            def get_statistics(self):
-                                return {
-                                    "total_decisions": len(
-                                        [
-                                            e
-                                            for e in self_state.memory
-                                            if hasattr(e, "event_type")
-                                            and e.event_type in ["decision", "action"]
-                                        ]
-                                    ),
-                                    "average_time": 0.01,  # Заглушка
-                                    "accuracy": 0.8,  # Заглушка
-                                }
-
-                        mock_decision_engine = MockDecisionEngine()
-
                         # Ставим операцию сбора метрик в асинхронную очередь
                         success = data_collection_manager.collect_technical_metrics(
                             self_state=self_state,
                             memory=self_state.memory,
                             learning_engine=learning_engine,
                             adaptation_manager=adaptation_manager,
-                            decision_engine=mock_decision_engine,
+                            decision_engine=decision_engine,
                             base_dir="metrics",
                             filename_prefix="technical_report"
                         )
@@ -935,8 +895,23 @@ def run_loop(
                             )
 
                             # Decision
+                            decision_start_time = time.time()
                             pattern = decide_response(self_state, meaning)
+                            decision_time = time.time() - decision_start_time
                             self_state.last_pattern = pattern
+
+                            # Записываем решение в DecisionEngine
+                            decision_engine.record_decision(
+                                decision_type="response_selection",
+                                context={
+                                    "meaning_significance": meaning.significance,
+                                    "event_type": event.type,
+                                    "current_energy": self_state.energy,
+                                    "current_stability": self_state.stability,
+                                },
+                                outcome=pattern,
+                                execution_time=decision_time,
+                            )
 
                             # Log decision
                             if correlation_id:

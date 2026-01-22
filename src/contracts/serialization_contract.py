@@ -6,15 +6,16 @@
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Protocol
-from threading import Lock
+from typing import Dict, Any, Protocol, runtime_checkable
 
 
+@runtime_checkable
 class Serializable(Protocol):
     """
-    Протокол для сериализуемых компонентов.
+    Базовый протокол для сериализуемых компонентов.
 
-    Все компоненты, поддерживающие сериализацию, должны реализовывать этот протокол.
+    Гарантирует только базовую функциональность сериализации.
+    Не накладывает ограничений на thread-safety или другие аспекты.
     """
 
     def to_dict(self) -> Dict[str, Any]:
@@ -24,20 +25,76 @@ class Serializable(Protocol):
         Returns:
             Dict[str, Any]: Словарь с состоянием компонента
 
-        Архитектурные гарантии:
-        - Thread-safe: Метод должен быть безопасен для вызова из разных потоков
-        - Атомарный: Сериализация представляет собой консистентное состояние
-        - Отказоустойчивый: Исключения не должны приводить к повреждению состояния
-        - Детерминированный: Для одинакового состояния возвращает одинаковый результат
+        Примечание: Этот протокол не гарантирует thread-safety.
+        Для thread-safe сериализации используйте ThreadSafeSerializable.
         """
         ...
 
 
-class SerializationContract(ABC):
+@runtime_checkable
+class MetadataProvider(Protocol):
     """
-    Архитектурный контракт для компонентов с поддержкой сериализации.
+    Протокол для компонентов, предоставляющих метаданные сериализации.
+
+    Отделяет ответственность за метаданные от базовой сериализации.
+    """
+
+    def get_serialization_metadata(self) -> Dict[str, Any]:
+        """
+        Получить метаданные сериализации для валидации и отладки.
+
+        Returns:
+            Dict[str, Any]: Метаданные содержащие как минимум:
+            - version: str - версия формата сериализации
+            - timestamp: float - время сериализации
+            - component_type: str - тип компонента
+        """
+        ...
+
+
+@runtime_checkable
+class ThreadSafeSerializable(Serializable, MetadataProvider, Protocol):
+    """
+    Композитный протокол для полностью thread-safe сериализуемых компонентов.
+
+    Комбинирует базовую сериализацию с метаданными и гарантиями thread-safety.
+    """
+
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Thread-safe сериализация состояния компонента.
+
+        Архитектурные гарантии:
+        - Thread-safe: Метод безопасен для вызова из разных потоков
+        - Атомарный: Сериализация представляет консистентное состояние
+        - Отказоустойчивый: Исключения не должны приводить к повреждению состояния
+        - Детерминированный: Для одинакового состояния возвращает одинаковый результат
+
+        Returns:
+            Dict[str, Any]: Словарь с состоянием компонента
+        """
+        ...
+
+    def get_serialization_metadata(self) -> Dict[str, Any]:
+        """
+        Thread-safe получение метаданных сериализации.
+
+        Returns:
+            Dict[str, Any]: Метаданные содержащие как минимум:
+            - version: str - версия формата сериализации
+            - timestamp: float - время сериализации
+            - component_type: str - тип компонента
+            - thread_safe: bool - подтверждение thread-safety
+        """
+        ...
+
+
+class SerializationContract(ABC, ThreadSafeSerializable):
+    """
+    Архитектурный контракт для компонентов с полной поддержкой сериализации.
 
     Определяет стандартные гарантии и интерфейсы для всех сериализуемых компонентов.
+    Наследуется от ThreadSafeSerializable для обеспечения полной функциональности.
     """
 
     @abstractmethod
@@ -66,11 +123,11 @@ class SerializationContract(ABC):
         Получить метаданные сериализации для валидации и отладки.
 
         Returns:
-            Dict[str, Any]: Метаданные содержащие:
+            Dict[str, Any]: Метаданные содержащие как минимум:
             - version: str - версия формата сериализации
             - timestamp: float - время сериализации
-            - checksum: str - контрольная сумма для валидации
             - component_type: str - тип компонента
+            - thread_safe: bool - подтверждение thread-safety
         """
         pass
 
@@ -83,43 +140,3 @@ class SerializationError(Exception):
     """
     pass
 
-
-class ThreadSafeSerializer:
-    """
-    Thread-safe обертка для сериализации компонентов.
-
-    Обеспечивает thread-safety для компонентов, которые не имеют встроенной защиты.
-    """
-
-    def __init__(self, component: Serializable, lock: Lock = None):
-        self._component = component
-        self._lock = lock or Lock()
-
-    def to_dict(self) -> Dict[str, Any]:
-        """
-        Thread-safe сериализация компонента.
-
-        Returns:
-            Dict[str, Any]: Сериализованное состояние
-        """
-        with self._lock:
-            return self._component.to_dict()
-
-    def get_serialization_metadata(self) -> Dict[str, Any]:
-        """
-        Thread-safe получение метаданных сериализации.
-
-        Returns:
-            Dict[str, Any]: Метаданные сериализации
-        """
-        with self._lock:
-            if hasattr(self._component, 'get_serialization_metadata'):
-                return self._component.get_serialization_metadata()
-            else:
-                # Минимальные метаданные для совместимости
-                return {
-                    "version": "1.0",
-                    "component_type": type(self._component).__name__,
-                    "timestamp": 0.0,
-                    "checksum": ""
-                }

@@ -1,9 +1,10 @@
 from dataclasses import dataclass, field
-from typing import List, Any
+from typing import List, Any, Dict
+from ...contracts.serialization_contract import Serializable
 
 
 @dataclass
-class EventState:
+class EventState(Serializable):
     """
     Компонент состояния, отвечающий за события и историю системы Life.
 
@@ -40,3 +41,16 @@ class EventState:
     def get_last_significance(self) -> float:
         """Возвращает последнюю значимость."""
         return self.last_significance
+
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Сериализует состояние событий.
+
+        Returns:
+            Dict[str, Any]: Словарь с состоянием событий
+        """
+        return {
+            "recent_events": self.get_recent_events(20),  # Последние 20 событий
+            "event_count": self.get_event_count(),
+            "last_significance": self.last_significance
+        }

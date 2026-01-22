@@ -15,6 +15,83 @@ class DecisionEngine:
     def __init__(self):
         """Инициализация движка принятия решений."""
         self.decision_history = []
+        self.decision_stats = {
+            "total_decisions": 0,
+            "successful_decisions": 0,
+            "average_time": 0.0,
+            "accuracy": 0.8,  # Базовая точность
+        }
+
+    def record_decision(self, decision_type: str, context: Dict, outcome: str = None, success: bool = None, execution_time: float = None):
+        """
+        Записать решение в историю.
+
+        Args:
+            decision_type: Тип решения
+            context: Контекст принятия решения
+            outcome: Результат решения
+            success: Успешность решения
+            execution_time: Время выполнения решения
+        """
+        decision_record = {
+            "timestamp": time.time(),
+            "type": decision_type,
+            "context": context.copy() if context else {},
+            "outcome": outcome,
+            "success": success,
+            "execution_time": execution_time,
+        }
+
+        self.decision_history.append(decision_record)
+
+        # Обновляем статистику
+        self.decision_stats["total_decisions"] += 1
+        if success is not None and success:
+            self.decision_stats["successful_decisions"] += 1
+
+        if execution_time is not None:
+            # Экспоненциальное сглаживание среднего времени
+            alpha = 0.1
+            if self.decision_stats["average_time"] == 0:
+                self.decision_stats["average_time"] = execution_time
+            else:
+                self.decision_stats["average_time"] = (
+                    alpha * execution_time + (1 - alpha) * self.decision_stats["average_time"]
+                )
+
+        # Ограничиваем историю последними 1000 записями
+        if len(self.decision_history) > 1000:
+            self.decision_history = self.decision_history[-1000:]
+
+    def get_recent_decisions(self, limit: int = 100) -> List[Dict[str, Any]]:
+        """
+        Получить недавние решения.
+
+        Args:
+            limit: Максимальное количество решений для возврата
+
+        Returns:
+            Список недавних решений
+        """
+        return list(reversed(self.decision_history[-limit:]))
+
+    def get_statistics(self) -> Dict[str, Any]:
+        """
+        Получить статистику принятия решений.
+
+        Returns:
+            Dict со статистикой
+        """
+        stats = self.decision_stats.copy()
+
+        # Вычисляем точность на основе успешных решений
+        total = stats["total_decisions"]
+        if total > 0:
+            stats["accuracy"] = stats["successful_decisions"] / total
+        else:
+            stats["accuracy"] = 0.0
+
+        return stats
 
 
 def _analyze_adaptation_history(self_state: SelfState) -> dict:

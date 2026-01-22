@@ -1,6 +1,8 @@
 # 11_DECISION
 
-## Статус: ✅ Реализован (v1.0)
+## Статус: ✅ Реализован (v2.0)
+
+**v2.0:** Добавлен DecisionEngine с историей решений и статистикой
 
 ## Описание
 
@@ -31,6 +33,115 @@ def decide_response(self_state: SelfState, meaning: Meaning) -> str:
 ```
 
 Логи поведения: dampen уменьшает impact, ignore пропускает, absorb применяет без изменений.
+
+## DecisionEngine (v2.0)
+
+Класс `DecisionEngine` предоставляет инфраструктуру для отслеживания и анализа принятых решений в системе.
+
+### Основные возможности
+
+- **История решений**: Автоматическое сохранение всех принятых решений с контекстом
+- **Статистика**: Метрики успешности решений и производительности
+- **Анализ паттернов**: Инструменты для выявления паттернов в принятии решений
+
+### Основные методы
+
+```python
+class DecisionEngine:
+    def record_decision(
+        self,
+        decision_type: str,
+        context: Dict,
+        outcome: str = None,
+        success: bool = None,
+        execution_time: float = None
+    ) -> None:
+        """
+        Записать решение в историю.
+
+        Args:
+            decision_type: Тип решения ('response_selection', 'action_choice', etc.)
+            context: Контекст принятия решения
+            outcome: Результат решения
+            success: Успешность решения (True/False)
+            execution_time: Время выполнения решения
+        """
+
+    def get_recent_decisions(self, limit: int = 100) -> List[Dict[str, Any]]:
+        """
+        Получить недавние решения.
+
+        Returns:
+            Список последних решений с полной информацией
+        """
+
+    def get_statistics(self) -> Dict[str, Any]:
+        """
+        Получить статистику принятия решений.
+
+        Returns:
+            Dict со статистикой: общее количество решений,
+            успешность, среднее время выполнения, точность
+        """
+```
+
+### Примеры использования
+
+```python
+from src.decision.decision import DecisionEngine
+
+# Создание движка принятия решений
+decision_engine = DecisionEngine()
+
+# Запись решения
+decision_engine.record_decision(
+    decision_type="response_selection",
+    context={
+        "meaning_significance": 0.8,
+        "event_type": "shock",
+        "current_energy": 0.7,
+        "current_stability": 0.9
+    },
+    outcome="dampen",
+    execution_time=0.015
+)
+
+# Получение статистики
+stats = decision_engine.get_statistics()
+print(f"Всего решений: {stats['total_decisions']}")
+print(f"Точность: {stats['accuracy']:.2f}")
+print(f"Среднее время: {stats['average_time']:.3f}s")
+
+# Получение недавних решений
+recent = decision_engine.get_recent_decisions(limit=10)
+for decision in recent:
+    print(f"{decision['type']}: {decision['outcome']} "
+          f"(success: {decision['success']})")
+```
+
+### Интеграция в Runtime Loop
+
+DecisionEngine интегрирован в основной цикл системы (`src/runtime/loop.py`) для автоматического отслеживания решений:
+
+```python
+# В runtime loop
+decision_start_time = time.time()
+pattern = decide_response(self_state, meaning)
+decision_time = time.time() - decision_start_time
+
+# Запись в DecisionEngine
+decision_engine.record_decision(
+    decision_type="response_selection",
+    context={
+        "meaning_significance": meaning.significance,
+        "event_type": event.type,
+        "current_energy": self_state.energy,
+        "current_stability": self_state.stability,
+    },
+    outcome=pattern,
+    execution_time=decision_time,
+)
+```
 
 ## Примеры использования
 

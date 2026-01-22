@@ -1,9 +1,10 @@
 from dataclasses import dataclass, field
-from typing import List
+from typing import List, Dict, Any
+from ...contracts.serialization_contract import Serializable
 
 
 @dataclass
-class PhysicalState:
+class PhysicalState(Serializable):
     """
     Компонент состояния, отвечающий за физические параметры системы Life.
 
@@ -76,3 +77,22 @@ class PhysicalState:
     def is_high_stress(self) -> bool:
         """Проверяет, находится ли система в состоянии высокого стресса."""
         return self.fatigue > 70.0 or self.tension > 70.0
+
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Сериализует физическое состояние.
+
+        Returns:
+            Dict[str, Any]: Словарь с физическими параметрами
+        """
+        return {
+            "energy": self.energy,
+            "integrity": self.integrity,
+            "stability": self.stability,
+            "fatigue": self.fatigue,
+            "tension": self.tension,
+            "energy_history": self.energy_history[-10:] if self.energy_history else [],  # Последние 10 значений
+            "stability_history": self.stability_history[-10:] if self.stability_history else [],
+            "is_critical_energy": self.is_critical_energy(),
+            "is_high_stress": self.is_high_stress()
+        }

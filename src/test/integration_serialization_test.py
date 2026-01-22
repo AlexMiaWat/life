@@ -38,7 +38,7 @@ class TestEventQueueSerialization:
         # Проверяем метаданные
         metadata = result["metadata"]
         assert metadata["component_type"] == "EventQueue"
-        assert metadata["version"] == "2.0"
+        assert metadata["version"] == "4.0"  # Обновлено с version-based concurrency control
         assert "timestamp" in metadata
         assert metadata["event_count"] == 0
 
@@ -278,10 +278,10 @@ class TestSelfStateSerialization:
         assert isinstance(result, dict)
         assert "metadata" in result
 
-        # Должен быть warning в метаданных
+        # Должен быть component_errors в метаданных
         metadata = result["metadata"]
-        assert "warnings" in metadata
-        assert len(metadata["warnings"]) > 0
+        assert "component_errors" in metadata
+        assert len(metadata["component_errors"]) > 0
 
         # Компонент с ошибкой должен содержать информацию об ошибке
         components = result["components"]
@@ -399,17 +399,20 @@ class TestSerializationPerformance:
         # Создаем очередь с большим размером для теста производительности
         import queue as queue_module
 
-        # Создаем EventQueue с инициализацией snapshot полей
+        # Создаем EventQueue с инициализацией новых полей
         queue = EventQueue.__new__(EventQueue)
         queue._queue = queue_module.Queue(maxsize=0)  # Без ограничения размера
         queue._dropped_events_count = 0
         queue.silence_detector = None
 
-        # Инициализируем snapshot поля для сериализации
-        queue._snapshot_lock = threading.RLock()
-        queue._last_snapshot_time = 0.0
-        queue._snapshot_cache = None
-        queue._snapshot_cache_lifetime = 0.1
+        # Инициализируем новые поля для сериализации
+        queue._serialization_lock = threading.RLock()
+        queue._serialization_timeout = 5.0
+        queue._component_timeout = 2.0
+
+        # Инициализируем поля для version-based concurrency control
+        queue._version = 0
+        queue._version_lock = threading.RLock()
 
         # Добавляем события (меньше, чтобы тест был быстрее)
         for i in range(500):
@@ -533,10 +536,10 @@ class TestSystemRecoveryIntegration:
         memory_result = components["memory"]
         assert "error" in memory_result
 
-        # Должно быть предупреждение в метаданных
+        # Должно быть component_errors в метаданных
         metadata = result["metadata"]
-        assert "warnings" in metadata
-        assert len(metadata["warnings"]) > 0
+        assert "component_errors" in metadata
+        assert len(metadata["component_errors"]) > 0
 
     def test_large_scale_state_serialization(self):
         """Тест сериализации состояния с большим количеством данных."""
@@ -569,7 +572,8 @@ class TestSystemRecoveryIntegration:
 
         # Проверяем корректность
         assert state_result["metadata"]["component_type"] == "SelfState"
-        assert len(queue_result["data"]["events"]) == 200
+        # EventQueue has maxsize=100, so only first 100 events are kept
+        assert len(queue_result["data"]["events"]) == 100
 
         # Проверяем, что все события сохранены корректно
         events = queue_result["data"]["events"]

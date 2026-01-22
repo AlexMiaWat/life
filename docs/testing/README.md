@@ -29,6 +29,7 @@
   - **Runtime Managers:** 28 тестов (SnapshotManager, LogManager, LifePolicy) ✅
   - **MemoryHierarchyManager обновления:** Требует явного SensoryBuffer для консистентности ✅
   - **Обновления статистики тестов:** Исправлены проверки полей (total_entries, buffer_size, total_entries_expired) ✅
+  - **Memory Hierarchy тесты (v2.0):** 3 новых набора тестов (интеграционные, дымовые, статические) ✅
   - **Dev-mode E2E Smoke Test:** Полный цикл старт→изменение→рестарт→восстановление ✅
 - **API тесты:** Восстановлены (работают через immutable snapshots)
 
@@ -62,6 +63,10 @@ pytest src/test/ -q
 Все тесты находятся в `src/test/`:
 
 - `test_memory.py` - Тесты модуля Memory (MemoryEntry, Memory) + нагрузочные тесты + тесты субъективного времени (v2.1)
+- **Memory Hierarchy тесты (v2.0):**
+  - `memory_hierarchy_integration_tests.py` - Интеграционные тесты взаимодействия компонентов в реальных сценариях
+  - `memory_hierarchy_smoke_tests.py` - Дымовые тесты базовой работоспособности компонентов
+  - `memory_hierarchy_static_tests.py` - Статические тесты, unit тесты, валидация типов, проверка контрактов сериализации
 - `test_state.py` - Тесты модуля State (SelfState, snapshots)
 - `test_activation.py` - Тесты модуля Activation
 - `test_meaning.py` - Тесты модуля Meaning (Meaning, MeaningEngine)
