@@ -1,19 +1,76 @@
 import random
 import time
-from typing import Any, Optional
+from typing import Any, Dict, List, Optional
 
 from .event import Event
 from .event_dependency_manager import EventDependencyManager
 from .environment_config import EnvironmentConfigManager
+from .intensity_adapter import IntensityAdapter
+from .pattern_analyzer import PatternAnalyzer
+from .event_generator_interface import EventGeneratorInterface
+from ..state.self_state import SelfState
+from ..utils.performance_monitor import performance_monitor
 
 
-class EventGenerator:
+class EventGenerator(EventGeneratorInterface):
     def __init__(self):
         """Инициализация генератора с системой зависимостей событий."""
         self.dependency_manager = EventDependencyManager()
         self.config_manager = EnvironmentConfigManager()
+        self.intensity_adapter = IntensityAdapter()
+        self.pattern_analyzer = PatternAnalyzer(self.dependency_manager)
 
-    def generate(self) -> Event:
+        # Публичные константы для тестирования
+        self.types = [
+            "noise", "decay", "recovery", "shock", "idle", "memory_echo",
+            "social_presence", "social_conflict", "social_harmony",
+            "cognitive_doubt", "cognitive_clarity", "cognitive_confusion",
+            "existential_void", "existential_purpose", "existential_finitude",
+            "connection", "isolation", "insight", "confusion", "curiosity",
+            "meaning_found", "void", "acceptance", "silence", "joy", "sadness",
+            "fear", "calm", "discomfort", "comfort", "fatigue", "anticipation",
+            "boredom", "inspiration", "creative_dissonance",
+        ]
+
+        self.base_weights = [
+            0.250,  # noise (скорректирован для новых типов)
+            0.180,  # decay (скорректирован для новых типов)
+            0.130,  # recovery (скорректирован для новых типов)
+            0.030,  # shock (скорректирован для новых типов)
+            0.030,  # idle (скорректирован для новых типов)
+            0.0,  # memory_echo (генерируется только внутренне)
+            0.010,  # social_presence (скорректирован для новых типов)
+            0.006,  # social_conflict (скорректирован для новых типов)
+            0.006,  # social_harmony (скорректирован для новых типов)
+            0.010,  # cognitive_doubt (скорректирован для новых типов)
+            0.006,  # cognitive_clarity (скорректирован для новых типов)
+            0.010,  # cognitive_confusion (скорректирован для новых типов)
+            0.005,  # existential_void (скорректирован для новых типов)
+            0.004,  # existential_purpose (скорректирован для новых типов)
+            0.006,  # existential_finitude (скорректирован для новых типов)
+            0.028,  # connection (вероятностное распределение - 14.3% от потока)
+            0.025,  # isolation (вероятностное распределение - 14.3% от потока)
+            0.022,  # insight (вероятностное распределение - 14.3% от потока)
+            0.020,  # confusion (вероятностное распределение - 14.3% от потока)
+            0.018,  # curiosity (вероятностное распределение - 14.3% от потока)
+            0.015,  # meaning_found (вероятностное распределение - 14.3% от потока)
+            0.012,  # void (вероятностное распределение - 14.3% от потока)
+            0.010,  # acceptance (вероятностное распределение - 14.3% от потока)
+            0.003,  # silence (низкая вероятность, генерируется преимущественно детектором)
+            0.015,  # joy (новый тип)
+            0.012,  # sadness (новый тип)
+            0.010,  # fear (новый тип)
+            0.016,  # calm (новый тип)
+            0.012,  # discomfort (новый тип)
+            0.015,  # comfort (новый тип)
+            0.014,  # fatigue (новый тип)
+            0.013,  # anticipation (новый тип)
+            0.011,  # boredom (новый тип)
+            0.017,  # inspiration (новый тип)
+            0.010,  # creative_dissonance (новый тип)
+        ]
+
+    def generate(self, context_state: Optional[SelfState] = None) -> Event:
         """
         Генерирует событие согласно спецификации этапа 07.
 
@@ -54,119 +111,43 @@ class EventGenerator:
         - inspiration: [0.0, 0.9] (вдохновение, творческий подъем)
         - creative_dissonance: [-0.5, 0.0] (творческий тупик, отсутствие идей)
         """
-        types = [
-            "noise",
-            "decay",
-            "recovery",
-            "shock",
-            "idle",
-            "memory_echo",
-            "social_presence",
-            "social_conflict",
-            "social_harmony",
-            "cognitive_doubt",
-            "cognitive_clarity",
-            "cognitive_confusion",
-            "existential_void",
-            "existential_purpose",
-            "existential_finitude",
-            "connection",
-            "isolation",
-            "insight",
-            "confusion",
-            "curiosity",
-            "meaning_found",
-            "void",
-            "acceptance",
-            "silence",
-            "joy",
-            "sadness",
-            "fear",
-            "calm",
-            "discomfort",
-            "comfort",
-            "fatigue",
-            "anticipation",
-            "boredom",
-            "inspiration",
-            "creative_dissonance",
-        ]
-        # Базовые веса событий
-        base_weights = [
-            0.250,  # noise (скорректирован для новых типов)
-            0.180,  # decay (скорректирован для новых типов)
-            0.130,  # recovery (скорректирован для новых типов)
-            0.030,  # shock (скорректирован для новых типов)
-            0.030,  # idle (скорректирован для новых типов)
-            0.0,  # memory_echo (генерируется только внутренне)
-            0.010,  # social_presence (скорректирован для новых типов)
-            0.006,  # social_conflict (скорректирован для новых типов)
-            0.006,  # social_harmony (скорректирован для новых типов)
-            0.010,  # cognitive_doubt (скорректирован для новых типов)
-            0.006,  # cognitive_clarity (скорректирован для новых типов)
-            0.010,  # cognitive_confusion (скорректирован для новых типов)
-            0.005,  # existential_void (скорректирован для новых типов)
-            0.004,  # existential_purpose (скорректирован для новых типов)
-            0.006,  # existential_finitude (скорректирован для новых типов)
-            0.028,  # connection (вероятностное распределение - 14.3% от потока)
-            0.025,  # isolation (вероятностное распределение - 14.3% от потока)
-            0.022,  # insight (вероятностное распределение - 14.3% от потока)
-            0.020,  # confusion (вероятностное распределение - 14.3% от потока)
-            0.018,  # curiosity (вероятностное распределение - 14.3% от потока)
-            0.015,  # meaning_found (вероятностное распределение - 14.3% от потока)
-            0.012,  # void (вероятностное распределение - 14.3% от потока)
-            0.010,  # acceptance (вероятностное распределение - 14.3% от потока)
-            0.003,  # silence (низкая вероятность, генерируется преимущественно детектором)
-            0.015,  # joy (новый тип)
-            0.012,  # sadness (новый тип)
-            0.010,  # fear (новый тип)
-            0.016,  # calm (новый тип)
-            0.012,  # discomfort (новый тип)
-            0.015,  # comfort (новый тип)
-            0.014,  # fatigue (новый тип)
-            0.013,  # anticipation (новый тип)
-            0.011,  # boredom (новый тип)
-            0.017,  # inspiration (новый тип)
-            0.010,  # creative_dissonance (новый тип)
-        ]
+        with performance_monitor.measure("event_generator.generate"):
+            # Получаем модификаторы вероятностей от менеджера зависимостей
+            probability_modifiers = self.dependency_manager.get_probability_modifiers()
 
-        # Получаем модификаторы вероятностей от менеджера зависимостей
-        probability_modifiers = self.dependency_manager.get_probability_modifiers()
+            # Применяем модификаторы к базовым весам
+            adjusted_weights = []
+            for i, base_weight in enumerate(self.base_weights):
+                event_type = self.types[i]
+                modifier = probability_modifiers.get(event_type, 1.0)
+                adjusted_weight = base_weight * modifier
+                adjusted_weights.append(adjusted_weight)
 
-        # Применяем модификаторы к базовым весам
-        adjusted_weights = []
-        for i, base_weight in enumerate(base_weights):
-            event_type = types[i]
-            modifier = probability_modifiers.get(event_type, 1.0)
-            adjusted_weight = base_weight * modifier
-            adjusted_weights.append(adjusted_weight)
+            # Нормализуем веса чтобы сумма была равна сумме базовых весов
+            total_base = sum(self.base_weights)
+            total_adjusted = sum(adjusted_weights)
+            if total_adjusted > 0:
+                normalization_factor = total_base / total_adjusted
+                adjusted_weights = [w * normalization_factor for w in adjusted_weights]
 
-        # Нормализуем веса чтобы сумма была равна сумме базовых весов
-        total_base = sum(base_weights)
-        total_adjusted = sum(adjusted_weights)
-        if total_adjusted > 0:
-            normalization_factor = total_base / total_adjusted
-            adjusted_weights = [w * normalization_factor for w in adjusted_weights]
+            event_type = random.choices(self.types, weights=adjusted_weights)[0]
 
-        event_type = random.choices(types, weights=adjusted_weights)[0]
+            # Генерируем базовую интенсивность согласно спецификации
+            base_intensity = self._generate_base_intensity(event_type)
 
-        # Генерируем базовую интенсивность согласно спецификации
-        base_intensity = self._generate_base_intensity(event_type)
+            # Применяем адаптивные модификаторы интенсивности
+            intensity = self._adapt_intensity(event_type, base_intensity, context_state)
 
-        # Применяем адаптивные модификаторы интенсивности
-        # (пока базовая логика - в будущем можно интегрировать состояние Life)
-        intensity = self._adapt_intensity(event_type, base_intensity, context_state=None)
+            timestamp = time.time()
+            metadata: dict[str, Any] = {}
 
-        timestamp = time.time()
-        metadata: dict[str, Any] = {}
+            # Создаем событие
+            event = Event(type=event_type, intensity=intensity, timestamp=timestamp, metadata=metadata)
 
-        # Создаем событие
-        event = Event(type=event_type, intensity=intensity, timestamp=timestamp, metadata=metadata)
+            # Записываем событие в менеджер зависимостей для будущих модификаций
+            self.dependency_manager.record_event(event)
 
-        # Записываем событие в менеджер зависимостей для будущих модификаций
-        self.dependency_manager.record_event(event)
-
-        return event
+            return event
 
     def _generate_base_intensity(self, event_type: str) -> float:
         """
@@ -188,55 +169,43 @@ class EventGenerator:
         else:
             return random.uniform(min_intensity, max_intensity)
 
-    def _adapt_intensity(self, event_type: str, base_intensity: float, context_state: Optional[Any] = None) -> float:
+    def _adapt_intensity(self, event_type: str, base_intensity: float, context_state: Optional[SelfState] = None) -> float:
         """
-        Адаптирует интенсивность события на основе контекста и ограничивает диапазоном.
+        Адаптирует интенсивность события через IntensityAdapter.
 
         Args:
             event_type: Тип события
             base_intensity: Базовая интенсивность
-            context_state: Контекстное состояние (опционально, для будущей интеграции)
+            context_state: Текущее состояние системы Life
 
         Returns:
             Адаптированная интенсивность, ограниченная диапазоном типа события
         """
-        # Пока простая адаптация на основе паттернов зависимостей
-        # В будущем можно интегрировать:
-        # - Состояние energy/stability/integrity системы Life
-        # - Недавнюю историю событий
-        # - Циркадные ритмы
+        # Получаем модификаторы от анализаторов
+        pattern_modifier = 1.0
+        if context_state and hasattr(context_state, 'recent_events') and context_state.recent_events:
+            pattern_modifier = self.pattern_analyzer.analyze_pattern_modifier(event_type, context_state.recent_events)
 
-        modifier = 1.0
-
-        # Увеличиваем интенсивность событий, которые часто генерируются по зависимостям
+        dependency_modifier = 1.0
         dependency_modifiers = self.dependency_manager.get_probability_modifiers()
+        dependency_modifier_raw = dependency_modifiers.get(event_type, 1.0)
+        if dependency_modifier_raw != 1.0:
+            dependency_modifier = 1.0 + (1.0 - dependency_modifier_raw) * 0.3  # 0.7-1.3 диапазон
 
-        if event_type in dependency_modifiers:
-            dep_modifier = dependency_modifiers[event_type]
-            # Преобразуем модификатор вероятности в модификатор интенсивности
-            # Если событие более вероятно, оно может быть менее интенсивным (нормализация)
-            # Если событие менее вероятно, оно может быть более интенсивным (усиление)
-            intensity_modifier = 1.0 + (1.0 - dep_modifier) * 0.3  # 0.7-1.3 диапазон
-            modifier *= intensity_modifier
-
-        # Специальные правила для новых социальных и экзистенциальных событий
-        if event_type in ["connection", "isolation", "insight", "confusion", "curiosity", "meaning_found", "void", "acceptance"]:
-            # Эти события могут быть более интенсивными в определенных контекстах
-            # Пока базовая логика - в будущем можно улучшить
-            if event_type in ["meaning_found", "insight"]:
-                # Значимые события могут быть немного интенсивнее
-                modifier *= 1.1
-            elif event_type in ["void", "isolation"]:
-                # Негативные экзистенциальные события могут быть интенсивнее
-                modifier *= 1.05
-
-        adapted_intensity = base_intensity * modifier
+        # Делегируем адаптацию в IntensityAdapter
+        adapted_intensity = self.intensity_adapter.adapt_intensity(
+            event_type, base_intensity, context_state, pattern_modifier, dependency_modifier
+        )
 
         # Ограничиваем результат диапазоном типа события
         config = self.config_manager.get_config()
         min_intensity, max_intensity = config.get_intensity_range(event_type)
 
         return max(min_intensity, min(max_intensity, adapted_intensity))
+
+
+
+
 
     def get_dependency_stats(self) -> dict[str, Any]:
         """
@@ -252,3 +221,54 @@ class EventGenerator:
         Сбросить статистику зависимостей событий.
         """
         self.dependency_manager.reset_stats()
+
+    def get_generation_stats(self) -> Dict[str, Any]:
+        """
+        Возвращает статистику генерации событий.
+
+        Реализует метод интерфейса EventGeneratorInterface.
+        """
+        dependency_stats = self.dependency_manager.get_dependency_stats()
+        adapter_stats = self.intensity_adapter.get_intensity_stats()
+
+        return {
+            "dependency_manager": dependency_stats,
+            "intensity_adapter": adapter_stats,
+            "supported_event_types_count": len(self.types),
+            "total_weights": sum(self.base_weights)
+        }
+
+    def reset_stats(self) -> None:
+        """
+        Сбрасывает статистику генератора и зависимых компонентов.
+
+        Реализует метод интерфейса EventGeneratorInterface.
+        """
+        self.dependency_manager.reset_stats()
+        self.intensity_adapter.reset_stats()
+
+    @property
+    def supported_event_types(self) -> list[str]:
+        """
+        Список поддерживаемых типов событий.
+
+        Реализует метод интерфейса EventGeneratorInterface.
+        """
+        return self.types.copy()
+
+    def get_event_weights(self) -> Dict[str, float]:
+        """
+        Возвращает текущие веса вероятностей для типов событий.
+
+        Реализует метод интерфейса EventGeneratorInterface.
+        """
+        return dict(zip(self.types, self.base_weights))
+
+    def is_event_type_supported(self, event_type: str) -> bool:
+        """
+        Проверяет, поддерживается ли данный тип события.
+
+        Реализует метод интерфейса EventGeneratorInterface.
+        """
+        return event_type in self.types
+

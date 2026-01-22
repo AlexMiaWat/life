@@ -3,6 +3,7 @@
 Поддержка реального сервера и тестового сервера
 """
 
+import os
 import sys
 from pathlib import Path
 

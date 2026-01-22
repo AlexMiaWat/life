@@ -10,8 +10,10 @@ from src.adaptation.adaptation import AdaptationManager
 from src.decision.decision import decide_response
 from src.environment.internal_generator import InternalEventGenerator
 
-from src.experimental import AdaptiveProcessingManager, AdaptiveProcessingConfig
-from src.experimental.clarity_moments import ClarityMoments
+# Экспериментальные компоненты импортируются условно на основе feature flags
+# from src.experimental import AdaptiveProcessingManager, AdaptiveProcessingConfig
+# from src.experimental.clarity_moments import ClarityMoments
+from src.config import feature_flags
 from src.feedback import observe_consequences, register_action
 from src.intelligence.intelligence import process_information
 from src.learning.learning import LearningEngine
@@ -239,7 +241,7 @@ def run_loop(
     disable_learning=False,
     disable_adaptation=False,
     disable_adaptive_processing=False,  # Включено по умолчанию для оптимизации обработки
-    enable_memory_hierarchy=True,  # Включение многоуровневой системы памяти (краткосрочная/долгосрочная/архивная)
+    enable_memory_hierarchy=None,  # Автоматически определяется через feature flags
     enable_silence_detection=True,  # Включение системы осознания тишины
     log_flush_period_ticks=10,
     enable_profiling=False,
@@ -355,19 +357,27 @@ def run_loop(
     learning_engine = LearningEngine()  # Learning Engine (Этап 14)
     adaptation_manager = AdaptationManager()  # Adaptation Manager (Этап 15)
     # Инициализация адаптивной системы обработки
+    # Проверяем feature flag, если adaptive processing не отключен явно
+    enable_adaptive_processing = not disable_adaptive_processing and feature_flags.is_adaptive_processing_enabled()
     adaptive_processing_manager = (
         AdaptiveProcessingManager(
             self_state_provider=lambda: self_state,
             config=AdaptiveProcessingConfig(),
             logger=structured_logger
-        ) if not disable_adaptive_processing else None
+        ) if enable_adaptive_processing else None
     )  # Clarity Moments System
 
-    # Инициализация Clarity Moments с реальным состоянием системы
-    clarity_moments = ClarityMoments(
-        logger=structured_logger,
-        self_state_provider=lambda: self_state
-    )
+    # Инициализация Clarity Moments с реальным состоянием системы (если включено)
+    clarity_moments = None
+    if feature_flags.is_enabled('clarity_moments'):
+        try:
+            from src.experimental.clarity_moments import ClarityMoments
+            clarity_moments = ClarityMoments(
+                logger=structured_logger,
+                self_state_provider=lambda: self_state
+            )
+        except ImportError:
+            structured_logger.warning("ClarityMoments not available, skipping initialization")
 
     internal_generator = InternalEventGenerator()  # Internal Event Generator (Memory Echoes)
     # Настройка доступа к памяти для генерации конкретных эхо-воспоминаний
@@ -377,6 +387,10 @@ def run_loop(
 
     # Экспериментальные компоненты (опционально)
     memory_hierarchy = None
+
+    # Определяем через feature flags, если не указано явно
+    if enable_memory_hierarchy is None:
+        enable_memory_hierarchy = feature_flags.is_memory_hierarchy_enabled()
 
     if enable_memory_hierarchy:
         from src.experimental.memory_hierarchy import MemoryHierarchyManager
@@ -474,9 +488,9 @@ def run_loop(
                 # Обновление внутренних ритмов
                 self_state.update_circadian_rhythm(dt)
 
-                # Проверка условий Clarity Moments
-                if self_state.stability >= ClarityMoments.CLARITY_STABILITY_THRESHOLD and \
-                   self_state.energy >= ClarityMoments.CLARITY_ENERGY_THRESHOLD * 100:  # energy в процентах
+                # Проверка условий Clarity Moments (если компонент включен)
+                if clarity_moments and self_state.stability >= clarity_moments.CLARITY_STABILITY_THRESHOLD and \
+                   self_state.energy >= clarity_moments.CLARITY_ENERGY_THRESHOLD * 100:  # energy в процентах
                     # Проверяем условия для активации момента ясности
                     clarity_result = clarity_moments.check_clarity_conditions(self_state)
                     if clarity_result:
@@ -525,8 +539,9 @@ def run_loop(
                             if len(self_state.clarity_history) > 100:
                                 self_state.clarity_history = self_state.clarity_history[-100:]
 
-                # Обновление состояния Clarity Moments
-                clarity_moments.update_clarity_state(self_state)
+                # Обновление состояния Clarity Moments (если компонент включен)
+                if clarity_moments:
+                    clarity_moments.update_clarity_state(self_state)
 
                 # Технический мониторинг: сбор метрик через регулярные интервалы (асинхронно)
                 ticks_since_last_metrics_collection += 1

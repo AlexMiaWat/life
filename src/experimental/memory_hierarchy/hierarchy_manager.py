@@ -16,6 +16,7 @@ from src.observability.structured_logger import StructuredLogger
 from .sensory_buffer import SensoryBuffer
 from .semantic_store import SemanticMemoryStore
 from .procedural_store import ProceduralMemoryStore
+from src.config import feature_flags
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +52,13 @@ class MemoryHierarchyManager:
         self.logger = logger or StructuredLogger(__name__)
 
         # Инициализация уровней памяти
-        self.sensory_buffer = sensory_buffer or SensoryBuffer()
+        # Создаем SensoryBuffer только если feature flag включен
+        if sensory_buffer is not None:
+            self.sensory_buffer = sensory_buffer
+        elif feature_flags.is_sensory_buffer_enabled():
+            self.sensory_buffer = SensoryBuffer()
+        else:
+            self.sensory_buffer = None
 
         # Интеграция с эпизодической памятью
         self._episodic_memory = None  # Будет установлено при вызове set_episodic_memory
@@ -72,7 +79,8 @@ class MemoryHierarchyManager:
         self.logger.log_event(
             {
                 "event_type": "memory_hierarchy_initialized",
-                "sensory_buffer_size": self.sensory_buffer.buffer_size,
+                "sensory_buffer_size": self.sensory_buffer.buffer_size if self.sensory_buffer else 0,
+                "sensory_buffer_enabled": self.sensory_buffer is not None,
             }
         )
 
@@ -98,7 +106,8 @@ class MemoryHierarchyManager:
         Args:
             event: Событие для добавления
         """
-        self.sensory_buffer.add_event(event)
+        if self.sensory_buffer is not None:
+            self.sensory_buffer.add_event(event)
 
     def handle_clarity_moment(self, clarity_type: str, intensity: float, self_state) -> None:
         """
@@ -183,6 +192,8 @@ class MemoryHierarchyManager:
         Returns:
             Список событий для обработки MeaningEngine
         """
+        if self.sensory_buffer is None:
+            return []
         return self.sensory_buffer.get_events_for_processing(max_events)
 
     def consolidate_memory(self, self_state) -> Dict[str, Any]:
@@ -247,7 +258,7 @@ class MemoryHierarchyManager:
         transfers_count = 0
 
         # Получаем события для анализа консолидации (не удаляем из буфера)
-        sensory_events = self.sensory_buffer.peek_events(max_events=None)
+        sensory_events = self.sensory_buffer.peek_events(max_events=None) if self.sensory_buffer else []
 
         # Отладка
         if sensory_events:
@@ -408,7 +419,7 @@ class MemoryHierarchyManager:
                 "last_semantic_consolidation": self._transfer_stats["last_semantic_consolidation"],
             },
             "sensory_buffer": {
-                **self.sensory_buffer.get_buffer_status(),
+                **(self.sensory_buffer.get_buffer_status() if self.sensory_buffer else {}),
                 "available": self.sensory_buffer is not None,
             },
             "episodic_memory": {
@@ -443,7 +454,7 @@ class MemoryHierarchyManager:
             Результаты запроса
         """
         if level == "sensory":
-            return self.sensory_buffer.peek_events(query_params.get("max_events"))
+            return self.sensory_buffer.peek_events(query_params.get("max_events")) if self.sensory_buffer else []
         elif level == "episodic":
             if self._episodic_memory:
                 # TODO: Реализовать запрос к эпизодической памяти
@@ -468,7 +479,8 @@ class MemoryHierarchyManager:
 
     def reset_hierarchy(self) -> None:
         """Сбросить всю иерархию памяти (для тестирования или перезапуска)."""
-        self.sensory_buffer.clear_buffer()
+        if self.sensory_buffer:
+            self.sensory_buffer.clear_buffer()
         self._event_processing_counts.clear()
         self._transfer_stats = {
             "sensory_to_episodic": 0,

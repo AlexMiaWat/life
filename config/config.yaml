@@ -776,6 +776,14 @@ testing:
   screenshot_dir: "tests/screenshots"
   save_all_screenshots: true
 
+# Feature flags для экспериментальных компонентов
+features:
+  experimental:
+    memory_hierarchy_manager: false  # MemoryHierarchyManager
+    adaptive_processing_manager: false  # AdaptiveProcessingManager
+    sensory_buffer: false  # SensoryBuffer
+  # Дополнительные экспериментальные компоненты могут быть добавлены здесь
+
 # Настройки Git
 # ВАЖНО: Для автоматической отправки коммитов требуется настройка аутентификации
 # См. документацию: docs/guides/GIT_AUTHENTICATION_SETUP.md
