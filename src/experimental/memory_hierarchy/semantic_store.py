@@ -105,7 +105,7 @@ class SemanticMemoryStore(SemanticMemoryInterface, SerializationContract):
         Args:
             logger: Логгер для структурированного логирования
         """
-        self.logger = logger or StructuredLogger(__name__)
+        self.logger = logger or StructuredLogger()
 
         # Хранилище концепций: concept_id -> SemanticConcept
         self._concepts: Dict[str, SemanticConcept] = {}

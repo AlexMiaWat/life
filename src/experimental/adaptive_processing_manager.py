@@ -97,7 +97,7 @@ class AdaptiveProcessingManager:
             config: Конфигурация системы
             logger: Логгер для структурированного логирования
         """
-        self.logger = logger or StructuredLogger(__name__)
+        self.logger = logger or StructuredLogger()
         self.config = config or AdaptiveProcessingConfig()
         self.self_state_provider = self_state_provider
 

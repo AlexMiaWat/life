@@ -65,7 +65,7 @@ class MemoryHierarchyManager(SerializationContract, MemoryHierarchyAPIContract):
             episodic_to_semantic_threshold: Порог переноса из эпизодической в семантическую память
             semantic_consolidation_interval: Интервал консолидации семантических знаний (секунды)
         """
-        self.logger = logger or StructuredLogger(__name__)
+        self.logger = logger or StructuredLogger()
 
         # Thread-safety lock для защиты разделяемых структур данных
         self._lock = threading.RLock()

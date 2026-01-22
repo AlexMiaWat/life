@@ -382,3 +382,58 @@ coverage_1769073267.xml
 htmlcov_1769073267/
 test_full_task_1769073267.md
 docs/results/test_full_task_1769073267.md
+
+# Current testing session artifacts (1769076235)
+test_full_task_1769076235.*
+test_results_1769076235.xml
+test_output_1769076235.txt
+test_report_1769076235.json
+benchmark_1769076235.json
+performance_1769076235.json
+coverage_1769076235.xml
+htmlcov_1769076235/
+test_full_task_1769076235.md
+docs/results/test_full_task_1769076235.md
+
+# Artifacts directory
+artifacts/
+
+# Export files
+export_*.json
+export_*.csv
+
+# Error reports and feedback
+error_report_*.txt
+check_feedback_*.txt
+
+# Experimental files without extensions
+experimental.*
+environment.silence_detector
+
+# Structured logger files created with __name__ (should be fixed now)
+src.*
+
+# Cursor automation artifacts
+cursor_commands/
+cursor_results/
+
+# Temporary files
+__main__
+
+# Test artifacts in root (should be cleaned up)
+test_*.py
+test_*.md
+test_*.txt
+test_*.xml
+test_results*.xml
+test_output*.txt
+test_error_report*.md
+test_errors*.txt
+test_execution*.txt
+test_full*.xml
+codeAgentProjectStatus.md
+
+# Export files in root (should be in data/)
+export_*.json
+export_*.csv
+export_*.jsonl

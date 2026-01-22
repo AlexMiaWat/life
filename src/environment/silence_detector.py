@@ -62,7 +62,7 @@ class SilenceDetector:
         # Lazy import to avoid circular dependency
         if logger is None:
             from src.observability.structured_logger import StructuredLogger
-            self.logger = StructuredLogger(__name__)
+            self.logger = StructuredLogger()
         else:
             self.logger = logger
         self.state = SilenceState(last_event_timestamp=time.time())

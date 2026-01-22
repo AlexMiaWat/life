@@ -171,7 +171,10 @@ graph TD
         - **queue_size:** Размер очереди событий в начале тика
         - **events_processed:** Количество событий обработанных в тике
         - **latency_feedback:** Задержка в тиках между действием и обратной связью
-    - **Performance Metrics:** Автоматический сбор (14.9 мс среднее время тика)
+    - **Performance Metrics:** Автоматический сбор метрик производительности
+      - **v2.6:** LRU-кэширование, батчинг событий, оптимизация индексов (14.9 мс среднее время тика)
+      - **v2.7:** Batch memory maintenance (O(n) вместо O(2n)), parameter grouping в ComputationCache, оптимизация Runtime Loop
+      - **Целевые показатели:** <10мс среднее время тика, >50% cache hit rate
 *   **Документация:** [observability/README.md](../observability/README.md)
 
 ## Потоки данных

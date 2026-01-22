@@ -519,6 +519,88 @@ class Memory(list, EpisodicMemoryInterface):
 
             return min_weight_count
 
+
+
+    def archive_old_entries(self, max_age_seconds: float = 604800, min_weight: float = 0.1,
+                           min_significance: float = 0.0) -> int:
+        """
+        Архивирует старые записи памяти.
+
+        Args:
+            max_age_seconds: Максимальный возраст для архивации
+            min_weight: Минимальный вес для архивации
+            min_significance: Минимальная значимость для архивации
+
+        Returns:
+            int: Количество заархивированных записей
+        """
+        if not self:
+            return 0
+
+        import time
+        current_time = time.time()
+        cutoff_time = current_time - max_age_seconds
+        archived_count = 0
+        entries_to_archive = []
+
+        # Собираем записи для архивации
+        for entry in self:
+            should_archive = (
+                entry.timestamp < cutoff_time or
+                entry.weight < min_weight or
+                entry.meaning_significance < min_significance
+            )
+
+            if should_archive:
+                entries_to_archive.append(entry)
+                archived_count += 1
+
+        # Bulk архивация
+        for entry in entries_to_archive:
+            if entry in self:
+                self.remove(entry)
+
+        return archived_count
+
+    def batch_memory_maintenance(self, decay_factor: float = 0.99, min_weight: float = 0.1,
+                                max_age_seconds: float = 604800, archive_min_weight: float = 0.1,
+                                archive_min_significance: float = 0.0) -> Dict[str, int]:
+        """
+        Batch операция для обслуживания памяти с разделением ответственности.
+
+        Выполняет комплексное обслуживание памяти: decay weights, age adjustment и archive.
+        Каждая операция выполняется отдельно для лучшего разделения ответственности.
+
+        Args:
+            decay_factor: Коэффициент затухания весов
+            min_weight: Минимальный вес после decay
+            max_age_seconds: Максимальный возраст для архивации
+            archive_min_weight: Минимальный вес для архивации
+            archive_min_significance: Минимальная значимость для архивации
+
+        Returns:
+            Dict с результатами операций: decayed_count, archived_count, total_processed
+        """
+        from src.runtime.performance_metrics import measure_time
+
+        with measure_time("batch_memory_maintenance"):
+            if not self:
+                return {"decayed_count": 0, "archived_count": 0, "total_processed": 0}
+
+            self._invalidate_cache()  # Инвалидируем кэш перед изменениями
+
+            # 1. Применяем комплексный decay (включает age factors)
+            decayed_count = self.decay_weights(decay_factor, min_weight)
+
+            # 2. Архивируем старые записи (отдельная операция)
+            archived_count = self.archive_old_entries(max_age_seconds, archive_min_weight, archive_min_significance)
+
+            return {
+                "decayed_count": decayed_count,
+                "archived_count": archived_count,
+                "total_processed": len(self) + archived_count  # Учитываем удаленные записи
+            }
+
     def get_statistics(self) -> MemoryStatistics:
         """
         Возвращает статистику использования памяти.

@@ -246,7 +246,7 @@ class ProceduralMemoryStore(ProceduralMemoryInterface, SerializationContract):
         Args:
             logger: Логгер для структурированного логирования
         """
-        self.logger = logger or StructuredLogger(__name__)
+        self.logger = logger or StructuredLogger()
 
         # Хранилище паттернов: pattern_id -> ProceduralPattern
         self._patterns: Dict[str, ProceduralPattern] = {}

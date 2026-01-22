@@ -251,22 +251,33 @@ class ComputationCache:
         """
         Получает кэшированный результат activate_memory.
 
+        Использует более стабильные параметры для кэширования:
+        - event_type: Тип события
+        - limit: Лимит активации
+        - memory_size_range: Диапазон размера памяти (для группировки)
+        - time_range: Диапазон времени (для группировки)
+
         Args:
             event_type: Тип события
-            memory_size: Размер памяти (для инвалидации кэша при изменениях)
-            subjective_time: Субъективное время
-            age: Возраст
+            memory_size: Размер памяти (используется для группировки)
+            subjective_time: Субъективное время (используется для группировки)
+            age: Возраст (используется для группировки)
             limit: Лимит активации
 
         Returns:
             Optional[Any]: Кэшированный результат или None
         """
-        # Округляем значения для лучшего кэширования
+        # Группируем параметры для более эффективного кэширования
+        # Округляем до ближайших 10 для memory_size, 100 для времени
+        memory_size_group = (memory_size // 10) * 10
+        time_group = (int(subjective_time) // 100) * 100
+        age_group = (int(age) // 100) * 100
+
         rounded_args = (
             event_type,
-            memory_size,
-            round(subjective_time, 3),
-            round(age, 3),
+            memory_size_group,  # Группа размеров памяти
+            time_group,         # Группа времени
+            age_group,          # Группа возраста
             limit
         )
 
@@ -287,6 +298,8 @@ class ComputationCache:
         """
         Кэширует результат activate_memory.
 
+        Использует группировку параметров для более эффективного кэширования.
+
         Args:
             event_type: Тип события
             memory_size: Размер памяти
@@ -295,11 +308,16 @@ class ComputationCache:
             limit: Лимит активации
             result: Результат для кэширования
         """
+        # Группируем параметры для более эффективного кэширования
+        memory_size_group = (memory_size // 10) * 10
+        time_group = (int(subjective_time) // 100) * 100
+        age_group = (int(age) // 100) * 100
+
         rounded_args = (
             event_type,
-            memory_size,
-            round(subjective_time, 3),
-            round(age, 3),
+            memory_size_group,
+            time_group,
+            age_group,
             limit
         )
 
@@ -429,43 +447,54 @@ class ComputationCache:
         self.decision_cache[cache_key] = result
         self._evict_if_needed(self.decision_cache)
 
-    def get_stats(self) -> Dict[str, Dict[str, int]]:
+    def get_stats(self) -> Dict[str, Dict[str, float]]:
         """
         Получает статистику использования кэша.
 
         Returns:
-            Dict[str, Dict[str, int]]: Статистика по типам кэша
+            Dict[str, Dict[str, float]]: Статистика по типам кэша с hit rate в процентах
         """
+        total_subjective_requests = self.subjective_dt_hits + self.subjective_dt_misses
+        total_validation_requests = self.validation_hits + self.validation_misses
+        total_memory_requests = self.memory_search_hits + self.memory_search_misses
+        total_meaning_requests = self.meaning_appraisal_hits + self.meaning_appraisal_misses
+        total_decision_requests = self.decision_hits + self.decision_misses
+
         return {
             "subjective_dt": {
                 "hits": self.subjective_dt_hits,
                 "misses": self.subjective_dt_misses,
-                "hit_rate": (self.subjective_dt_hits / max(1, self.subjective_dt_hits + self.subjective_dt_misses)) * 100,
-                "size": len(self.subjective_dt_cache)
+                "hit_rate": (self.subjective_dt_hits / max(1, total_subjective_requests)) * 100,
+                "size": len(self.subjective_dt_cache),
+                "efficiency": len(self.subjective_dt_cache) / max(1, total_subjective_requests) * 100
             },
             "validation": {
                 "hits": self.validation_hits,
                 "misses": self.validation_misses,
-                "hit_rate": (self.validation_hits / max(1, self.validation_hits + self.validation_misses)) * 100,
-                "size": len(self.validation_cache)
+                "hit_rate": (self.validation_hits / max(1, total_validation_requests)) * 100,
+                "size": len(self.validation_cache),
+                "efficiency": len(self.validation_cache) / max(1, total_validation_requests) * 100
             },
             "memory_search": {
                 "hits": self.memory_search_hits,
                 "misses": self.memory_search_misses,
-                "hit_rate": (self.memory_search_hits / max(1, self.memory_search_hits + self.memory_search_misses)) * 100,
-                "size": len(self.memory_search_cache)
+                "hit_rate": (self.memory_search_hits / max(1, total_memory_requests)) * 100,
+                "size": len(self.memory_search_cache),
+                "efficiency": len(self.memory_search_cache) / max(1, total_memory_requests) * 100
             },
             "meaning_appraisal": {
                 "hits": self.meaning_appraisal_hits,
                 "misses": self.meaning_appraisal_misses,
-                "hit_rate": (self.meaning_appraisal_hits / max(1, self.meaning_appraisal_hits + self.meaning_appraisal_misses)) * 100,
-                "size": len(self.meaning_appraisal_cache)
+                "hit_rate": (self.meaning_appraisal_hits / max(1, total_meaning_requests)) * 100,
+                "size": len(self.meaning_appraisal_cache),
+                "efficiency": len(self.meaning_appraisal_cache) / max(1, total_meaning_requests) * 100
             },
             "decision": {
                 "hits": self.decision_hits,
                 "misses": self.decision_misses,
-                "hit_rate": (self.decision_hits / max(1, self.decision_hits + self.decision_misses)) * 100,
-                "size": len(self.decision_cache)
+                "hit_rate": (self.decision_hits / max(1, total_decision_requests)) * 100,
+                "size": len(self.decision_cache),
+                "efficiency": len(self.decision_cache) / max(1, total_decision_requests) * 100
             }
         }
 

@@ -1,2 +1,0 @@
-timestamp,event_type,source,data,metadata
-1769052407.5254695,test_event,test_source,"{""key"": ""value""}",{}

@@ -184,7 +184,7 @@ class LifeHandler(BaseHTTPRequestHandler):
                 metadata=metadata,
             )
             self.server.event_queue.push(event)
-            logger.debug(f"Event PUSHED to queue. Size now: {self.server.event_queue.size()}")
+            logger.debug(f"Event PUSHED to queue. Size now: {self.server.event_queue.qsize()}")
             self.send_response(200)
             self.end_headers()
             self.wfile.write(b"Event accepted")

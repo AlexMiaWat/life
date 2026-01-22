@@ -192,6 +192,9 @@ addopts = [
     "--cov-report=term-missing",
     "--cov-append",
     "--cov-branch",
+    # Всегда создавать отчеты в artifacts/ каталоге
+    "--junitxml=artifacts/test-results.xml",
+    "--html=artifacts/test-report.html",
 ]
 asyncio_mode = "auto"
 markers = [

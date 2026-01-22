@@ -269,7 +269,7 @@ class RawDataAccess:
         # Автогенерация пути если не указан
         if filepath is None:
             timestamp = int(time.time())
-            filepath = f"export_{timestamp}.{format_type}"
+            filepath = f"data/export_{timestamp}.{format_type}"
 
         # Создать директорию если нужно
         Path(filepath).parent.mkdir(parents=True, exist_ok=True)

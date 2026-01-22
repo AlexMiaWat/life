@@ -72,7 +72,7 @@ class SensoryBuffer(SerializationContract):
         """
         self.buffer_size = buffer_size
         self.default_ttl = default_ttl
-        self.logger = logger or StructuredLogger(__name__)
+        self.logger = logger or StructuredLogger()
 
         # Кольцевой буфер на основе deque для эффективного добавления/удаления
         self._buffer: Deque[SensoryEntry] = deque(maxlen=buffer_size)

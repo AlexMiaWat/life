@@ -796,7 +796,7 @@ def run_loop(
                 last_time = current_time
 
                 # Log tick start
-                queue_size = event_queue.size() if event_queue else 0
+                queue_size = event_queue.qsize() if event_queue else 0
                 structured_logger.log_tick_start(self_state.ticks, queue_size)
 
                 # Passive data collection: tick start
@@ -1009,7 +1009,7 @@ def run_loop(
 
                 # === ШАГ 1: Получить события из среды ===
                 if event_queue and not event_queue.is_empty():
-                    logger.debug(f"[LOOP] Queue not empty, size={event_queue.size()}")
+                    logger.debug(f"[LOOP] Queue not empty, size={event_queue.qsize()}")
                     events = event_queue.pop_all()
                     logger.debug(f"[LOOP] POPPED {len(events)} events")
 
@@ -1228,33 +1228,38 @@ def run_loop(
                                 "Возможна деградация функциональности."
                             )
 
-                # Оптимизация: lazy evaluation для затухания весов памяти
-                # Накопление счетчика для отложенного выполнения
+                # Оптимизация: batch memory maintenance (decay + archive в одном проходе)
+                # Накопление счетчиков для отложенного выполнения
                 ticks_since_last_memory_decay += 1
-                if ticks_since_last_memory_decay >= MEMORY_DECAY_LAZY_THRESHOLD:
+                ticks_since_last_memory_archive += 1
+
+                # Выполняем batch maintenance когда достигнут хотя бы один порог
+                maintenance_needed = (
+                    ticks_since_last_memory_decay >= MEMORY_DECAY_LAZY_THRESHOLD or
+                    ticks_since_last_memory_archive >= MEMORY_ARCHIVE_LAZY_THRESHOLD
+                )
+
+                if maintenance_needed:
                     try:
-                        self_state.memory.decay_weights(
+                        maintenance_result = self_state.memory.batch_memory_maintenance(
                             decay_factor=MEMORY_DECAY_FACTOR,
                             min_weight=MEMORY_DECAY_MIN_WEIGHT,
+                            max_age_seconds=MEMORY_MAX_AGE_SECONDS,
+                            archive_min_weight=MEMORY_MIN_WEIGHT
                         )
-                        ticks_since_last_memory_decay = 0  # Сброс счетчика после выполнения
-                    except Exception as e:
-                        logger.error(f"Ошибка в decay_weights: {e}", exc_info=True)
 
-                # Оптимизация: lazy evaluation для архивации памяти
-                # Накопление счетчика для отложенного выполнения
-                ticks_since_last_memory_archive += 1
-                if ticks_since_last_memory_archive >= MEMORY_ARCHIVE_LAZY_THRESHOLD:
-                    try:
-                        # Архивируем записи старше MEMORY_MAX_AGE_SECONDS или с весом < MEMORY_MIN_WEIGHT
-                        archived_count = self_state.memory.archive_old_entries(
-                            max_age=MEMORY_MAX_AGE_SECONDS, min_weight=MEMORY_MIN_WEIGHT
-                        )
-                        if archived_count > 0:
-                            logger.info(f"[LOOP] Заархивировано {archived_count} записей памяти")
-                        ticks_since_last_memory_archive = 0  # Сброс счетчика после выполнения
+                        # Логируем результаты batch операции
+                        if maintenance_result["decayed_count"] > 0 or maintenance_result["archived_count"] > 0:
+                            logger.info(f"[LOOP] Batch memory maintenance: "
+                                      f"decayed {maintenance_result['decayed_count']} entries, "
+                                      f"archived {maintenance_result['archived_count']} entries")
+
+                        # Сбрасываем счетчики после выполнения
+                        ticks_since_last_memory_decay = 0
+                        ticks_since_last_memory_archive = 0
+
                     except Exception as e:
-                        logger.error(f"Ошибка в archive_old_entries: {e}", exc_info=True)
+                        logger.error(f"Ошибка в batch_memory_maintenance: {e}", exc_info=True)
 
                 # Консолидация экспериментальной памяти
                 # Вызывается раз в MEMORY_CONSOLIDATION_INTERVAL тиков

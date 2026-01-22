@@ -1,3 +1,0 @@
-{"timestamp": 1769038646.456165, "stage": "event", "correlation_id": "chain_1", "event_id": "8af99a76-f63b-43e8-9080-835f1bdd7e25", "event_type": "unknown", "intensity": 0.0, "data": {}}
-{"timestamp": 1769038646.4583917, "stage": "event", "correlation_id": "chain_2", "event_id": "af6d6fca-d0f3-4ec4-8b0e-8f5d1a9934a7", "event_type": "unknown", "intensity": 0.0, "data": {}}
-{"timestamp": 1769041476.6207318, "stage": "event", "correlation_id": "chain_1", "event_id": "be173850-75a6-42a4-94df-cbfff50624f6", "event_type": "unknown", "intensity": 0.0, "data": {}}
