@@ -17,7 +17,7 @@ Adaptation только медленно перестраивает поведе
 import logging
 import threading
 import time
-from typing import TYPE_CHECKING, Dict, List, Optional
+from typing import TYPE_CHECKING, Dict, List, Optional, Any
 
 if TYPE_CHECKING:
     from src.observability.structured_logger import StructuredLogger
@@ -125,6 +125,96 @@ class AdaptationManager:
             analysis["change_patterns"] = change_frequency
 
         return analysis
+
+    def analyze_adaptation_trends(self, adaptation_history: List[Dict]) -> Dict[str, Any]:
+        """
+        Анализирует тренды и паттерны адаптаций для контекстной осведомленности.
+
+        Этот метод предоставляет анализ истории адаптаций для других компонентов,
+        сохраняя логику анализа в AdaptationManager (single responsibility).
+
+        Args:
+            adaptation_history: История адаптаций из SelfState
+
+        Returns:
+            Анализ трендов и паттернов адаптаций
+        """
+        if not adaptation_history:
+            return {
+                "trend_direction": "neutral",
+                "recent_changes_count": 0,
+                "avg_change_magnitude": 0.0,
+                "most_changed_param": None,
+                "adaptation_stability": "unknown",
+                "positive_changes": 0,
+                "negative_changes": 0,
+            }
+
+        # Анализ последних 10 адаптаций
+        recent_history = adaptation_history[-10:]
+
+        # Подсчет общего направления изменений
+        positive_changes = 0
+        negative_changes = 0
+        total_magnitude = 0.0
+        param_change_counts = {}
+
+        for entry in recent_history:
+            changes = entry.get("changes", {})
+            for param_group, param_changes in changes.items():
+                if isinstance(param_changes, dict):
+                    for param_name, change_info in param_changes.items():
+                        if isinstance(change_info, dict):
+                            old_val = change_info.get("old", 0)
+                            new_val = change_info.get("new", 0)
+                            delta = new_val - old_val
+
+                            total_magnitude += abs(delta)
+
+                            if delta > 0.01:
+                                positive_changes += 1
+                            elif delta < -0.01:
+                                negative_changes += 1
+
+                            # Подсчет изменений по параметрам
+                            param_key = f"{param_group}.{param_name}"
+                            param_change_counts[param_key] = param_change_counts.get(param_key, 0) + 1
+
+        # Определение тренда
+        if positive_changes > negative_changes * 1.5:
+            trend_direction = "increasing"
+        elif negative_changes > positive_changes * 1.5:
+            trend_direction = "decreasing"
+        else:
+            trend_direction = "stable"
+
+        # Средняя величина изменений
+        avg_change_magnitude = total_magnitude / len(recent_history) if recent_history else 0.0
+
+        # Наиболее изменяемый параметр
+        most_changed_param = (
+            max(param_change_counts.keys(), key=lambda k: param_change_counts[k])
+            if param_change_counts
+            else None
+        )
+
+        # Стабильность адаптаций
+        if avg_change_magnitude < 0.02:
+            adaptation_stability = "stable"
+        elif avg_change_magnitude < 0.05:
+            adaptation_stability = "moderate"
+        else:
+            adaptation_stability = "volatile"
+
+        return {
+            "trend_direction": trend_direction,
+            "recent_changes_count": len(recent_history),
+            "avg_change_magnitude": avg_change_magnitude,
+            "most_changed_param": most_changed_param,
+            "adaptation_stability": adaptation_stability,
+            "positive_changes": positive_changes,
+            "negative_changes": negative_changes,
+        }
 
     def apply_adaptation(
         self,

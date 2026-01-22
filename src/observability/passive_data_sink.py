@@ -171,10 +171,20 @@ class PassiveDataSink:
 
     def _flush_to_disk(self) -> None:
         """
-        Записать данные на диск.
+        Записать данные на диск с ротацией логов.
         """
         try:
             file_path = self.data_directory / self.observations_file
+
+            # Проверяем размер файла перед записью (макс 100MB)
+            max_file_size = 100 * 1024 * 1024  # 100MB
+            if file_path.exists() and file_path.stat().st_size > max_file_size:
+                # Ротируем файл
+                timestamp = int(time.time())
+                rotated_path = file_path.with_suffix(f".{timestamp}.jsonl")
+                file_path.rename(rotated_path)
+                logger.info(f"Rotated log file to {rotated_path}")
+
             with open(file_path, 'a', encoding='utf-8') as f:
                 # Записываем только последние записи из буфера
                 for observation in self._buffer:

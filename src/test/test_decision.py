@@ -12,11 +12,8 @@ import time
 
 import pytest
 
-from src.decision.decision import (
-    decide_response,
-    _calculate_dynamic_threshold,
-    _analyze_adaptation_history,
-)
+from src.decision.decision import decide_response
+from src.decision.decision_analyzer import DecisionAnalyzer
 from src.meaning.meaning import Meaning
 from src.memory.memory import MemoryEntry
 from src.state.self_state import SelfState
@@ -375,40 +372,44 @@ class TestDecideResponse:
 class TestDynamicThresholds:
     """Тесты для динамических порогов на основе Learning/Adaptation параметров"""
 
-    def test_calculate_dynamic_threshold_base_case(self):
+    @pytest.fixture
+    def analyzer(self):
+        return DecisionAnalyzer()
+
+    def test_calculate_dynamic_threshold_base_case(self, analyzer):
         """Тест базового расчета динамического порога"""
-        threshold = _calculate_dynamic_threshold(
+        threshold = analyzer._calculate_dynamic_threshold(
             base_threshold=0.3, sensitivity=0.2, energy_level="high", stability_level="medium"
         )
         # base_threshold * (0.5 + 0.2) * 1.2 * 1.0 = 0.3 * 0.7 * 1.2 * 1.0 = 0.252
         assert 0.05 <= threshold <= 0.8
 
-    def test_calculate_dynamic_threshold_low_energy(self):
+    def test_calculate_dynamic_threshold_low_energy(self, analyzer):
         """Тест динамического порога при низкой энергии"""
-        threshold = _calculate_dynamic_threshold(
+        threshold = analyzer._calculate_dynamic_threshold(
             base_threshold=0.3, sensitivity=0.5, energy_level="low", stability_level="medium"
         )
         # base_threshold * (0.5 + 0.5) * 0.8 * 1.0 = 0.3 * 1.0 * 0.8 * 1.0 = 0.24
         assert 0.05 <= threshold <= 0.8
 
-    def test_calculate_dynamic_threshold_high_sensitivity(self):
+    def test_calculate_dynamic_threshold_high_sensitivity(self, analyzer):
         """Тест динамического порога при высокой чувствительности"""
-        threshold = _calculate_dynamic_threshold(
+        threshold = analyzer._calculate_dynamic_threshold(
             base_threshold=0.2, sensitivity=0.9, energy_level="high", stability_level="high"
         )
         # base_threshold * (0.5 + 0.9) * 1.2 * 1.1 = 0.2 * 1.4 * 1.2 * 1.1 = 0.3696
         assert 0.05 <= threshold <= 0.8
 
-    def test_calculate_dynamic_threshold_bounds(self):
+    def test_calculate_dynamic_threshold_bounds(self, analyzer):
         """Тест границ динамического порога"""
         # Минимальная граница
-        threshold_min = _calculate_dynamic_threshold(
+        threshold_min = analyzer._calculate_dynamic_threshold(
             base_threshold=0.01, sensitivity=0.0, energy_level="low", stability_level="low"
         )
         assert threshold_min >= 0.05
 
         # Максимальная граница
-        threshold_max = _calculate_dynamic_threshold(
+        threshold_max = analyzer._calculate_dynamic_threshold(
             base_threshold=1.0, sensitivity=1.0, energy_level="high", stability_level="high"
         )
         assert threshold_max <= 0.8
@@ -513,11 +514,15 @@ class TestLearningAdaptationIntegration:
 class TestAdaptationHistoryContextAwareness:
     """Тесты контекстной осведомленности на основе истории адаптаций"""
 
-    def test_analyze_adaptation_history_empty(self):
+    @pytest.fixture
+    def analyzer(self):
+        return DecisionAnalyzer()
+
+    def test_analyze_adaptation_history_empty(self, analyzer):
         """Тест анализа пустой истории адаптаций"""
         state = SelfState()
 
-        analysis = _analyze_adaptation_history(state)
+        analysis = analyzer._analyze_adaptation_history(state)
         expected = {
             "trend_direction": "neutral",
             "recent_changes_count": 0,
@@ -529,7 +534,7 @@ class TestAdaptationHistoryContextAwareness:
         for key, value in expected.items():
             assert analysis[key] == value
 
-    def test_analyze_adaptation_history_increasing_trend(self):
+    def test_analyze_adaptation_history_increasing_trend(self, analyzer):
         """Тест анализа истории с возрастающим трендом"""
         state = SelfState()
         state.adaptation_history = [
@@ -550,13 +555,13 @@ class TestAdaptationHistoryContextAwareness:
             },
         ]
 
-        analysis = _analyze_adaptation_history(state)
+        analysis = analyzer._analyze_adaptation_history(state)
         assert analysis["trend_direction"] == "increasing"
         assert analysis["recent_changes_count"] == 3
         assert analysis["avg_change_magnitude"] > 0
         assert analysis["adaptation_stability"] in ["stable", "moderate", "volatile"]
 
-    def test_analyze_adaptation_history_decreasing_trend(self):
+    def test_analyze_adaptation_history_decreasing_trend(self, analyzer):
         """Тест анализа истории с убывающим трендом"""
         state = SelfState()
         state.adaptation_history = [
@@ -572,7 +577,7 @@ class TestAdaptationHistoryContextAwareness:
             },
         ]
 
-        analysis = _analyze_adaptation_history(state)
+        analysis = analyzer._analyze_adaptation_history(state)
         assert analysis["trend_direction"] == "decreasing"
         assert analysis["negative_changes"] >= analysis["positive_changes"]
 

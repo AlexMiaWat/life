@@ -95,6 +95,10 @@ class FeatureFlags:
         """Проверить, включен ли Parallel Consciousness Engine."""
         return self.is_enabled('parallel_consciousness_engine')
 
+    def is_decision_logging_enabled(self) -> bool:
+        """Проверить, включено ли логирование решений DecisionEngine."""
+        return self.is_enabled('decision_logging')
+
     def get_all_flags(self) -> Dict[str, Any]:
         """
         Получить все feature flags.

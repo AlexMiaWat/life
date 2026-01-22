@@ -26,6 +26,8 @@ from src.runtime.snapshot_manager import SnapshotManager
 from src.runtime.subjective_time import compute_subjective_dt
 from src.runtime.computation_cache import cached_compute_subjective_dt, cached_activate_memory, get_computation_cache
 from src.runtime.data_collection_manager import DataCollectionManager
+from src.runtime.adaptive_batch_sizer import AdaptiveBatchSizer
+from src.runtime.performance_monitor import performance_monitor
 from src.state.self_state import SelfState, save_snapshot
 from src.contracts.contract_manager import contract_manager
 
@@ -312,23 +314,27 @@ def _process_events_batch(events_batch, self_state, engine, structured_logger, p
             )
 
             # Decision
-            decision_start_time = time.time()
-            pattern = decide_response(self_state, meaning)
-            decision_time = time.time() - decision_start_time
+            with performance_monitor.measure("DecisionEngine", "decide_response"):
+                pattern = decide_response(self_state, meaning, adaptation_manager=adaptation_manager)
             self_state.last_pattern = pattern
 
-            # Записываем решение в DecisionEngine
-            decision_engine.record_decision(
-                decision_type="response_selection",
-                context={
-                    "meaning_significance": meaning.significance,
-                    "event_type": event.type,
-                    "current_energy": self_state.energy,
-                    "current_stability": self_state.stability,
-                },
-                outcome=pattern,
-                execution_time=decision_time,
-            )
+            # Записываем решение в DecisionEngine (только если включено логирование)
+            if feature_flags.is_decision_logging_enabled():
+                # Получаем время выполнения из performance monitor
+                decision_metrics = performance_monitor.get_metrics("DecisionEngine")
+                decision_time = decision_metrics.get("DecisionEngine.decide_response", {}).get("recent_avg", 0.001)
+
+                decision_engine.record_decision(
+                    decision_type="response_selection",
+                    context={
+                        "meaning_significance": meaning.significance,
+                        "event_type": event.type,
+                        "current_energy": self_state.energy,
+                        "current_stability": self_state.stability,
+                    },
+                    outcome=pattern,
+                    execution_time=decision_time,
+                )
 
             # Log decision
             if correlation_id:
@@ -614,7 +620,9 @@ def run_loop(
     engine = MeaningEngine()
     learning_engine = LearningEngine()  # Learning Engine (Этап 14)
     adaptation_manager = AdaptationManager()  # Adaptation Manager (Этап 15)
-    decision_engine = DecisionEngine()  # Decision Engine для анализа решений
+    decision_engine = DecisionEngine(
+        enable_logging=feature_flags.is_decision_logging_enabled()
+    )  # Decision Engine для анализа решений
     # Инициализация адаптивной системы обработки
     # Проверяем feature flag, если adaptive processing не отключен явно
     enable_adaptive_processing = not disable_adaptive_processing and feature_flags.is_adaptive_processing_enabled()
@@ -711,6 +719,15 @@ def run_loop(
     # Инициализация кэша вычислений для оптимизации производительности
     computation_cache = get_computation_cache()
     cache_stats_interval = 100  # Логировать статистику кэша каждые 100 тиков
+
+    # Инициализация адаптивного определителя размера батча
+    adaptive_batch_sizer = AdaptiveBatchSizer(
+        min_batch_size=5,
+        max_batch_size=100,
+        default_batch_size=EVENT_BATCH_SIZE,
+        adaptation_interval=50,  # адаптация каждые 50 тиков
+        history_window=20
+    )
 
     # Счетчики ошибок для отслеживания проблем
     learning_errors = 0
@@ -915,6 +932,19 @@ def run_loop(
 
                         if success:
                             logger.debug("Technical metrics collection queued for async processing")
+
+                        # Добавляем метрики производительности DecisionEngine
+                        decision_metrics = performance_monitor.get_metrics("DecisionEngine")
+                        if decision_metrics:
+                            logger.debug(f"DecisionEngine performance: {decision_metrics}")
+
+                            # Проверяем на degradation производительности
+                            decide_response_metrics = decision_metrics.get("DecisionEngine.decide_response", {})
+                            if decide_response_metrics.get("avg_time", 0) > 0.01:  # > 10ms
+                                logger.warning(
+                                    ".3f"
+                                    f"calls={decide_response_metrics.get('total_calls', 0)}"
+                                )
                         else:
                             logger.warning("Failed to queue technical metrics collection")
 
@@ -1059,14 +1089,23 @@ def run_loop(
                         logger.warning(f"Failed to update event intensity: {e}")
                         self_state.last_event_intensity = 0.0
 
-                    # === ШАГ 2: Интерпретировать события с батчингом ===
+                    # === ШАГ 2: Интерпретировать события с адаптивным батчингом ===
                     # Разделяем события на батчи для оптимизации производительности
                     total_processed = 0
                     total_significant = 0
 
-                    for i in range(0, len(events), EVENT_BATCH_SIZE):
-                        batch = events[i:i + EVENT_BATCH_SIZE]
-                        logger.debug(f"[LOOP] Processing batch {i//EVENT_BATCH_SIZE + 1} with {len(batch)} events")
+                    # Получаем оптимальный размер батча для текущих условий
+                    current_batch_size = adaptive_batch_sizer.get_optimal_batch_size(
+                        current_tick=self_state.ticks,
+                        event_batch=events[:50]  # анализируем первые 50 событий для паттернов
+                    )
+
+                    for i in range(0, len(events), current_batch_size):
+                        batch = events[i:i + current_batch_size]
+                        logger.debug(f"[LOOP] Processing batch {i//current_batch_size + 1} with {len(batch)} events")
+
+                        # Измеряем время обработки батча
+                        batch_start_time = time.time()
 
                         # Обрабатываем батч событий
                         batch_correlation_ids, batch_processed, batch_significant = _process_events_batch(
@@ -1074,27 +1113,45 @@ def run_loop(
                             async_data_sink, memory_hierarchy, decision_engine, pending_actions, event_queue
                         )
 
+                        batch_processing_time = time.time() - batch_start_time
+
                         total_processed += batch_processed
                         total_significant += batch_significant
+
+                        # Записываем метрики производительности для адаптивного батчинга
+                        adaptive_batch_sizer.record_batch_performance(
+                            batch_size=len(batch),
+                            processing_time=batch_processing_time,
+                            events_processed=batch_processed,
+                            significant_events=batch_significant
+                        )
 
                         # Async логирование статистики батча
                         async_data_sink.log_event(
                             data={
-                                "batch_index": i//EVENT_BATCH_SIZE + 1,
+                                "batch_index": i//current_batch_size + 1,
                                 "batch_size": len(batch),
                                 "processed_events": batch_processed,
                                 "significant_events": batch_significant,
+                                "adaptive_batch_size": current_batch_size,
                                 "tick": self_state.ticks
                             },
                             event_type="batch_processing_complete",
                             source="runtime_loop",
-                            metadata={"performance": True, "batch_processing": True}
+                            metadata={"performance": True, "batch_processing": True, "adaptive_batching": True}
                         )
 
                     logger.debug(
                         f"[LOOP] Batch processing complete: {total_processed} events processed, "
                         f"{total_significant} significant events"
                     )
+
+                    # Логируем статистику адаптивного батчинга каждые 100 тиков
+                    if self_state.ticks % 100 == 0:
+                        batch_stats = adaptive_batch_sizer.get_stats()
+                        logger.info(f"[ADAPTIVE_BATCH] Stats: current_size={batch_stats['current_batch_size']}, "
+                                  f"history_size={batch_stats['performance_history_size']}, "
+                                  f"ticks_since_adaptation={batch_stats['ticks_since_adaptation']}")
                     logger.debug(
                         f"[LOOP] After interpret: energy={self_state.energy:.2f}, stability={self_state.stability:.4f}"
                     )

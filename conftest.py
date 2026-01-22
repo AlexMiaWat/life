@@ -41,7 +41,48 @@ def cleanup_global_state():
                 profile_file.unlink()
 
     yield
-    # После всех тестов оставляем файлы для анализа
+
+    # После всех тестов: очистка артефактов из корня
+    print("\n🧹 Очистка артефактов после тестирования...")
+
+    # Удаляем файлы, которые могли создаться в корне
+    artifacts_to_clean = [
+        "benchmark_*.json",
+        "performance_*.json",
+        "test_*.py",
+        "test_*.md",
+        "test_*.txt",
+        "test_*.xml",
+        "test_results*.xml",
+        "test_output*.txt",
+        "test_error_report*.md",
+        "test_errors*.txt",
+        "test_execution*.txt",
+        "test_full*.xml",
+        "error_report_*.txt",
+        "check_feedback_*.txt",
+        "export_*.json",
+        "export_*.csv",
+        "export_*.jsonl",
+        "src.*",
+        "__main__",
+        "codeAgentProjectStatus.md",
+    ]
+
+    cleaned_files = []
+    for pattern in artifacts_to_clean:
+        for filepath in Path(".").glob(pattern):
+            if filepath.is_file():
+                try:
+                    filepath.unlink()
+                    cleaned_files.append(str(filepath))
+                except Exception as e:
+                    print(f"⚠️  Не удалось удалить {filepath}: {e}")
+
+    if cleaned_files:
+        print(f"✅ Удалено {len(cleaned_files)} артефактов")
+    else:
+        print("✅ Артефактов для очистки не найдено")
 
 
 @pytest.fixture(scope="function")

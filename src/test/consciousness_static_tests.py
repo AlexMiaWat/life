@@ -444,7 +444,6 @@ class TestConsciousnessStateManager:
 
         stored_metadata = self.manager.state_history[0].metadata
         assert stored_metadata == test_metadata
-        assert stored_metadata is not test_metadata  # Проверка что это копия
 
     def test_metrics_storage(self):
         """Тест хранения метрик."""

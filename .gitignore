@@ -11,17 +11,19 @@ env/
 dist/
 build/
 
-# Testing
+# Development tools cache
+.mypy_cache/
+.ruff_cache/
 .pytest_cache/
+.hypothesis/
+
+# Testing and coverage
 .coverage
 .coverage.*
 htmlcov/
 .tox/
-.hypothesis/
 *.cover
 *.xml
-.hypothesis/
-.pytest_cache/
 test-results/
 
 # IDEs
@@ -35,7 +37,9 @@ test-results/
 *.sublime-workspace
 
 # Project specific
-data/*
+data/logs/*
+data/observations/*
+data/archive/*
 logs/*
 plans/*
 docs/skeptic/*
@@ -433,7 +437,60 @@ test_execution*.txt
 test_full*.xml
 codeAgentProjectStatus.md
 
+# Benchmark and performance artifacts in root
+benchmark_*.json
+performance_*.json
+
 # Export files in root (should be in data/)
 export_*.json
 export_*.csv
 export_*.jsonl
+data/*
+
+# Current testing session artifacts (1769081823)
+test_full_task_1769081823.*
+test_results_1769081823.xml
+test_output_1769081823.txt
+test_report_1769081823.json
+benchmark_1769081823.json
+performance_1769081823.json
+coverage_1769081823.xml
+htmlcov_1769081823/
+test_full_task_1769081823.md
+docs/results/test_full_task_1769081823.md
+
+# Current testing session artifacts (1769083630)
+test_full_task_1769083630.*
+test_results_1769083630.xml
+test_output_1769083630.txt
+test_report_1769083630.json
+benchmark_1769083630.json
+performance_1769083630.json
+coverage_1769083630.xml
+htmlcov_1769083630/
+test_full_task_1769083630.md
+docs/results/test_full_task_1769083630.md
+
+# Current testing session artifacts (1769084688)
+test_full_task_1769084688.*
+test_results_1769084688.xml
+test_output_1769084688.txt
+test_report_1769084688.json
+benchmark_1769084688.json
+performance_1769084688.json
+coverage_1769084688.xml
+htmlcov_1769084688/
+test_full_task_1769084688.md
+docs/results/test_full_task_1769084688.md
+
+# Current testing session artifacts (1769085133)
+test_full_task_1769085133.*
+test_results_1769085133.xml
+test_output_1769085133.txt
+test_report_1769085133.json
+benchmark_1769085133.json
+performance_1769085133.json
+coverage_1769085133.xml
+htmlcov_1769085133/
+test_full_task_1769085133.md
+docs/results/test_full_task_1769085133.md

@@ -8,29 +8,44 @@ import time
 import pytest
 from unittest.mock import Mock, MagicMock
 
-from src.experimental.adaptive_processing_manager import (
-    AdaptiveProcessingManager,
-    ProcessingMode,
-    AdaptiveState,
-    AdaptiveProcessingConfig
-)
-from src.experimental.consciousness.states import (
-    ConsciousnessStateManager,
-    ConsciousnessState
-)
-from src.experimental.clarity_moments import (
-    ClarityMomentsTracker,
-    ClarityMoments,
-    ClarityMoment
-)
+from src.config import feature_flags
 from src.observability.structured_logger import StructuredLogger
 
+# Условные импорты экспериментальных компонентов на основе feature flags
+if feature_flags.is_adaptive_processing_enabled():
+    from src.experimental.adaptive_processing_manager import (
+        AdaptiveProcessingManager,
+        ProcessingMode,
+        AdaptiveState,
+        AdaptiveProcessingConfig
+    )
 
+if feature_flags.is_parallel_consciousness_enabled():
+    from src.experimental.consciousness.states import (
+        ConsciousnessStateManager,
+        ConsciousnessState
+    )
+
+if feature_flags.is_clarity_moments_enabled():
+    from src.experimental.clarity_moments import (
+        ClarityMomentsTracker,
+        ClarityMoments,
+        ClarityMoment
+    )
+
+
+@pytest.mark.skipif(
+    not (feature_flags.is_adaptive_processing_enabled() and feature_flags.is_parallel_consciousness_enabled()),
+    reason="Требуются feature flags: adaptive_processing_manager и parallel_consciousness_engine"
+)
 class TestIntegrationAdaptiveAndConsciousness:
     """Интеграционные тесты взаимодействия AdaptiveProcessingManager и ConsciousnessStateManager."""
 
     def setup_method(self):
         """Настройка теста."""
+        pytest.importorskip("src.experimental.adaptive_processing_manager")
+        pytest.importorskip("src.experimental.consciousness.states")
+
         self.logger = Mock(spec=StructuredLogger)
         self.mock_self_state_provider = Mock()
         self.mock_self_state = Mock()
@@ -51,19 +66,18 @@ class TestIntegrationAdaptiveAndConsciousness:
         )
         self.consciousness_manager = ConsciousnessStateManager()
 
+        # Связываем менеджеры для синхронизации
+        self.adaptive_manager.set_consciousness_manager(self.consciousness_manager)
+
     def test_state_synchronization(self):
         """Тест синхронизации состояний между менеджерами."""
         # Запуск адаптивного менеджера
         self.adaptive_manager.start()
 
-        # Синхронизация состояний сознания
-        self.consciousness_manager.transition_to(ConsciousnessState.ACTIVE)
+        # Начальное состояние сознания
+        assert self.consciousness_manager.current_state == ConsciousnessState.INACTIVE
 
-        # Проверка что оба компонента активны
-        assert self.adaptive_manager._is_active is True
-        assert self.consciousness_manager.current_state == ConsciousnessState.ACTIVE
-
-        # Изменение состояния через адаптивный менеджер
+        # Изменение состояния через адаптивный менеджер должно вызвать синхронизацию
         self.adaptive_manager.force_adaptive_state(
             self.mock_self_state,
             AdaptiveState.OPTIMAL_PROCESSING
@@ -71,6 +85,17 @@ class TestIntegrationAdaptiveAndConsciousness:
 
         # Проверка что состояние изменилось
         assert self.mock_self_state.current_adaptive_state == AdaptiveState.OPTIMAL_PROCESSING.value
+        # Проверка синхронизации с consciousness manager (INACTIVE -> INITIALIZING -> ACTIVE)
+        assert self.consciousness_manager.current_state == ConsciousnessState.ACTIVE
+
+        # Изменение на другой адаптивное состояние
+        self.adaptive_manager.force_adaptive_state(
+            self.mock_self_state,
+            AdaptiveState.EFFICIENT_PROCESSING
+        )
+
+        assert self.mock_self_state.current_adaptive_state == AdaptiveState.EFFICIENT_PROCESSING.value
+        assert self.consciousness_manager.current_state == ConsciousnessState.ACTIVE  # Уже ACTIVE
 
     def test_processing_events_and_state_transitions(self):
         """Тест связи событий обработки и переходов состояний."""
@@ -140,6 +165,10 @@ class TestIntegrationAdaptiveAndConsciousness:
         assert result is True
 
 
+@pytest.mark.skipif(
+    not (feature_flags.is_adaptive_processing_enabled() and feature_flags.is_clarity_moments_enabled()),
+    reason="Требуются feature flags: adaptive_processing_manager и clarity_moments"
+)
 class TestIntegrationAdaptiveAndClarity:
     """Интеграционные тесты взаимодействия AdaptiveProcessingManager и ClarityMoments."""
 
@@ -260,6 +289,10 @@ class TestIntegrationAdaptiveAndClarity:
         assert patterns["avg_intensity"] > 0
 
 
+@pytest.mark.skipif(
+    not (feature_flags.is_parallel_consciousness_enabled() and feature_flags.is_clarity_moments_enabled()),
+    reason="Требуются feature flags: parallel_consciousness_engine и clarity_moments"
+)
 class TestIntegrationConsciousnessAndClarity:
     """Интеграционные тесты взаимодействия ConsciousnessStateManager и ClarityMoments."""
 
@@ -360,6 +393,12 @@ class TestIntegrationConsciousnessAndClarity:
         assert self.mock_self_state.clarity_duration == 0
 
 
+@pytest.mark.skipif(
+    not (feature_flags.is_adaptive_processing_enabled() and
+         feature_flags.is_parallel_consciousness_enabled() and
+         feature_flags.is_clarity_moments_enabled()),
+    reason="Требуются все экспериментальные feature flags"
+)
 class TestIntegrationFullSystemWorkflow:
     """Интеграционные тесты полного workflow системы."""
 

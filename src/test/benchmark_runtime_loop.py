@@ -270,7 +270,13 @@ if __name__ == "__main__":
 
     # Сохранение результатов в JSON
     import json
-    output_file = project_root / "benchmark_results.json"
+    from pathlib import Path
+
+    # Создаем каталог artifacts если не существует
+    artifacts_dir = Path("artifacts")
+    artifacts_dir.mkdir(exist_ok=True)
+
+    output_file = artifacts_dir / f"benchmark_results_{int(time.time())}.json"
     with open(output_file, 'w', encoding='utf-8') as f:
         json.dump(results, f, indent=2, ensure_ascii=False)
 

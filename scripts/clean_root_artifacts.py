@@ -4,9 +4,12 @@
 
 Удаляет:
 - export_*.json/csv/jsonl файлы
+- benchmark_*.json файлы
+- performance_*.json файлы
 - test_*.py/md/txt/xml файлы (кроме основных конфигурационных)
 - error_report_*.txt файлы
 - check_feedback_*.txt файлы
+- src.* файлы (структурированные логи)
 - __main__ файл
 
 Использование:
@@ -27,6 +30,8 @@ def clean_root_artifacts():
         "export_*.json",
         "export_*.csv",
         "export_*.jsonl",
+        "benchmark_*.json",
+        "performance_*.json",
         "test_*.py",
         "test_*.md",
         "test_*.txt",
@@ -39,6 +44,7 @@ def clean_root_artifacts():
         "test_full*.xml",
         "error_report_*.txt",
         "check_feedback_*.txt",
+        "src.*",  # Структурированные логи с __name__
         "__main__",
         "codeAgentProjectStatus.md",
     ]
@@ -48,6 +54,7 @@ def clean_root_artifacts():
         "conftest.py",  # pytest конфигурация
         "pytest.ini",  # pytest конфигурация
         "test_system_validation.py",  # может быть нужен для ручных проверок
+        "sample_snapshot.json",  # пример данных для демонстрации
     }
 
     removed_files = []
@@ -59,19 +66,19 @@ def clean_root_artifacts():
                 try:
                     file_path.unlink()
                     removed_files.append(str(file_path))
-                    print(f"🗑️  Удален: {file_path.name}")
+                    print(f"Удален: {file_path.name}")
                 except Exception as e:
-                    print(f"❌ Ошибка удаления {file_path.name}: {e}")
+                    print(f"Ошибка удаления {file_path.name}: {e}")
 
     if removed_files:
-        print(f"\n✅ Удалено {len(removed_files)} файлов")
+        print(f"\nУдалено {len(removed_files)} файлов")
     else:
-        print("\n✅ Корневой каталог чистый - ничего не удалено")
+        print("\nКорневой каталог чистый - ничего не удалено")
 
     return removed_files
 
 
 if __name__ == "__main__":
-    print("🧹 Очистка корневого каталога от артефактов...")
+    print("Очистка корневого каталога от артефактов...")
     clean_root_artifacts()
-    print("✨ Готово!")
+    print("Готово!")

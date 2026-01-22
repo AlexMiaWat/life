@@ -8,7 +8,7 @@
 
 import logging
 import time
-from typing import Dict, List, Optional, Any, Callable
+from typing import Dict, List, Optional, Any, Callable, TYPE_CHECKING
 from dataclasses import dataclass, field
 from enum import Enum
 
@@ -88,6 +88,7 @@ class AdaptiveProcessingManager:
         self_state_provider: Callable,
         config: Optional[AdaptiveProcessingConfig] = None,
         logger: Optional[StructuredLogger] = None,
+        consciousness_manager: Optional['ConsciousnessStateManager'] = None,
     ):
         """
         Инициализация адаптивного менеджера обработки.
@@ -96,10 +97,12 @@ class AdaptiveProcessingManager:
             self_state_provider: Функция для получения SelfState
             config: Конфигурация системы
             logger: Логгер для структурированного логирования
+            consciousness_manager: Менеджер состояний сознания для синхронизации
         """
         self.logger = logger or StructuredLogger()
         self.config = config or AdaptiveProcessingConfig()
         self.self_state_provider = self_state_provider
+        self.consciousness_manager = consciousness_manager
 
         # Компоненты системы
         self._memory_hierarchy = self._create_memory_hierarchy()
@@ -178,6 +181,73 @@ class AdaptiveProcessingManager:
 
         self._is_active = True
         self.logger.log_event({"event_type": "adaptive_processing_manager_started"})
+
+    def set_consciousness_manager(self, consciousness_manager: 'ConsciousnessStateManager') -> None:
+        """
+        Установить менеджер состояний сознания для синхронизации.
+
+        Args:
+            consciousness_manager: Менеджер состояний сознания
+        """
+        self.consciousness_manager = consciousness_manager
+        self.logger.log_event({"event_type": "consciousness_manager_linked"})
+
+    def _sync_with_consciousness_manager(self, adaptive_state: AdaptiveState) -> None:
+        """
+        Синхронизировать состояние с менеджером сознания.
+
+        Args:
+            adaptive_state: Новое адаптивное состояние
+        """
+        if not self.consciousness_manager:
+            return
+
+        # Локальный импорт для избежания циклических зависимостей
+        from src.experimental.consciousness.states import ConsciousnessState
+
+        # Определяем соответствующее состояние сознания
+        consciousness_state_map = {
+            AdaptiveState.STANDARD: ConsciousnessState.ACTIVE,  # Изменено для допустимого перехода
+            AdaptiveState.EFFICIENT_PROCESSING: ConsciousnessState.ACTIVE,
+            AdaptiveState.INTENSIVE_ANALYSIS: ConsciousnessState.ANALYZING,
+            AdaptiveState.SYSTEM_SELF_MONITORING: ConsciousnessState.REFLECTING,
+            AdaptiveState.OPTIMAL_PROCESSING: ConsciousnessState.ANALYZING,  # Изменено для допустимого перехода
+        }
+
+        target_consciousness_state = consciousness_state_map.get(adaptive_state, ConsciousnessState.ACTIVE)
+
+        # Если текущий статус INACTIVE и целевой статус не INITIALIZING,
+        # сначала переходим в INITIALIZING, затем к целевому состоянию
+        if self.consciousness_manager.current_state == ConsciousnessState.INACTIVE:
+            if target_consciousness_state == ConsciousnessState.INITIALIZING:
+                # Прямой переход к INITIALIZING
+                pass
+            else:
+                # Сначала INITIALIZING, затем ACTIVE
+                if not self.consciousness_manager.transition_to(
+                    ConsciousnessState.INITIALIZING,
+                    metadata={"triggered_by": "adaptive_processing_manager", "reason": "initial_activation"}
+                ):
+                    return  # Не можем выполнить переход
+                target_consciousness_state = ConsciousnessState.ACTIVE  # Переходим к ACTIVE вместо ANALYZING
+
+        # Пытаемся выполнить переход
+        if self.consciousness_manager.transition_to(
+            target_consciousness_state,
+            metadata={"triggered_by": "adaptive_processing_manager", "adaptive_state": adaptive_state.value}
+        ):
+            self.logger.log_event({
+                "event_type": "consciousness_state_synced",
+                "adaptive_state": adaptive_state.value,
+                "consciousness_state": target_consciousness_state.value,
+            })
+        else:
+            self.logger.log_event({
+                "event_type": "consciousness_state_sync_failed",
+                "adaptive_state": adaptive_state.value,
+                "target_consciousness_state": target_consciousness_state.value,
+                "current_consciousness_state": self.consciousness_manager.current_state.value,
+            })
 
     def stop(self) -> None:
         """Остановить адаптивную систему обработки."""
@@ -521,6 +591,9 @@ class AdaptiveProcessingManager:
             # Применяем эффекты перехода
             self._apply_state_transition_effects(self_state, target_state)
 
+            # Синхронизируем с менеджером сознания
+            self._sync_with_consciousness_manager(target_state)
+
             self.logger.log_event({
                 "event_type": "adaptive_state_transition",
                 "from_state": transition["from_state"],
@@ -668,6 +741,10 @@ class AdaptiveProcessingManager:
             True если событие было вызвано успешно
         """
         try:
+            # Валидация входных параметров
+            if processing_mode is None or not isinstance(processing_mode, ProcessingMode):
+                return False
+
             # Создать искусственное событие обработки
             processing_event = ProcessingEvent(
                 processing_mode=processing_mode,
@@ -678,7 +755,9 @@ class AdaptiveProcessingManager:
             # Применить эффекты
             self._apply_processing_effects(self_state, processing_event)
 
-            # Добавить в историю
+            # Обновить SelfState
+            self_state.processing_mode = processing_event.processing_mode.value
+            self_state.processing_intensity = processing_event.intensity
             self._add_to_processing_history(self_state, processing_event)
             self._stats["processing_events_triggered"] += 1
 
@@ -710,6 +789,10 @@ class AdaptiveProcessingManager:
             True если переход выполнен успешно
         """
         try:
+            # Валидация входных параметров
+            if target_state is None or not isinstance(target_state, AdaptiveState):
+                return False
+
             old_state = getattr(self_state, "current_adaptive_state", AdaptiveState.STANDARD.value)
             self_state.current_adaptive_state = target_state.value
 
@@ -722,6 +805,9 @@ class AdaptiveProcessingManager:
             }
             self.state_transitions.append(transition)
             self._stats["state_transitions"] += 1
+
+            # Синхронизируем с менеджером сознания
+            self._sync_with_consciousness_manager(target_state)
 
             self.logger.log_event({
                 "event_type": "manual_adaptive_state_change",

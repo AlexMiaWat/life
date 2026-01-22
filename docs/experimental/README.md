@@ -863,6 +863,265 @@ meta_cognition_depth: float = 0.0      # Глубина метакогниции
 - **Расширенная функциональность**: Доступ к новым возможностям adaptive processing
 - **Совместимость**: Полная обратная совместимость с существующими интеграциями
 
+## Adaptive Processing Manager - Адаптивный менеджер обработки
+
+### Назначение
+
+**AdaptiveProcessingManager** - экспериментальная система для динамической адаптации обработки информации на основе текущего состояния системы Life. Предоставляет унифицированный интерфейс для анализа системных условий и принятия решений об оптимизации обработки.
+
+### Архитектурные принципы
+
+1. **Адаптивность**: Динамическое изменение параметров обработки в зависимости от нагрузки
+2. **Модульность**: Разделение на независимые компоненты с четкими интерфейсами
+3. **Интеграция**: Глубокая интеграция с существующими системами (consciousness, memory, processing)
+4. **Опциональность**: Полностью отключаемая система без влияния на базовую функциональность
+5. **Наблюдаемость**: Детальное логирование всех адаптивных решений
+
+### Основные компоненты
+
+#### AdaptiveProcessingManager класс
+Расположение: `src/experimental/adaptive_processing_manager.py`
+
+**Центральный компонент системы**:
+- Управляет адаптивными состояниями обработки
+- Координирует работу с consciousness manager
+- Предоставляет унифицированный API для анализа условий
+- Реализует паттерны адаптивного поведения
+
+**Основные методы:**
+- `analyze_system_conditions()` - анализ текущих системных условий
+- `determine_adaptive_state()` - определение оптимального адаптивного состояния
+- `apply_adaptive_modifiers()` - применение адаптивных модификаторов
+- `get_processing_recommendations()` - получение рекомендаций по обработке
+- `set_consciousness_manager()` - установка менеджера состояний сознания
+
+#### AdaptiveProcessingConfig класс
+
+Конфигурация системы адаптивной обработки:
+
+```python
+@dataclass
+class AdaptiveProcessingConfig:
+    # Основные настройки
+    enable_adaptive_processing: bool = True
+    adaptation_check_interval: float = 10.0  # секунды
+
+    # Пороги для состояний
+    high_load_cpu_threshold: float = 80.0
+    high_load_memory_threshold: float = 85.0
+    low_energy_threshold: float = 0.3
+    high_stability_threshold: float = 0.8
+
+    # Модификаторы обработки
+    processing_intensity_modifier: float = 1.0
+    batch_size_modifier: float = 1.0
+    memory_consolidation_modifier: float = 1.0
+```
+
+#### Интеграция с Consciousness Manager
+
+**v2.8:** Добавлена глубокая интеграция с системой сознания:
+
+```python
+# Установка consciousness manager
+adaptive_manager.set_consciousness_manager(consciousness_manager)
+
+# Синхронизация состояний
+def _sync_with_consciousness_manager(self, adaptive_state: AdaptiveState) -> None:
+    """Синхронизация с менеджером состояний сознания."""
+    if self.consciousness_manager:
+        # Передача адаптивного состояния для координации
+        consciousness_update = {
+            "adaptive_state": adaptive_state.name,
+            "processing_intensity": adaptive_state.processing_intensity,
+            "cognitive_load": self._calculate_cognitive_load()
+        }
+        self.consciousness_manager.receive_adaptive_update(consciousness_update)
+```
+
+### Адаптивные состояния
+
+#### AdaptiveState Enum
+```python
+class AdaptiveState(Enum):
+    BASELINE = "baseline"           # Базовое состояние, стандартная обработка
+    EFFICIENT = "efficient"         # Эффективный режим при умеренной нагрузке
+    CONSERVATIVE = "conservative"   # Консервативный режим при низкой энергии
+    INTENSIVE = "intensive"         # Интенсивный режим при высокой стабильности
+    RECOVERY = "recovery"           # Режим восстановления при перегрузке
+```
+
+#### Характеристики состояний
+
+- **BASELINE**: Стандартная обработка, processing_modifier = 1.0
+- **EFFICIENT**: Оптимизированная обработка, сниженное потребление ресурсов
+- **CONSERVATIVE**: Сниженная интенсивность обработки при низкой энергии
+- **INTENSIVE**: Повышенная интенсивность при благоприятных условиях
+- **RECOVERY**: Минимальная обработка для восстановления ресурсов
+
+### Механизм работы
+
+#### 1. Анализ условий
+Система анализирует:
+- **Ресурсы**: CPU, память через `psutil`
+- **Состояние системы**: energy, stability, consciousness_level
+- **Нагрузка**: processing_efficiency, cognitive_load
+- **История**: предыдущие состояния и их эффективность
+
+#### 2. Определение состояния
+На основе анализа выбирается оптимальное адаптивное состояние:
+
+```python
+def determine_adaptive_state(self, system_conditions: Dict) -> AdaptiveState:
+    """Определение оптимального адаптивного состояния."""
+    energy = system_conditions.get('energy', 0.5)
+    stability = system_conditions.get('stability', 0.5)
+    cpu_usage = system_conditions.get('cpu_usage', 50.0)
+
+    if energy < 0.3 or cpu_usage > 90.0:
+        return AdaptiveState.RECOVERY
+    elif stability > 0.8 and energy > 0.7:
+        return AdaptiveState.INTENSIVE
+    elif energy < 0.5:
+        return AdaptiveState.CONSERVATIVE
+    elif cpu_usage < 60.0:
+        return AdaptiveState.EFFICIENT
+    else:
+        return AdaptiveState.BASELINE
+```
+
+#### 3. Применение модификаторов
+Выбранное состояние влияет на различные компоненты системы:
+
+```python
+def apply_adaptive_modifiers(self, state: AdaptiveState, self_state) -> None:
+    """Применение адаптивных модификаторов."""
+    modifiers = self._get_state_modifiers(state)
+
+    # Применение к processing
+    self_state.processing_modifier = modifiers['processing']
+
+    # Применение к memory
+    if hasattr(self_state, 'memory_consolidation_rate'):
+        self_state.memory_consolidation_rate *= modifiers['memory']
+
+    # Применение к consciousness
+    if self.consciousness_manager:
+        self.consciousness_manager.adjust_processing_intensity(modifiers['consciousness'])
+```
+
+### Интеграция с компонентами
+
+#### Runtime Loop
+- AdaptiveProcessingManager интегрирован в основной цикл
+- Анализ условий происходит с заданным интервалом
+- Модификаторы применяются ко всем компонентам
+
+#### Memory Hierarchy
+- Адаптивная консолидация памяти в зависимости от нагрузки
+- Оптимизация частоты переноса данных между уровнями
+- Приоритетные режимы при высоком cognitive_load
+
+#### Consciousness System
+- Синхронизация состояний обработки и сознания
+- Координация интенсивности когнитивных процессов
+- Совместное принятие решений об адаптации
+
+### Логирование и метрики
+
+#### StructuredLogger интеграция
+- Детальное логирование переходов между состояниями
+- Метрики эффективности адаптивных решений
+- Предупреждения о проблемах с адаптацией
+
+#### Ключевые метрики
+```python
+@dataclass
+class AdaptiveProcessingMetrics:
+    state_transitions_total: int = 0
+    current_adaptive_state: str = "baseline"
+    average_adaptation_time: float = 0.0
+    cpu_usage_trend: List[float] = field(default_factory=list)
+    memory_usage_trend: List[float] = field(default_factory=list)
+    adaptation_effectiveness: float = 0.0
+```
+
+### Конфигурация
+
+#### Включение/отключение
+```python
+run_loop(
+    # ...
+    enable_adaptive_processing=True,  # Включение адаптивной обработки
+    adaptive_processing_config=config,  # Конфигурация системы
+    # ...
+)
+```
+
+#### Настраиваемые параметры
+```python
+# В AdaptiveProcessingConfig
+enable_adaptive_processing: bool = True
+adaptation_check_interval: float = 10.0  # Проверка каждые 10 секунд
+high_load_cpu_threshold: float = 80.0    # CPU > 80% = высокая нагрузка
+low_energy_threshold: float = 0.3        # Энергия < 0.3 = низкий уровень
+```
+
+### Тестирование
+
+#### Unit тесты
+- `src/test/test_adaptive_processing_manager.py` - базовая функциональность
+- Проверка определения состояний и применения модификаторов
+- Тестирование интеграции с consciousness manager
+
+#### Integration тесты
+- `src/test/test_adaptive_processing_integration.py` - полная интеграция
+- Тестирование с runtime loop и memory hierarchy
+- Проверка влияния на производительность
+
+### Примеры использования
+
+#### Базовое использование
+```python
+from src.experimental.adaptive_processing_manager import AdaptiveProcessingManager, AdaptiveProcessingConfig
+
+# Создание конфигурации
+config = AdaptiveProcessingConfig(
+    enable_adaptive_processing=True,
+    adaptation_check_interval=5.0
+)
+
+# Создание менеджера
+manager = AdaptiveProcessingManager(config=config)
+
+# Анализ условий и определение состояния
+conditions = {
+    'energy': 0.8,
+    'stability': 0.7,
+    'cpu_usage': 45.0
+}
+state = manager.determine_adaptive_state(conditions)
+print(f"Оптимальное состояние: {state.value}")
+```
+
+#### Интеграция с consciousness
+```python
+# Установка consciousness manager
+manager.set_consciousness_manager(consciousness_manager)
+
+# Получение рекомендаций
+recommendations = manager.get_processing_recommendations(self_state)
+print(f"Рекомендации: {recommendations}")
+```
+
+### Будущие улучшения
+
+1. **Машинное обучение**: Использование ML для оптимизации адаптивных решений
+2. **Расширенные метрики**: Дополнительные параметры для анализа (I/O, сеть)
+3. **Предиктивная адаптация**: Предсказание будущих состояний нагрузки
+4. **Динамическая конфигурация**: Автоматическая настройка порогов
+5. **Мульти-агентная координация**: Синхронизация между несколькими экземплярами
+
 ## Другие экспериментальные возможности
 
 ## Silence Awareness - Система осознания тишины
