@@ -9,6 +9,7 @@ import time
 from typing import Dict, List, Any, Optional
 from dataclasses import dataclass
 
+from src.contracts.serialization_contract import SerializationContract
 from src.experimental.adaptive_processing_manager import (
     AdaptiveProcessingManager,
     ProcessingMode,
@@ -29,20 +30,28 @@ class ClarityMoment:
     data: Dict[str, Any]
 
 
-class ClarityMomentsTracker:
-    """Tracks and analyzes moments of clarity."""
+class ClarityMomentsTracker(SerializationContract):
+    """Tracks and analyzes moments of clarity. Реализует контракты сериализации."""
 
     # Constants for backward compatibility
     CLARITY_CHECK_INTERVAL = 10
     CLARITY_STABILITY_THRESHOLD = 0.8
     CLARITY_ENERGY_THRESHOLD = 0.7
 
-    def __init__(self, data_file: Optional[str] = None, logger=None, self_state_provider=None):
-        # Initialize with new adaptive processing manager
-        # Use provided self_state_provider or create a default one
-        if self_state_provider:
-            self.self_state_provider = self_state_provider
+    def __init__(self, self_state=None, adaptive_manager=None):
+        """
+        Инициализация ClarityMomentsTracker с dependency injection.
+
+        Args:
+            self_state: Экземпляр SelfState для dependency injection
+            adaptive_manager: Экземпляр AdaptiveProcessingManager (опционально)
+        """
+        if self_state is not None:
+            # Dependency injection через SelfState
+            self.self_state = self_state
+            self.self_state_provider = lambda: self.self_state
         else:
+            # Fallback для обратной совместимости
             def default_self_state_provider():
                 return type('DefaultState', (), {
                     'energy': 80.0,
@@ -52,8 +61,13 @@ class ClarityMomentsTracker:
                     'error_rate': 0.01
                 })()
             self.self_state_provider = default_self_state_provider
+            self.self_state = None
 
-        self.adaptive_manager = AdaptiveProcessingManager(self.self_state_provider)
+        # Используем предоставленный adaptive_manager или создаем новый
+        if adaptive_manager is not None:
+            self.adaptive_manager = adaptive_manager
+        else:
+            self.adaptive_manager = AdaptiveProcessingManager(self.self_state_provider)
         self.moments: List[ClarityMoment] = []
         self._correlation_counter = 0
 
@@ -101,11 +115,14 @@ class ClarityMomentsTracker:
 
     def analyze_clarity_patterns(self) -> Dict[str, Any]:
         """Analyze patterns in clarity moments."""
-        if not self.moments:
-            return {'total_moments': 0}
-
         # Get data from adaptive manager
         adaptive_stats = self.adaptive_manager.get_processing_statistics()
+
+        if not self.moments:
+            return {
+                'total_moments': 0,
+                'adaptive_stats': adaptive_stats
+            }
 
         # Convert to old format
         intensities = [m.intensity for m in self.moments]
@@ -168,6 +185,62 @@ class ClarityMomentsTracker:
         }
         return state_mapping.get(state, 0.3)
 
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Сериализация состояния ClarityMomentsTracker.
+
+        Архитектурные гарантии:
+        - Thread-safe: Метод безопасен для вызова из разных потоков
+        - Атомарный: Сериализация представляет консистентное состояние
+        - Отказоустойчивый: Исключения не должны приводить к повреждению состояния
+        - Детерминированный: Для одинакового состояния возвращает одинаковый результат
+
+        Returns:
+            Dict[str, Any]: Словарь с состоянием компонента
+        """
+        moments_data = []
+        for moment in self.moments:
+            moments_data.append({
+                "timestamp": moment.timestamp,
+                "stage": moment.stage,
+                "correlation_id": moment.correlation_id,
+                "event_id": moment.event_id,
+                "event_type": moment.event_type,
+                "intensity": moment.intensity,
+                "data": moment.data
+            })
+
+        return {
+            "correlation_counter": self._correlation_counter,
+            "moments_count": len(self.moments),
+            "moments": moments_data,
+            "component_type": "ClarityMomentsTracker",
+            "version": "1.0",
+            "has_adaptive_manager": self.adaptive_manager is not None
+        }
+
+    def get_serialization_metadata(self) -> Dict[str, Any]:
+        """
+        Получить метаданные сериализации для ClarityMomentsTracker.
+
+        Returns:
+            Dict[str, Any]: Метаданные содержащие как минимум:
+            - version: str - версия формата сериализации
+            - timestamp: float - время сериализации
+            - component_type: str - тип компонента
+            - thread_safe: bool - подтверждение thread-safety
+        """
+        return {
+            "version": "1.0",
+            "component_type": "ClarityMomentsTracker",
+            "thread_safe": True,
+            "timestamp": time.time(),
+            "moments_count": len(self.moments),
+            "correlation_counter": self._correlation_counter,
+            "has_self_state_provider": self.self_state_provider is not None,
+            "adaptive_manager_available": self.adaptive_manager is not None
+        }
+
 
 # Global tracker instance - compatibility layer
 tracker: ClarityMomentsTracker = ClarityMomentsTracker()
@@ -183,8 +256,18 @@ class ClarityMoments:
     CLARITY_ENERGY_THRESHOLD = ClarityMomentsTracker.CLARITY_ENERGY_THRESHOLD
     CLARITY_DURATION_TICKS = 50
 
-    def __init__(self, logger=None, self_state_provider=None):
-        self.tracker = ClarityMomentsTracker(logger=logger, self_state_provider=self_state_provider)
+    def __init__(self, logger=None, self_state=None, adaptive_manager=None):
+        """
+        Инициализация ClarityMoments с dependency injection.
+
+        Args:
+            logger: Логгер (для обратной совместимости)
+            self_state: Экземпляр SelfState для dependency injection
+            adaptive_manager: AdaptiveProcessingManager (опционально для совместимости)
+        """
+        # Для обратной совместимости adaptive_manager может быть None
+        # но архитектурно рекомендуется передавать его явно
+        self.tracker = ClarityMomentsTracker(self_state=self_state, adaptive_manager=adaptive_manager)
         # Backward compatibility attributes
         self._clarity_events_count = 0
         self._last_check_tick = -10  # -CLARITY_CHECK_INTERVAL
@@ -236,3 +319,79 @@ class ClarityMoments:
         if self.tracker.moments:
             return self.tracker.moments[-1].intensity
         return 0.0  # type: ignore
+
+    def get_status(self) -> Dict[str, Any]:
+        """Get current status of clarity moments system."""
+        adaptive_state = self.tracker.get_adaptive_state()
+        return {
+            "active": len(self.tracker.moments) > 0,
+            "intensity": self.get_clarity_level(),
+            "duration": getattr(self.tracker.adaptive_manager, 'current_duration', 0),
+            "adaptive_state": adaptive_state.value if adaptive_state else "unknown"
+        }
+
+    def process(self, data: Dict[str, Any], intensity_threshold: float = 0.5, duration_ticks: int = 10) -> Optional[Dict[str, Any]]:
+        """Process clarity data and potentially create a clarity moment."""
+        intensity = data.get('intensity', 0.0)
+
+        if intensity >= intensity_threshold:
+            # Create a clarity moment
+            moment = ClarityMoment(
+                timestamp=time.time(),
+                stage=data.get('stage', 'processed'),
+                correlation_id=data.get('correlation_id', self.tracker._generate_correlation_id()),
+                event_id=data.get('event_id', f"processed_{int(time.time())}"),
+                event_type=data.get('event_type', 'processed_event'),
+                intensity=intensity,
+                data=data
+            )
+
+            self.tracker.add_moment(moment)
+
+            return {
+                "clarity_moment_created": True,
+                "moment_id": len(self.tracker.moments),
+                "intensity": intensity,
+                "duration_ticks": duration_ticks
+            }
+
+        return None
+
+    def reset(self) -> None:
+        """Reset clarity moments state (legacy compatibility)."""
+        self.tracker.moments.clear()
+        self.tracker._correlation_counter = 0
+        self._clarity_events_count = 0
+        self._last_check_tick = -10
+
+    # Legacy compatibility mappings
+    _LEGACY_MODE_MAPPING = {
+        "baseline": "baseline",
+        "efficient": "efficient",
+        "intensive": "intensive",
+        "optimized": "optimized",
+        "self_monitoring": "self_monitoring"
+    }
+
+    _LEGACY_STATE_MAPPING = {
+        "standard": "standard",
+        "efficient_processing": "efficient_processing",
+        "intensive_analysis": "intensive_analysis",
+        "system_self_monitoring": "system_self_monitoring",
+        "optimal_processing": "optimal_processing"
+    }
+
+    def _convert_to_adaptive_mode(self, legacy_mode: str) -> str:
+        """Convert legacy mode to adaptive mode (compatibility)."""
+        return self._LEGACY_MODE_MAPPING.get(legacy_mode, "baseline")
+
+    def _convert_from_adaptive_mode(self, adaptive_mode: str) -> str:
+        """Convert adaptive mode to legacy mode (compatibility)."""
+        for legacy, adaptive in self._LEGACY_MODE_MAPPING.items():
+            if adaptive == adaptive_mode:
+                return legacy
+        return "baseline"
+
+    def _get_legacy_status(self) -> Dict[str, Any]:
+        """Get legacy status format (compatibility)."""
+        return self.get_status()

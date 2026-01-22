@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Dict, Optional, Any
+from typing import Dict, Optional, Any, List
 
 from src.memory.memory import ArchiveMemory, Memory
 from ...contracts.serialization_contract import Serializable
@@ -70,14 +70,18 @@ class MemoryState(Serializable):
         """Проверяет, есть ли архивная память."""
         return self.archive_memory is not None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, chunk_size: int = 100, max_chunks: int = 10) -> Dict[str, Any]:
         """
-        Сериализует состояние памяти.
+        Сериализует состояние памяти с chunked обработкой для производительности.
+
+        Args:
+            chunk_size: Размер чанка для сериализации записей памяти (по умолчанию 100)
+            max_chunks: Максимальное количество чанков для обработки (по умолчанию 10)
 
         Returns:
             Dict[str, Any]: Словарь с состоянием памяти
         """
-        return {
+        result = {
             "has_active_memory": self.has_active_memory(),
             "has_archive_memory": self.has_archive_memory(),
             "entries_by_type": self.entries_by_type.copy(),
@@ -86,5 +90,69 @@ class MemoryState(Serializable):
             "sensory_buffer_size": self.sensory_buffer_size,
             "semantic_concepts_count": self.semantic_concepts_count,
             "procedural_patterns_count": self.procedural_patterns_count,
-            "memory_stats": self.get_memory_stats() if self.memory else {}
+            "memory_stats": self.get_memory_stats() if self.memory else {},
+            "serialization_chunked": True,
+            "chunk_size": chunk_size,
+            "max_chunks": max_chunks
         }
+
+        # Chunked сериализация активной памяти
+        if self.memory is not None:
+            try:
+                # Используем оптимизированный метод для chunked сериализации
+                result["active_memory_chunks"] = self._serialize_memory_chunks(chunk_size, max_chunks)
+                result["active_memory_total_entries"] = len(self.memory)
+            except Exception as e:
+                # Fallback при ошибке сериализации
+                result["active_memory_error"] = f"Serialization failed: {str(e)}"
+                result["active_memory_chunks"] = []
+
+        return result
+
+    def _serialize_memory_chunks(self, chunk_size: int, max_chunks: int) -> List[Dict[str, Any]]:
+        """
+        Сериализует память по чанкам для избежания больших блокировок.
+
+        Args:
+            chunk_size: Размер одного чанка
+            max_chunks: Максимальное количество чанков
+
+        Returns:
+            List[Dict[str, Any]]: Список чанков с сериализованными записями
+        """
+        if not self.memory:
+            return []
+
+        chunks = []
+        total_entries = len(self.memory)
+
+        # Обрабатываем записи в обратном порядке (сначала самые свежие)
+        for chunk_idx in range(min(max_chunks, (total_entries + chunk_size - 1) // chunk_size)):
+            start_idx = chunk_idx * chunk_size
+            end_idx = min(start_idx + chunk_size, total_entries)
+
+            chunk_entries = []
+            for i in range(start_idx, end_idx):
+                entry = self.memory[-(i + 1)]  # Начинаем с самых свежих
+                try:
+                    chunk_entries.append({
+                        "event_type": entry.event_type,
+                        "meaning_significance": entry.meaning_significance,
+                        "timestamp": entry.timestamp,
+                        "weight": entry.weight,
+                        "feedback_data": entry.feedback_data if entry.feedback_data else {}
+                    })
+                except AttributeError:
+                    # Пропускаем поврежденные записи
+                    continue
+
+            if chunk_entries:  # Добавляем только непустые чанки
+                chunks.append({
+                    "chunk_index": chunk_idx,
+                    "start_index": start_idx,
+                    "end_index": end_idx,
+                    "entries_count": len(chunk_entries),
+                    "entries": chunk_entries
+                })
+
+        return chunks

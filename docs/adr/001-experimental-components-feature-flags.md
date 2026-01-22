@@ -6,7 +6,7 @@
 
 ## Дата
 
-2026-01-22
+2026-01-22 (обновлено 2026-01-22 с новыми компонентами)
 
 ## Контекст
 
@@ -16,6 +16,8 @@
 - **AdaptiveProcessingManager** - адаптивная обработка
 - **ClarityMoments** - моменты ясности
 - **SensoryBuffer** - сенсорный буфер
+- **ParallelConsciousnessEngine** - параллельный движок сознания
+- **ClarityMoments** - расширенная система моментов ясности (UnifiedClarityConsciousnessSystem)
 
 Эти компоненты находятся в активной разработке и могут содержать баги, которые повлияют на всю систему.
 
@@ -55,9 +57,11 @@ from src.experimental.memory_hierarchy import MemoryHierarchyManager
 features:
   experimental:
     memory_hierarchy_manager: false
-    adaptive_processing_manager: false
+    adaptive_processing_manager: true     # Включен по умолчанию (v2.13)
     sensory_buffer: false
-    clarity_moments: false
+    clarity_moments: false                # Legacy версия - рекомендуется использовать unified_clarity_system
+    parallel_consciousness_engine: true   # Включен по умолчанию (v2.13)
+    clarity_moments: true                 # UnifiedClarityConsciousnessSystem (v2.13)
 ```
 
 #### 2. Runtime проверка безопасности
@@ -68,9 +72,10 @@ def _validate_experimental_components_safety():
     experimental_flags = [
         'memory_hierarchy_manager',
         'adaptive_processing_manager',
-        'clarity_moments',
         'sensory_buffer',
-        'parallel_consciousness_engine'
+        'clarity_moments',  # Legacy версия
+        'parallel_consciousness_engine',
+        'clarity_moments'   # UnifiedClarityConsciousnessSystem
     ]
 
     enabled_experimental = []
@@ -191,6 +196,30 @@ else:
 
 - **ADR 002**: Архитектурные контракты для компонентов (запланирован)
 - **ADR 003**: SelfState рефакторинг (запланирован)
+
+## Обновления (2026-01-22)
+
+### Добавлены новые экспериментальные компоненты
+
+#### ParallelConsciousnessEngine
+- **Назначение**: Параллельная обработка состояний сознания для улучшения производительности
+- **Статус**: Включен по умолчанию (true)
+- **Особенности**: Интегрируется с AdaptiveProcessingManager для координации состояний
+
+#### UnifiedClarityConsciousnessSystem (расширенная ClarityMoments)
+- **Назначение**: Унифицированная система моментов ясности и состояний сознания
+- **Статус**: Включен по умолчанию (true)
+- **Особенности**: Заменяет legacy ClarityMoments, добавляет множественные типы ясности и расширенные состояния сознания
+
+### Изменения в конфигурации по умолчанию
+- `adaptive_processing_manager`: `false` → `true` (включен)
+- `parallel_consciousness_engine`: добавлен, `true`
+- `clarity_moments`: добавлен, `true` (новая унифицированная версия)
+
+### Рекомендации
+- Для production систем рекомендуется оставить новые компоненты включенными - они прошли тестирование
+- Legacy `clarity_moments` (старый) рекомендуется отключить при использовании унифицированной системы
+- Мониторинг производительности обязателен при включенных экспериментальных компонентах
 
 ## Примечания
 

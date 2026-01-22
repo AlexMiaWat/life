@@ -80,6 +80,7 @@ class TestSmokeAdaptiveProcessingManager:
         mock_state.energy = 0.8
         mock_state.processing_efficiency = 0.7
         mock_state.cognitive_load = 0.2
+        mock_state.processing_history = []  # Инициализируем историю обработки
         mock_provider.return_value = mock_state
 
         manager = AdaptiveProcessingManager(mock_provider)

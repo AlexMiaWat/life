@@ -18,8 +18,14 @@ from .log_analysis import (
     analyze_correlation_chains,
     get_performance_metrics,
     get_error_summary,
-    filter_logs_by_time_range
+    filter_logs_by_time_range,
+    analyze_semantic_patterns,
+    analyze_behavioral_anomalies,
+    analyze_system_health_semantic,
+    get_semantic_chain_analysis
 )
+from .semantic_analysis_engine import SemanticAnalysisEngine
+from .predictive_analysis import PredictiveAnalysisEngine
 
 logger = logging.getLogger(__name__)
 
@@ -403,3 +409,389 @@ async def get_log_stats(
 
 # Аналогично модифицируем другие endpoints для кэширования
 # (для краткости опускаю, но в реальном коде нужно добавить)
+
+
+# Semantic Analysis Endpoints
+
+@app.get("/semantic/patterns")
+async def get_semantic_patterns(
+    log_file: str = Query("data/structured_log.jsonl", description="Путь к файлу логов"),
+    use_cache: bool = Query(True, description="Использовать кэширование")
+):
+    """
+    Получить анализ семантических паттернов в логах.
+    """
+    try:
+        if not Path(log_file).exists():
+            raise HTTPException(status_code=404, detail=f"Файл логов не найден: {log_file}")
+
+        if use_cache:
+            cached = get_cached_analysis("semantic_patterns", log_file)
+            if cached:
+                return cached
+
+        results = analyze_semantic_patterns(log_file)
+
+        if use_cache:
+            set_cached_analysis("semantic_patterns", log_file, results)
+
+        return results
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Ошибка анализа семантических паттернов: {e}")
+        raise HTTPException(status_code=500, detail=f"Внутренняя ошибка сервера: {str(e)}")
+
+
+@app.get("/semantic/anomalies")
+async def get_behavioral_anomalies(
+    log_file: str = Query("data/structured_log.jsonl", description="Путь к файлу логов"),
+    anomaly_threshold: float = Query(0.7, description="Порог обнаружения аномалий", ge=0.0, le=1.0),
+    use_cache: bool = Query(True, description="Использовать кэширование")
+):
+    """
+    Получить анализ поведенческих аномалий в логах.
+    """
+    try:
+        if not Path(log_file).exists():
+            raise HTTPException(status_code=404, detail=f"Файл логов не найден: {log_file}")
+
+        cache_key = f"anomalies_{anomaly_threshold}"
+        if use_cache:
+            cached = get_cached_analysis(cache_key, log_file)
+            if cached:
+                return cached
+
+        results = analyze_behavioral_anomalies(log_file, anomaly_threshold)
+
+        if use_cache:
+            set_cached_analysis(cache_key, log_file, results)
+
+        return results
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Ошибка анализа аномалий: {e}")
+        raise HTTPException(status_code=500, detail=f"Внутренняя ошибка сервера: {str(e)}")
+
+
+@app.get("/semantic/health")
+async def get_system_health_semantic(
+    log_file: str = Query("data/structured_log.jsonl", description="Путь к файлу логов"),
+    use_cache: bool = Query(True, description="Использовать кэширование")
+):
+    """
+    Получить семантический анализ здоровья системы.
+    """
+    try:
+        if not Path(log_file).exists():
+            raise HTTPException(status_code=404, detail=f"Файл логов не найден: {log_file}")
+
+        if use_cache:
+            cached = get_cached_analysis("system_health_semantic", log_file)
+            if cached:
+                return cached
+
+        results = analyze_system_health_semantic(log_file)
+
+        if use_cache:
+            set_cached_analysis("system_health_semantic", log_file, results)
+
+        return results
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Ошибка анализа здоровья системы: {e}")
+        raise HTTPException(status_code=500, detail=f"Внутренняя ошибка сервера: {str(e)}")
+
+
+@app.get("/semantic/chain/{correlation_id}")
+async def get_semantic_chain_analysis_endpoint(
+    correlation_id: str,
+    log_file: str = Query("data/structured_log.jsonl", description="Путь к файлу логов"),
+    use_cache: bool = Query(True, description="Использовать кэширование")
+):
+    """
+    Получить детальный семантический анализ конкретной цепочки корреляции.
+    """
+    try:
+        if not Path(log_file).exists():
+            raise HTTPException(status_code=404, detail=f"Файл логов не найден: {log_file}")
+
+        cache_key = f"chain_{correlation_id}"
+        if use_cache:
+            cached = get_cached_analysis(cache_key, log_file)
+            if cached:
+                return cached
+
+        results = get_semantic_chain_analysis(log_file, correlation_id)
+
+        if use_cache:
+            set_cached_analysis(cache_key, log_file, results)
+
+        return results
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Ошибка анализа цепочки {correlation_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Внутренняя ошибка сервера: {str(e)}")
+
+
+@app.get("/semantic/behavioral-trends")
+async def get_behavioral_trends(
+    log_file: str = Query("data/structured_log.jsonl", description="Путь к файлу логов"),
+    time_window_seconds: float = Query(3600.0, description="Временное окно для анализа", ge=300.0, le=86400.0),
+    use_cache: bool = Query(False, description="Использовать кэширование")  # Отключаем кэш по умолчанию для трендов
+):
+    """
+    Получить анализ поведенческих трендов в реальном времени.
+    """
+    try:
+        if not Path(log_file).exists():
+            raise HTTPException(status_code=404, detail=f"Файл логов не найден: {log_file}")
+
+        # Создаем новый экземпляр для анализа трендов
+        engine = SemanticAnalysisEngine()
+
+        # Загружаем данные из логов
+        correlation_chains = {}
+        with open(log_file, 'r', encoding='utf-8') as f:
+            for line in f:
+                try:
+                    entry = json.loads(line.strip())
+                    cid = entry.get('correlation_id')
+                    if cid:
+                        if cid not in correlation_chains:
+                            correlation_chains[cid] = []
+                        correlation_chains[cid].append(entry)
+                except json.JSONDecodeError:
+                    continue
+
+        # Анализируем каждую цепочку
+        for correlation_id, chain_entries in correlation_chains.items():
+            chain_entries.sort(key=lambda x: x.get('timestamp', 0))
+            analysis_result = engine.analyze_correlation_chain(correlation_id, chain_entries)
+
+        # Получаем анализ трендов
+        trends = engine.analyze_behavioral_trends(time_window_seconds)
+
+        return {
+            'trends_analysis': trends,
+            'chains_analyzed': len(correlation_chains),
+            'time_window': time_window_seconds,
+            'timestamp': time.time()
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Ошибка анализа трендов: {e}")
+        raise HTTPException(status_code=500, detail=f"Внутренняя ошибка сервера: {str(e)}")
+
+
+@app.get("/semantic/predictive-insights")
+async def get_predictive_insights(
+    log_file: str = Query("data/structured_log.jsonl", description="Путь к файлу логов"),
+    prediction_horizon: int = Query(5, description="Горизонт предсказания", ge=1, le=20)
+):
+    """
+    Получить предиктивные insights о поведении системы.
+    """
+    try:
+        if not Path(log_file).exists():
+            raise HTTPException(status_code=404, detail=f"Файл логов не найден: {log_file}")
+
+        # Создаем движки анализа
+        semantic_engine = SemanticAnalysisEngine()
+        predictive_engine = PredictiveAnalysisEngine(prediction_horizon=prediction_horizon)
+
+        # Загружаем и анализируем данные
+        correlation_chains = {}
+        with open(log_file, 'r', encoding='utf-8') as f:
+            for line in f:
+                try:
+                    entry = json.loads(line.strip())
+                    cid = entry.get('correlation_id')
+                    if cid:
+                        if cid not in correlation_chains:
+                            correlation_chains[cid] = []
+                        correlation_chains[cid].append(entry)
+                except json.JSONDecodeError:
+                    continue
+
+        # Анализируем семантику и обновляем предиктивный анализ
+        for correlation_id, chain_entries in correlation_chains.items():
+            chain_entries.sort(key=lambda x: x.get('timestamp', 0))
+            semantic_result = semantic_engine.analyze_correlation_chain(correlation_id, chain_entries)
+            predictive_engine.update_historical_data(semantic_result)
+
+        # Получаем предиктивные insights
+        predictive_insights = predictive_engine.get_predictive_insights()
+
+        return {
+            'predictive_insights': predictive_insights,
+            'chains_processed': len(correlation_chains),
+            'prediction_horizon': prediction_horizon,
+            'timestamp': time.time()
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Ошибка получения предиктивных insights: {e}")
+        raise HTTPException(status_code=500, detail=f"Внутренняя ошибка сервера: {str(e)}")
+
+
+@app.get("/semantic/state-context")
+async def get_state_context_analysis(
+    log_file: str = Query("data/structured_log.jsonl", description="Путь к файлу логов"),
+    energy_level: Optional[float] = Query(None, description="Текущий уровень энергии"),
+    integrity_level: Optional[float] = Query(None, description="Текущий уровень целостности"),
+    stability_level: Optional[float] = Query(None, description="Текущий уровень стабильности")
+):
+    """
+    Получить контекстный анализ состояния системы.
+    """
+    try:
+        if not Path(log_file).exists():
+            raise HTTPException(status_code=404, detail=f"Файл логов не найден: {log_file}")
+
+        # Создаем движок анализа
+        engine = SemanticAnalysisEngine()
+
+        # Загружаем исторические данные
+        correlation_chains = {}
+        with open(log_file, 'r', encoding='utf-8') as f:
+            for line in f:
+                try:
+                    entry = json.loads(line.strip())
+                    cid = entry.get('correlation_id')
+                    if cid:
+                        if cid not in correlation_chains:
+                            correlation_chains[cid] = []
+                        correlation_chains[cid].append(entry)
+                except json.JSONDecodeError:
+                    continue
+
+        # Анализируем цепочки для накопления данных
+        for correlation_id, chain_entries in correlation_chains.items():
+            chain_entries.sort(key=lambda x: x.get('timestamp', 0))
+            engine.analyze_correlation_chain(correlation_id, chain_entries)
+
+        # Подготавливаем данные текущего состояния
+        state_data = {}
+        if energy_level is not None:
+            state_data['energy'] = energy_level
+        if integrity_level is not None:
+            state_data['integrity'] = integrity_level
+        if stability_level is not None:
+            state_data['stability'] = stability_level
+
+        # Получаем контекстный анализ
+        context_analysis = engine.analyze_state_context(state_data)
+
+        return {
+            'state_context_analysis': context_analysis,
+            'chains_processed': len(correlation_chains),
+            'current_state_provided': bool(state_data),
+            'timestamp': time.time()
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Ошибка анализа контекста состояния: {e}")
+        raise HTTPException(status_code=500, detail=f"Внутренняя ошибка сервера: {str(e)}")
+
+
+@app.get("/semantic/comprehensive-insights")
+async def get_comprehensive_semantic_insights(
+    log_file: str = Query("data/structured_log.jsonl", description="Путь к файлу логов")
+):
+    """
+    Получить всесторонние семантические insights о системе.
+    """
+    try:
+        if not Path(log_file).exists():
+            raise HTTPException(status_code=404, detail=f"Файл логов не найден: {log_file}")
+
+        # Создаем все движки анализа
+        semantic_engine = SemanticAnalysisEngine()
+        predictive_engine = PredictiveAnalysisEngine()
+
+        # Загружаем данные
+        correlation_chains = {}
+        with open(log_file, 'r', encoding='utf-8') as f:
+            for line in f:
+                try:
+                    entry = json.loads(line.strip())
+                    cid = entry.get('correlation_id')
+                    if cid:
+                        if cid not in correlation_chains:
+                            correlation_chains[cid] = []
+                        correlation_chains[cid].append(entry)
+                except json.JSONDecodeError:
+                    continue
+
+        # Выполняем полный анализ
+        insights = {
+            'summary': {
+                'total_chains': len(correlation_chains),
+                'analysis_timestamp': time.time(),
+                'log_file': log_file
+            },
+            'semantic_patterns': {},
+            'behavioral_anomalies': {},
+            'system_health': {},
+            'predictive_insights': {},
+            'state_context': {},
+            'behavioral_trends': {}
+        }
+
+        # Анализируем каждую цепочку
+        for correlation_id, chain_entries in correlation_chains.items():
+            chain_entries.sort(key=lambda x: x.get('timestamp', 0))
+            semantic_result = semantic_engine.analyze_correlation_chain(correlation_id, chain_entries)
+            predictive_engine.update_historical_data(semantic_result)
+
+        # Получаем все insights
+        insights['semantic_patterns'] = semantic_engine.get_semantic_insights()
+        insights['behavioral_trends'] = semantic_engine.analyze_behavioral_trends()
+        insights['state_context'] = semantic_engine.analyze_state_context()
+        insights['predictive_insights'] = predictive_engine.get_predictive_insights()
+
+        # Создаем сводку здоровья системы
+        recent_chains = list(correlation_chains.values())[-50:]  # Последние 50 цепочек
+        if recent_chains:
+            insights['system_health'] = semantic_engine.analyze_system_health(recent_chains)
+
+        # Добавляем поведенческие аномалии
+        anomaly_results = semantic_engine.detect_anomalies({
+            'correlation_id': 'comprehensive_analysis',
+            'anomaly_score': 0.0,  # Не проверяем на аномалии в общем анализе
+            'chains_analyzed': len(correlation_chains)
+        })
+        insights['behavioral_anomalies'] = {
+            'detected_anomalies': len(anomaly_results),
+            'anomalies': [
+                {
+                    'type': a.anomaly_type,
+                    'severity': a.severity,
+                    'description': a.description,
+                    'timestamp': a.timestamp
+                }
+                for a in anomaly_results
+            ]
+        }
+
+        return insights
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Ошибка получения комплексных insights: {e}")
+        raise HTTPException(status_code=500, detail=f"Внутренняя ошибка сервера: {str(e)}")

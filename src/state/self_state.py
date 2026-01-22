@@ -5,7 +5,6 @@ import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional, Any, Dict, List, TYPE_CHECKING
-import concurrent.futures
 
 if TYPE_CHECKING:
     from src.experimental.memory_hierarchy.hierarchy_manager import MemoryHierarchyManager
@@ -67,6 +66,10 @@ class SelfState(SerializationContract, ThreadSafeSerializable):
     cognitive: CognitiveState = field(default_factory=CognitiveState)
     events: EventState = field(default_factory=EventState)
     memory_hierarchy: Optional['MemoryHierarchyManager'] = field(default=None, init=False)
+
+    # Экспериментальные компоненты
+    parallel_consciousness_engine: Optional['ParallelConsciousnessEngine'] = field(default=None, init=False)
+    clarity_moments_tracker: Optional['ClarityMomentsTracker'] = field(default=None, init=False)
 
     # История изменений параметров (для обратной совместимости и анализа эволюции)
     parameter_history: list[ParameterChange] = field(
@@ -1794,10 +1797,9 @@ class SelfState(SerializationContract, ThreadSafeSerializable):
 
     def _serialize_components_isolated(self) -> tuple[Dict[str, Any], Dict[str, Any]]:
         """
-        Сериализует компоненты с timeout и изоляцией.
+        Сериализует компоненты последовательно с обработкой ошибок.
 
-        Использует ThreadPoolExecutor для параллельной сериализации с timeout.
-        Исключения в одном компоненте не влияют на другие компоненты.
+        Простая последовательная сериализация без параллелизма для повышения надежности.
 
         Returns:
             tuple[Dict[str, Any], Dict[str, Any]]: (components, metrics)
@@ -1806,7 +1808,6 @@ class SelfState(SerializationContract, ThreadSafeSerializable):
         """
         components = {}
         component_errors = []
-        component_timeouts = []
 
         component_mappings = {
             "identity": self.identity,
@@ -1821,54 +1822,72 @@ class SelfState(SerializationContract, ThreadSafeSerializable):
         if self.memory_hierarchy is not None:
             component_mappings["memory_hierarchy"] = self.memory_hierarchy
 
-        # Используем ThreadPoolExecutor для изоляции и timeout
-        with concurrent.futures.ThreadPoolExecutor(max_workers=len(component_mappings)) as executor:
-            # Создаем future для каждого компонента
-            future_to_component = {
-                executor.submit(self._serialize_component_with_timeout, name, component): name
-                for name, component in component_mappings.items()
-            }
+        # Добавляем экспериментальные компоненты если доступны
+        if self.parallel_consciousness_engine is not None:
+            component_mappings["parallel_consciousness_engine"] = self.parallel_consciousness_engine
+        if self.clarity_moments_tracker is not None:
+            component_mappings["clarity_moments_tracker"] = self.clarity_moments_tracker
 
-            # Собираем результаты с timeout
-            for future in concurrent.futures.as_completed(future_to_component, timeout=self._serialization_timeout):
-                component_name = future_to_component[future]
-                try:
-                    component_data, duration = future.result(timeout=self._component_timeout)
-                    components[component_name] = component_data
+        # Последовательная сериализация компонентов
+        for name, component in component_mappings.items():
+            try:
+                component_data, duration = self._serialize_component_with_timeout(name, component)
+                components[name] = component_data
 
-                    # Логируем медленные компоненты
-                    if duration > self._component_timeout * 0.8:  # >80% от timeout
-                        logger.warning(
-                            f"Component {component_name} serialization was slow: {duration:.3f}s "
-                            f"(timeout: {self._component_timeout}s)"
-                        )
+                # Логируем медленные компоненты
+                if duration > 0.1:  # Более 100ms считается медленно
+                    logger.warning(f"Component {name} serialization was slow: {duration:.3f}s")
 
-                except concurrent.futures.TimeoutError:
-                    component_timeouts.append(component_name)
-                    components[component_name] = {
-                        "error": f"Serialization timeout after {self._component_timeout}s",
-                        "timeout": self._component_timeout
-                    }
-                    logger.error(f"Component {component_name} serialization timed out after {self._component_timeout}s")
+            except Exception as e:
+                component_errors.append(f"{name}: {str(e)}")
 
-                except Exception as e:
-                    component_errors.append(f"{component_name}: {str(e)}")
-                    components[component_name] = {
-                        "error": f"Serialization failed: {str(e)}",
-                        "exception_type": type(e).__name__
-                    }
-                    logger.error(f"Component {component_name} serialization failed: {e}")
+                # Graceful degradation: создаем минимальную версию компонента
+                components[name] = self._create_minimal_component_data(name, str(e))
 
-        # Метрики сериализации
+                logger.error(f"Component {name} serialization failed: {e}")
+
+        # Упрощенные метрики сериализации
         metrics = {
             "component_errors": component_errors,
-            "component_timeouts": component_timeouts,
+            "component_timeouts": [],  # Нет timeout в последовательной версии
             "total_components": len(component_mappings),
-            "failed_components": len(component_errors) + len(component_timeouts),
-            "successful_components": len(component_mappings) - len(component_errors) - len(component_timeouts)
+            "failed_components": len(component_errors),
+            "successful_components": len(component_mappings) - len(component_errors),
+            "serialization_mode": "sequential"
         }
 
         return components, metrics
+
+
+    def _create_minimal_component_data(self, component_name: str, error: str = None) -> Dict[str, Any]:
+        """
+        Создает минимальную версию данных компонента при ошибке сериализации.
+
+        Args:
+            component_name: Имя компонента
+            error: Сообщение об ошибке (если есть)
+
+        Returns:
+            Dict[str, Any]: Минимальные данные компонента
+        """
+        minimal_data = {
+            "component_name": component_name,
+            "serialization_status": "degraded",
+            "has_full_data": False
+        }
+
+        if error:
+            minimal_data["error"] = error
+
+        # Добавляем базовую информацию в зависимости от типа компонента
+        if component_name == "identity":
+            minimal_data.update({"life_id": getattr(self.identity, 'life_id', 'unknown')})
+        elif component_name == "time":
+            minimal_data.update({"ticks": getattr(self.time, 'ticks', 0)})
+        elif component_name == "memory":
+            minimal_data.update({"has_active_memory": False, "entries_by_type": {}})
+
+        return minimal_data
 
     def _serialize_component_with_timeout(self, name: str, component: Any) -> tuple[Dict[str, Any], float]:
         """
@@ -1912,12 +1931,11 @@ class SelfState(SerializationContract, ThreadSafeSerializable):
             "component_type": "SelfState",
             "thread_safe": True,
             "composite": True,
-            "isolation_enabled": self._component_isolation_enabled,
-            "serialization_timeout": self._serialization_timeout,
-            "component_timeout": self._component_timeout,
-            "components": ["identity", "physical", "time", "memory", "cognitive", "events"],
+                    "isolation_enabled": self._component_isolation_enabled,
+                    "serialization_mode": "sequential",
+            "components": ["identity", "physical", "time", "memory", "cognitive", "events", "parallel_consciousness_engine", "clarity_moments_tracker"],
             "has_legacy_fields": True,
-            "uses_threadpool_isolation": True
+            "uses_sequential_serialization": True
         }
 
     def get_change_history(

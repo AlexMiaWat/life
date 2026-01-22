@@ -779,9 +779,11 @@ testing:
 # Feature flags для экспериментальных компонентов
 features:
   experimental:
-    memory_hierarchy_manager: false  # MemoryHierarchyManager
-    adaptive_processing_manager: false  # AdaptiveProcessingManager
-    sensory_buffer: false  # SensoryBuffer
+    memory_hierarchy_manager: true  # MemoryHierarchyManager - включен для полного тестирования
+    adaptive_processing_manager: true  # AdaptiveProcessingManager - включен для полного тестирования
+    parallel_consciousness_engine: true  # ParallelConsciousnessEngine - включен для полного тестирования
+    clarity_moments: true  # ClarityMoments - включен для полного тестирования
+    sensory_buffer: true  # SensoryBuffer - включен для полного тестирования
   # Дополнительные экспериментальные компоненты могут быть добавлены здесь
 
 # Настройки Git

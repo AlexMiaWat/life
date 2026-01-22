@@ -26,7 +26,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from src.environment.event import Event
 from src.meaning.engine import MeaningEngine
 from src.meaning.meaning import Meaning
-from src.decision.decision import DecisionEngine, decide_response
+from src.decision.decision import decide_response
 from src.runtime.computation_cache import get_computation_cache
 from src.state.self_state import SelfState
 
@@ -159,7 +159,6 @@ class EventProcessingProfiler:
 
         # Инициализация компонентов
         engine = MeaningEngine()
-        decision_engine = DecisionEngine()
         state = self.create_test_state()
         cache = get_computation_cache()
 
@@ -326,7 +325,6 @@ class EventProcessingProfiler:
         """
         logger.info("Profiling DecisionEngine with different contexts")
 
-        decision_engine = DecisionEngine()
         state = self.create_test_state()
 
         # Разные контексты для тестирования

@@ -70,10 +70,18 @@ class StructuredLogger:
         self.passive_data_sink = passive_data_sink
         self.async_data_sink = async_data_sink
 
+        # Semantic analysis integration
+        self.semantic_analysis_engine = None  # Will be set externally if semantic analysis is enabled
+        self.enable_semantic_logging = False  # Enable semantic analysis integration
+
         # Синхронизация
         self._lock = threading.Lock()
         self._correlation_counter = 0
         self._tick_counter = 0  # Счетчик тиков для интервального логирования
+
+        # Chain completion tracking
+        self._active_chains = {}  # correlation_id -> list of entries
+        self._chain_completion_callbacks = []  # Callbacks when chains complete
 
         # Используем внешнюю очередь если предоставлена, иначе AsyncLogWriter
         if async_queue is not None:
@@ -92,6 +100,17 @@ class StructuredLogger:
                 batch_size=batch_size,
                 flush_interval=flush_interval
             )
+
+    def set_semantic_analysis_engine(self, engine):
+        """
+        Set the semantic analysis engine for integrated analysis.
+
+        Args:
+            engine: SemanticAnalysisEngine instance
+        """
+        self.semantic_analysis_engine = engine
+        self.enable_semantic_logging = engine is not None
+        logger.info("SemanticAnalysisEngine integrated with StructuredLogger")
 
     def _get_next_correlation_id(self) -> str:
         """Get next correlation ID for tracing chains."""
@@ -189,6 +208,59 @@ class StructuredLogger:
         except Exception as e:
             logger.error(f"Failed to flush buffer to queue: {e}")
 
+    def _complete_chain(self, correlation_id: str, final_entry: Dict) -> None:
+        """
+        Complete a correlation chain and trigger semantic analysis.
+
+        Args:
+            correlation_id: Correlation ID of the chain
+            final_entry: Final entry that completed the chain
+        """
+        with self._lock:
+            if correlation_id not in self._active_chains:
+                return
+
+            # Add the final entry to the chain
+            self._active_chains[correlation_id].append(final_entry)
+
+            # Get the complete chain
+            chain_entries = self._active_chains[correlation_id]
+
+            # Trigger semantic analysis if enabled
+            if self.semantic_analysis_engine and self.enable_semantic_logging:
+                try:
+                    semantic_result = self.semantic_analysis_engine.analyze_correlation_chain(
+                        correlation_id, chain_entries
+                    )
+
+                    # Log semantic insights if significant
+                    if semantic_result and semantic_result.get('anomaly_score', 0) > 0.5:
+                        logger.info(f"Semantic anomaly detected in chain {correlation_id}: "
+                                  f"score={semantic_result['anomaly_score']:.2f}")
+
+                except Exception as e:
+                    logger.error(f"Error in semantic analysis for chain {correlation_id}: {e}")
+
+            # Clean up completed chain (keep recent chains for analysis)
+            # Only remove very old chains to maintain analysis history
+            current_time = time.time()
+            chains_to_remove = []
+            for cid, chain in self._active_chains.items():
+                if chain and (current_time - chain[0].get('timestamp', 0)) > 3600:  # Older than 1 hour
+                    chains_to_remove.append(cid)
+
+            for cid in chains_to_remove:
+                del self._active_chains[cid]
+
+    def add_chain_completion_callback(self, callback):
+        """
+        Add a callback to be called when chains are completed.
+
+        Args:
+            callback: Function to call with (correlation_id, chain_entries, semantic_result)
+        """
+        self._chain_completion_callbacks.append(callback)
+
     def log_event(self, event: Any, correlation_id: Optional[str] = None) -> str:
         """
         Log event stage.
@@ -214,6 +286,13 @@ class StructuredLogger:
         }
 
         self._write_log_entry(entry)
+
+        # Track chain entries for semantic analysis
+        with self._lock:
+            if correlation_id not in self._active_chains:
+                self._active_chains[correlation_id] = []
+            self._active_chains[correlation_id].append(entry)
+
         return correlation_id
 
     def log_meaning(self, event: Any, meaning: Any, correlation_id: str) -> None:
@@ -312,6 +391,9 @@ class StructuredLogger:
         }
 
         self._write_log_entry(entry)
+
+        # Complete the correlation chain and trigger semantic analysis
+        self._complete_chain(correlation_id, entry)
 
     def log_tick_start(self, tick_number: int, queue_size: int) -> None:
         """
@@ -427,6 +509,17 @@ class StructuredLogger:
             # Внешняя очередь может иметь свой метод flush
             if hasattr(self._async_queue, 'flush'):
                 self._async_queue.flush()
+
+    def error(self, stage: str, error: Exception, correlation_id: Optional[str] = None) -> None:
+        """
+        Public method for logging errors. Alias for log_error for convenience.
+
+        Args:
+            stage: Stage where error occurred
+            error: Exception object
+            correlation_id: Correlation ID if available
+        """
+        self.log_error(stage, error, correlation_id)
 
     def get_stats(self) -> Dict[str, Any]:
         """

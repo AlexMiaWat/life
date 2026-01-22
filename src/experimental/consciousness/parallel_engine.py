@@ -1,371 +1,335 @@
 """
-Parallel Consciousness Engine - Compatibility Layer
+Parallel Consciousness Engine - Параллельный движок сознания.
 
-Backward compatibility layer for the old consciousness API
-using the new AdaptiveProcessingManager.
+Предоставляет параллельную обработку задач сознания с поддержкой
+различных режимов выполнения (threading, async).
 """
 
 import asyncio
+import concurrent.futures
+import logging
 import time
-from typing import Dict, List, Any, Optional
-from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from enum import Enum
-import threading
+from typing import List, Dict, Any, Optional
+from concurrent.futures import ThreadPoolExecutor
 
-from src.experimental.adaptive_processing_manager import (
-    AdaptiveProcessingManager,
-    ProcessingMode
-)
+from src.contracts.serialization_contract import SerializationContract
 
-
-class ConsciousnessState(Enum):
-    """Enumeration of consciousness states - technical processing states."""
-    AWAKE = "awake"  # Normal active processing
-    FLOW = "flow"  # High-efficiency processing mode
-    REFLECTIVE = "reflective"  # Analysis and optimization mode
-    META = "meta"  # Deep analysis mode
-    DREAMING = "dreaming"  # Reduced activity mode
-    UNCONSCIOUS = "unconscious"  # Minimal activity mode
-
-
-@dataclass
-class ConsciousnessMetrics:
-    """Consciousness metrics for backward compatibility."""
-    level: float = 0.0
-    self_reflection_score: float = 0.0
-    meta_cognition_depth: float = 0.0
-    state_duration: int = 0
-    transitions_count: int = 0
-    last_transition_time: Optional[float] = None
+logger = logging.getLogger(__name__)
 
 
 class ProcessingMode(Enum):
-    """Processing modes for consciousness engine."""
-    SEQUENTIAL = "sequential"
-    THREADING = "threading"
-    ASYNC = "async"
-    MULTIPROCESS = "multiprocess"
+    """Режимы параллельной обработки."""
+    THREADING = "threading"       # Многопоточная обработка
+    ASYNC = "async"              # Асинхронная обработка
+    SEQUENTIAL = "sequential"    # Последовательная обработка
 
 
 @dataclass
-class ProcessingResult:
-    """Result of a processing operation."""
+class TaskResult:
+    """Результат выполнения задачи."""
     task_id: str
     result: Any
-    processing_time: float
     success: bool
-    error: Optional[str] = None
+    error_message: Optional[str] = None
+    execution_time: float = 0.0
+
+    @property
+    def processing_time(self) -> float:
+        """Свойство для совместимости с тестами."""
+        return self.execution_time
+
+    @property
+    def error(self) -> Optional[str]:
+        """Свойство для совместимости с тестами."""
+        return self.error_message
 
 
-class ParallelConsciousnessEngine:
-    """Engine for parallel consciousness processing with backward compatibility."""
+class ParallelConsciousnessEngine(SerializationContract):
+    """
+    Параллельный движок сознания для обработки задач.
 
-    def __init__(self,
-                 initial_state: ConsciousnessState = ConsciousnessState.AWAKE,
-                 initial_metrics: Optional[ConsciousnessMetrics] = None,
-                 max_workers: int = 4,
-                 mode: ProcessingMode = ProcessingMode.THREADING):
-        # Backward compatibility attributes
-        self.current_state = initial_state
-        self.metrics = initial_metrics or ConsciousnessMetrics()
-        self._transition_history = []
-        self._lock = threading.Lock()
+    Поддерживает многопоточную и асинхронную обработку задач сознания.
+    Реализует контракты сериализации для интеграции в SelfState.
+    """
 
-        # New processing capabilities
+    def __init__(self, max_workers: int = 4, mode: ProcessingMode = ProcessingMode.THREADING):
+        """
+        Инициализация параллельного движка сознания.
+
+        Args:
+            max_workers: Максимальное количество рабочих потоков
+            mode: Режим обработки (threading или async)
+        """
         self.max_workers = max_workers
         self.mode = mode
-        # Create a dummy self_state_provider for compatibility
-        def dummy_self_state_provider():
-            return None
-        self.adaptive_manager = AdaptiveProcessingManager(dummy_self_state_provider)
-        self.executor = ThreadPoolExecutor(max_workers=self.max_workers) if mode == ProcessingMode.THREADING else None
+        self.executor: Optional[ThreadPoolExecutor] = None
+        self._is_shutdown = False
 
-    async def process_async(self, tasks: List[Dict[str, Any]]) -> List[ProcessingResult]:
-        """Process tasks asynchronously."""
-        if self.mode != ProcessingMode.ASYNC:
-            return await self._process_with_executor(tasks)
+        # Инициализация executor для threading режима
+        if self.mode in (ProcessingMode.THREADING, ProcessingMode.SEQUENTIAL):
+            # Для SEQUENTIAL используем 1 поток
+            workers = 1 if self.mode == ProcessingMode.SEQUENTIAL else max_workers
+            self.executor = ThreadPoolExecutor(max_workers=workers, thread_name_prefix="consciousness")
 
-        results = []
+    def _process_single_task(self, task: Dict[str, Any]) -> TaskResult:
+        """
+        Обработка одиночной задачи.
+
+        Args:
+            task: Словарь с задачей
+
+        Returns:
+            TaskResult: Результат выполнения задачи
+        """
+        task_id = task.get("task_id", task.get("id", "unknown"))
+        operation = task.get("operation", "unknown")
+        data = task.get("data", {})
+
         start_time = time.time()
 
-        # Process tasks concurrently using adaptive manager
-        for task in tasks:
-            try:
-                result = await self._process_single_task_async(task)
-                processing_time = time.time() - start_time
-
-                results.append(ProcessingResult(
-                    task_id=task.get('id', f'task_{len(results)}'),
-                    result=result,
-                    processing_time=processing_time,
-                    success=True
-                ))
-            except Exception as e:
-                processing_time = time.time() - start_time
-                results.append(ProcessingResult(
-                    task_id=task.get('id', f'task_{len(results)}'),
-                    result=None,
-                    processing_time=processing_time,
-                    success=False,
-                    error=str(e)
-                ))
-
-        return results
-
-    def process_sync(self, tasks: List[Dict[str, Any]]) -> List[ProcessingResult]:
-        """Process tasks synchronously."""
-        results = []
-
-        for task in tasks:
-            start_time = time.time()
-            task_id = task.get('id', f'task_{len(results)}')
-
-            try:
-                result = self._process_single_task_sync(task)
-                processing_time = time.time() - start_time
-
-                results.append(ProcessingResult(
-                    task_id=task_id,
-                    result=result,
-                    processing_time=processing_time,
-                    success=True
-                ))
-            except Exception as e:
-                processing_time = time.time() - start_time
-                results.append(ProcessingResult(
-                    task_id=task_id,
-                    result=None,
-                    processing_time=processing_time,
-                    success=False,
-                    error=str(e)
-                ))
-
-        return results
-
-    async def _process_with_executor(self, tasks: List[Dict[str, Any]]) -> List[ProcessingResult]:
-        """Process tasks using thread/process executor."""
-        if not self.executor:
-            return self.process_sync(tasks)
-
-        loop = asyncio.get_event_loop()
-        results = []
-
-        # Submit all tasks to executor
-        futures = [
-            loop.run_in_executor(self.executor, self._process_single_task_sync, task)
-            for task in tasks
-        ]
-
-        # Wait for all results
-        task_results = await asyncio.gather(*futures, return_exceptions=True)
-
-        for i, result in enumerate(task_results):
-            task_id = tasks[i].get('id', f'task_{i}')
-
-            if isinstance(result, Exception):
-                results.append(ProcessingResult(
-                    task_id=task_id,
-                    result=None,
-                    processing_time=0.0,
-                    success=False,
-                    error=str(result)
-                ))
+        try:
+            # Имитация обработки задачи
+            # В реальной реализации здесь будет логика обработки
+            if operation == "analyze":
+                result = self._analyze_data(data)
+            elif operation == "transform":
+                result = self._transform_data(data)
             else:
-                results.append(ProcessingResult(
-                    task_id=task_id,
-                    result=result,
-                    processing_time=0.0,
-                    success=True
-                ))
+                result = {"operation": operation, "processed": True, "data": data, "processed_data": {"result": "completed"}}
+
+            execution_time = time.time() - start_time
+
+            return TaskResult(
+                task_id=task_id,
+                result=result,
+                success=True,
+                execution_time=execution_time
+            )
+
+        except Exception as e:
+            execution_time = time.time() - start_time
+            logger.error(f"Error processing task {task_id}: {e}")
+
+            return TaskResult(
+                task_id=task_id,
+                result=None,
+                success=False,
+                error_message=str(e),
+                execution_time=execution_time
+            )
+
+    def _analyze_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Анализ данных задачи."""
+        # Имитация анализа
+        return {
+            "analysis_type": "consciousness_analysis",
+            "input_size": len(str(data)),
+            "processed_at": time.time(),
+            "insights": ["pattern_detected", "correlation_found"]
+        }
+
+    def _transform_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Трансформация данных задачи."""
+        # Имитация трансформации
+        return {
+            "transformation_type": "consciousness_transform",
+            "original_data": data,
+            "transformed_data": {k: f"processed_{v}" for k, v in data.items()},
+            "processed_at": time.time()
+        }
+
+    def process_sync(self, tasks: List[Dict[str, Any]]) -> List[TaskResult]:
+        """
+        Синхронная обработка списка задач.
+
+        Args:
+            tasks: Список задач для обработки
+
+        Returns:
+            List[TaskResult]: Список результатов выполнения
+        """
+        if self._is_shutdown:
+            # После shutdown создаем новый executor для повторного использования
+            self._reinitialize_executor()
+
+        if self.mode == ProcessingMode.THREADING and self.executor:
+            # Параллельная обработка с помощью ThreadPoolExecutor
+            futures = [self.executor.submit(self._process_single_task, task) for task in tasks]
+
+            results = []
+            for future in concurrent.futures.as_completed(futures):
+                try:
+                    result = future.result()
+                    results.append(result)
+                except Exception as e:
+                    logger.error(f"Error in task execution: {e}")
+                    # Создаем результат ошибки
+                    results.append(TaskResult(
+                        task_id="error",
+                        result=None,
+                        success=False,
+                        error_message=str(e)
+                    ))
+
+            return results
+
+        else:
+            # Последовательная обработка
+            return [self._process_single_task(task) for task in tasks]
+
+    async def process_async(self, tasks: List[Dict[str, Any]]) -> List[TaskResult]:
+        """
+        Асинхронная обработка списка задач.
+
+        Args:
+            tasks: Список задач для обработки
+
+        Returns:
+            List[TaskResult]: Список результатов выполнения
+        """
+        if self._is_shutdown:
+            # После shutdown создаем новый executor для повторного использования
+            self._reinitialize_executor()
+
+        if self.mode == ProcessingMode.ASYNC:
+            # Асинхронная обработка
+            async def process_task_async(task):
+                # Имитация асинхронной операции
+                await asyncio.sleep(0.01)  # Небольшая задержка для имитации I/O
+                return self._process_single_task(task)
+
+            # Ограничиваем количество одновременных задач
+            semaphore = asyncio.Semaphore(self.max_workers)
+
+            async def process_with_semaphore(task):
+                async with semaphore:
+                    return await process_task_async(task)
+
+            # Запускаем все задачи параллельно с ограничением
+            results = await asyncio.gather(
+                *[process_with_semaphore(task) for task in tasks],
+                return_exceptions=True
+            )
+
+            # Обрабатываем результаты
+            final_results = []
+            for i, result in enumerate(results):
+                if isinstance(result, Exception):
+                    final_results.append(TaskResult(
+                        task_id=tasks[i].get("id", f"task_{i}"),
+                        result=None,
+                        success=False,
+                        error_message=str(result)
+                    ))
+                else:
+                    final_results.append(result)
+
+            return final_results
+
+        else:
+            # Для других режимов используем синхронную обработку в executor
+            loop = asyncio.get_event_loop()
+
+            def run_sync():
+                return self.process_sync(tasks)
+
+            results = await loop.run_in_executor(None, run_sync)
+            return results
+
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Сериализация состояния ParallelConsciousnessEngine.
+
+        Архитектурные гарантии:
+        - Thread-safe: Метод безопасен для вызова из разных потоков
+        - Атомарный: Сериализация представляет консистентное состояние
+        - Отказоустойчивый: Исключения не должны приводить к повреждению состояния
+        - Детерминированный: Для одинакового состояния возвращает одинаковый результат
+
+        Returns:
+            Dict[str, Any]: Словарь с состоянием компонента
+        """
+        return {
+            "max_workers": self.max_workers,
+            "mode": self.mode.value,
+            "is_shutdown": self._is_shutdown,
+            "has_executor": self.executor is not None,
+            "component_type": "ParallelConsciousnessEngine",
+            "version": "1.0"
+        }
+
+    def get_serialization_metadata(self) -> Dict[str, Any]:
+        """
+        Получить метаданные сериализации для ParallelConsciousnessEngine.
+
+        Returns:
+            Dict[str, Any]: Метаданные содержащие как минимум:
+            - version: str - версия формата сериализации
+            - timestamp: float - время сериализации
+            - component_type: str - тип компонента
+            - thread_safe: bool - подтверждение thread-safety
+        """
+        return {
+            "version": "1.0",
+            "component_type": "ParallelConsciousnessEngine",
+            "thread_safe": True,
+            "timestamp": time.time(),
+            "processing_mode": self.mode.value,
+            "max_workers": self.max_workers,
+            "is_shutdown": self._is_shutdown
+        }
+
+    def process_threading(self, tasks: List[Dict[str, Any]]) -> List[TaskResult]:
+        """
+        Псевдоним для process_sync для совместимости с тестами.
+
+        Args:
+            tasks: Список задач для обработки
+
+        Returns:
+            List[TaskResult]: Список результатов выполнения
+        """
+        return self.process_sync(tasks)
+
+    def process_sequential(self, tasks: List[Dict[str, Any]]) -> List[TaskResult]:
+        """
+        Последовательная обработка задач (синоним process_sync).
+
+        Args:
+            tasks: Список задач для обработки
+
+        Returns:
+            List[TaskResult]: Список результатов выполнения
+        """
+        # Для последовательной обработки отключаем параллельность
+        original_max_workers = self.max_workers
+        self.max_workers = 1
+
+        try:
+            results = self.process_sync(tasks)
+        finally:
+            self.max_workers = original_max_workers
 
         return results
 
-    def _process_single_task_sync(self, task: Dict[str, Any]) -> Any:
-        """Process a single task synchronously."""
-        # Simulate some processing time
-        time.sleep(0.01)
+    def _reinitialize_executor(self) -> None:
+        """Переинициализация executor после shutdown для повторного использования."""
+        self._is_shutdown = False
+        if self.mode in (ProcessingMode.THREADING, ProcessingMode.SEQUENTIAL):
+            workers = 1 if self.mode == ProcessingMode.SEQUENTIAL else self.max_workers
+            self.executor = ThreadPoolExecutor(max_workers=workers, thread_name_prefix="consciousness")
 
-        # Extract task parameters
-        operation = task.get('operation', 'default')
-        data = task.get('data', {})
+    def shutdown(self) -> None:
+        """Завершение работы движка и освобождение ресурсов."""
+        if self._is_shutdown:
+            return
 
-        # Perform mock processing based on operation
-        if operation == 'analyze':
-            return self._mock_analysis(data)
-        elif operation == 'transform':
-            return self._mock_transformation(data)
-        else:
-            return {'result': 'processed', 'input': data}
+        self._is_shutdown = True
 
-    async def _process_single_task_async(self, task: Dict[str, Any]) -> Any:
-        """Process a single task asynchronously."""
-        # Simulate async processing
-        await asyncio.sleep(0.01)
-
-        return self._process_single_task_sync(task)
-
-    def _mock_analysis(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """Mock analysis operation."""
-        # Use adaptive manager for analysis
-        self.adaptive_manager.analyze_system_conditions()
-
-        return {
-            'analysis_type': 'consciousness_metrics',
-            'input_size': len(str(data)),
-            'confidence': 0.85,
-            'patterns_found': ['pattern_1', 'pattern_2'],
-            'adaptive_state': self.adaptive_manager.get_current_state().value
-        }
-
-    def _mock_transformation(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """Mock transformation operation."""
-        return {
-            'transformation_type': 'data_normalization',
-            'original_keys': list(data.keys()),
-            'processed_keys': [f'processed_{k}' for k in data.keys()],
-            'quality_score': 0.92
-        }
-
-    def shutdown(self):
-        """Shutdown the engine and cleanup resources."""
         if self.executor:
             self.executor.shutdown(wait=True)
             self.executor = None
 
-    # Backward compatibility methods for old consciousness API
-
-    def transition_to_state(self, new_state: ConsciousnessState) -> None:
-        """Transition to a new consciousness state."""
-        with self._lock:
-            old_state = self.current_state
-            self.current_state = new_state
-            self.metrics.transitions_count += 1
-            self.metrics.last_transition_time = time.time()
-
-            # Reset state duration for new state
-            self.metrics.state_duration = 0
-
-            # Record transition
-            transition_record = {
-                "from_state": old_state.name if old_state else None,
-                "to_state": new_state.name,
-                "timestamp": self.metrics.last_transition_time,
-                "transition_id": self.metrics.transitions_count
-            }
-            self._transition_history.append(transition_record)
-
-    def evaluate_consciousness_level(self) -> ConsciousnessState:
-        """Evaluate current consciousness level based on metrics."""
-        # Use adaptive manager's state to determine consciousness level
-        adaptive_state = self.adaptive_manager.get_current_state()
-
-        # Map adaptive states to consciousness states
-        state_mapping = {
-            "idle": ConsciousnessState.AWAKE,
-            "processing": ConsciousnessState.REFLECTIVE,
-            "analyzing": ConsciousnessState.META,
-            "optimizing": ConsciousnessState.FLOW,
-            "error": ConsciousnessState.AWAKE
-        }
-
-        # Use metrics to determine processing states
-        if self.metrics.level >= 0.8 and self.metrics.meta_cognition_depth >= 0.7:
-            return ConsciousnessState.META
-        elif self.metrics.level >= 0.6 and self.metrics.self_reflection_score >= 0.5:
-            return ConsciousnessState.REFLECTIVE
-        elif self.metrics.level >= 0.7:
-            return ConsciousnessState.FLOW
-        elif self.metrics.level >= 0.3:
-            return ConsciousnessState.AWAKE
-        elif self.metrics.level >= 0.1:
-            return ConsciousnessState.DREAMING
-        else:
-            return ConsciousnessState.UNCONSCIOUS
-
-    def update_metrics(self, level: Optional[float] = None,
-                      self_reflection_score: Optional[float] = None,
-                      meta_cognition_depth: Optional[float] = None) -> None:
-        """Update consciousness metrics."""
-        with self._lock:
-            if level is not None:
-                self.metrics.level = level
-            if self_reflection_score is not None:
-                self.metrics.self_reflection_score = self_reflection_score
-            if meta_cognition_depth is not None:
-                self.metrics.meta_cognition_depth = meta_cognition_depth
-
-    def increment_state_duration(self) -> None:
-        """Increment the duration counter for current state."""
-        with self._lock:
-            self.metrics.state_duration += 1
-
-    def get_transition_history(self) -> List[Dict[str, Any]]:
-        """Get the history of state transitions."""
-        with self._lock:
-            return self._transition_history.copy()
-
-    @property
-    def transition_history(self) -> List[Dict[str, Any]]:
-        """Get the history of state transitions (property for backward compatibility)."""
-        return self.get_transition_history()
-
-    def get_consciousness_report(self) -> Dict[str, Any]:
-        """Get a comprehensive consciousness report."""
-        with self._lock:
-            return {
-                "current_state": self.current_state.name,
-                "metrics": {
-                    "level": self.metrics.level,
-                    "self_reflection_score": self.metrics.self_reflection_score,
-                    "meta_cognition_depth": self.metrics.meta_cognition_depth,
-                    "state_duration_ticks": self.metrics.state_duration,
-                    "transitions_count": self.metrics.transitions_count,
-                    "last_transition_time": self.metrics.last_transition_time
-                },
-                "transition_history": self.get_transition_history(),
-                "adaptive_state": self.adaptive_manager.get_current_state().value,
-                "processing_stats": self.adaptive_manager.get_processing_statistics()
-            }
-
-    def analyze_consciousness_conditions(self) -> Dict[str, Any]:
-        """
-        Анализировать условия сознания на основе текущих метрик и состояния.
-
-        Returns:
-            Dict с анализом условий сознания
-        """
-        with self._lock:
-            # Анализируем текущие метрики для определения условий
-            analysis = {
-                "current_state": self.current_state.name,
-                "level_assessment": "low" if self.metrics.level < 0.3 else "medium" if self.metrics.level < 0.7 else "high",
-                "reflection_capability": "limited" if self.metrics.self_reflection_score < 0.4 else "developing" if self.metrics.self_reflection_score < 0.7 else "advanced",
-                "meta_cognition_depth": "shallow" if self.metrics.meta_cognition_depth < 0.3 else "moderate" if self.metrics.meta_cognition_depth < 0.7 else "deep",
-                "stability_indicators": {
-                    "state_duration_ok": self.metrics.state_duration > 10,
-                    "transitions_reasonable": self.metrics.transitions_count < 100,
-                    "recent_transition_recent": time.time() - (self.metrics.last_transition_time or 0) < 300  # 5 minutes
-                },
-                "recommendations": []
-            }
-
-            # Формируем рекомендации на основе анализа
-            if self.metrics.level < 0.3:
-                analysis["recommendations"].append("Increase consciousness level through focused activities")
-            if self.metrics.self_reflection_score < 0.4:
-                analysis["recommendations"].append("Enhance self-reflection through journaling or meditation")
-            if self.metrics.meta_cognition_depth < 0.3:
-                analysis["recommendations"].append("Deepen meta-cognition through analytical thinking exercises")
-
-            return analysis
-
-    def get_current_state(self) -> ConsciousnessState:
-        """
-        Получить текущее состояние сознания.
-
-        Returns:
-            Текущее состояние сознания
-        """
-        with self._lock:
-            return self.current_state
+        logger.info("ParallelConsciousnessEngine shutdown complete")

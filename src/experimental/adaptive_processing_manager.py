@@ -770,6 +770,10 @@ class AdaptiveProcessingManager:
             return True
 
         except Exception as e:
+            self.logger.error(f"Error triggering processing event: {e}")
+            return False
+
+        except Exception as e:
             self.logger.log_event({
                 "event_type": "manual_processing_trigger_failed",
                 "error": str(e),

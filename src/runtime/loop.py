@@ -7,7 +7,7 @@ from typing import Dict, Any
 from src.action import execute_action
 from src.activation.activation import activate_memory
 from src.adaptation.adaptation import AdaptationManager
-from src.decision.decision import decide_response, DecisionEngine
+from src.decision.decision import decide_response
 from src.environment.internal_generator import InternalEventGenerator
 
 # Экспериментальные компоненты импортируются условно на основе feature flags
@@ -20,7 +20,6 @@ from src.learning.learning import LearningEngine
 from src.meaning.engine import MeaningEngine
 from src.memory.memory import MemoryEntry
 from src.planning.planning import record_potential_sequences
-from src.runtime.life_policy import LifePolicy
 from src.runtime.log_manager import FlushPolicy, LogManager
 from src.runtime.snapshot_manager import SnapshotManager
 from src.runtime.subjective_time import compute_subjective_dt
@@ -30,6 +29,7 @@ from src.runtime.adaptive_batch_sizer import AdaptiveBatchSizer
 from src.runtime.performance_monitor import performance_monitor
 from src.state.self_state import SelfState, save_snapshot
 from src.contracts.contract_manager import contract_manager
+from src.observability.semantic_analysis_engine import SemanticAnalysisEngine
 
 logger = logging.getLogger(__name__)
 
@@ -241,7 +241,7 @@ def _record_adaptation_params_change(self_state, old_params: dict, new_params: d
         self_state.adaptation_params_history = self_state.adaptation_params_history[-50:]
 
 
-def _process_events_batch(events_batch, self_state, engine, structured_logger, passive_data_sink, async_data_sink, memory_hierarchy, decision_engine, pending_actions, event_queue):
+def _process_events_batch(events_batch, self_state, engine, structured_logger, passive_data_sink, async_data_sink, memory_hierarchy, pending_actions, event_queue):
     """
     Обрабатывает батч событий для оптимизации производительности.
 
@@ -253,7 +253,6 @@ def _process_events_batch(events_batch, self_state, engine, structured_logger, p
         passive_data_sink: PassiveDataSink
         async_data_sink: AsyncDataSink
         memory_hierarchy: MemoryHierarchyManager
-        decision_engine: DecisionEngine
         pending_actions: Список ожидающих действий для Feedback
         event_queue: Очередь событий
 
@@ -313,28 +312,10 @@ def _process_events_batch(events_batch, self_state, engine, structured_logger, p
                 f"[LOOP] Activated {len(activated)} memories for type '{event.type}'"
             )
 
-            # Decision
+            # Decision - простая логика выбора паттерна
             with performance_monitor.measure("DecisionEngine", "decide_response"):
-                pattern = decide_response(self_state, meaning, adaptation_manager=adaptation_manager)
+                pattern = decide_response(self_state, meaning)
             self_state.last_pattern = pattern
-
-            # Записываем решение в DecisionEngine (только если включено логирование)
-            if feature_flags.is_decision_logging_enabled():
-                # Получаем время выполнения из performance monitor
-                decision_metrics = performance_monitor.get_metrics("DecisionEngine")
-                decision_time = decision_metrics.get("DecisionEngine.decide_response", {}).get("recent_avg", 0.001)
-
-                decision_engine.record_decision(
-                    decision_type="response_selection",
-                    context={
-                        "meaning_significance": meaning.significance,
-                        "event_type": event.type,
-                        "current_energy": self_state.energy,
-                        "current_stability": self_state.stability,
-                    },
-                    outcome=pattern,
-                    execution_time=decision_time,
-                )
 
             # Log decision
             if correlation_id:
@@ -576,6 +557,17 @@ def run_loop(
             async_data_sink=async_data_sink
         )
 
+    # Инициализация Semantic Analysis Engine
+    semantic_analysis_engine = SemanticAnalysisEngine(
+        max_patterns=200,  # Ограничение для производительности
+        anomaly_threshold=0.7
+    )
+
+    # Интеграция semantic analysis с structured logger
+    structured_logger.set_semantic_analysis_engine(semantic_analysis_engine)
+
+    logger.info("SemanticAnalysisEngine integrated with runtime loop")
+
     # Запуск AsyncDataSink
     import asyncio
     asyncio.run(async_data_sink.start())
@@ -620,9 +612,7 @@ def run_loop(
     engine = MeaningEngine()
     learning_engine = LearningEngine()  # Learning Engine (Этап 14)
     adaptation_manager = AdaptationManager()  # Adaptation Manager (Этап 15)
-    decision_engine = DecisionEngine(
-        enable_logging=feature_flags.is_decision_logging_enabled()
-    )  # Decision Engine для анализа решений
+    # Decision Engine упрощен до простой функции decide_response
     # Инициализация адаптивной системы обработки
     # Проверяем feature flag, если adaptive processing не отключен явно
     enable_adaptive_processing = not disable_adaptive_processing and feature_flags.is_adaptive_processing_enabled()
@@ -710,9 +700,7 @@ def run_loop(
         flush_policy=flush_policy,
         flush_fn=self_state._flush_log_buffer,
     )
-    life_policy = (
-        LifePolicy()
-    )  # Использует значения по умолчанию (совпадают с предыдущими константами)
+    # Логика слабости теперь встроена напрямую (упрощение)
     data_collection_manager = DataCollectionManager()  # Менеджер сбора данных
     data_collection_manager.start()  # Запускаем менеджер сбора данных
 
@@ -1110,7 +1098,7 @@ def run_loop(
                         # Обрабатываем батч событий
                         batch_correlation_ids, batch_processed, batch_significant = _process_events_batch(
                             batch, self_state, engine, structured_logger, passive_data_sink,
-                            async_data_sink, memory_hierarchy, decision_engine, pending_actions, event_queue
+                            async_data_sink, memory_hierarchy, pending_actions, event_queue
                         )
 
                         batch_processing_time = time.time() - batch_start_time
@@ -1493,13 +1481,27 @@ def run_loop(
                 # Philosophical Reports REMOVED: external tool only
 
                 # Логика слабости: когда параметры низкие, добавляем штрафы за немощность
-                if not disable_weakness_penalty and life_policy.is_weak(self_state):
-                    penalty_deltas = life_policy.weakness_penalty(dt)
-                    self_state.apply_delta(penalty_deltas)
-                    penalty = abs(penalty_deltas["energy"])
-                    logger.debug(
-                        f"[LOOP] Слабость: штрафы penalty={penalty:.4f}, energy={self_state.energy:.2f}"
+                if not disable_weakness_penalty:
+                    # Простая проверка слабости: любой параметр ниже 5%
+                    is_weak = (
+                        self_state.energy < 0.05
+                        or self_state.integrity < 0.05
+                        or self_state.stability < 0.05
                     )
+
+                    if is_weak:
+                        # Простые штрафы за слабость
+                        penalty_k = 0.02  # коэффициент штрафа
+                        penalty = penalty_k * dt
+                        penalty_deltas = {
+                            "energy": -penalty,
+                            "stability": -penalty * 2.0,  # удвоенный штраф для stability
+                            "integrity": -penalty * 2.0,  # удвоенный штраф для integrity
+                        }
+                        self_state.apply_delta(penalty_deltas)
+                        logger.debug(
+                            f"[LOOP] Слабость: штрафы penalty={penalty:.4f}, energy={self_state.energy:.2f}"
+                        )
 
                 # Вызов мониторинга с агрегацией (каждые 10 тиков для оптимизации производительности)
                 ticks_since_last_monitor_call += 1

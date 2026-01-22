@@ -1,90 +1,13 @@
-import time
+"""
+Простая функция выбора паттерна реакции.
+
+Упрощенная версия DecisionEngine без декомпозиции на компоненты.
+"""
 from typing import List, Dict, Any
 
 from src.meaning.meaning import Meaning
 from src.memory.memory import MemoryEntry
 from src.state.self_state import SelfState
-from src.decision.decision_recorder import DecisionRecorder
-from src.decision.decision_analyzer import DecisionAnalyzer
-from src.decision.response_selector import ResponseSelector
-
-
-class DecisionEngine:
-    """
-    Движок принятия решений для системы Life.
-
-    Декомпозирован на отдельные компоненты с четкой ответственностью:
-    - DecisionRecorder: запись истории решений
-    - DecisionAnalyzer: анализ паттернов и контекста
-    - ResponseSelector: выбор ответа по правилам
-    """
-
-    def __init__(self, enable_logging: bool = False, adaptation_manager=None):
-        """
-        Инициализация движка принятия решений.
-
-        Args:
-            enable_logging: Включить логирование решений (feature flag для производительности)
-            adaptation_manager: AdaptationManager для анализа адаптаций
-        """
-        self.recorder = DecisionRecorder(enable_logging=enable_logging)
-        self.analyzer = DecisionAnalyzer(adaptation_manager=adaptation_manager)
-        self.selector = ResponseSelector()
-
-    def record_decision(self, decision_type: str, context: Dict, outcome: str = None, success: bool = None, execution_time: float = None):
-        """
-        Записать решение в историю.
-
-        Делегирует запись DecisionRecorder с учетом feature flag.
-        """
-        # Для совместимости, извлекаем паттерн из контекста если доступен
-        pattern = context.get("pattern", "unknown") if context else "unknown"
-        self.recorder.record_decision(
-            decision_type=decision_type,
-            context=context or {},
-            pattern=pattern,
-            outcome=outcome,
-            success=success,
-            execution_time=execution_time
-        )
-
-    def get_recent_decisions(self, limit: int = 100) -> List[Dict[str, Any]]:
-        """
-        Получить недавние решения.
-
-        Делегирует запрос DecisionRecorder.
-        """
-        records = self.recorder.get_recent_decisions(limit)
-        # Конвертируем в старый формат для совместимости
-        return [
-            {
-                "timestamp": record.timestamp,
-                "type": record.decision_type,
-                "context": record.context,
-                "outcome": record.outcome,
-                "success": record.success,
-                "execution_time": record.execution_time,
-                "pattern": record.pattern,
-            }
-            for record in records
-        ]
-
-    def get_statistics(self) -> Dict[str, Any]:
-        """
-        Получить статистику принятия решений.
-
-        Делегирует запрос DecisionRecorder.
-        """
-        return self.recorder.get_statistics()
-
-    def analyze_patterns(self) -> Dict[str, Any]:
-        """
-        Анализ паттернов принятия решений.
-
-        Returns:
-            Анализ паттернов
-        """
-        return self.recorder.analyze_patterns()
 
 
 
@@ -93,49 +16,89 @@ class DecisionEngine:
 
 def decide_response(self_state: SelfState, meaning: Meaning, enable_performance_monitoring: bool = False, adaptation_manager=None) -> str:
     """
-    Выбор паттерна реакции на основе комплексного анализа.
+    Простой выбор паттерна реакции на основе базовых условий.
 
-    Создает временный экземпляр DecisionEngine для принятия решения.
-    Использует декомпозированную архитектуру компонентов.
+    Упрощенная логика без декомпозиции на компоненты.
 
     Args:
         self_state: Текущее состояние системы
         meaning: Текущий meaning
         enable_performance_monitoring: Включить мониторинг производительности
-        adaptation_manager: AdaptationManager для анализа адаптаций (опционально)
+        adaptation_manager: AdaptationManager (игнорируется для простоты)
 
     Returns:
-        Выбранный паттерн реакции
+        Выбранный паттерн реакции: "ignore", "absorb", "dampen", "amplify"
     """
     import time
 
     start_time = time.time() if enable_performance_monitoring else None
 
-    # Создаем временный экземпляр DecisionEngine без логирования для производительности
-    # Передаем adaptation_manager для анализа адаптаций
-    decision_engine = DecisionEngine(enable_logging=False, adaptation_manager=adaptation_manager)
+    # Простая логика выбора паттерна
+    pattern = _simple_pattern_selection(self_state, meaning)
 
-    activated = self_state.activated_memory or []
-
-    # === ФАЗА 1: Анализ активированной памяти ===
-    memory_analysis = decision_engine.analyzer.analyze_activated_memory(activated)
-
-    # === ФАЗА 2: Анализ контекста системы ===
-    context_analysis = decision_engine.analyzer.analyze_system_context(self_state, meaning)
-
-    # === ФАЗА 3: Выбор паттерна по правилам ===
-    pattern = decision_engine.selector.select_pattern(
-        memory_analysis, context_analysis, meaning, self_state
-    )
-
-    # === ФАЗА 4: Мониторинг производительности ===
+    # Мониторинг производительности
     if enable_performance_monitoring and start_time is not None:
         execution_time = time.time() - start_time
-        # Можно добавить логирование или метрики здесь
-        if execution_time > 0.01:  # Логируем только медленные вызовы
-            print(f"DecisionEngine performance: {execution_time:.4f}s")
+        if execution_time > 0.01:
+            print(f"Decision performance: {execution_time:.4f}s")
 
     return pattern
+
+
+def _simple_pattern_selection(self_state: SelfState, meaning: Meaning) -> str:
+    """
+    Простая логика выбора паттерна реакции.
+
+    Args:
+        self_state: Текущее состояние системы
+        meaning: Текущий meaning
+
+    Returns:
+        Паттерн реакции
+    """
+    # Базовые условия
+    energy_low = self_state.energy < 30
+    stability_low = self_state.stability < 0.3
+    integrity_low = self_state.integrity < 0.3
+
+    # Анализ активированной памяти
+    activated = self_state.activated_memory or []
+    if activated:
+        avg_significance = sum(entry.meaning_significance for entry in activated) / len(activated)
+        high_significance = avg_significance > 0.6
+    else:
+        avg_significance = 0.0
+        high_significance = False
+
+    # Определение типа события из meaning
+    event_type = getattr(meaning, 'primary_emotion', 'neutral')
+    is_positive = event_type in ['joy', 'hope', 'love', 'curiosity', 'insight']
+    is_negative = event_type in ['fear', 'anger', 'sadness', 'confusion', 'void']
+
+    # Простые правила выбора паттерна
+
+    # 1. При критически низкой энергии игнорировать незначительные события
+    if energy_low and avg_significance < 0.3:
+        return "ignore"
+
+    # 2. При низкой энергии и стабильности - консервативный подход
+    if energy_low and stability_low and not (is_positive and high_significance):
+        return "dampen"
+
+    # 3. При низкой целостности - осторожный подход
+    if integrity_low and avg_significance > 0.4:
+        return "dampen"
+
+    # 4. Положительные события при низкой стабильности - усиливать
+    if stability_low and is_positive and high_significance:
+        return "amplify"
+
+    # 5. Высокая значимость - поглощать
+    if high_significance:
+        return "absorb"
+
+    # 6. По умолчанию - поглощать
+    return "absorb"
 
 
 

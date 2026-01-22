@@ -42,15 +42,44 @@ class EventState(Serializable):
         """Возвращает последнюю значимость."""
         return self.last_significance
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, max_age_seconds: float = 3600.0, min_significance: float = 0.1) -> Dict[str, Any]:
         """
-        Сериализует состояние событий.
+        Сериализует состояние событий с фильтрацией устаревших записей.
+
+        Args:
+            max_age_seconds: Максимальный возраст событий в секундах (по умолчанию 1 час)
+            min_significance: Минимальная значимость для включения события (по умолчанию 0.1)
 
         Returns:
             Dict[str, Any]: Словарь с состоянием событий
         """
+        import time
+        current_time = time.time()
+
+        # Фильтруем события по возрасту и значимости
+        filtered_events = []
+        for event in self.recent_events:
+            try:
+                # Проверяем возраст события (если есть timestamp)
+                if hasattr(event, 'timestamp') and (current_time - event.timestamp) > max_age_seconds:
+                    continue
+
+                # Проверяем значимость события (если есть significance)
+                if hasattr(event, 'significance') and event.significance < min_significance:
+                    continue
+
+                # Добавляем отфильтрованное событие
+                filtered_events.append(event)
+            except (AttributeError, TypeError):
+                # Пропускаем события с некорректной структурой
+                continue
+
         return {
-            "recent_events": self.get_recent_events(20),  # Последние 20 событий
+            "recent_events": filtered_events[-20:],  # Последние 20 отфильтрованных событий
             "event_count": self.get_event_count(),
-            "last_significance": self.last_significance
+            "filtered_event_count": len(filtered_events),
+            "last_significance": self.last_significance,
+            "filter_applied": True,
+            "max_age_seconds": max_age_seconds,
+            "min_significance": min_significance
         }

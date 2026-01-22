@@ -54,8 +54,7 @@ class FeatureFlags:
             return cached_value
 
         try:
-            config = self.config_loader.load_config()
-            features_config = config.get('features', {})
+            features_config = self.config_loader.get('features', {})
             experimental_config = features_config.get('experimental', {})
 
             enabled = experimental_config.get(component_name, False)
@@ -107,8 +106,7 @@ class FeatureFlags:
             Словарь со всеми флагами
         """
         try:
-            config = self.config_loader.load_config()
-            return config.get('features', {}).get('experimental', {})
+            return self.config_loader.get('features', {}).get('experimental', {})
         except Exception:
             return {}
 

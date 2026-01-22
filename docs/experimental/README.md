@@ -894,6 +894,7 @@ meta_cognition_depth: float = 0.0      # Глубина метакогниции
 - `apply_adaptive_modifiers()` - применение адаптивных модификаторов
 - `get_processing_recommendations()` - получение рекомендаций по обработке
 - `set_consciousness_manager()` - установка менеджера состояний сознания
+- `trigger_processing_event()` - ручной запуск события обработки с улучшенной обработкой исключений
 
 #### AdaptiveProcessingConfig класс
 
@@ -1121,6 +1122,131 @@ print(f"Рекомендации: {recommendations}")
 3. **Предиктивная адаптация**: Предсказание будущих состояний нагрузки
 4. **Динамическая конфигурация**: Автоматическая настройка порогов
 5. **Мульти-агентная координация**: Синхронизация между несколькими экземплярами
+
+## Контракты сериализации экспериментальных компонентов
+
+### Обзор
+
+Экспериментальные компоненты ParallelConsciousnessEngine и ClarityMomentsTracker теперь поддерживают полные контракты сериализации, что позволяет:
+
+- Сохранять состояние компонентов при перезапуске системы
+- Интегрировать компоненты в композитную сериализацию SelfState
+- Обеспечивать thread-safety сериализации
+- Поддерживать версионирование форматов сериализации
+
+### ParallelConsciousnessEngine сериализация
+
+**Контракты**: Реализует `SerializationContract` с базовыми гарантиями сериализации.
+
+**Структура сериализованного состояния**:
+```python
+{
+    "max_workers": 4,                    # Количество рабочих потоков
+    "mode": "threading",                 # Режим обработки (threading/async)
+    "is_shutdown": False,                # Флаг завершения работы
+    "has_executor": True,                # Наличие ThreadPoolExecutor
+    "component_type": "ParallelConsciousnessEngine",
+    "version": "1.0"
+}
+```
+
+**Метаданные сериализации**:
+```python
+{
+    "version": "1.0",
+    "component_type": "ParallelConsciousnessEngine",
+    "thread_safe": True,
+    "timestamp": 1703123456.789,
+    "processing_mode": "threading",
+    "max_workers": 4,
+    "is_shutdown": False
+}
+```
+
+### ClarityMomentsTracker сериализация
+
+**Контракты**: Реализует `SerializationContract` с полной поддержкой сериализации моментов ясности.
+
+**Структура сериализованного состояния**:
+```python
+{
+    "correlation_counter": 5,             # Счетчик корреляций
+    "moments_count": 3,                  # Количество моментов
+    "moments": [                         # Массив моментов ясности
+        {
+            "timestamp": 1703123456.789,
+            "stage": "processing",
+            "correlation_id": "clarity_chain_1",
+            "event_id": "event_123",
+            "event_type": "analysis_complete",
+            "intensity": 0.8,
+            "data": {"key": "value"}
+        }
+    ],
+    "component_type": "ClarityMomentsTracker",
+    "version": "1.0",
+    "has_adaptive_manager": True
+}
+```
+
+**Метаданные сериализации**:
+```python
+{
+    "version": "1.0",
+    "component_type": "ClarityMomentsTracker",
+    "thread_safe": True,
+    "timestamp": 1703123456.789,
+    "moments_count": 3,
+    "correlation_counter": 5,
+    "has_self_state_provider": True,
+    "adaptive_manager_available": True
+}
+```
+
+### Интеграция с SelfState
+
+**Опциональные поля в SelfState**:
+```python
+@dataclass
+class SelfState(SerializationContract):
+    # ... существующие поля ...
+
+    # Экспериментальные компоненты (опциональные)
+    parallel_consciousness_engine: Optional[ParallelConsciousnessEngine] = None
+    clarity_moments_tracker: Optional[ClarityMomentsTracker] = None
+```
+
+**Композитная сериализация**: Компоненты автоматически включаются в `_serialize_components_isolated()` при наличии.
+
+**Thread-safety**: Сериализация происходит в изолированном режиме с timeout-защитой.
+
+### Dependency Injection архитектура
+
+**ClarityMomentsTracker** теперь использует современную архитектуру dependency injection:
+
+```python
+# Рекомендуемый подход
+tracker = ClarityMomentsTracker(self_state=self_state)
+
+# Legacy подход (обратная совместимость)
+tracker = ClarityMomentsTracker()  # fallback к default provider
+```
+
+**Преимущества**:
+- Четкое разделение зависимостей
+- Легкое тестирование с mock объектами
+- Избежание скрытых зависимостей
+- Лучшая архитектурная целостность
+
+### ADR и архитектурные решения
+
+**ADR 020**: [Экспериментальные компоненты в систему сериализации](https://github.com/life-system/life/blob/main/docs/adr/020-experimental-components-serialization-integration.md)
+
+**Ключевые решения**:
+- Опциональная интеграция (не нарушает основную архитектуру)
+- Базовые контракты сериализации (с возможностью расширения)
+- Dependency injection для ClarityMomentsTracker
+- Thread-safe сериализация с изоляцией компонентов
 
 ## Другие экспериментальные возможности
 
