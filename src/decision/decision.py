@@ -64,9 +64,11 @@ def _simple_pattern_selection(self_state: SelfState, meaning: Meaning) -> str:
     # Анализ активированной памяти
     activated = self_state.activated_memory or []
     if activated:
+        max_significance = max(entry.meaning_significance for entry in activated)
         avg_significance = sum(entry.meaning_significance for entry in activated) / len(activated)
-        high_significance = avg_significance > 0.6
+        high_significance = max_significance > 0.5
     else:
+        max_significance = 0.0
         avg_significance = 0.0
         high_significance = False
 
@@ -75,13 +77,12 @@ def _simple_pattern_selection(self_state: SelfState, meaning: Meaning) -> str:
     is_positive = event_type in ['joy', 'hope', 'love', 'curiosity', 'insight']
     is_negative = event_type in ['fear', 'anger', 'sadness', 'confusion', 'void']
 
+    # Анализ significance из meaning
+    meaning_high_significance = meaning.significance >= 0.5
+
     # Простые правила выбора паттерна
 
-    # 1. При критически низкой энергии игнорировать незначительные события
-    if energy_low and avg_significance < 0.3:
-        return "ignore"
-
-    # 2. При низкой энергии и стабильности - консервативный подход
+    # 1. При низкой энергии и стабильности - консервативный подход
     if energy_low and stability_low and not (is_positive and high_significance):
         return "dampen"
 
@@ -89,13 +90,21 @@ def _simple_pattern_selection(self_state: SelfState, meaning: Meaning) -> str:
     if integrity_low and avg_significance > 0.4:
         return "dampen"
 
-    # 4. Положительные события при низкой стабильности - усиливать
-    if stability_low and is_positive and high_significance:
+    # 4. Положительные события - усиливать
+    if is_positive and (high_significance or meaning_high_significance):
         return "amplify"
 
-    # 5. Высокая значимость - поглощать
+    # 5. Негативные события - гасить
+    if is_negative:
+        return "dampen"
+
+    # 6. Высокая значимость в meaning - гасить
+    if meaning_high_significance:
+        return "dampen"
+
+    # 7. Высокая значимость в памяти - гасить
     if high_significance:
-        return "absorb"
+        return "dampen"
 
     # 6. По умолчанию - поглощать
     return "absorb"

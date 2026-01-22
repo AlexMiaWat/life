@@ -182,7 +182,7 @@ class TestDecideResponse:
         """Тест выбора amplify для положительных событий при низкой стабильности"""
         # Создаем Meaning с положительным эффектом и типом recovery
         meaning = Meaning(significance=0.6, impact={"energy": +0.5, "stability": +0.1})
-        meaning.event_type = "recovery"  # Добавляем тип события
+        meaning.primary_emotion = "joy"  # Положительная эмоция
 
         # Низкая стабильность и энергия
         base_state.stability = 0.2
@@ -273,7 +273,7 @@ class TestDecideResponse:
     def test_decide_connection_positive_amplify(self, base_state):
         """Тест усиления положительного эффекта connection"""
         meaning = Meaning(significance=0.7, impact={"energy": +0.8, "stability": +0.1})
-        meaning.event_type = "connection"
+        meaning.primary_emotion = "love"  # Положительная эмоция для connection
 
         base_state.energy = 40  # Средняя энергия
         base_state.stability = 0.6
@@ -464,7 +464,7 @@ class TestDecideResponse:
     def test_decision_with_high_sensitivity_shock(self, state_with_learning_params):
         """Тест реакции на shock с высокой чувствительностью"""
         meaning = Meaning(significance=0.4, impact={"energy": -0.5})
-        meaning.event_type = "shock"
+        meaning.primary_emotion = "fear"  # Негативная эмоция для shock
 
         pattern = decide_response(state_with_learning_params, meaning)
         # При высокой чувствительности к shock (0.8) должен выбираться dampen
@@ -502,7 +502,7 @@ class TestDecideResponse:
         }
 
         meaning = Meaning(significance=0.25, impact={"energy": -0.3})
-        meaning.event_type = "shock"
+        meaning.primary_emotion = "fear"  # Негативная эмоция
 
         pattern = decide_response(state, meaning)
         # При низкой энергии и средней значимости должен выбираться dampen

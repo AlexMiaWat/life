@@ -1,8 +1,9 @@
 # 11_DECISION
 
-## Статус: ✅ Реализован (v2.0)
+## Статус: ✅ Реализован (v2.1)
 
 **v2.0:** Добавлен DecisionEngine с историей решений и статистикой
+**v2.1:** Улучшена логика принятия решений с анализом эмоций и типов событий (primary_emotion), более точный анализ значимости памяти (max_significance), улучшенные правила выбора паттернов
 
 ## Описание
 
@@ -14,25 +15,60 @@
 
 ### Пример
 
-Код функции:
+Код функции (v2.1 с улучшенной логикой):
 
 ```python
-def decide_response(self_state: SelfState, meaning: Meaning) -> str:
+def _simple_pattern_selection(self_state: SelfState, meaning: Meaning) -> str:
     """
-    Минимальный выбор паттерна на основе activated_memory.
-    - Если max sig в activated >0.5 — "dampen" (опыт учит смягчать).
-    - Else return Meaning's pattern (absorb/ignore).
+    Улучшенная логика выбора паттерна реакции с анализом эмоций и значимости.
+
+    - Анализирует тип события через primary_emotion (joy, fear, anger, etc.)
+    - Использует max_significance вместо avg для более точного анализа памяти
+    - Положительные события усиливаются, негативные гасятся
+    - Высокая значимость в meaning всегда приводит к гашению
     """
-    activated = self_state.activated_memory
-    if activated and max(e.meaning_significance for e in activated) > 0.5:
-        return "dampen"
-    # Fallback to Meaning's logic
-    if meaning.significance < 0.1:
-        return "ignore"
-    return "absorb"
+    # Базовые условия состояния
+    energy_low = self_state.energy < 30
+    stability_low = self_state.stability < 0.3
+    integrity_low = self_state.integrity < 0.3
+
+    # Анализ активированной памяти
+    activated = self_state.activated_memory or []
+    if activated:
+        max_significance = max(entry.meaning_significance for entry in activated)
+        avg_significance = sum(entry.meaning_significance for entry in activated) / len(activated)
+        high_significance = max_significance > 0.5
+    else:
+        max_significance = 0.0
+        avg_significance = 0.0
+        high_significance = False
+
+    # Определение типа события из meaning
+    event_type = getattr(meaning, 'primary_emotion', 'neutral')
+    is_positive = event_type in ['joy', 'hope', 'love', 'curiosity', 'insight']
+    is_negative = event_type in ['fear', 'anger', 'sadness', 'confusion', 'void']
+
+    # Анализ significance из meaning
+    meaning_high_significance = meaning.significance >= 0.5
+
+    # Правила выбора паттерна:
+    # 1. При низкой энергии и стабильности - консервативный подход
+    # 2. При низкой целостности - осторожный подход
+    # 3. Положительные события - усиливать
+    # 4. Негативные события - гасить
+    # 5. Высокая значимость в meaning - гасить
+    # 6. Высокая значимость в памяти - гасить
+    # 7. По умолчанию - поглощать
+
+    return "dampen"  # или "amplify", "absorb", "ignore"
 ```
 
-Логи поведения: dampen уменьшает impact, ignore пропускает, absorb применяет без изменений.
+### Логика паттернов реакции
+
+- **dampen**: Уменьшает impact события (консервативный/защитный подход)
+- **amplify**: Усиливает положительное воздействие события
+- **absorb**: Применяет событие без изменений (нейтральный подход)
+- **ignore**: Полностью игнорирует событие (при очень низкой значимости)
 
 ## DecisionEngine (v2.0)
 

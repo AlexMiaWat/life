@@ -5,6 +5,52 @@
 Формат основан на [Keep a Changelog](https://keepachangelog.com/ru/1.0.0/),
 и этот проект придерживается [Semantic Versioning](https://semver.org/lang/ru/).
 
+## [2026-01-22] - Semantic Monitor и улучшения наблюдаемости
+
+### Добавлено
+- **SemanticMonitor (v1.0):** Новый компонент для непрерывного мониторинга аномалий в поведенческих паттернах
+  - Использует SemanticAnalysisEngine для глубокого анализа цепочек событий
+  - Асинхронная обработка с кэшированием результатов анализа (TTL)
+  - Логирование аномалий в JSONL формате
+  - Интеграция с системой алертинга и оценки здоровья системы
+  - Конфигурация через `config/observability.yaml`
+
+- **Новые настройки наблюдаемости:**
+  - `semantic_monitor.enabled` - Включение семантического мониторинга
+  - `semantic_monitor.anomaly_threshold` - Порог обнаружения аномалий (0.7)
+  - `semantic_monitor.analysis_interval_seconds` - Интервал анализа (5 сек)
+  - `semantic_monitor.async_processing` - Асинхронная обработка (включена)
+  - `semantic_monitor.cache_ttl_seconds` - TTL кэша анализа (300 сек)
+
+- **Улучшения логики принятия решений (Decision v2.1):**
+  - Анализ типа события через `primary_emotion` вместо `event_type`
+  - Более точный анализ значимости памяти (использование `max_significance`)
+  - Улучшенные правила: положительные события усиливаются, негативные гасятся
+  - Высокая значимость в meaning всегда приводит к гашению
+
+- **Новые интеграционные тесты:**
+  - `decision_engine_integration_static_tests.py` - Тесты интеграции DecisionEngine
+  - `full_system_workflow_smoke_tests.py` - Дымовые тесты полного workflow
+  - `runtime_loop_full_integration_tests.py` - Полные интеграционные тесты runtime
+  - `self_state_serialization_static_tests.py` - Тесты сериализации SelfState
+
+- **Документация:**
+  - Новая документация SemanticMonitor в `docs/components/semantic_monitor.md`
+  - Обновлена документация системы наблюдаемости с новым компонентом
+  - Улучшена документация логики принятия решений
+  - Расширена документация тестирования новыми интеграционными тестами
+
+### Изменено
+- **ObservabilityConfig:** Добавлена конфигурация `SemanticMonitorConfig`
+- **Decision logic:** Переход на анализ эмоций через `primary_emotion`
+- **Тесты принятия решений:** Обновлены для использования `primary_emotion` вместо `event_type`
+
+### Технические детали
+- **SemanticMonitor:** Интеграция в `src/monitor/__init__.py` для импорта
+- **Асинхронная обработка:** Worker pool с очередью для минимизации overhead
+- **Кэширование:** LRU кэш с TTL для оптимизации повторных анализов
+- **Логирование аномалий:** JSONL формат с correlation_id и evidence
+
 ## [2026-01-22] - Оптимизации сериализации и новые экспериментальные компоненты
 
 ### Добавлено

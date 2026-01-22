@@ -32,6 +32,16 @@
 - Flush каждые 100ms
 - <1% overhead на runtime
 
+#### SemanticMonitor ⭐ **НОВЫЙ КОМПОНЕНТ (v1.0)**
+**Файл:** `src/monitor/semantic_monitor.py`
+
+Система непрерывного мониторинга аномалий:
+- Использует SemanticAnalysisEngine для глубокого анализа цепочек событий
+- Обнаруживает поведенческие аномалии и проблемы системы
+- Кэширование результатов анализа с TTL для оптимизации производительности
+- Асинхронная обработка для минимизации overhead
+- Интеграция с системой алертинга и логирования аномалий
+
 #### Устаревшие компоненты (поддержка обратной совместимости)
 - **PassiveDataSink**: Устарел, но поддерживается для совместимости. Обновлен (2026-01-22): убран лимит maxlen для предотвращения потери данных.
 - **AsyncDataSink**: Устарел, но поддерживается для совместимости. Обновлен (2026-01-22): добавлены новые параметры конфигурации (max_queue_size, processing_interval) и улучшена обработка данных.
@@ -78,6 +88,7 @@ structured_logger.log_tick_end(tick_duration_ms)
 
 ### Конфигурация
 
+#### StructuredLogger
 ```python
 structured_logger = StructuredLogger(
     log_tick_interval=10,      # Каждый 10-й тик
@@ -85,6 +96,23 @@ structured_logger = StructuredLogger(
     buffer_size=10000,         # Буфер в памяти
     batch_size=50,            # Batch-запись
     flush_interval=0.1         # Flush каждые 100ms
+)
+```
+
+#### SemanticMonitor
+```python
+semantic_monitor = SemanticMonitor(
+    config=MonitorConfig(
+        enabled=True,
+        anomaly_threshold=0.7,
+        analysis_interval_seconds=5.0,
+        max_cached_analyses=1000,
+        anomaly_log_file="logs/semantic_anomalies.jsonl",
+        health_check_interval_seconds=30.0,
+        async_processing=True,
+        cache_ttl_seconds=300.0,
+        log_anomalies=True
+    )
 )
 ```
 

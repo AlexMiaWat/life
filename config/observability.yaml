@@ -63,6 +63,18 @@ performance:
   async_queue_size: 1000
   thread_pool_size: 4
 
+# Настройки семантического мониторинга
+semantic_monitor:
+  enabled: true
+  anomaly_threshold: 0.7
+  analysis_interval_seconds: 5.0
+  max_cached_analyses: 1000
+  anomaly_log_file: "logs/semantic_anomalies.jsonl"
+  health_check_interval_seconds: 30.0
+  async_processing: true
+  cache_ttl_seconds: 300.0
+  log_anomalies: true
+
 # Настройки безопасности
 security:
   allow_file_access: true

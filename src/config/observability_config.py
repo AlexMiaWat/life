@@ -33,6 +33,20 @@ class StructuredLoggingConfig:
 
 
 @dataclass
+class SemanticMonitorConfig:
+    """Конфигурация семантического мониторинга."""
+    enabled: bool = True
+    anomaly_threshold: float = 0.7
+    analysis_interval_seconds: float = 5.0
+    max_cached_analyses: int = 1000
+    anomaly_log_file: str = "logs/semantic_anomalies.jsonl"
+    health_check_interval_seconds: float = 30.0
+    async_processing: bool = True
+    cache_ttl_seconds: float = 300.0
+    log_anomalies: bool = True
+
+
+@dataclass
 class ObservabilityConfig:
     """Основная конфигурация системы наблюдаемости (упрощенная)."""
 
@@ -40,8 +54,9 @@ class ObservabilityConfig:
     enabled: bool = True
     data_directory: str = "data"
 
-    # Единственная компонентная конфигурация
+    # Компонентные конфигурации
     structured_logging: StructuredLoggingConfig = StructuredLoggingConfig()
+    semantic_monitor: SemanticMonitorConfig = SemanticMonitorConfig()
 
     @classmethod
     def from_dict(cls, config_dict: Dict[str, Any]) -> 'ObservabilityConfig':
@@ -50,13 +65,15 @@ class ObservabilityConfig:
         enabled = config_dict.get('enabled', True)
         data_directory = config_dict.get('data_directory', 'data')
 
-        # Создать конфигурацию структурированного логирования
+        # Создать конфигурации компонентов
         structured_logging = StructuredLoggingConfig(**config_dict.get('structured_logging', {}))
+        semantic_monitor = SemanticMonitorConfig(**config_dict.get('semantic_monitor', {}))
 
         return cls(
             enabled=enabled,
             data_directory=data_directory,
-            structured_logging=structured_logging
+            structured_logging=structured_logging,
+            semantic_monitor=semantic_monitor
         )
 
     @classmethod

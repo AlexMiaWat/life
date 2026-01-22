@@ -29,6 +29,7 @@ from src.runtime.adaptive_batch_sizer import AdaptiveBatchSizer
 from src.runtime.performance_monitor import performance_monitor
 from src.state.self_state import SelfState, save_snapshot
 from src.contracts.contract_manager import contract_manager
+from src.monitor.semantic_monitor import SemanticMonitor
 from src.observability.semantic_analysis_engine import SemanticAnalysisEngine
 
 logger = logging.getLogger(__name__)
@@ -425,7 +426,8 @@ def run_loop(
     enable_silence_detection=True,  # Включение системы осознания тишины
     log_flush_period_ticks=10,
     enable_profiling=False,
-    structured_logger=None  # StructuredLogger для активного логирования ключевых этапов
+    structured_logger=None,  # StructuredLogger для активного логирования ключевых этапов
+    semantic_monitor=None  # SemanticMonitor для пассивного семантического мониторинга
 ):
     """
     Runtime Loop с интеграцией Environment (этап 07)
@@ -556,6 +558,13 @@ def run_loop(
             passive_data_sink=passive_data_sink,  # Передача компонентов для интеграции
             async_data_sink=async_data_sink
         )
+
+    # Инициализация SemanticMonitor
+    if semantic_monitor is None:
+        semantic_monitor = SemanticMonitor()
+        logger.info("SemanticMonitor initialized and integrated with runtime loop")
+    else:
+        logger.info("Using provided SemanticMonitor instance")
 
     # Инициализация Semantic Analysis Engine
     semantic_analysis_engine = SemanticAnalysisEngine(
@@ -1503,14 +1512,41 @@ def run_loop(
                             f"[LOOP] Слабость: штрафы penalty={penalty:.4f}, energy={self_state.energy:.2f}"
                         )
 
-                # Вызов мониторинга с агрегацией (каждые 10 тиков для оптимизации производительности)
-                ticks_since_last_monitor_call += 1
-                if ticks_since_last_monitor_call >= MONITOR_AGGREGATION_INTERVAL:
-                    try:
+                # Вызов семантического мониторинга с интеграцией в runtime loop
+                try:
+                    # Получить размер очереди событий для метрик производительности
+                    event_queue_size = event_queue.qsize() if event_queue else 0
+
+                    # Обновить семантический монитор (пассивная обсервация)
+                    semantic_results = semantic_monitor.tick_update(
+                        current_tick=self_state.ticks,
+                        event_queue_size=event_queue_size
+                    )
+
+                    # Логировать важные результаты семантического анализа
+                    if semantic_results:
+                        if 'health_profile' in semantic_results:
+                            health = semantic_results['health_profile']
+                            logger.info(
+                                f"Semantic health: overall={health['overall_health']:.2f}, "
+                                f"energy={health['energy_stability']:.2f}, "
+                                f"cognition={health['cognitive_coherence']:.2f}"
+                            )
+
+                        if 'anomalies_detected' in semantic_results:
+                            logger.warning(
+                                f"Semantic anomalies detected: {semantic_results['anomalies_detected']} "
+                                f"in {semantic_results['chains_analyzed']} chains"
+                            )
+
+                    # Вызов консольного мониторинга с агрегацией (каждые 10 тиков)
+                    ticks_since_last_monitor_call += 1
+                    if ticks_since_last_monitor_call >= MONITOR_AGGREGATION_INTERVAL:
                         monitor(self_state)
                         ticks_since_last_monitor_call = 0  # Сброс счетчика
-                    except Exception as e:
-                        logger.error(f"Ошибка в monitor: {e}", exc_info=True)
+
+                except Exception as e:
+                    logger.error(f"Ошибка в семантическом мониторинге: {e}", exc_info=True)
 
                 # Периодическое обслуживание DataCollectionManager теперь выполняется асинхронно
                 # в фоновом потоке AsyncDataQueue

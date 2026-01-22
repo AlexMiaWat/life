@@ -15,6 +15,7 @@ from colorama import Fore, Style, init
 from src.environment import Event, EventQueue
 from src.logging_config import get_logger, setup_logging
 from src.monitor.console import monitor
+from src.monitor.semantic_monitor import SemanticMonitor
 from src.runtime.loop import run_loop
 from src.state.self_state import SelfState
 
@@ -354,6 +355,7 @@ def reloader_thread():  # pragma: no cover
                     False,  # disable_adaptation
                     10,  # log_flush_period_ticks
                     config["enable_profiling"],
+                    semantic_monitor,  # SemanticMonitor для пассивного мониторинга
                 ),
                 daemon=True,
             )
@@ -401,6 +403,10 @@ if __name__ == "__main__":  # pragma: no cover
     except FileNotFoundError:
         self_state = SelfState()
 
+    # Инициализация SemanticMonitor
+    semantic_monitor = SemanticMonitor()
+    logger.info("SemanticMonitor initialized for main runtime loop")
+
     server = None
     api_thread = None
 
@@ -437,6 +443,7 @@ if __name__ == "__main__":  # pragma: no cover
             True,  # enable_silence_detection
             10,  # log_flush_period_ticks
             config["enable_profiling"],
+            semantic_monitor,  # SemanticMonitor для пассивного мониторинга
         ),
         daemon=True,
     )
