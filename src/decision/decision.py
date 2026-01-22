@@ -396,6 +396,57 @@ def _get_event_type_rules(meaning: Meaning) -> dict:
             "prefer_absorb": True,
             "positive_event": True,
         },
+        # Новые социально-эмоциональные события
+        "connection": {
+            "can_amplify": True,  # Связь можно усиливать
+            "prefer_absorb": True,  # Предпочитаем полное поглощение
+            "positive_event": True,
+            "context_sensitive": True,  # Зависит от текущего состояния изоляции
+        },
+        "isolation": {
+            "can_amplify": False,  # Изоляцию не усиливаем
+            "prefer_dampen": True,  # Предпочитаем смягчать
+            "negative_event": True,
+            "conservative_threshold": 0.25,  # Более низкий порог реакции
+        },
+        # Новые когнитивные события
+        "insight": {
+            "can_amplify": True,  # Озарение можно усиливать
+            "prefer_absorb": True,  # Предпочитаем полное поглощение
+            "positive_event": True,
+            "conservative_threshold": 0.2,  # Более низкий порог для значимых моментов
+        },
+        "confusion": {
+            "can_amplify": False,  # Путаницу не усиливаем
+            "prefer_dampen": True,  # Предпочитаем смягчать
+            "negative_event": True,
+            "can_ignore": True,  # Легкую путаницу можно игнорировать
+            "ignore_threshold": 0.15,
+        },
+        "curiosity": {
+            "can_amplify": True,  # Любопытство можно усиливать
+            "context_sensitive": True,  # Зависит от когнитивного состояния
+            "positive_event": True,
+        },
+        # Новые экзистенциальные события
+        "meaning_found": {
+            "can_amplify": True,  # Нахождение смысла можно усиливать
+            "prefer_absorb": True,  # Предпочитаем полное поглощение
+            "positive_event": True,
+            "conservative_threshold": 0.15,  # Очень низкий порог для экзистенциальных моментов
+        },
+        "void": {
+            "can_amplify": False,  # Пустоту не усиливаем
+            "prefer_dampen": True,  # Предпочитаем смягчать
+            "negative_event": True,
+            "conservative_threshold": 0.2,  # Более низкий порог для глубоких состояний
+        },
+        "acceptance": {
+            "can_amplify": True,  # Принятие можно усиливать
+            "prefer_absorb": True,  # Предпочитаем полное поглощение
+            "positive_event": True,
+            "context_sensitive": True,  # Зависит от предыдущего состояния
+        },
     }
 
     return rules.get(event_type, {"can_amplify": True, "can_ignore": True, "prefer_absorb": True})

@@ -732,7 +732,7 @@ class SelfState:
         Согласно ADR 009, система Life остается активной даже при параметрах <= 0.
         Возвращает True всегда, кроме случаев ручной установки active=False.
         """
-        return self.active
+        return (self.energy > 0 and self.integrity > 0 and self.stability > 0)
 
     def is_viable(self) -> bool:
         """
@@ -975,14 +975,18 @@ class SelfState:
         base_probability = 0.001
 
         # Модификаторы вероятности
-        # Возрастной модификатор: растет с возрастом (30 дней = 30*24*3600 сек)
-        age_modifier = min(1.0, self.age / (30 * 24 * 3600))
+        # Возрастной модификатор: растет с субъективным возрастом (30 дней = 30*24*3600 сек)
+        age_modifier = min(1.0, self.subjective_age / (30 * 24 * 3600))
 
         # Модификатор стабильности: чаще при низкой стабильности
         stability_modifier = 1.0 + (1.0 - self.stability)
 
+        # Модификатор циркадного ритма: меньше эхо днем, больше ночью
+        # Используем recovery_efficiency: меньше эхо при высокой эффективности восстановления (день)
+        circadian_modifier = 1.0 + (1.0 - self.recovery_efficiency) * 0.5
+
         # Общая вероятность эхо
-        echo_probability = base_probability * age_modifier * stability_modifier
+        echo_probability = base_probability * age_modifier * stability_modifier * circadian_modifier
 
         # Проверяем, произошло ли эхо
         if random.random() < echo_probability:

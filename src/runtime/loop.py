@@ -11,6 +11,7 @@ from src.decision.decision import decide_response
 from src.environment.internal_generator import InternalEventGenerator
 
 from src.experimental import AdaptiveProcessingManager, AdaptiveProcessingConfig
+from src.experimental.clarity_moments import ClarityMoments
 from src.feedback import observe_consequences, register_action
 from src.intelligence.intelligence import process_information
 from src.learning.learning import LearningEngine
@@ -20,6 +21,8 @@ from src.planning.planning import record_potential_sequences
 from src.runtime.life_policy import LifePolicy
 from src.runtime.log_manager import FlushPolicy, LogManager
 from src.runtime.snapshot_manager import SnapshotManager
+from src.runtime.subjective_time import compute_subjective_dt
+from src.runtime.data_collection_manager import DataCollectionManager
 from src.state.self_state import SelfState, save_snapshot
 
 logger = logging.getLogger(__name__)
@@ -333,6 +336,13 @@ def run_loop(
             logger=structured_logger
         ) if not disable_adaptive_processing else None
     )  # Clarity Moments System
+
+    # Инициализация Clarity Moments с реальным состоянием системы
+    clarity_moments = ClarityMoments(
+        logger=structured_logger,
+        self_state_provider=lambda: self_state
+    )
+
     internal_generator = InternalEventGenerator()  # Internal Event Generator (Memory Echoes)
     # Настройка доступа к памяти для генерации конкретных эхо-воспоминаний
     if hasattr(self_state, 'memory'):
@@ -365,6 +375,8 @@ def run_loop(
     life_policy = (
         LifePolicy()
     )  # Использует значения по умолчанию (совпадают с предыдущими константами)
+    data_collection_manager = DataCollectionManager()  # Менеджер сбора данных
+    data_collection_manager.start()  # Запускаем менеджер сбора данных
 
     # Счетчики ошибок для отслеживания проблем
     learning_errors = 0
@@ -396,24 +408,58 @@ def run_loop(
                 # Обновление состояния
                 self_state.apply_delta({"ticks": 1})
                 self_state.apply_delta({"age": dt})
-                # Subjective time increment (metric only) - disabled for performance
-                # subjective_dt = compute_subjective_dt(
-                #     dt=dt,
-                #     base_rate=self_state.subjective_time_base_rate,
-                #     intensity=self_state.last_event_intensity,
-                #     stability=self_state.stability,
-                #     energy=self_state.energy,
-                #     intensity_coeff=self_state.subjective_time_intensity_coeff,
-                #     stability_coeff=self_state.subjective_time_stability_coeff,
-                #     energy_coeff=self_state.subjective_time_energy_coeff,
-                #     rate_min=self_state.subjective_time_rate_min,
-                #     rate_max=self_state.subjective_time_rate_max,
-                # )
-                # self_state.apply_delta({"subjective_time": subjective_dt})
-                self_state.apply_delta({"subjective_time": dt})  # Simple increment for performance
+                # Subjective time increment (metric only) - enabled
+                # Применяем модификатор Clarity Moments (замедление времени в моменты ясности)
+                clarity_modifier = getattr(self_state, 'clarity_modifier', 1.0)
+                adjusted_dt = dt * clarity_modifier
+
+                subjective_dt = compute_subjective_dt(
+                    dt=adjusted_dt,
+                    base_rate=self_state.subjective_time_base_rate,
+                    intensity=self_state.last_event_intensity,
+                    stability=self_state.stability,
+                    energy=self_state.energy,
+                    intensity_coeff=self_state.subjective_time_intensity_coeff,
+                    stability_coeff=abs(self_state.subjective_time_stability_coeff),  # Положительный для ускорения при высокой стабильности
+                    energy_coeff=self_state.subjective_time_energy_coeff,
+                    rate_min=self_state.subjective_time_rate_min,
+                    rate_max=self_state.subjective_time_rate_max,
+                    circadian_phase=getattr(self_state, 'circadian_phase', 0.0),
+                    recovery_efficiency=getattr(self_state, 'recovery_efficiency', 1.0),
+                )
+                self_state.apply_delta({"subjective_time": subjective_dt})
 
                 # Обновление внутренних ритмов
                 self_state.update_circadian_rhythm(dt)
+
+                # Проверка условий Clarity Moments
+                if self_state.stability >= ClarityMoments.CLARITY_STABILITY_THRESHOLD and \
+                   self_state.energy >= ClarityMoments.CLARITY_ENERGY_THRESHOLD * 100:  # energy в процентах
+                    # Проверяем условия для активации момента ясности
+                    clarity_result = clarity_moments.check_clarity_conditions(self_state)
+                    if clarity_result:
+                        # Активируем момент ясности
+                        clarity_moments.activate_clarity_moment(self_state)
+                        # Анализируем момент ясности для создания события
+                        moment = clarity_moments.analyze_clarity(self_state)
+                        if moment:
+                            # Создаем событие момента ясности
+                            clarity_event = {
+                                "type": "clarity_moment",
+                                "timestamp": time.time(),
+                                "subjective_timestamp": self_state.subjective_time,
+                                "data": {
+                                    "intensity": moment.intensity,
+                                    "stage": moment.stage,
+                                    "correlation_id": moment.correlation_id,
+                                    "reason": "high_stability_energy"
+                                }
+                            }
+                            # Добавляем в очередь событий
+                            event_queue.put_nowait(clarity_event)
+
+                # Обновление состояния Clarity Moments
+                clarity_moments.update_clarity_state(self_state)
 
                 # Технический мониторинг: сбор метрик через регулярные интервалы (асинхронно)
                 ticks_since_last_metrics_collection += 1
@@ -1072,6 +1118,10 @@ def run_loop(
                     structured_logger.log_event(
                         {"event_type": "adaptive_processing_manager_stopped"}
                     )
+
+                # Остановка менеджера сбора данных
+                if data_collection_manager:
+                    data_collection_manager.stop()
 
 
                 # Flush логов при завершении (обязательно)

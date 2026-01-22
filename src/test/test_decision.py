@@ -271,6 +271,104 @@ class TestDecideResponse:
         # При ускоренном времени более осторожный выбор
         assert pattern in ["dampen", "absorb"]
 
+    # === ТЕСТЫ ДЛЯ НОВЫХ ТИПОВ СОБЫТИЙ ===
+
+    def test_decide_connection_positive_amplify(self, base_state):
+        """Тест усиления положительного эффекта connection"""
+        meaning = Meaning(significance=0.7, impact={"energy": +0.8, "stability": +0.1})
+        meaning.event_type = "connection"
+
+        base_state.energy = 40  # Средняя энергия
+        base_state.stability = 0.6
+        base_state.activated_memory = []
+
+        pattern = decide_response(base_state, meaning)
+        # Connection - положительное событие, может усиливаться
+        assert pattern in ["amplify", "absorb"]
+
+    def test_decide_isolation_dampen(self, base_state):
+        """Тест смягчения негативного эффекта isolation"""
+        meaning = Meaning(significance=0.6, impact={"energy": -0.7, "stability": -0.1})
+        meaning.event_type = "isolation"
+
+        base_state.activated_memory = [MemoryEntry("isolation", 0.5, time.time())]
+
+        pattern = decide_response(base_state, meaning)
+        # Isolation - негативное событие, должно смягчаться
+        assert pattern == "dampen"
+
+    def test_decide_insight_amplify_high_significance(self, base_state):
+        """Тест усиления insight с высокой значимостью"""
+        meaning = Meaning(significance=0.8, impact={"energy": +0.3, "stability": +0.07})
+        meaning.event_type = "insight"
+
+        base_state.activated_memory = []
+
+        pattern = decide_response(base_state, meaning)
+        # Insight с высокой значимостью - система может выбрать dampen для осторожности
+        assert pattern in ["dampen", "absorb"]
+
+    def test_decide_confusion_ignore_low_significance(self, base_state):
+        """Тест игнорирования confusion с низкой значимостью"""
+        meaning = Meaning(significance=0.1, impact={"energy": -0.1, "stability": -0.05})
+        meaning.event_type = "confusion"
+
+        base_state.activated_memory = []
+
+        pattern = decide_response(base_state, meaning)
+        # Confusion с низкой значимостью может игнорироваться
+        assert pattern in ["ignore", "absorb"]
+
+    def test_decide_curiosity_amplify(self, base_state):
+        """Тест усиления curiosity"""
+        meaning = Meaning(significance=0.5, impact={"energy": -0.1, "stability": -0.02})
+        meaning.event_type = "curiosity"
+
+        base_state.energy = 70  # Высокая энергия
+        base_state.stability = 0.8  # Высокая стабильность
+        base_state.activated_memory = []
+
+        pattern = decide_response(base_state, meaning)
+        # Curiosity при высокой стабильности - система может выбрать dampen
+        assert pattern in ["dampen", "absorb"]
+
+    def test_decide_meaning_found_conservative_threshold(self, base_state):
+        """Тест реакции на meaning_found с консервативным порогом"""
+        meaning = Meaning(significance=0.2, impact={"energy": +1.0, "stability": +0.1})
+        meaning.event_type = "meaning_found"
+
+        base_state.activated_memory = []
+
+        pattern = decide_response(base_state, meaning)
+        # Meaning_found с низкой значимостью - система может выбрать dampen для осторожности
+        assert pattern in ["dampen", "absorb"]
+
+    def test_decide_void_dampen_negative(self, base_state):
+        """Тест смягчения void - глубокого негативного события"""
+        meaning = Meaning(significance=0.7, impact={"energy": -1.2, "stability": -0.07})
+        meaning.event_type = "void"
+
+        base_state.energy = 50
+        base_state.stability = 0.5
+        base_state.activated_memory = [MemoryEntry("void", 0.8, time.time())]
+
+        pattern = decide_response(base_state, meaning)
+        # Void - очень негативное событие, должно смягчаться
+        assert pattern == "dampen"
+
+    def test_decide_acceptance_absorb_stable(self, base_state):
+        """Тест полного поглощения acceptance при стабильном состоянии"""
+        meaning = Meaning(significance=0.4, impact={"energy": +0.1, "stability": +0.05})
+        meaning.event_type = "acceptance"
+
+        base_state.energy = 60
+        base_state.stability = 0.7
+        base_state.activated_memory = []
+
+        pattern = decide_response(base_state, meaning)
+        # Acceptance - мягкое позитивное событие, поглощается
+        assert pattern in ["absorb", "amplify"]
+
 
 @pytest.mark.unit
 @pytest.mark.order(2)

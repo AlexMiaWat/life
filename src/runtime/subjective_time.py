@@ -27,6 +27,8 @@ def compute_subjective_time_rate(
     energy_coeff: float,
     rate_min: float,
     rate_max: float,
+    circadian_phase: float = 0.0,
+    recovery_efficiency: float = 1.0,
 ) -> float:
     """
     Compute subjective time rate multiplier.
@@ -35,18 +37,23 @@ def compute_subjective_time_rate(
     - higher intensity -> faster subjective time (positive effect)
     - lower stability -> slower subjective time (negative effect)
     - higher energy -> faster subjective time (positive effect)
+    - circadian rhythm affects time perception based on recovery efficiency
     - rate is clamped to [rate_min, rate_max]
     """
     intensity = clamp(float(intensity), 0.0, 1.0)
     stability = clamp(float(stability), 0.0, 1.0)
     energy_normalized = clamp(float(energy) / 100.0, 0.0, 1.0)  # normalize energy to [0,1]
+    circadian_phase = float(circadian_phase)
+    recovery_efficiency = clamp(float(recovery_efficiency), 0.4, 1.6)
 
-    # stability term: stability=1 => 0; stability<1 => negative contribution
-    stability_term = stability_coeff * (stability - 1.0)
+    # stability term: higher stability -> faster time (positive effect)
+    stability_term = stability_coeff * (stability - 0.5)  # 0.5 = neutral stability
     # energy term: higher energy -> faster subjective time (positive contribution)
     energy_term = energy_coeff * energy_normalized
+    # circadian term: recovery efficiency affects subjective time perception
+    circadian_term = 0.1 * (recovery_efficiency - 1.0)  # small effect from circadian rhythm
 
-    rate = base_rate + intensity_coeff * intensity + stability_term + energy_term
+    rate = base_rate + intensity_coeff * intensity + stability_term + energy_term + circadian_term
     return clamp(rate, float(rate_min), float(rate_max))
 
 
@@ -62,6 +69,8 @@ def compute_subjective_dt(
     energy_coeff: float,
     rate_min: float,
     rate_max: float,
+    circadian_phase: float = 0.0,
+    recovery_efficiency: float = 1.0,
 ) -> float:
     """Compute subjective time increment (seconds) for a physical dt (seconds)."""
     dt = max(0.0, float(dt))
@@ -75,5 +84,7 @@ def compute_subjective_dt(
         energy_coeff=energy_coeff,
         rate_min=rate_min,
         rate_max=rate_max,
+        circadian_phase=circadian_phase,
+        recovery_efficiency=recovery_efficiency,
     )
     return dt * rate

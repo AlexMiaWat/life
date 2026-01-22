@@ -37,19 +37,23 @@ class ClarityMomentsTracker:
     CLARITY_STABILITY_THRESHOLD = 0.8
     CLARITY_ENERGY_THRESHOLD = 0.7
 
-    def __init__(self, data_file: Optional[str] = None, logger=None):
+    def __init__(self, data_file: Optional[str] = None, logger=None, self_state_provider=None):
         # Initialize with new adaptive processing manager
-        # Create a mock self_state_provider for compatibility
-        def mock_self_state_provider():
-            return type('MockState', (), {
-                'energy': 80.0,
-                'stability': 0.9,  # High stability for clarity
-                'processing_load': 0.3,
-                'memory_usage': 0.6,
-                'error_rate': 0.01
-            })()
+        # Use provided self_state_provider or create a default one
+        if self_state_provider:
+            self.self_state_provider = self_state_provider
+        else:
+            def default_self_state_provider():
+                return type('DefaultState', (), {
+                    'energy': 80.0,
+                    'stability': 0.9,
+                    'processing_load': 0.3,
+                    'memory_usage': 0.6,
+                    'error_rate': 0.01
+                })()
+            self.self_state_provider = default_self_state_provider
 
-        self.adaptive_manager = AdaptiveProcessingManager(mock_self_state_provider)
+        self.adaptive_manager = AdaptiveProcessingManager(self.self_state_provider)
         self.moments: List[ClarityMoment] = []
         self._correlation_counter = 0
 
@@ -64,18 +68,10 @@ class ClarityMomentsTracker:
 
         # Convert to adaptive processing event
         processing_mode = self._map_intensity_to_mode(moment.intensity)
-        adaptive_event = ProcessingEvent(
-            processing_mode=processing_mode,
-            intensity=moment.intensity,
-            trigger_conditions={
-                'stage': moment.stage,
-                'event_type': moment.event_type,
-                'correlation_id': moment.correlation_id
-            }
-        )
+        current_state = self.self_state_provider()
 
-        # Add to adaptive manager (disabled for backward compatibility)
-        # self.adaptive_manager.add_processing_event(adaptive_event)
+        # Add to adaptive manager
+        self.adaptive_manager.trigger_processing_event(current_state, processing_mode, moment.intensity)
 
     def _map_intensity_to_mode(self, intensity: float) -> ProcessingMode:
         """Map clarity intensity to processing mode."""
@@ -187,8 +183,8 @@ class ClarityMoments:
     CLARITY_ENERGY_THRESHOLD = ClarityMomentsTracker.CLARITY_ENERGY_THRESHOLD
     CLARITY_DURATION_TICKS = 50
 
-    def __init__(self, logger=None):
-        self.tracker = ClarityMomentsTracker(logger=logger)
+    def __init__(self, logger=None, self_state_provider=None):
+        self.tracker = ClarityMomentsTracker(logger=logger, self_state_provider=self_state_provider)
         # Backward compatibility attributes
         self._clarity_events_count = 0
         self._last_check_tick = -10  # -CLARITY_CHECK_INTERVAL
