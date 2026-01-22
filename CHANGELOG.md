@@ -13,10 +13,12 @@
 - **AsyncDataSink улучшения**: Новые параметры конфигурации (max_queue_size, processing_interval) и улучшенная обработка данных
 - **PassiveDataSink улучшения**: Убран лимит maxlen для предотвращения потери данных
 - **RawDataAccess улучшения**: Изменена логика получения данных - лимит применяется после получения всех данных
+- **Новые записи сенсорных событий**: Расширение sensory_buffer новыми событиями (chain_1, chain_2, chain_3 и т.д.) с timestamps 1769054119-1769054635
 
 ### Изменено
 - **EnvironmentConfigManager**: Значительно увеличены веса новых типов событий (connection, isolation, insight, confusion, curiosity, meaning_found, void, acceptance) для повышения их влияния
 - **Observability архитектура**: Обновлен статус компонентов AsyncDataSink и PassiveDataSink как устаревших, но поддерживаемых для совместимости
+- **Статус задач**: Обновлен статус задачи "Реализовать вероятностное распределение новых событий (14.3% от потока)" как выполненной в todo/CURRENT.md
 
 ## [Unreleased]
 

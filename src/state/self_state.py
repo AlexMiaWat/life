@@ -119,6 +119,11 @@ class SelfState:
     semantic_concepts_count: int = 0  # Количество семантических концепций
     procedural_patterns_count: int = 0  # Количество процедурных паттернов
 
+    # === Consciousness parameters ===
+    consciousness_level: float = 0.0  # Текущий уровень сознания [0.0-1.0]
+    clarity_history: list = field(default_factory=list)  # История моментов ясности
+    state_transition_history: list = field(default_factory=list)  # История переходов состояний сознания
+
     # Last perceived event intensity (signal for subjective time), in [0..1].
     last_event_intensity: float = 0.0
 

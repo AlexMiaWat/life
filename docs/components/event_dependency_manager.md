@@ -121,8 +121,68 @@ print(f"Создано цепочек: {stats['chains_created']}")
 print(f"Обнаружено паттернов: {stats['patterns_detected']}")
 print(f"Всего модификаций: {stats['total_modifications']}")
 
+# Статистика работы с цепочками
+chain_stats = dependency_manager.get_chain_statistics()
+print(f"Активных цепочек: {chain_stats['active_chains']}")
+print(f"Завершенных цепочек: {chain_stats['completed_chains']}")
+print(f"Средняя длина цепочки: {chain_stats['avg_chain_length']:.1f}")
+
 # Сброс статистики
 dependency_manager.reset_stats()
+```
+
+## Интеграция с Sensory Buffer
+
+EventDependencyManager работает с Sensory Buffer для анализа цепочек событий с correlation_id:
+
+### Работа с цепочками событий
+
+```python
+from src.experimental.memory_hierarchy.sensory_buffer import SensoryBuffer
+from src.environment.event_dependency_manager import EventDependencyManager
+
+# Создание компонентов
+sensory_buffer = SensoryBuffer()
+dependency_manager = EventDependencyManager()
+
+# Анализ конкретной цепочки
+chain_id = "chain_2"
+modifiers = dependency_manager.get_probability_modifiers_for_chain(chain_id, sensory_buffer)
+
+# Модификаторы специфичны для паттернов в данной цепочке
+print(f"Модификаторы для цепочки {chain_id}: {modifiers}")
+```
+
+### Анализ паттернов в цепочках
+
+EventDependencyManager анализирует последние события в каждой цепочке отдельно:
+
+1. **Извлечение событий цепочки** - получение всех событий с одинаковым correlation_id
+2. **Анализ последовательности** - определение паттернов в рамках цепочки
+3. **Расчет модификаторов** - применение зависимостей специфичных для данной цепочки
+4. **Обратная связь** - модификаторы влияют только на следующие события в той же цепочке
+
+### Пример анализа цепочки
+
+```python
+# Цепочка событий: void → confusion → curiosity → insight
+chain_events = [
+    {"correlation_id": "chain_2", "event_type": "void", "timestamp": 1769032311.000},
+    {"correlation_id": "chain_2", "event_type": "confusion", "timestamp": 1769032311.100},
+    {"correlation_id": "chain_2", "event_type": "curiosity", "timestamp": 1769032311.200},
+]
+
+# Анализ паттерна в цепочке
+pattern_analysis = dependency_manager.analyze_chain_pattern(chain_events)
+
+# Результат анализа
+{
+    "chain_id": "chain_2",
+    "detected_pattern": "void_confusion_curiosity",
+    "confidence": 0.85,
+    "expected_next": "insight",
+    "probability_modifier": 2.5
+}
 ```
 
 ## Интеграция с EventGenerator

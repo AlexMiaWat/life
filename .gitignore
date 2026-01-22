@@ -243,6 +243,16 @@ performance_1769025371.json
 coverage_1769025371.xml
 htmlcov_1769025371/
 
+# Current testing session artifacts (1769054147)
+test_full_task_1769054147.*
+test_results_1769054147.xml
+test_output_1769054147.txt
+test_report_1769054147.json
+benchmark_1769054147.json
+performance_1769054147.json
+coverage_1769054147.xml
+htmlcov_1769054147/
+
 # Current testing session artifacts (1769047103)
 test_full_task_1769047103.*
 test_results_1769047103.xml

@@ -20,14 +20,13 @@ from src.experimental.adaptive_processing_manager import (
 
 
 class ConsciousnessState(Enum):
-    """Enumeration of consciousness states for backward compatibility."""
-    BASIC_AWARENESS = "basic_awareness"
-    SELF_REFLECTION = "self_reflection"
-    META_COGNITION = "meta_cognition"
-    FLOW_STATE = "flow_state"
-    DEEP_REFLECTION = "deep_reflection"
-    META_AWARENESS = "meta_awareness"
-    ENLIGHTENMENT = "enlightenment"
+    """Enumeration of consciousness states - technical processing states."""
+    AWAKE = "awake"  # Normal active processing
+    FLOW = "flow"  # High-efficiency processing mode
+    REFLECTIVE = "reflective"  # Analysis and optimization mode
+    META = "meta"  # Deep analysis mode
+    DREAMING = "dreaming"  # Reduced activity mode
+    UNCONSCIOUS = "unconscious"  # Minimal activity mode
 
 
 @dataclass
@@ -63,7 +62,7 @@ class ParallelConsciousnessEngine:
     """Engine for parallel consciousness processing with backward compatibility."""
 
     def __init__(self,
-                 initial_state: ConsciousnessState = ConsciousnessState.BASIC_AWARENESS,
+                 initial_state: ConsciousnessState = ConsciousnessState.AWAKE,
                  initial_metrics: Optional[ConsciousnessMetrics] = None,
                  max_workers: int = 4,
                  mode: ProcessingMode = ProcessingMode.THREADING):
@@ -263,28 +262,26 @@ class ParallelConsciousnessEngine:
 
         # Map adaptive states to consciousness states
         state_mapping = {
-            "idle": ConsciousnessState.BASIC_AWARENESS,
-            "processing": ConsciousnessState.SELF_REFLECTION,
-            "analyzing": ConsciousnessState.META_COGNITION,
-            "optimizing": ConsciousnessState.FLOW_STATE,
-            "error": ConsciousnessState.BASIC_AWARENESS
+            "idle": ConsciousnessState.AWAKE,
+            "processing": ConsciousnessState.REFLECTIVE,
+            "analyzing": ConsciousnessState.META,
+            "optimizing": ConsciousnessState.FLOW,
+            "error": ConsciousnessState.AWAKE
         }
 
-        # Use metrics to determine more advanced states
-        if self.metrics.level >= 0.9 and self.metrics.meta_cognition_depth >= 0.8:
-            return ConsciousnessState.ENLIGHTENMENT
-        elif self.metrics.level >= 0.8 and self.metrics.meta_cognition_depth >= 0.7:
-            return ConsciousnessState.META_AWARENESS
-        elif self.metrics.level >= 0.7 and self.metrics.self_reflection_score >= 0.6:
-            return ConsciousnessState.DEEP_REFLECTION
-        elif self.metrics.level >= 0.6:
-            return ConsciousnessState.FLOW_STATE
-        elif self.metrics.level >= 0.4:
-            return ConsciousnessState.META_COGNITION
-        elif self.metrics.level >= 0.2:
-            return ConsciousnessState.SELF_REFLECTION
+        # Use metrics to determine processing states
+        if self.metrics.level >= 0.8 and self.metrics.meta_cognition_depth >= 0.7:
+            return ConsciousnessState.META
+        elif self.metrics.level >= 0.6 and self.metrics.self_reflection_score >= 0.5:
+            return ConsciousnessState.REFLECTIVE
+        elif self.metrics.level >= 0.7:
+            return ConsciousnessState.FLOW
+        elif self.metrics.level >= 0.3:
+            return ConsciousnessState.AWAKE
+        elif self.metrics.level >= 0.1:
+            return ConsciousnessState.DREAMING
         else:
-            return ConsciousnessState.BASIC_AWARENESS
+            return ConsciousnessState.UNCONSCIOUS
 
     def update_metrics(self, level: Optional[float] = None,
                       self_reflection_score: Optional[float] = None,

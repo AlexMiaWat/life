@@ -50,8 +50,19 @@ class ConsciousnessStateData:
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'ConsciousnessStateData':
         """Create state data from dictionary."""
+        # Convert string representation back to enum
+        state_str = data['state']
+        state_enum = None
+        for enum_member in ConsciousnessState:
+            if enum_member.value == state_str:
+                state_enum = enum_member
+                break
+
+        if state_enum is None:
+            raise ValueError(f"Unknown consciousness state: {state_str}")
+
         return cls(
-            state=ConsciousnessState(data['state']),
+            state=state_enum,
             timestamp=data['timestamp'],
             metadata=data['metadata'],
             metrics=data.get('metrics'),

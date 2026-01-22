@@ -484,6 +484,14 @@ def run_loop(
                         clarity_moments.activate_clarity_moment(self_state)
                         # Анализируем момент ясности для создания события
                         moment = clarity_moments.analyze_clarity(self_state)
+
+                        # Интегрируем момент ясности с управлением памятью
+                        if memory_hierarchy and moment:
+                            # Определяем тип ясности на основе стадии
+                            clarity_type = _map_clarity_stage_to_type(moment.stage)
+                            memory_hierarchy.handle_clarity_moment(
+                                clarity_type, moment.intensity, self_state
+                            )
                         if moment:
                             # Создаем событие момента ясности
                             clarity_event = {
@@ -499,6 +507,23 @@ def run_loop(
                             }
                             # Добавляем в очередь событий
                             event_queue.put_nowait(clarity_event)
+
+                            # Записываем в историю моментов ясности
+                            clarity_record = {
+                                "timestamp": time.time(),
+                                "subjective_timestamp": self_state.subjective_time,
+                                "intensity": moment.intensity,
+                                "stage": moment.stage,
+                                "correlation_id": moment.correlation_id,
+                                "consciousness_level": self_state.consciousness_level,
+                                "stability": self_state.stability,
+                                "energy": self_state.energy
+                            }
+                            self_state.clarity_history.append(clarity_record)
+
+                            # Ограничиваем историю последними 100 записями
+                            if len(self_state.clarity_history) > 100:
+                                self_state.clarity_history = self_state.clarity_history[-100:]
 
                 # Обновление состояния Clarity Moments
                 clarity_moments.update_clarity_state(self_state)
@@ -803,6 +828,9 @@ def run_loop(
                                     if memory_hierarchy.procedural_store
                                     else 0
                                 )
+
+                                # Обновление уровня сознания (базовое значение на основе стабильности и энергии)
+                                self_state.consciousness_level = min(1.0, (self_state.stability + self_state.energy / 100.0) / 2.0)
 
 
                         logger.debug(
@@ -1281,5 +1309,26 @@ def run_loop(
         # Корректное завершение StructuredLogger при окончании работы
         if 'structured_logger' in locals() and structured_logger is not None:
             structured_logger.shutdown()
+
+
+def _map_clarity_stage_to_type(stage: str) -> str:
+    """
+    Map clarity moment stage to memory-relevant type.
+
+    Args:
+        stage: Clarity moment stage
+
+    Returns:
+        Memory-relevant clarity type
+    """
+    stage_mapping = {
+        "initial_awakening": "cognitive",
+        "deep_insight": "existential",
+        "pattern_recognition": "cognitive",
+        "emotional_clarity": "emotional",
+        "flow_state": "cognitive",
+        "meta_awareness": "existential"
+    }
+    return stage_mapping.get(stage, "cognitive")
 
 

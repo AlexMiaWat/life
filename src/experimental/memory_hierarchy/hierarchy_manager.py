@@ -100,6 +100,79 @@ class MemoryHierarchyManager:
         """
         self.sensory_buffer.add_event(event)
 
+    def handle_clarity_moment(self, clarity_type: str, intensity: float, self_state) -> None:
+        """
+        Обработать момент ясности и его влияние на память.
+
+        Args:
+            clarity_type: Тип момента ясности
+            intensity: Интенсивность момента ясности (0.0-1.0)
+            self_state: Текущее состояние системы
+        """
+        # Моменты ясности усиливают консолидацию памяти
+        clarity_effects = self._calculate_clarity_effects(clarity_type, intensity)
+
+        # Применяем эффекты к консолидации
+        if clarity_effects.get("boost_semantic_consolidation", False):
+            # Ускоренная семантическая консолидация
+            semantic_count = self._consolidate_semantic_knowledge()
+            self.logger.log_event({
+                "event_type": "clarity_boosted_semantic_consolidation",
+                "clarity_type": clarity_type,
+                "intensity": intensity,
+                "concepts_consolidated": semantic_count,
+            })
+
+        if clarity_effects.get("boost_episodic_transfer", False):
+            # Ускоренный перенос в семантическую память
+            episodic_transfers = self._consolidate_episodic_to_semantic(self_state)
+            self.logger.log_event({
+                "event_type": "clarity_boosted_episodic_transfer",
+                "clarity_type": clarity_type,
+                "intensity": intensity,
+                "concepts_transferred": episodic_transfers,
+            })
+
+        if clarity_effects.get("optimize_patterns", False):
+            # Оптимизация процедурных паттернов
+            if self.procedural_store:
+                optimized_count = self.procedural_store.optimize_patterns()
+                self.logger.log_event({
+                    "event_type": "clarity_optimized_procedural_patterns",
+                    "clarity_type": clarity_type,
+                    "intensity": intensity,
+                    "patterns_optimized": optimized_count,
+                })
+
+    def _calculate_clarity_effects(self, clarity_type: str, intensity: float) -> Dict[str, Any]:
+        """
+        Рассчитать эффекты момента ясности на память.
+
+        Args:
+            clarity_type: Тип момента ясности
+            intensity: Интенсивность (0.0-1.0)
+
+        Returns:
+            Dict с эффектами
+        """
+        effects = {
+            "boost_semantic_consolidation": False,
+            "boost_episodic_transfer": False,
+            "optimize_patterns": False,
+        }
+
+        # Разные типы ясности влияют на разные аспекты памяти
+        if clarity_type == "cognitive" and intensity > 0.7:
+            effects["boost_semantic_consolidation"] = True
+            effects["boost_episodic_transfer"] = True
+        elif clarity_type == "emotional" and intensity > 0.6:
+            effects["optimize_patterns"] = True
+        elif clarity_type == "existential" and intensity > 0.8:
+            effects["boost_semantic_consolidation"] = True
+            effects["optimize_patterns"] = True
+
+        return effects
+
     def process_sensory_events(self, max_events: Optional[int] = None) -> List[Event]:
         """
         Обработать события из сенсорного буфера для передачи в MeaningEngine.
