@@ -8,7 +8,6 @@
 
 API построен на композиции следующих компонентов:
 
-- **PassiveDataSink** - пассивный прием данных
 - **RawDataCollector** - сбор сырых счетчиков
 - **StructuredLogger** - структурированное логирование
 - **RawDataAccess** - доступ к историческим данным
@@ -230,7 +229,6 @@ observer.log_tick_end(current_tick, tick_duration, events_processed)
 
 ```python
 # Старый код
-data_sink = PassiveDataSink()
 logger = StructuredLogger()
 collector = RawDataCollector()
 

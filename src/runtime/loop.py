@@ -266,10 +266,66 @@ def run_loop(
     # Активное структурированное логирование для понимания поведения системы
     # (Признаем, что система Life требует активного мониторинга для корректной работы)
 
-    # Инициализация structured logger
+    # Инициализация асинхронной очереди для операций наблюдения
+    from src.runtime.async_data_queue import AsyncDataQueue
+    async_data_queue = AsyncDataQueue(max_size=10000, flush_interval=1.0)  # Быстрое сброс каждую секунду
+    async_data_queue.start()
+
+    # Инициализация компонентов наблюдения
+    from src.observability.passive_data_sink import PassiveDataSink
+    from src.observability.async_data_sink import AsyncDataSink
+    from src.observability.runtime_analysis_engine import RuntimeAnalysisEngine
+
+    passive_sink = PassiveDataSink(max_entries=1000)
+    async_sink = AsyncDataSink(
+        data_directory="data/async_observations",
+        async_queue=async_data_queue  # Используем общую очередь
+    )
+
+    # Функция обработки результатов анализа для real-time алертов
+    def handle_analysis_results(analysis_type: str, result_data: Dict[str, Any]) -> None:
+        """Обработчик результатов анализа для генерации алертов."""
+        if analysis_type == "performance":
+            avg_duration = result_data.get('avg_tick_duration', 0)
+            slow_ticks = result_data.get('slow_ticks_100ms', 0)
+
+            if avg_duration > 0.100:  # > 100ms в среднем
+                logger.warning(f"PERFORMANCE ALERT: Average tick duration {avg_duration:.3f}s exceeds 100ms threshold")
+                # Можно добавить адаптивные действия здесь
+
+            if slow_ticks > 5:
+                logger.warning(f"PERFORMANCE ALERT: {slow_ticks} ticks exceed 100ms")
+
+        elif analysis_type == "errors":
+            total_errors = result_data.get('total_errors', 0)
+            error_trend = result_data.get('error_trend', 0)
+
+            if total_errors > 10:
+                logger.error(f"ERROR ALERT: {total_errors} errors detected in recent logs")
+
+            if error_trend > 1:
+                logger.warning(f"ERROR TREND ALERT: Error rate is increasing (trend: {error_trend:.2f})")
+
+    # Инициализация движка анализа
+    analysis_engine = RuntimeAnalysisEngine(
+        log_path="data/structured_log.jsonl",
+        structured_logger=structured_logger,
+        analysis_interval=30.0  # Анализ каждые 30 секунд
+    )
+
+    # Добавляем callback для real-time алертов
+    analysis_engine.add_result_callback(handle_analysis_results)
+    analysis_engine.start()
+
+    # Инициализация structured logger с асинхронной очередью
+    # Оптимизация производительности: логируем каждый 10-й тик, отключаем детальное логирование
     if structured_logger is None:
         from src.observability.structured_logger import StructuredLogger
-        structured_logger = StructuredLogger()
+        structured_logger = StructuredLogger(
+            async_queue=async_data_queue,
+            log_tick_interval=10,  # Логировать каждый 10-й тик
+            enable_detailed_logging=False  # Отключить детальное логирование для производительности
+        )
 
     engine = MeaningEngine()
     learning_engine = LearningEngine()  # Learning Engine (Этап 14)
@@ -424,6 +480,22 @@ def run_loop(
                             logger.debug("Technical metrics collection queued for async processing")
                         else:
                             logger.warning("Failed to queue technical metrics collection")
+
+                        # Дополнительно записываем runtime метрики в AsyncDataSink
+                        async_sink.accept_data_point_async(
+                            event_type="runtime_metrics",
+                            data={
+                                "tick": self_state.ticks,
+                                "energy": self_state.energy,
+                                "stability": self_state.stability,
+                                "integrity": self_state.integrity,
+                                "memory_size": len(self_state.memory),
+                                "event_queue_size": event_queue.size() if event_queue else 0,
+                                "pending_actions": len(pending_actions),
+                            },
+                            source="runtime_loop",
+                            metadata={"metrics_collection_interval": METRICS_COLLECTION_INTERVAL}
+                        )
 
                     except Exception as e:
                         logger.warning(f"Failed to queue technical metrics collection: {e}")
@@ -620,6 +692,27 @@ def run_loop(
                                     timestamp=time.time(),
                                     subjective_timestamp=self_state.subjective_time,
                                 )
+                            )
+
+                            # Записываем в PassiveDataSink для внешнего наблюдения
+                            passive_sink.receive_data(
+                                event_type="action_executed",
+                                data={
+                                    "action_id": action_id,
+                                    "pattern": pattern,
+                                    "event_type": event.type,
+                                    "significance": meaning.significance,
+                                    "state_change": {
+                                        "energy_delta": self_state.energy - state_before["energy"],
+                                        "stability_delta": self_state.stability - state_before["stability"],
+                                        "integrity_delta": self_state.integrity - state_before["integrity"],
+                                    }
+                                },
+                                source="runtime_loop",
+                                metadata={
+                                    "tick": self_state.ticks,
+                                    "correlation_id": correlation_id
+                                }
                             )
 
                             # Хук: Обновление экспериментальных метрик SelfState
@@ -887,6 +980,22 @@ def run_loop(
                             analysis, old_behavior_params, self_state
                         )
 
+                        # Интеграция результатов анализа в адаптацию
+                        analysis_recommendations = analysis_engine.get_recommendations()
+                        if analysis_recommendations['performance'] or analysis_recommendations['errors']:
+                            logger.info(f"Analysis recommendations available: perf={len(analysis_recommendations['performance'])}, errors={len(analysis_recommendations['errors'])}")
+
+                            # На основе анализа производительности корректируем параметры
+                            perf_result = analysis_engine.get_current_analysis('performance')
+                            if perf_result and perf_result.is_recent():
+                                perf_data = perf_result.data
+                                if perf_data.get('trend_direction') == 'degrading':
+                                    # Если производительность ухудшается, уменьшаем сложность обработки
+                                    logger.info("Performance degrading detected, adjusting processing parameters")
+                                    if 'adaptive_processing' not in new_behavior_params:
+                                        new_behavior_params['adaptive_processing'] = {}
+                                    new_behavior_params['adaptive_processing']['complexity_reduction'] = 0.8
+
                         # Сохраняем историю и обновляем параметры
                         if new_behavior_params:
                             # Оптимизированное объединение параметров в SelfState
@@ -997,7 +1106,11 @@ def run_loop(
                         {"event_type": "adaptive_processing_manager_stopped"}
                     )
 
-                # Observability не требует остановки - внешняя система
+                # Остановка асинхронной очереди
+                async_data_queue.stop()
+
+                # Остановка движка анализа
+                analysis_engine.stop()
 
                 # Flush логов при завершении (обязательно)
                 log_manager.maybe_flush(self_state, phase="shutdown")

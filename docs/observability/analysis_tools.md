@@ -2,11 +2,112 @@
 
 ## Обзор
 
-Система структурированного логирования Life генерирует JSONL логи, которые можно анализировать различными инструментами. Этот документ описывает основные подходы и инструменты для анализа логов.
+Система структурированного логирования Life генерирует JSONL логи, которые можно анализировать различными инструментами. Проект включает специализированные Python инструменты для глубокого анализа данных наблюдений.
+
+## Python библиотека анализа
+
+Основной инструмент анализа - модуль `src.observability.log_analysis`:
+
+```python
+from src.observability.log_analysis import (
+    analyze_logs,
+    analyze_correlation_chains,
+    get_performance_metrics,
+    get_error_summary
+)
+
+# Базовый анализ
+stats = analyze_logs("data/structured_log.jsonl")
+print(f"Всего записей: {stats['total_entries']}")
+print(f"Стадии: {stats['stages']}")
+
+# Анализ цепочек
+chains = analyze_correlation_chains("data/structured_log.jsonl")
+print(f"Цепочек: {chains['summary']['total_chains']}")
+
+# Метрики производительности
+perf = get_performance_metrics("data/structured_log.jsonl")
+print(f"Средний тик: {perf['avg_tick_duration']:.2f}ms")
+
+# Анализ ошибок
+errors = get_error_summary("data/structured_log.jsonl")
+print(f"Ошибок: {errors['total_errors']}")
+```
+
+### Возможности библиотеки
+
+- **Статистика логов:** Распределение по стадиям, событиям, типам ошибок
+- **Анализ цепочек:** Полнота обработки, длительность, корреляционные связи
+- **Метрики производительности:** Длительности тиков, частота медленных операций
+- **Анализ ошибок:** Типы ошибок, частота, последние ошибки
+- **Фильтрация по времени:** Анализ данных за определенные периоды
 
 ## Основные инструменты
 
-### 1. jq - Командная строка
+### 1. Python инструменты анализа (РЕКОМЕНДУЕТСЯ)
+
+Проект включает комплексные Python инструменты для анализа структурированных логов:
+
+#### CLI инструмент анализа
+```bash
+# Базовая статистика
+python scripts/analyze_logs.py stats
+
+# Анализ цепочек обработки
+python scripts/analyze_logs.py chains
+
+# Метрики производительности
+python scripts/analyze_logs.py performance
+
+# Сводка по ошибкам
+python scripts/analyze_logs.py errors
+
+# Полный анализ всех аспектов
+python scripts/analyze_logs.py full
+
+# Экспорт результатов в JSON
+python scripts/analyze_logs.py stats --export results.json
+
+# Анализ за последние 3600 секунд
+python scripts/analyze_logs.py stats --since 3600
+```
+
+#### Оптимизированный анализ больших файлов
+```bash
+# Параллельный анализ с кэшированием
+python scripts/analyze_large_logs.py stats --log-file data/large_log.jsonl
+
+# Анализ цепочек корреляций
+python scripts/analyze_large_logs.py chains --log-file data/large_log.jsonl
+
+# Экспорт отфильтрованных данных
+python scripts/analyze_large_logs.py export --filter-stage event --output events.jsonl
+
+# Очистка кэша
+python scripts/analyze_large_logs.py clear-cache
+```
+
+#### Мониторинг в реальном времени
+```bash
+# Мониторинг с алертами
+python scripts/monitor_logs.py --log-file data/structured_log.jsonl
+
+# Кастомные пороги алертов
+python scripts/monitor_logs.py --slow-tick-threshold 100 --error-rate-threshold 0.05
+```
+
+#### REST API для анализа
+```bash
+# Запуск сервера анализа
+python scripts/run_analysis_api.py --host 127.0.0.1 --port 8001
+
+# Примеры запросов
+curl http://localhost:8001/stats
+curl http://localhost:8001/performance
+curl "http://localhost:8001/export?format=json&analysis_type=full"
+```
+
+### 2. jq - Командная строка
 
 `jq` - мощный инструмент для обработки JSON в командной строке.
 
@@ -345,12 +446,29 @@ def get_cached_analysis(log_path="data/structured_log.jsonl"):
             return cached['results']
 ```
 
+## Тестирование инструментов
+
+Проект включает тесты для проверки корректности работы инструментов анализа:
+
+```bash
+# Тестирование Python библиотеки
+python -m pytest src/test/test_log_analysis.py -v
+
+# Тестирование REST API
+python -m pytest src/test/test_analysis_api.py -v
+
+# Интеграционное тестирование CLI инструментов
+python -m pytest src/test/test_cli_analysis_tools.py -v
+```
+
 ## Рекомендации по использованию
 
-1. **Для разработки:** Используйте jq для быстрого анализа и отладки
-2. **Для мониторинга:** Настройте алёрты на ключевые метрики
-3. **Для исследования:** Используйте Python скрипты для глубокого анализа
-4. **Для больших объемов:** Рассмотрите базы данных (Elasticsearch, ClickHouse) для хранения и анализа логов
+1. **Для разработки:** Используйте Python CLI инструменты для быстрого анализа
+2. **Для мониторинга:** Настройте `monitor_logs.py` с алертами на ключевые метрики
+3. **Для исследования:** Используйте Python библиотеку для глубокого анализа
+4. **Для больших объемов:** Используйте `analyze_large_logs.py` с параллельной обработкой
+5. **Для автоматизации:** Интегрируйте REST API в системы мониторинга
+6. **Для отладки:** Используйте jq для быстрого просмотра и фильтрации
 
 ## Следующие шаги
 

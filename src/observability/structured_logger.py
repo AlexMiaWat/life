@@ -14,6 +14,7 @@ from uuid import uuid4
 from pathlib import Path
 
 from src.config.observability_config import get_observability_config
+from src.runtime.async_data_queue import AsyncDataQueue, DataOperation, DataOperationType
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +65,10 @@ class StructuredLogger:
         self,
         log_file: Optional[str] = None,
         enabled: Optional[bool] = None,
-        config=None
+        config=None,
+        async_queue: Optional[AsyncDataQueue] = None,
+        log_tick_interval: int = 10,  # Логировать каждый N-й тик для снижения overhead
+        enable_detailed_logging: bool = False  # Отключить детальное логирование для производительности
     ):
         """
         Initialize structured logger.
@@ -73,14 +77,21 @@ class StructuredLogger:
             log_file: Path to JSONL log file (uses config if None)
             enabled: Whether logging is enabled (uses config if None)
             config: Observability config (loads from file if None)
+            async_queue: AsyncDataQueue for async logging operations
+            log_tick_interval: Интервал логирования тиков (каждый N-й тик)
+            enable_detailed_logging: Включить детальное логирование всех этапов
         """
         if config is None:
             config = get_observability_config()
 
         self.log_file = log_file or config.structured_logging.log_file
         self.enabled = enabled if enabled is not None else config.structured_logging.enabled
+        self.log_tick_interval = log_tick_interval
+        self.enable_detailed_logging = enable_detailed_logging
         self._lock = threading.Lock()
         self._correlation_counter = 0
+        self._async_queue = async_queue
+        self._tick_counter = 0  # Счетчик тиков для интервального логирования
 
         # Убедиться что директория существует
         log_path = Path(self.log_file)
@@ -96,10 +107,34 @@ class StructuredLogger:
             return f"chain_{self._correlation_counter}"
 
     def _write_log_entry(self, entry: Dict[str, Any]) -> None:
-        """Write a single log entry to the file with timeout and graceful error handling."""
+        """Write a single log entry asynchronously via AsyncDataQueue or synchronously as fallback."""
         if not self.enabled:
             return
 
+        if self._async_queue:
+            # Async logging via AsyncDataQueue
+            try:
+                operation = DataOperation(
+                    operation_type=DataOperationType.WRITE_FILE,
+                    data={
+                        "filepath": self.log_file,
+                        "content": json.dumps(entry, ensure_ascii=False, default=str) + "\n",
+                        "mode": "a"
+                    }
+                )
+                success = self._async_queue.put_nowait(operation)
+                if not success:
+                    logger.warning("AsyncDataQueue is full, falling back to sync logging")
+                    self._write_log_entry_sync(entry)
+            except Exception as e:
+                logger.warning(f"Failed to queue async log entry: {e}")
+                self._write_log_entry_sync(entry)
+        else:
+            # Synchronous logging as fallback
+            self._write_log_entry_sync(entry)
+
+    def _write_log_entry_sync(self, entry: Dict[str, Any]) -> None:
+        """Write a single log entry synchronously with timeout and graceful error handling."""
         try:
             with self._lock:
                 # Ensure directory exists with timeout
@@ -187,6 +222,10 @@ class StructuredLogger:
             meaning: Meaning object from MeaningEngine
             correlation_id: Correlation ID from event stage
         """
+        # Пропускаем детальное логирование если отключено
+        if not self.enable_detailed_logging:
+            return
+
         # Убираем derived metrics (significance, impact) - логируем только факт обработки
         entry = {
             "timestamp": time.time(),
@@ -209,6 +248,10 @@ class StructuredLogger:
         Args:
             correlation_id: Correlation ID from event chain
         """
+        # Пропускаем детальное логирование если отключено
+        if not self.enable_detailed_logging:
+            return
+
         # Убираем derived metrics (pattern, additional_data) - логируем только факт принятия решения
         entry = {
             "timestamp": time.time(),
@@ -229,6 +272,10 @@ class StructuredLogger:
             action_id: Unique action identifier
             correlation_id: Correlation ID from event chain
         """
+        # Пропускаем детальное логирование если отключено
+        if not self.enable_detailed_logging:
+            return
+
         # Убираем derived metrics (pattern, state_before) - логируем только факт выполнения действия
         entry = {
             "timestamp": time.time(),
@@ -266,11 +313,19 @@ class StructuredLogger:
     def log_tick_start(self, tick_number: int, queue_size: int) -> None:
         """
         Log start of a tick for performance monitoring.
+        Логируется только каждый N-й тик для оптимизации производительности.
 
         Args:
             tick_number: Current tick number
             queue_size: Size of event queue
         """
+        with self._lock:
+            self._tick_counter += 1
+
+        # Логируем только каждый N-й тик для снижения overhead
+        if self._tick_counter % self.log_tick_interval != 0:
+            return
+
         entry = {
             "timestamp": time.time(),
             "stage": "tick_start",

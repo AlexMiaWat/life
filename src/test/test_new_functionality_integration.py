@@ -19,9 +19,9 @@ from src.environment.event import Event
 from src.memory.memory import ArchiveMemory
 
 # Импорты новых observability компонентов
-from src.observability.observation_api import PassiveDataSink
-from src.observability.observation_api import AsyncDataSink
-from src.observability.raw_data_access import RawDataAccess
+from src.observability.passive_data_sink import PassiveDataSink
+from src.observability.async_data_sink import AsyncDataSink
+# from src.observability.raw_data_access import RawDataAccess  # Module not found
 
 # Импорты новых experimental компонентов
 from src.experimental.clarity_moments import ClarityMoments
