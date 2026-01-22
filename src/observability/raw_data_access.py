@@ -14,9 +14,41 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Iterator
 from uuid import uuid4
 
-from .passive_data_sink import ObservationData
-
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class ObservationData:
+    """
+    Структура данных наблюдения для хранения.
+    """
+    timestamp: float
+    event_type: str
+    data: Any
+    source: str
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+    def to_json_line(self) -> str:
+        """Преобразовать в JSONL строку."""
+        entry = {
+            "timestamp": self.timestamp,
+            "event_type": self.event_type,
+            "data": self.data,
+            "source": self.source,
+            "metadata": self.metadata
+        }
+        return json.dumps(entry, ensure_ascii=False, default=str) + "\n"
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'ObservationData':
+        """Создать объект из словаря."""
+        return cls(
+            timestamp=data.get("timestamp", time.time()),
+            event_type=data.get("event_type", "unknown"),
+            data=data.get("data", {}),
+            source=data.get("source", "unknown"),
+            metadata=data.get("metadata", {})
+        )
 
 
 @dataclass

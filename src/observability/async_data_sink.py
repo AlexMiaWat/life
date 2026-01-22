@@ -1,224 +1,230 @@
 """
-Async Data Sink - Асинхронный сборщик данных наблюдений.
+Async Data Sink - Асинхронный компонент сбора данных наблюдений.
 
-Использует AsyncDataQueue для асинхронной обработки данных без блокировки runtime loop.
-Обновлен для улучшения совместимости с тестами.
+Предоставляет асинхронный интерфейс для сбора и обработки данных наблюдений
+с фоновой записью на диск.
 """
 
+import asyncio
+import json
 import logging
-import time
 import threading
-from typing import Any, Dict, List, Optional
+import time
+import queue
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Iterator
+from uuid import uuid4
 
-from src.runtime.async_data_queue import AsyncDataQueue
-from .passive_data_sink import ObservationData
+from .raw_data_access import ObservationData
 
 logger = logging.getLogger(__name__)
 
 
 class AsyncDataSink:
     """
-    Асинхронный сборщик данных наблюдений.
+    Async Data Sink для асинхронного сбора и обработки данных наблюдений.
 
-    Использует AsyncDataQueue для асинхронной обработки данных без блокировки
-    основного runtime loop. Обеспечивает высокую производительность и надежность.
+    Использует отдельный поток для фоновой обработки и записи данных на диск.
     """
 
     def __init__(
         self,
-        data_directory: str = "data",
+        data_directory: str = "./data/observations",
+        observations_file: str = "async_observations.jsonl",
         enabled: bool = True,
-        max_queue_size: int = 1000,
-        flush_interval: float = 5.0,
-        processing_interval: Optional[float] = None
+        buffer_size: int = 1000,
+        flush_interval: float = 1.0
     ):
         """
-        Инициализировать асинхронный сборщик данных.
+        Инициализация AsyncDataSink.
 
         Args:
             data_directory: Директория для хранения данных
-            enabled: Включено ли логирование
-            max_queue_size: Максимальный размер очереди
-            flush_interval: Интервал сброса данных (секунды)
-            processing_interval: Интервал обработки (для совместимости с тестами)
+            observations_file: Имя файла для хранения наблюдений
+            enabled: Включен ли сбор данных
+            buffer_size: Размер буфера в памяти
+            flush_interval: Интервал сброса на диск
         """
         self.data_directory = Path(data_directory)
+        self.observations_file = observations_file
         self.enabled = enabled
-        self.max_queue_size = max_queue_size
+        self.buffer_size = buffer_size
         self.flush_interval = flush_interval
-        self.processing_interval = processing_interval or flush_interval
 
-        # Создать директорию если не существует
+        # Создаем директорию если не существует
         self.data_directory.mkdir(parents=True, exist_ok=True)
 
-        # Инициализировать асинхронную очередь
-        self.async_queue = AsyncDataQueue(
-            queue_name="async_data_sink",
-            max_size=max_queue_size,
-            processing_interval=self.processing_interval
-        )
+        # Очередь для данных
+        self._queue: queue.Queue[ObservationData] = queue.Queue(maxsize=buffer_size)
 
-        # Счетчики статистики
+        # Буфер обработанных данных
+        self._processed_data: List[ObservationData] = []
+
+        # Статистика
         self._stats = {
+            "enabled": enabled,
             "events_logged": 0,
             "events_processed": 0,
-            "queue_overflows": 0,
-            "processing_errors": 0,
-            "start_time": time.time()
+            "buffer_size": buffer_size,
+            "data_directory": str(data_directory),
+            "observations_file": observations_file
         }
 
-        # Настроить обработчик данных
-        self.async_queue.set_data_handler(self._process_observation)
+        # Поток обработки
+        self._processing_thread: Optional[threading.Thread] = None
+        self._stop_event = threading.Event()
 
-        # Запустить обработку если включено
-        if self.enabled:
-            self.async_queue.start()
+        if enabled:
+            self._start_processing()
 
-        logger.info(f"AsyncDataSink initialized: enabled={enabled}, queue_size={max_queue_size}")
+        logger.info(f"AsyncDataSink initialized: {data_directory}/{observations_file}")
 
-    def log_event(self, data: Any, event_type: str = "generic", source: str = "async_sink") -> None:
+    def _start_processing(self) -> None:
+        """Запустить поток обработки данных."""
+        if self._processing_thread is not None:
+            return
+
+        self._processing_thread = threading.Thread(
+            target=self._processing_loop,
+            daemon=True
+        )
+        self._processing_thread.start()
+
+    def _processing_loop(self) -> None:
+        """Основной цикл обработки данных."""
+        last_flush = time.time()
+
+        while not self._stop_event.is_set():
+            try:
+                # Обрабатываем доступные данные
+                processed_count = 0
+                while not self._queue.empty() and processed_count < 10:
+                    try:
+                        observation = self._queue.get_nowait()
+                        self._processed_data.append(observation)
+                        self._stats["events_processed"] += 1
+                        processed_count += 1
+                    except queue.Empty:
+                        break
+
+                # Периодическая запись на диск
+                current_time = time.time()
+                if current_time - last_flush >= self.flush_interval:
+                    self._flush_to_disk()
+                    last_flush = current_time
+
+                # Небольшая пауза для снижения нагрузки CPU
+                time.sleep(0.01)
+
+            except Exception as e:
+                logger.error(f"Error in processing loop: {e}")
+
+        # Финальная запись при остановке
+        self._flush_to_disk()
+
+    def log_event(
+        self,
+        data: Any,
+        event_type: str,
+        source: str,
+        metadata: Optional[Dict[str, Any]] = None
+    ) -> bool:
         """
         Логировать событие асинхронно.
 
         Args:
             data: Данные события
             event_type: Тип события
-            source: Источник события
+            source: Источник данных
+            metadata: Дополнительные метаданные
+
+        Returns:
+            True если событие принято, False если отключено или очередь полна
         """
         if not self.enabled:
-            return
+            return False
 
-        observation = ObservationData(
-            timestamp=time.time(),
-            event_type=event_type,
-            data=data,
-            source=source
-        )
+        if metadata is None:
+            metadata = {}
 
         try:
-            # Добавить в асинхронную очередь
-            success = self.async_queue.add_data(observation)
+            # Создаем объект наблюдения
+            observation = ObservationData(
+                timestamp=time.time(),
+                event_type=event_type,
+                data=data,
+                source=source,
+                metadata=metadata
+            )
 
-            if success:
-                self._stats["events_logged"] += 1
-            else:
-                self._stats["queue_overflows"] += 1
-                logger.warning("AsyncDataSink queue overflow - dropping observation")
+            # Добавляем в очередь
+            self._queue.put_nowait(observation)
+            self._stats["events_logged"] += 1
+            return True
 
-        except Exception as e:
-            logger.error(f"Failed to log event: {e}")
-            self._stats["processing_errors"] += 1
+        except queue.Full:
+            logger.warning("AsyncDataSink queue is full, dropping event")
+            return False
 
     def get_recent_data(self, limit: Optional[int] = None) -> List[ObservationData]:
         """
-        Получить недавние данные из очереди.
+        Получить недавние обработанные данные.
 
         Args:
             limit: Максимальное количество записей
 
         Returns:
-            Список недавних наблюдений
+            Список обработанных наблюдений
         """
-        try:
-            # Получить данные из очереди
-            raw_data = self.async_queue.get_recent_data(limit=limit)
-
-            # Преобразовать в ObservationData
-            observations = []
-            for item in raw_data:
-                if isinstance(item, ObservationData):
-                    observations.append(item)
-                elif isinstance(item, dict):
-                    observations.append(ObservationData.from_dict(item))
-
-            return observations
-
-        except Exception as e:
-            logger.error(f"Failed to get recent data: {e}")
-            return []
-
-    def _process_observation(self, observation: ObservationData) -> None:
-        """
-        Обработать наблюдение (сохранить или передать дальше).
-
-        Args:
-            observation: Наблюдение для обработки
-        """
-        try:
-            self._stats["events_processed"] += 1
-
-            # В базовой реализации просто логируем факт обработки
-            # В продакшене здесь может быть сохранение в файл или БД
-            logger.debug(f"Processed observation: {observation.event_type} from {observation.source}")
-
-        except Exception as e:
-            logger.error(f"Failed to process observation: {e}")
-            self._stats["processing_errors"] += 1
+        data = self._processed_data.copy()
+        if limit is not None:
+            data = data[-limit:]
+        return data
 
     def flush(self) -> None:
-        """Принудительный сброс буферов."""
-        if self.async_queue:
-            self.async_queue.flush()
+        """Принудительная запись всех данных на диск."""
+        if self.enabled:
+            self._flush_to_disk()
 
-    def shutdown(self) -> None:
-        """Корректное завершение работы."""
-        logger.info("Shutting down AsyncDataSink...")
-
-        if self.async_queue:
-            self.async_queue.shutdown()
-
-        logger.info("AsyncDataSink shutdown complete")
-
-    def get_stats(self) -> Dict[str, Any]:
+    def get_statistics(self) -> Dict[str, Any]:
         """
-        Получить статистику работы.
+        Получить статистику AsyncDataSink.
 
         Returns:
             Словарь со статистикой
         """
-        base_stats = self._stats.copy()
+        return self._stats.copy()
 
-        # Добавить статистику очереди
-        if self.async_queue:
-            queue_stats = self.async_queue.get_stats()
-            base_stats.update({
-                "queue_size": queue_stats.get("current_size", 0),
-                "queue_max_size": queue_stats.get("max_size", 0),
-                "processing_active": queue_stats.get("processing_active", False)
-            })
+    def stop(self) -> None:
+        """Остановить обработку данных."""
+        if not self.enabled:
+            return
 
-        runtime = time.time() - base_stats["start_time"]
-        base_stats["runtime_seconds"] = runtime
-        base_stats["events_per_second"] = base_stats["events_logged"] / runtime if runtime > 0 else 0
+        self._stop_event.set()
 
-        return base_stats
+        if self._processing_thread and self._processing_thread.is_alive():
+            self._processing_thread.join(timeout=5.0)
 
+        # Финальная запись
+        self._flush_to_disk()
 
-def create_async_data_sink(
-    data_directory: str = "data",
-    enabled: bool = True,
-    max_queue_size: int = 1000,
-    flush_interval: float = 5.0,
-    processing_interval: Optional[float] = None
-) -> AsyncDataSink:
-    """
-    Фабричная функция для создания AsyncDataSink.
+    def _flush_to_disk(self) -> None:
+        """
+        Записать данные на диск.
+        """
+        try:
+            file_path = self.data_directory / self.observations_file
+            with open(file_path, 'a', encoding='utf-8') as f:
+                # Записываем обработанные данные
+                for observation in self._processed_data:
+                    f.write(observation.to_json_line())
 
-    Args:
-        data_directory: Директория для хранения данных
-        enabled: Включено ли логирование
-        max_queue_size: Максимальный размер очереди
-        flush_interval: Интервал сброса данных
-        processing_interval: Интервал обработки (для совместимости с тестами)
+            # Очищаем обработанные данные после записи
+            self._processed_data.clear()
 
-    Returns:
-        AsyncDataSink instance
-    """
-    return AsyncDataSink(
-        data_directory=data_directory,
-        enabled=enabled,
-        max_queue_size=max_queue_size,
-        flush_interval=flush_interval,
-        processing_interval=processing_interval
-    )
+        except Exception as e:
+            logger.error(f"Failed to flush data to disk: {e}")
+
+    def __len__(self) -> int:
+        """Количество обработанных записей."""
+        return len(self._processed_data)

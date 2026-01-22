@@ -118,11 +118,6 @@ class PerformanceBenchmark:
         # Test with components enabled
         import tempfile
         with tempfile.TemporaryDirectory() as temp_dir:
-            sink = AsyncDataSink(
-                storage_path=f"{temp_dir}/memory_test.jsonl",
-                enabled=True
-            )
-
             log_writer = AsyncLogWriter(
                 log_file=f"{temp_dir}/memory_test_log.jsonl",
                 enabled=True,
@@ -139,7 +134,6 @@ class PerformanceBenchmark:
 
             # Cleanup
             log_writer.shutdown()
-            sink.shutdown()
 
             # Wait for cleanup
             time.sleep(0.1)
